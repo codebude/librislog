@@ -12,7 +12,7 @@ import asyncio
 import logging
 import random
 from collections.abc import AsyncGenerator
-from typing import Optional
+from typing import Literal, Optional
 
 import httpx
 
@@ -43,6 +43,7 @@ async def search_with_progress(
     search_type: str,
     *,
     api_key: str = "",
+    mode: Literal["auto", "google_only"] = "auto",
     http_client: Optional[httpx.AsyncClient] = None,
 ) -> AsyncGenerator[dict, None]:
     """
@@ -67,27 +68,41 @@ async def search_with_progress(
     client = http_client or httpx.AsyncClient(timeout=10.0)
 
     try:
-        yield {"stage": "open_library", "status": "searching"}
-        ol_results = await _search_open_library(query, search_type, client)
-        logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
-        yield {"stage": "open_library", "status": "done", "count": len(ol_results)}
-
+        ol_results: list[BookImportCandidate] = []
         gb_results: list[BookImportCandidate] = []
-        if not ol_results:
+
+        if mode == "google_only":
             if not api_key:
-                logger.warning(
-                    "No Open Library results for %r and GOOGLE_BOOKS_API_KEY is not set",
-                    query,
-                )
+                logger.warning("Google-only search requested for %r but API key is not set", query)
                 yield {"stage": "google_books", "status": "skipped", "reason": "no_api_key"}
             else:
-                logger.info("No Open Library results — falling back to Google Books")
                 yield {"stage": "google_books", "status": "searching"}
                 gb_results = await _search_google_books(query, search_type, api_key, client)
                 logger.info("Google Books returned %d result(s) for %r", len(gb_results), query)
                 yield {"stage": "google_books", "status": "done", "count": len(gb_results)}
+            results = gb_results
+        else:
+            yield {"stage": "open_library", "status": "searching"}
+            ol_results = await _search_open_library(query, search_type, client)
+            logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
+            yield {"stage": "open_library", "status": "done", "count": len(ol_results)}
 
-        results = ol_results or gb_results
+            if not ol_results:
+                if not api_key:
+                    logger.warning(
+                        "No Open Library results for %r and GOOGLE_BOOKS_API_KEY is not set",
+                        query,
+                    )
+                    yield {"stage": "google_books", "status": "skipped", "reason": "no_api_key"}
+                else:
+                    logger.info("No Open Library results — falling back to Google Books")
+                    yield {"stage": "google_books", "status": "searching"}
+                    gb_results = await _search_google_books(query, search_type, api_key, client)
+                    logger.info("Google Books returned %d result(s) for %r", len(gb_results), query)
+                    yield {"stage": "google_books", "status": "done", "count": len(gb_results)}
+
+            results = ol_results or gb_results
+
         yield {"stage": "complete", "results": [r.model_dump() for r in results]}
     except Exception as exc:
         logger.exception("search_with_progress error: %s", exc)

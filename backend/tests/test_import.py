@@ -344,6 +344,58 @@ async def test_search_with_progress_skips_google_without_key(monkeypatch):
     assert complete["results"] == []
 
 
+@pytest.mark.anyio
+async def test_search_with_progress_google_only_runs_google(monkeypatch, fake_gb_result):
+    calls = {"ol": 0, "gb": 0}
+
+    async def fake_ol(query, search_type, client):
+        calls["ol"] += 1
+        return []
+
+    async def fake_gb(query, search_type, api_key, client):
+        calls["gb"] += 1
+        return fake_gb_result
+
+    monkeypatch.setattr(book_import, "_search_open_library", fake_ol)
+    monkeypatch.setattr(book_import, "_search_google_books", fake_gb)
+
+    events = []
+    async for event in book_import.search_with_progress(
+        "foundation", "title", api_key="test-key", mode="google_only"
+    ):
+        events.append(event)
+
+    stages = [(e["stage"], e.get("status")) for e in events if e.get("stage") != "complete"]
+    assert ("google_books", "searching") in stages
+    assert ("google_books", "done") in stages
+    assert calls["ol"] == 0
+    assert calls["gb"] == 1
+    complete = next(e for e in events if e.get("stage") == "complete")
+    assert complete["results"][0]["source"] == "google_books"
+
+
+@pytest.mark.anyio
+async def test_search_with_progress_google_only_without_key_skips(monkeypatch):
+    calls = {"gb": 0}
+
+    async def fake_gb(query, search_type, api_key, client):
+        calls["gb"] += 1
+        return []
+
+    monkeypatch.setattr(book_import, "_search_google_books", fake_gb)
+
+    events = []
+    async for event in book_import.search_with_progress("foundation", "title", mode="google_only"):
+        events.append(event)
+
+    skipped = next(e for e in events if e.get("stage") == "google_books")
+    assert skipped["status"] == "skipped"
+    assert skipped["reason"] == "no_api_key"
+    complete = next(e for e in events if e.get("stage") == "complete")
+    assert complete["results"] == []
+    assert calls["gb"] == 0
+
+
 # ── Stream endpoint tests ──────────────────────────────────────────────────────
 
 def _parse_sse(text: str) -> list[dict]:
@@ -359,7 +411,10 @@ def _parse_sse(text: str) -> list[dict]:
 
 
 def test_search_stream_endpoint(client: TestClient, monkeypatch):
-    async def fake_search_with_progress(query, search_type, *, api_key, http_client):
+    observed_mode = {"value": None}
+
+    async def fake_search_with_progress(query, search_type, *, api_key, mode, http_client):
+        observed_mode["value"] = mode
         yield {"stage": "open_library", "status": "searching"}
         yield {"stage": "open_library", "status": "done", "count": 1}
         yield {
@@ -379,6 +434,23 @@ def test_search_stream_endpoint(client: TestClient, monkeypatch):
     complete = events[2]
     assert complete["stage"] == "complete"
     assert complete["results"][0]["title"] == "Dune"
+    assert observed_mode["value"] == "auto"
+
+
+def test_search_stream_endpoint_forwards_google_only_mode(client: TestClient, monkeypatch):
+    observed_mode = {"value": None}
+
+    async def fake_search_with_progress(query, search_type, *, api_key, mode, http_client):
+        observed_mode["value"] = mode
+        yield {"stage": "google_books", "status": "searching"}
+        yield {"stage": "google_books", "status": "done", "count": 0}
+        yield {"stage": "complete", "results": []}
+
+    monkeypatch.setattr(book_import, "search_with_progress", fake_search_with_progress)
+
+    resp = client.get("/api/import/search/stream?q=dune&type=title&mode=google_only")
+    assert resp.status_code == 200
+    assert observed_mode["value"] == "google_only"
 
 
 def test_search_stream_endpoint_requires_query(client: TestClient):

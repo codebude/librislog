@@ -41,6 +41,7 @@ async def search_books(
 async def search_books_stream(
     q: str = Query(min_length=1, description="Title string or ISBN"),
     type: Literal["title", "isbn"] = Query(default="title"),
+    mode: Literal["auto", "google_only"] = Query(default="auto"),
 ) -> StreamingResponse:
     """Stream import search progress as Server-Sent Events (text/event-stream)."""
     logger.debug("Stream search request — q=%r type=%r", q, type)
@@ -51,6 +52,7 @@ async def search_books_stream(
                 q,
                 type,
                 api_key=settings.google_books_api_key,
+                mode=mode,
                 http_client=client,
             ):
                 yield f"data: {json.dumps(event)}\n\n"

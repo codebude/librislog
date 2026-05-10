@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "pyright": {
+      "disabled": true
+    },
+    "ty": {
+      "command": ["uvx", "ty", "server", "--venv", "backend/.venv"],
+      "extensions": [".py", ".pyi"]
+    }
+  }
+}
