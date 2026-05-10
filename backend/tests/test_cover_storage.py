@@ -6,7 +6,7 @@ All HTTP calls are intercepted with fake clients — no real network I/O.
 
 import pytest
 
-from app.services.cover_storage import download_cover
+from app.services.cover_storage import download_cover, save_uploaded_cover
 
 # ── Fake HTTP infrastructure ──────────────────────────────────────────────────
 
@@ -175,3 +175,79 @@ async def test_download_cover_correct_extension_png(tmp_path):
 
     assert filename is not None
     assert filename.endswith(".png")
+
+
+# ── save_uploaded_cover tests ─────────────────────────────────────────────────
+
+def test_save_uploaded_cover_success(tmp_path):
+    """Valid JPEG bytes are written and filename is returned."""
+    body = b"X" * 10_000  # 10 KB
+    filename = save_uploaded_cover(body, "image/jpeg", tmp_path)
+
+    assert filename is not None
+    assert filename.endswith(".jpg")
+    assert (tmp_path / filename).exists()
+    assert (tmp_path / filename).read_bytes() == body
+
+
+def test_save_uploaded_cover_png(tmp_path):
+    """image/png content-type results in a .png filename."""
+    body = b"Y" * 10_000
+    filename = save_uploaded_cover(body, "image/png", tmp_path)
+
+    assert filename is not None
+    assert filename.endswith(".png")
+
+
+def test_save_uploaded_cover_too_small(tmp_path):
+    """Images smaller than 5 KB are rejected."""
+    body = b"X" * 100
+    result = save_uploaded_cover(body, "image/jpeg", tmp_path)
+
+    assert result is None
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_save_uploaded_cover_non_image(tmp_path):
+    """Non-image content-type is rejected."""
+    body = b"X" * 10_000
+    result = save_uploaded_cover(body, "text/plain", tmp_path)
+
+    assert result is None
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_save_uploaded_cover_dedup(tmp_path):
+    """Uploading the same bytes twice returns the cached filename without rewriting."""
+    import hashlib
+
+    body = b"Z" * 10_000
+    digest = hashlib.sha256(body).hexdigest()[:32]
+    pre_existing = tmp_path / f"{digest}.jpg"
+    pre_existing.write_bytes(b"original")
+
+    result = save_uploaded_cover(body, "image/jpeg", tmp_path)
+
+    assert result == pre_existing.name
+    # Original file must NOT be overwritten.
+    assert pre_existing.read_bytes() == b"original"
+
+
+def test_save_uploaded_cover_no_tmp_leftover(tmp_path):
+    """No stale .tmp file remains after a successful save."""
+    body = b"X" * 10_000
+    filename = save_uploaded_cover(body, "image/jpeg", tmp_path)
+
+    tmp_files = list(tmp_path.glob("*.tmp"))
+    assert tmp_files == []
+    assert filename is not None
+    assert (tmp_path / filename).exists()
+
+
+def test_save_uploaded_cover_content_type_with_params(tmp_path):
+    """Content-type with charset suffix is handled (e.g. 'image/jpeg; charset=...')."""
+    body = b"X" * 10_000
+    filename = save_uploaded_cover(body, "image/jpeg; charset=utf-8", tmp_path)
+
+    assert filename is not None
+    assert filename.endswith(".jpg")

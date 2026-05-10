@@ -118,6 +118,62 @@ def resolve_cover_path(covers_dir: str | Path, filename: str | None) -> Path | N
     return Path(covers_dir) / safe_filename
 
 
+def save_uploaded_cover(
+    body: bytes,
+    content_type: str,
+    covers_dir: str | Path,
+) -> str | None:
+    """Persist an uploaded cover image locally.
+
+    Parameters
+    ----------
+    body:
+        Raw image bytes from the upload.
+    content_type:
+        MIME type declared by the client (e.g. ``"image/jpeg"``).
+    covers_dir:
+        Directory where cover files are stored.
+
+    Returns
+    -------
+    str | None
+        The local filename on success, or ``None`` if validation failed.
+    """
+    ct = content_type.split(";")[0].strip()
+    if not ct.startswith("image/"):
+        logger.warning("Uploaded cover not an image: %s", ct)
+        return None
+
+    if len(body) < _MIN_COVER_BYTES:
+        logger.warning("Uploaded cover too small: %d bytes", len(body))
+        return None
+
+    covers_path = Path(covers_dir)
+    digest = hashlib.sha256(body).hexdigest()[:32]
+
+    # Deduplication: if any file with this digest already exists, skip write.
+    existing = list(covers_path.glob(f"{digest}.*"))
+    if existing:
+        logger.debug("Uploaded cover already cached: %s", existing[0].name)
+        return existing[0].name
+
+    ext = _CONTENT_TYPE_TO_EXT.get(ct, ".jpg")
+    filename = f"{digest}{ext}"
+    tmp_path = covers_path / f"{filename}.tmp"
+    final_path = covers_path / filename
+
+    try:
+        covers_path.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_bytes(body)
+        os.replace(tmp_path, final_path)
+    except OSError as exc:
+        logger.error("Failed to write uploaded cover %s: %s", filename, exc)
+        return None
+
+    logger.debug("Uploaded cover saved: %s (%d bytes)", filename, len(body))
+    return filename
+
+
 def delete_cover_file(filename: str, covers_dir: str | Path) -> bool:
     """Delete a cached cover file if it exists."""
     path = resolve_cover_path(covers_dir, filename)
