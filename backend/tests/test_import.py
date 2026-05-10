@@ -6,6 +6,7 @@ All test functions are modular (no classes).
 """
 
 import pytest
+import httpx
 from fastapi.testclient import TestClient
 
 from app.schemas import BookImportCandidate
@@ -53,7 +54,7 @@ def test_map_open_library_fields():
     assert result.page_count == 412
     assert result.publisher == "Ace Books"
     assert "Science Fiction" in result.genre
-    assert result.cover_url == "https://covers.openlibrary.org/b/id/11481354-M.jpg"
+    assert result.cover_url == "https://covers.openlibrary.org/b/id/11481354-L.jpg"
     assert result.source == "open_library"
 
 
@@ -381,3 +382,154 @@ def test_search_stream_endpoint(client: TestClient, monkeypatch):
 def test_search_stream_endpoint_requires_query(client: TestClient):
     resp = client.get("/api/import/search/stream")
     assert resp.status_code == 422
+
+
+# ── _best_google_books_cover() tests ─────────────────────────────────────────
+
+class _FakeResponse:
+    """Minimal fake for httpx responses used in cover-resolution tests."""
+
+    def __init__(self, status_code: int = 200, headers: dict | None = None, body: dict | None = None):
+        self.status_code = status_code
+        self.headers = headers or {}
+        self._body = body or {}
+        self.is_success = 200 <= status_code < 300
+
+    def raise_for_status(self):
+        if not self.is_success:
+            raise httpx.HTTPStatusError("error", request=None, response=self)  # type: ignore[arg-type]
+
+    def json(self) -> dict:
+        return self._body
+
+
+class _FakeClient:
+    """Fake httpx.AsyncClient that returns pre-registered responses by URL."""
+
+    def __init__(self, get_map: dict | None = None, head_map: dict | None = None):
+        self._get = get_map or {}
+        self._head = head_map or {}
+
+    async def get(self, url: str, **_kwargs) -> _FakeResponse:
+        resp = self._get.get(url)
+        if resp is None:
+            return _FakeResponse(404)
+        return resp
+
+    async def head(self, url: str, **_kwargs) -> _FakeResponse:
+        resp = self._head.get(url)
+        if resp is None:
+            return _FakeResponse(404)
+        return resp
+
+
+_LARGE_URL = "https://books.google.com/large.jpg"
+_MEDIUM_URL = "https://books.google.com/medium.jpg"
+_THUMB_URL  = "https://books.google.com/thumbnail.jpg"
+
+_VOLUME_ID = "vol123"
+_VOLUME_URL = f"https://www.googleapis.com/books/v1/volumes/{_VOLUME_ID}"
+
+_IMAGE_HEADERS = {"content-type": "image/jpeg", "content-length": "50000"}
+
+
+@pytest.mark.anyio
+async def test_best_cover_prefers_large_over_thumbnail():
+    """When the volume record has a 'large' URL and it validates, use it."""
+    volume_resp = _FakeResponse(200, body={
+        "volumeInfo": {
+            "imageLinks": {
+                "large": _LARGE_URL,
+                "thumbnail": _THUMB_URL,
+            }
+        }
+    })
+    fake_client = _FakeClient(
+        get_map={_VOLUME_URL: volume_resp},
+        head_map={
+            _LARGE_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
+        },
+    )
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    assert result == _LARGE_URL
+
+
+@pytest.mark.anyio
+async def test_best_cover_falls_back_when_large_too_small():
+    """If the large URL returns a tiny file (placeholder), fall back to medium."""
+    volume_resp = _FakeResponse(200, body={
+        "volumeInfo": {
+            "imageLinks": {
+                "large": _LARGE_URL,
+                "medium": _MEDIUM_URL,
+            }
+        }
+    })
+    fake_client = _FakeClient(
+        get_map={_VOLUME_URL: volume_resp},
+        head_map={
+            _LARGE_URL:  _FakeResponse(200, headers={"content-type": "image/jpeg", "content-length": "100"}),
+            _MEDIUM_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
+        },
+    )
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    assert result == _MEDIUM_URL
+
+
+@pytest.mark.anyio
+async def test_best_cover_falls_back_when_large_not_image():
+    """If the large URL returns non-image content-type (book page), skip it."""
+    volume_resp = _FakeResponse(200, body={
+        "volumeInfo": {
+            "imageLinks": {
+                "large": _LARGE_URL,
+                "thumbnail": _THUMB_URL,
+            }
+        }
+    })
+    fake_client = _FakeClient(
+        get_map={_VOLUME_URL: volume_resp},
+        head_map={
+            _LARGE_URL: _FakeResponse(200, headers={"content-type": "text/html", "content-length": "50000"}),
+            _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
+        },
+    )
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    assert result == _THUMB_URL
+
+
+@pytest.mark.anyio
+async def test_best_cover_uses_fallback_when_volume_fetch_fails():
+    """If the volume GET fails, fall back to the search-result thumbnail."""
+    fake_client = _FakeClient(
+        get_map={},  # volume fetch → 404
+        head_map={
+            _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
+        },
+    )
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    assert result == _THUMB_URL
+
+
+@pytest.mark.anyio
+async def test_best_cover_upgrades_http_to_https():
+    """http:// URLs are upgraded to https:// before being returned."""
+    http_thumb = "http://books.google.com/thumbnail.jpg"
+    volume_resp = _FakeResponse(200, body={"volumeInfo": {"imageLinks": {}}})
+    fake_client = _FakeClient(
+        get_map={_VOLUME_URL: volume_resp},
+        head_map={
+            _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),  # https version
+        },
+    )
+    result = await book_import._best_google_books_cover(_VOLUME_ID, http_thumb, fake_client)  # type: ignore[arg-type]
+    assert result is not None
+    assert result.startswith("https://")
+
+
+@pytest.mark.anyio
+async def test_best_cover_returns_none_when_no_candidates():
+    """Returns None when no fallback is provided and volume fetch fails."""
+    fake_client = _FakeClient()
+    result = await book_import._best_google_books_cover(None, None, fake_client)  # type: ignore[arg-type]
+    assert result is None

@@ -21,7 +21,7 @@ from app.schemas import BookImportCandidate
 logger = logging.getLogger(__name__)
 
 OPEN_LIBRARY_SEARCH_URL = "https://openlibrary.org/search.json"
-OPEN_LIBRARY_COVER_URL = "https://covers.openlibrary.org/b/id/{cover_id}-M.jpg"
+OPEN_LIBRARY_COVER_URL = "https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
 
 GOOGLE_BOOKS_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
 
@@ -29,6 +29,11 @@ GOOGLE_BOOKS_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
 _RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
 _MAX_RETRIES = 3          # up to 3 extra attempts after the first try
 _RETRY_BASE_DELAY = 1.0   # seconds — doubles each attempt (1 → 2 → 4)
+
+# Google Books imageLinks size keys in preference order (largest first)
+_COVER_SIZE_PREFERENCE = ["extraLarge", "large", "medium", "small", "thumbnail", "smallThumbnail"]
+# Minimum acceptable file size — anything smaller is likely a placeholder/error page
+_MIN_COVER_BYTES = 5_000
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -264,11 +269,89 @@ async def _search_google_books(
     if not items and "error" in body:
         logger.warning("Google Books API error payload: %s", body["error"])
 
-    candidates = [map_google_books(item) for item in items
-                  if item.get("volumeInfo", {}).get("title")]
-    for c in candidates:
-        logger.debug("  GB candidate: title=%r isbn=%r", c.title, c.isbn)
+    items = [item for item in items if item.get("volumeInfo", {}).get("title")]
+
+    # Resolve the best available cover for each item in parallel
+    cover_urls: list[str | None] = list(await asyncio.gather(*[
+        _best_google_books_cover(
+            item.get("id"),
+            item.get("volumeInfo", {}).get("imageLinks", {}).get("thumbnail"),
+            client,
+        )
+        for item in items
+    ]))
+
+    candidates = []
+    for item, cover_url in zip(items, cover_urls):
+        candidate = map_google_books(item)
+        # Override whatever map_google_books picked with the resolved best cover
+        candidate = candidate.model_copy(update={"cover_url": cover_url})
+        candidates.append(candidate)
+        logger.debug("  GB candidate: title=%r isbn=%r cover=%r",
+                     candidate.title, candidate.isbn, candidate.cover_url)
     return candidates
+
+
+async def _best_google_books_cover(
+    item_id: str | None,
+    fallback_url: str | None,
+    client: httpx.AsyncClient,
+) -> str | None:
+    """
+    Fetch the full volume record to get high-res imageLinks, then probe each
+    size URL (extraLarge → large → medium → small → thumbnail → smallThumbnail)
+    via a HEAD request.  A URL is accepted when it returns HTTP 200 with either:
+      - a content-type of image/* and no content-length (CDN omits it), or
+      - a content-length exceeding _MIN_COVER_BYTES (filters placeholder pages).
+    Falls back to the search-result thumbnail when nothing better is available.
+    """
+    # ── 1. Fetch full volume to get all imageLink sizes ────────────────────────
+    image_links: dict = {}
+    if item_id:
+        try:
+            resp = await client.get(f"{GOOGLE_BOOKS_SEARCH_URL}/{item_id}")
+            resp.raise_for_status()
+            image_links = resp.json().get("volumeInfo", {}).get("imageLinks", {})
+            logger.debug("Volume %s imageLinks keys: %s", item_id, list(image_links))
+        except httpx.HTTPError as exc:
+            logger.debug("Could not fetch volume %s for cover resolution: %s", item_id, exc)
+
+    # ── 2. Build candidate list in preference order ───────────────────────────
+    candidates: list[str] = []
+    for size in _COVER_SIZE_PREFERENCE:
+        url = image_links.get(size)
+        if url:
+            candidates.append(url.replace("http://", "https://"))
+
+    # Ensure the search-result thumbnail is always available as last resort
+    if fallback_url:
+        clean_fallback = fallback_url.replace("http://", "https://")
+        if clean_fallback not in candidates:
+            candidates.append(clean_fallback)
+
+    # ── 3. Probe each candidate with a HEAD request ───────────────────────────
+    for url in candidates:
+        try:
+            head = await client.head(url, follow_redirects=True)
+            if head.status_code != 200:
+                logger.debug("Cover %s → HTTP %d, skipping", url, head.status_code)
+                continue
+            content_type = head.headers.get("content-type", "")
+            if not content_type.startswith("image/"):
+                logger.debug("Cover %s → non-image content-type %r, skipping", url, content_type)
+                continue
+            content_length = int(head.headers.get("content-length", 0))
+            if 0 < content_length < _MIN_COVER_BYTES:
+                logger.debug("Cover %s → too small (%d bytes), skipping", url, content_length)
+                continue
+            logger.debug("Best cover for volume %s: %s (%d bytes)", item_id, url, content_length)
+            return url
+        except httpx.HTTPError as exc:
+            logger.debug("HEAD %s failed: %s", url, exc)
+            continue
+
+    # Nothing validated — return raw fallback (may be None)
+    return fallback_url.replace("http://", "https://") if fallback_url else None
 
 
 def map_google_books(item: dict) -> BookImportCandidate:
