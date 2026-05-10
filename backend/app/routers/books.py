@@ -4,9 +4,11 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
+from app.config import settings
 from app.database import get_session
 from app.models import Book, ReadingStatus
 from app.schemas import BookCreate, BookRead, BookUpdate
+from app.services.cover_storage import delete_cover_file, local_cover_filename
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +93,15 @@ def delete_book(book_id: int, session: Session = Depends(get_session)) -> None:
     if not book:
         logger.debug("delete_book — id=%s not found", book_id)
         raise HTTPException(status_code=404, detail="Book not found")
+
+    filename = local_cover_filename(book.cover_url)
+    if filename:
+        shared = session.exec(
+            select(Book.id).where(Book.cover_url == f"/api/covers/{filename}", Book.id != book_id)
+        ).first()
+        if not shared:
+            delete_cover_file(filename, settings.covers_dir)
+
     session.delete(book)
     session.commit()
     logger.info("Deleted book id=%s", book_id)

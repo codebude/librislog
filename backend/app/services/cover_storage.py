@@ -93,3 +93,42 @@ async def download_cover(
 
     logger.debug("Cover saved: %s (%d bytes)", filename, len(body))
     return filename
+
+
+def local_cover_filename(cover_url: str | None) -> str | None:
+    """Extract a local cover filename from a stored `/api/covers/...` URL."""
+    if not cover_url or not cover_url.startswith("/api/covers/"):
+        return None
+
+    return safe_cover_filename(cover_url.removeprefix("/api/covers/"))
+
+
+def safe_cover_filename(filename: str | None) -> str | None:
+    """Validate a cover filename and reject path traversal attempts."""
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        return None
+    return filename
+
+
+def resolve_cover_path(covers_dir: str | Path, filename: str | None) -> Path | None:
+    """Return the absolute path for a safe cover filename."""
+    safe_filename = safe_cover_filename(filename)
+    if not safe_filename:
+        return None
+    return Path(covers_dir) / safe_filename
+
+
+def delete_cover_file(filename: str, covers_dir: str | Path) -> bool:
+    """Delete a cached cover file if it exists."""
+    path = resolve_cover_path(covers_dir, filename)
+    if path is None:
+        return False
+
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as exc:
+        logger.warning("Failed to delete cover %s: %s", filename, exc)
+        return False
+
+    logger.debug("Deleted cover: %s", filename)
+    return True

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from app.config import settings
+
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -174,6 +176,51 @@ def test_delete_book(client: TestClient):
     assert resp.status_code == 204
     # Confirm gone
     assert client.get(f"/api/books/{book['id']}").status_code == 404
+
+
+def test_delete_book_removes_local_cover_file(client: TestClient, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
+    filename = "abc123.jpg"
+    cover_path = tmp_path / filename
+    cover_path.write_bytes(b"image-bytes")
+
+    book = _create_book(client, title="With Cover", cover_url=f"/api/covers/{filename}")
+
+    resp = client.delete(f"/api/books/{book['id']}")
+    assert resp.status_code == 204
+    assert not cover_path.exists()
+
+
+def test_delete_book_keeps_shared_cover_file(client: TestClient, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
+    filename = "shared123.jpg"
+    cover_path = tmp_path / filename
+    cover_path.write_bytes(b"image-bytes")
+
+    cover_url = f"/api/covers/{filename}"
+    book1 = _create_book(client, title="Book 1", cover_url=cover_url)
+    _create_book(client, title="Book 2", cover_url=cover_url)
+
+    resp = client.delete(f"/api/books/{book1['id']}")
+    assert resp.status_code == 204
+    assert cover_path.exists()
+
+
+def test_delete_book_ignores_external_cover_url(client: TestClient, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
+    external_url = "https://covers.example.com/book.jpg"
+    book = _create_book(client, title="External Cover", cover_url=external_url)
+
+    resp = client.delete(f"/api/books/{book['id']}")
+    assert resp.status_code == 204
+
+
+def test_delete_book_still_succeeds_when_cover_file_missing(client: TestClient, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
+    book = _create_book(client, title="Missing Cover", cover_url="/api/covers/missing.jpg")
+
+    resp = client.delete(f"/api/books/{book['id']}")
+    assert resp.status_code == 204
 
 
 def test_delete_book_not_found_returns_404(client: TestClient):
