@@ -105,7 +105,13 @@
     "title": "Einstellungen",
     "languageTitle": "Sprache",
     "languageHelp": "Wähle die Sprache für die Benutzeroberfläche der App.",
-    "saved": "Die Spracheinstellung wird im Browser gespeichert."
+    "saved": "Die Spracheinstellung wird im Browser gespeichert.",
+    "apiDocsTitle": "API-Dokumentation",
+    "apiDocsHelp": "Erkunde und teste Backend-Endpunkte direkt in der App.",
+    "apiDocsViewLabel": "Ansicht",
+    "apiDocsLoading": "API-Dokumentation wird geladen",
+    "apiDocsFrameTitle": "API-Dokumentation",
+    "apiDocsOpenNewTab": "API-Dokumentation in neuem Tab öffnen"
   },
   "sort": {
     "smart": "Intelligente Sortierung"
