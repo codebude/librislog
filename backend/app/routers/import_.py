@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
+from app.auth import require_user_by_api_key
 from app.config import settings
 from app.database import get_session
-from app.models import Book
+from app.models import Book, User
 from app.schemas import BookImportCandidate, BookImportRequest, BookRead
 from app.services import book_import
 from app.services.cover_storage import download_cover
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api/import", tags=["import"])
 async def search_books(
     q: str = Query(min_length=1, description="Title string or ISBN"),
     type: Literal["title", "isbn"] = Query(default="title"),
+    _user: User = Depends(require_user_by_api_key),
 ) -> List[BookImportCandidate]:
     """Search external APIs for books by title or ISBN."""
     logger.debug("Search request — q=%r type=%r", q, type)
@@ -42,6 +44,7 @@ async def search_books_stream(
     q: str = Query(min_length=1, description="Title string or ISBN"),
     type: Literal["title", "isbn"] = Query(default="title"),
     mode: Literal["auto", "google_only"] = Query(default="auto"),
+    _user: User = Depends(require_user_by_api_key),
 ) -> StreamingResponse:
     """Stream import search progress as Server-Sent Events (text/event-stream)."""
     logger.debug("Stream search request — q=%r type=%r", q, type)
@@ -70,6 +73,7 @@ async def search_books_stream(
 @router.post("", response_model=BookRead, status_code=201)
 async def import_book(
     body: BookImportRequest,
+    current_user: User = Depends(require_user_by_api_key),
     session: Session = Depends(get_session),
 ) -> Book:
     """Persist an import candidate into the local database."""
@@ -77,7 +81,9 @@ async def import_book(
 
     # Reject duplicates by ISBN when an ISBN is present
     if c.isbn:
-        existing = session.exec(select(Book).where(Book.isbn == c.isbn)).first()
+        existing = session.exec(
+            select(Book).where(Book.isbn == c.isbn, Book.user_id == current_user.id)
+        ).first()
         if existing:
             logger.warning("Duplicate ISBN rejected — isbn=%s existing_id=%s", c.isbn, existing.id)
             raise HTTPException(
@@ -89,7 +95,7 @@ async def import_book(
     cover_url = c.cover_url
     if cover_url:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            filename = await download_cover(cover_url, settings.covers_dir, client)
+            filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)
         if filename:
             cover_url = f"/api/covers/{filename}"
 
@@ -103,6 +109,7 @@ async def import_book(
         page_count=c.page_count,
         genre=c.genre,
         reading_status=body.reading_status,
+        user_id=current_user.id,
     )
     session.add(book)
     session.commit()

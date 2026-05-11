@@ -4,10 +4,12 @@ Router for serving and uploading locally cached cover images.
 
 import logging
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.config import settings
+from app.auth import require_user_by_api_key
+from app.models import User
 from app.services.cover_storage import resolve_cover_path, save_uploaded_cover
 
 logger = logging.getLogger(__name__)
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/api/covers", tags=["covers"])
 
 
 @router.post("/upload")
-async def upload_cover(file: UploadFile = File(...)) -> dict:
+async def upload_cover(file: UploadFile = File(...), user: User = Depends(require_user_by_api_key)) -> dict:
     """Accept a multipart image upload and return its local cover URL.
 
     Returns ``{"cover_url": "/api/covers/<filename>"}`` on success, or
@@ -25,7 +27,7 @@ async def upload_cover(file: UploadFile = File(...)) -> dict:
     body = await file.read()
     content_type = file.content_type or ""
 
-    filename = save_uploaded_cover(body, content_type, settings.covers_dir)
+    filename = save_uploaded_cover(body, content_type, settings.covers_dir, user.id)
     if filename is None:
         raise HTTPException(
             status_code=422,

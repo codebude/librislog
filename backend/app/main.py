@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import books, covers, import_
+from app.routers import auth, books, covers, import_, profile, users
 
 configure_logging(settings.log_level)
 
@@ -38,6 +38,9 @@ app.add_middleware(
 app.include_router(books.router)
 app.include_router(import_.router)
 app.include_router(covers.router)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(profile.router)
 
 
 def _wrap_docs_html(html: str) -> HTMLResponse:

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlmodel import Field, SQLModel
 
-from app.models import ReadingStatus
+from app.models import ReadingStatus, UserRole
 
 
 class BookCreate(SQLModel):
@@ -74,6 +74,69 @@ class BookRead(SQLModel):
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
+
+
+class UserLogin(SQLModel):
+    email: str
+    password: str
+
+
+class SetupRequest(SQLModel):
+    firstname: str
+    lastname: str
+    email: str
+    password: str
+
+
+class UserCreate(SQLModel):
+    firstname: str
+    lastname: str
+    email: str
+    password: str
+    role: UserRole = UserRole.user
+
+
+class UserRead(SQLModel):
+    id: int
+    firstname: str
+    lastname: str
+    email: str
+    role: UserRole
+    created_at: datetime
+
+
+class UserUpdate(SQLModel):
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+
+class UserSettingsRead(SQLModel):
+    user_id: int
+    language: str
+
+
+class UserSettingsUpdate(SQLModel):
+    language: Optional[str] = None
+
+
+class ApiKeyCreate(SQLModel):
+    description: Optional[str] = None
+
+
+class ApiKeyRead(SQLModel):
+    id: int
+    key_prefix: str
+    description: Optional[str]
+    is_primary: bool
+    created_at: datetime
+    last_used_at: Optional[datetime]
+
+
+class ApiKeyCreateResponse(SQLModel):
+    key: str
+    api_key: ApiKeyRead
 
 
 class StatusTransitionRequest(SQLModel):

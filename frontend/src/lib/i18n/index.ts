@@ -1,10 +1,12 @@
 import { addMessages, init, locale, register, waitLocale, _ } from 'svelte-i18n';
+import { api } from '$lib/api';
 
 export const SUPPORTED_LOCALES = ['en', 'de'] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 
 const DEFAULT_LOCALE: AppLocale = 'en';
 const STORAGE_KEY = 'librislog.locale';
+const API_KEY_STORAGE = 'librislog.api_key';
 
 const envLocale = (import.meta.env.PUBLIC_DEFAULT_LOCALE as string | undefined)?.toLowerCase();
 const configuredDefaultLocale: AppLocale = isSupportedLocale(envLocale) ? envLocale : DEFAULT_LOCALE;
@@ -26,13 +28,28 @@ function getStoredLocale(): AppLocale | null {
 	return isSupportedLocale(stored) ? stored : null;
 }
 
+function hasStoredApiKey(): boolean {
+	if (typeof sessionStorage === 'undefined') return false;
+	return !!sessionStorage.getItem(API_KEY_STORAGE);
+}
+
 export async function setupI18n() {
 	if (initialized) {
 		await waitLocale();
 		return;
 	}
 
-	const initialLocale = getStoredLocale() ?? configuredDefaultLocale;
+	let initialLocale = getStoredLocale() ?? configuredDefaultLocale;
+	if (hasStoredApiKey()) {
+		try {
+			const settings = await api.profile.getSettings();
+			if (isSupportedLocale(settings.language)) {
+				initialLocale = settings.language;
+			}
+		} catch {
+			// unauthenticated or stale API key
+		}
+	}
 
 	init({
 		fallbackLocale: 'en',

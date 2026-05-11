@@ -29,6 +29,7 @@ async def download_cover(
     url: str,
     covers_dir: str | Path,
     client: httpx.AsyncClient,
+    user_id: int,
 ) -> str | None:
     """Download a cover image and persist it locally.
 
@@ -50,9 +51,10 @@ async def download_cover(
     covers_path = Path(covers_dir)
 
     digest = hashlib.sha256(url.encode()).hexdigest()[:32]
+    prefix = f"{user_id}__"
 
     # Deduplication: if any file with this digest already exists, skip download.
-    existing = list(covers_path.glob(f"{digest}.*"))
+    existing = list(covers_path.glob(f"{prefix}{digest}.*"))
     if existing:
         logger.debug("Cover already cached: %s", existing[0].name)
         return existing[0].name
@@ -79,7 +81,7 @@ async def download_cover(
         return None
 
     ext = _CONTENT_TYPE_TO_EXT.get(content_type, ".jpg")
-    filename = f"{digest}{ext}"
+    filename = f"{prefix}{digest}{ext}"
     tmp_path = covers_path / f"{filename}.tmp"
     final_path = covers_path / filename
 
@@ -122,6 +124,7 @@ def save_uploaded_cover(
     body: bytes,
     content_type: str,
     covers_dir: str | Path,
+    user_id: int,
 ) -> str | None:
     """Persist an uploaded cover image locally.
 
@@ -150,15 +153,16 @@ def save_uploaded_cover(
 
     covers_path = Path(covers_dir)
     digest = hashlib.sha256(body).hexdigest()[:32]
+    prefix = f"{user_id}__"
 
     # Deduplication: if any file with this digest already exists, skip write.
-    existing = list(covers_path.glob(f"{digest}.*"))
+    existing = list(covers_path.glob(f"{prefix}{digest}.*"))
     if existing:
         logger.debug("Uploaded cover already cached: %s", existing[0].name)
         return existing[0].name
 
     ext = _CONTENT_TYPE_TO_EXT.get(ct, ".jpg")
-    filename = f"{digest}{ext}"
+    filename = f"{prefix}{digest}{ext}"
     tmp_path = covers_path / f"{filename}.tmp"
     final_path = covers_path / filename
 

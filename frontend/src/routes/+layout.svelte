@@ -4,12 +4,20 @@
 	import { onMount } from 'svelte';
 	import AddBookModal from '$lib/components/AddBookModal.svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
+	import UserMenu from '$lib/components/UserMenu.svelte';
+	import { api } from '$lib/api';
+	import { currentUser, loadAuthFromStorage, setAuthKey } from '$lib/stores/auth';
 	import { _, setupI18n } from '$lib/i18n';
 
 	let { children } = $props();
 
 	let addBookOpen = $state(false);
 	let i18nReady = $state(false);
+	let authReady = $state(false);
+	let showAppChrome = $state(false);
+ 	const isPublicAuthRoute = $derived(
+		$page.url.pathname.startsWith('/setup') || $page.url.pathname.startsWith('/login')
+	);
 
 	// Expose a way for pages to trigger open
 	// We use context to share this across routes
@@ -17,8 +25,39 @@
 	setContext('openAddBook', () => (addBookOpen = true));
 
 	onMount(async () => {
+		loadAuthFromStorage();
 		await setupI18n();
 		i18nReady = true;
+
+		const path = $page.url.pathname;
+		const isSetupRoute = path.startsWith('/setup');
+		const isLoginRoute = path.startsWith('/login');
+		const publicAuthRoute = isSetupRoute || isLoginRoute;
+
+		const setup = await api.auth.setupRequired();
+		if (setup.required && !isSetupRoute) {
+			window.location.href = '/setup';
+			return;
+		}
+
+		if (!setup.required && isSetupRoute) {
+			window.location.href = '/login';
+			return;
+		}
+
+		if (!setup.required && !publicAuthRoute) {
+			try {
+				const me = await api.auth.me();
+				currentUser.set(me);
+				showAppChrome = true;
+			} catch {
+				setAuthKey(null);
+				window.location.href = '/login';
+				return;
+			}
+		}
+
+		authReady = true;
 	});
 
 	const NAV_ITEMS = [
@@ -43,6 +82,14 @@
 			return `${$_('app.title')} - ${$_('settings.title')}`;
 		}
 
+		if ($page.url.pathname.startsWith('/login')) {
+			return `${$_('app.title')} - ${$_('auth.login')}`;
+		}
+
+		if ($page.url.pathname.startsWith('/setup')) {
+			return `${$_('app.title')} - ${$_('auth.setupTitle')}`;
+		}
+
 		const status = $page.url.searchParams.get('status') ?? 'want_to_read';
 		const statusKey = STATUS_LABEL_KEYS[status] ?? STATUS_LABEL_KEYS.want_to_read;
 		return `${$_('app.title')} - ${$_(statusKey)}`;
@@ -53,12 +100,15 @@
 	<title>{pageTitle()}</title>
 </svelte:head>
 
-{#if !i18nReady}
+{#if !i18nReady || !authReady}
 	<div class="min-h-screen bg-base-200 flex items-center justify-center">
 		<span class="loading loading-spinner loading-lg"></span>
 	</div>
+{:else if !showAppChrome || isPublicAuthRoute}
+	{@render children()}
 {:else}
 <div class="min-h-screen bg-base-200 flex">
+	<UserMenu />
 	<!-- Sidebar (desktop) -->
 	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
 		<div class="text-xl font-bold tracking-tight py-2 px-1">{$_('app.title')}</div>
@@ -80,7 +130,9 @@
 		<!-- Mobile top bar -->
 		<header class="md:hidden flex items-center justify-between px-4 py-3 bg-base-100 shadow-sm sticky top-0 z-20">
 			<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
-			<button class="btn btn-primary btn-sm" onclick={() => (addBookOpen = true)}>+ {$_('app.add')}</button>
+			<div class="flex items-center gap-2">
+				<button class="btn btn-primary btn-sm" onclick={() => (addBookOpen = true)}>+ {$_('app.add')}</button>
+			</div>
 		</header>
 
 		<!-- Page content -->

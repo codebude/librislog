@@ -133,5 +133,27 @@
   "languages": {
     "en": "English",
     "de": "German"
+  },
+  "auth": {
+    "login": "Login",
+    "firstname": "First name",
+    "lastname": "Last name",
+    "email": "Email",
+    "password": "Password",
+    "loginFailed": "Login failed",
+    "setupTitle": "Create Admin Account",
+    "setupFailed": "Setup failed",
+    "createAdmin": "Create Admin"
+  },
+  "user": {
+    "menu": "User menu",
+    "profile": "Profile",
+    "logout": "Logout",
+    "apiKeys": "API Keys",
+    "primaryKeyHidden": "Your primary key is hidden for security.",
+    "keyDescription": "Description (optional)",
+    "addKey": "Add key",
+    "newKeyShownOnce": "Copy this key now. It is shown only once",
+    "noDescription": "No description"
   }
 }

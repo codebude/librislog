@@ -6,9 +6,10 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
+from app.auth import require_user_by_api_key
 from app.config import settings
 from app.database import get_session
-from app.models import Book, ReadingStatus
+from app.models import Book, ReadingStatus, User
 from app.schemas import (
     BookCreate,
     BookRead,
@@ -70,6 +71,7 @@ def list_books(
     ),
     order: Literal["asc", "desc"] = Query(default="desc"),
     smart_sort: bool = Query(default=True),
+    current_user: User = Depends(require_user_by_api_key),
     session: Session = Depends(get_session),
 ) -> List[Book]:
     logger.debug(
@@ -80,7 +82,7 @@ def list_books(
         order,
         smart_sort,
     )
-    statement = select(Book)
+    statement = select(Book).where(Book.user_id == current_user.id)
 
     if status is not None:
         statement = statement.where(Book.reading_status == status)
@@ -122,19 +124,24 @@ def list_books(
 
 
 @router.post("", response_model=BookRead, status_code=201)
-async def create_book(book_in: BookCreate, session: Session = Depends(get_session)) -> Book:
+async def create_book(
+    book_in: BookCreate,
+    current_user: User = Depends(require_user_by_api_key),
+    session: Session = Depends(get_session),
+) -> Book:
     logger.debug("create_book — title=%r", book_in.title)
 
     cover_url = book_in.cover_url
     if _is_external_url(cover_url):
         async with httpx.AsyncClient(timeout=15) as client:
-            filename = await download_cover(cover_url, settings.covers_dir, client)  # type: ignore[arg-type]
+            filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)  # type: ignore[arg-type]
         if filename:
             cover_url = f"/api/covers/{filename}"
             logger.debug("create_book — downloaded cover → %s", cover_url)
 
     book_data = book_in.model_dump()
     book_data["cover_url"] = cover_url
+    book_data["user_id"] = current_user.id
     book = Book.model_validate(book_data)
     session.add(book)
     session.commit()
@@ -144,10 +151,14 @@ async def create_book(book_in: BookCreate, session: Session = Depends(get_sessio
 
 
 @router.get("/{book_id}", response_model=BookRead)
-def get_book(book_id: int, session: Session = Depends(get_session)) -> Book:
+def get_book(
+    book_id: int,
+    current_user: User = Depends(require_user_by_api_key),
+    session: Session = Depends(get_session),
+) -> Book:
     logger.debug("get_book — id=%s", book_id)
     book = session.get(Book, book_id)
-    if not book:
+    if not book or book.user_id != current_user.id:
         logger.debug("get_book — id=%s not found", book_id)
         raise HTTPException(status_code=404, detail="Book not found")
     return book
@@ -155,11 +166,14 @@ def get_book(book_id: int, session: Session = Depends(get_session)) -> Book:
 
 @router.patch("/{book_id}", response_model=BookRead)
 async def update_book(
-    book_id: int, book_in: BookUpdate, session: Session = Depends(get_session)
+    book_id: int,
+    book_in: BookUpdate,
+    current_user: User = Depends(require_user_by_api_key),
+    session: Session = Depends(get_session),
 ) -> Book:
     logger.debug("update_book — id=%s fields=%s", book_id, list(book_in.model_dump(exclude_unset=True)))
     book = session.get(Book, book_id)
-    if not book:
+    if not book or book.user_id != current_user.id:
         logger.debug("update_book — id=%s not found", book_id)
         raise HTTPException(status_code=404, detail="Book not found")
 
@@ -169,7 +183,9 @@ async def update_book(
     # Download external cover URL → local file.
     if "cover_url" in update_data and _is_external_url(update_data["cover_url"]):
         async with httpx.AsyncClient(timeout=15) as client:
-            filename = await download_cover(update_data["cover_url"], settings.covers_dir, client)
+            filename = await download_cover(
+                update_data["cover_url"], settings.covers_dir, client, current_user.id
+            )
         if filename:
             update_data["cover_url"] = f"/api/covers/{filename}"
             logger.debug("update_book — downloaded cover → %s", update_data['cover_url'])
@@ -201,6 +217,7 @@ async def update_book(
 def transition_status(
     book_id: int,
     transition: StatusTransitionRequest,
+    current_user: User = Depends(require_user_by_api_key),
     session: Session = Depends(get_session),
 ) -> StatusTransitionResponse:
     logger.debug(
@@ -211,7 +228,7 @@ def transition_status(
         transition.force_date_finished,
     )
     book = session.get(Book, book_id)
-    if not book:
+    if not book or book.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Book not found")
 
     conflict: DateConflict | None = None
@@ -255,10 +272,14 @@ def transition_status(
 
 
 @router.delete("/{book_id}", status_code=204)
-def delete_book(book_id: int, session: Session = Depends(get_session)) -> None:
+def delete_book(
+    book_id: int,
+    current_user: User = Depends(require_user_by_api_key),
+    session: Session = Depends(get_session),
+) -> None:
     logger.debug("delete_book — id=%s", book_id)
     book = session.get(Book, book_id)
-    if not book:
+    if not book or book.user_id != current_user.id:
         logger.debug("delete_book — id=%s not found", book_id)
         raise HTTPException(status_code=404, detail="Book not found")
 

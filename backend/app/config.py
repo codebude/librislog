@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cors_origins: List[str] = ["http://localhost", "http://localhost:5173", "http://localhost:4173"]
     log_level: str = "INFO"
     covers_dir: str = "./data/covers"
+    api_key_encryption_key: str = "CHANGE_ME_TO_32PLUS_CHARS"
 
 
 settings = Settings()

@@ -54,6 +54,7 @@ class _FakeCoverClient:
 _IMAGE_URL = "https://covers.example.com/book.jpg"
 _IMAGE_HEADERS = {"content-type": "image/jpeg"}
 _PNG_HEADERS = {"content-type": "image/png"}
+_USER_ID = 1
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ async def test_download_cover_success(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert filename is not None
     assert filename.endswith(".jpg")
@@ -79,12 +80,12 @@ async def test_download_cover_dedup(tmp_path):
     # Pre-create a file with the expected digest prefix.
     import hashlib
     digest = hashlib.sha256(_IMAGE_URL.encode()).hexdigest()[:32]
-    pre_existing = tmp_path / f"{digest}.jpg"
+    pre_existing = tmp_path / f"{_USER_ID}__{digest}.jpg"
     pre_existing.write_bytes(b"cached")
 
     # Client returns nothing — dedup path must not call it.
     client = _FakeCoverClient({})
-    filename = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert filename == pre_existing.name
 
@@ -95,7 +96,7 @@ async def test_download_cover_too_small(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _SMALL_BODY)}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert result is None
     # No files should have been written.
@@ -108,7 +109,7 @@ async def test_download_cover_non_image_content_type(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, {"content-type": "text/html"}, _VALID_BODY)}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert result is None
     assert list(tmp_path.iterdir()) == []
@@ -120,7 +121,7 @@ async def test_download_cover_http_error(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(404, {}, b"")}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert result is None
 
@@ -134,7 +135,7 @@ async def test_download_cover_network_error(tmp_path):
         async def get(self, url: str, **_kwargs):
             raise httpx.ConnectError("connection refused")
 
-    result = await download_cover(_IMAGE_URL, tmp_path, _ErrorClient())  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, _ErrorClient(), _USER_ID)  # type: ignore[arg-type]
 
     assert result is None
 
@@ -145,7 +146,7 @@ async def test_download_cover_atomic_write(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     tmp_files = list(tmp_path.glob("*.tmp"))
     assert tmp_files == [], "Stale .tmp file found after successful download"
@@ -158,7 +159,7 @@ async def test_download_cover_correct_extension_jpeg(tmp_path):
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, {"content-type": "image/jpeg"}, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert filename is not None
     assert filename.endswith(".jpg")
@@ -171,7 +172,7 @@ async def test_download_cover_correct_extension_png(tmp_path):
     client = _FakeCoverClient(
         {png_url: _FakeCoverResponse(200, {"content-type": "image/png"}, _VALID_BODY)}
     )
-    filename = await download_cover(png_url, tmp_path, client)  # type: ignore[arg-type]
+    filename = await download_cover(png_url, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
 
     assert filename is not None
     assert filename.endswith(".png")
@@ -182,7 +183,7 @@ async def test_download_cover_correct_extension_png(tmp_path):
 def test_save_uploaded_cover_success(tmp_path):
     """Valid JPEG bytes are written and filename is returned."""
     body = b"X" * 10_000  # 10 KB
-    filename = save_uploaded_cover(body, "image/jpeg", tmp_path)
+    filename = save_uploaded_cover(body, "image/jpeg", tmp_path, _USER_ID)
 
     assert filename is not None
     assert filename.endswith(".jpg")
@@ -193,7 +194,7 @@ def test_save_uploaded_cover_success(tmp_path):
 def test_save_uploaded_cover_png(tmp_path):
     """image/png content-type results in a .png filename."""
     body = b"Y" * 10_000
-    filename = save_uploaded_cover(body, "image/png", tmp_path)
+    filename = save_uploaded_cover(body, "image/png", tmp_path, _USER_ID)
 
     assert filename is not None
     assert filename.endswith(".png")
@@ -202,7 +203,7 @@ def test_save_uploaded_cover_png(tmp_path):
 def test_save_uploaded_cover_too_small(tmp_path):
     """Images smaller than 5 KB are rejected."""
     body = b"X" * 100
-    result = save_uploaded_cover(body, "image/jpeg", tmp_path)
+    result = save_uploaded_cover(body, "image/jpeg", tmp_path, _USER_ID)
 
     assert result is None
     assert list(tmp_path.iterdir()) == []
@@ -211,7 +212,7 @@ def test_save_uploaded_cover_too_small(tmp_path):
 def test_save_uploaded_cover_non_image(tmp_path):
     """Non-image content-type is rejected."""
     body = b"X" * 10_000
-    result = save_uploaded_cover(body, "text/plain", tmp_path)
+    result = save_uploaded_cover(body, "text/plain", tmp_path, _USER_ID)
 
     assert result is None
     assert list(tmp_path.iterdir()) == []
@@ -223,10 +224,10 @@ def test_save_uploaded_cover_dedup(tmp_path):
 
     body = b"Z" * 10_000
     digest = hashlib.sha256(body).hexdigest()[:32]
-    pre_existing = tmp_path / f"{digest}.jpg"
+    pre_existing = tmp_path / f"{_USER_ID}__{digest}.jpg"
     pre_existing.write_bytes(b"original")
 
-    result = save_uploaded_cover(body, "image/jpeg", tmp_path)
+    result = save_uploaded_cover(body, "image/jpeg", tmp_path, _USER_ID)
 
     assert result == pre_existing.name
     # Original file must NOT be overwritten.
@@ -236,7 +237,7 @@ def test_save_uploaded_cover_dedup(tmp_path):
 def test_save_uploaded_cover_no_tmp_leftover(tmp_path):
     """No stale .tmp file remains after a successful save."""
     body = b"X" * 10_000
-    filename = save_uploaded_cover(body, "image/jpeg", tmp_path)
+    filename = save_uploaded_cover(body, "image/jpeg", tmp_path, _USER_ID)
 
     tmp_files = list(tmp_path.glob("*.tmp"))
     assert tmp_files == []
@@ -247,7 +248,7 @@ def test_save_uploaded_cover_no_tmp_leftover(tmp_path):
 def test_save_uploaded_cover_content_type_with_params(tmp_path):
     """Content-type with charset suffix is handled (e.g. 'image/jpeg; charset=...')."""
     body = b"X" * 10_000
-    filename = save_uploaded_cover(body, "image/jpeg; charset=utf-8", tmp_path)
+    filename = save_uploaded_cover(body, "image/jpeg; charset=utf-8", tmp_path, _USER_ID)
 
     assert filename is not None
     assert filename.endswith(".jpg")

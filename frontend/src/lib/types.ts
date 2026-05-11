@@ -53,6 +53,31 @@ export interface StatusTransitionResponse {
 	date_conflict: DateConflict | null;
 }
 
+export type UserRole = 'admin' | 'user';
+
+export interface User {
+	id: number;
+	firstname: string;
+	lastname: string;
+	email: string;
+	role: UserRole;
+	created_at: string;
+}
+
+export interface UserSettings {
+	user_id: number;
+	language: string;
+}
+
+export interface ApiKeyMeta {
+	id: number;
+	key_prefix: string;
+	description: string | null;
+	is_primary: boolean;
+	created_at: string;
+	last_used_at: string | null;
+}
+
 export type SearchStage =
 	| { stage: 'open_library'; status: 'searching' }
 	| { stage: 'open_library'; status: 'done'; count: number }

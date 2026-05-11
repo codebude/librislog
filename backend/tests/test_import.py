@@ -639,7 +639,7 @@ def test_import_book_downloads_cover_locally(client: TestClient, monkeypatch, tm
     """When download_cover succeeds, cover_url is set to the local /api/covers/ path."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
 
-    async def fake_download(url, covers_dir, http_client):
+    async def fake_download(url, covers_dir, http_client, user_id):
         return "abc123deadbeef.jpg"
 
     monkeypatch.setattr(import_router, "download_cover", fake_download)
@@ -662,7 +662,7 @@ def test_import_book_falls_back_to_external_url_on_cover_failure(client: TestCli
     """When download_cover returns None, the original external URL is preserved."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
 
-    async def fake_download(url, covers_dir, http_client):
+    async def fake_download(url, covers_dir, http_client, user_id):
         return None  # simulate download failure
 
     monkeypatch.setattr(import_router, "download_cover", fake_download)
@@ -687,7 +687,7 @@ def test_import_book_no_cover_url_skips_download(client: TestClient, monkeypatch
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
     called = []
 
-    async def fake_download(url, covers_dir, http_client):
+    async def fake_download(url, covers_dir, http_client, user_id):
         called.append(url)
         return None
 

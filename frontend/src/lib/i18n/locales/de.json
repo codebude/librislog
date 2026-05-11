@@ -133,5 +133,27 @@
   "languages": {
     "en": "Englisch",
     "de": "Deutsch"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "firstname": "Vorname",
+    "lastname": "Nachname",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "setupTitle": "Admin-Konto erstellen",
+    "setupFailed": "Setup fehlgeschlagen",
+    "createAdmin": "Admin erstellen"
+  },
+  "user": {
+    "menu": "Benutzermenü",
+    "profile": "Profil",
+    "logout": "Abmelden",
+    "apiKeys": "API-Schlüssel",
+    "primaryKeyHidden": "Dein primärer Schlüssel ist aus Sicherheitsgründen verborgen.",
+    "keyDescription": "Beschreibung (optional)",
+    "addKey": "Schlüssel hinzufügen",
+    "newKeyShownOnce": "Diesen Schlüssel jetzt kopieren. Er wird nur einmal angezeigt",
+    "noDescription": "Keine Beschreibung"
   }
 }

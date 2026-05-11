@@ -460,7 +460,7 @@ def test_delete_book_not_found_returns_404(client: TestClient):
 
 # ── create / update cover download ────────────────────────────────────────────
 
-async def _fake_download_cover_success(url, covers_dir, http_client):
+async def _fake_download_cover_success(url, covers_dir, http_client, user_id):
     """Fake that saves a small sentinel file and returns its name."""
     from pathlib import Path
     filename = "fakecover123.jpg"
@@ -468,7 +468,7 @@ async def _fake_download_cover_success(url, covers_dir, http_client):
     return filename
 
 
-async def _fake_download_cover_fail(url, covers_dir, http_client):
+async def _fake_download_cover_fail(url, covers_dir, http_client, user_id):
     """Fake that simulates a download failure."""
     return None
 

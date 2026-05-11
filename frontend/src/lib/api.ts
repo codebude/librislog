@@ -1,4 +1,5 @@
 import type {
+	ApiKeyMeta,
 	Book,
 	BookImportCandidate,
 	StatusTransitionRequest,
@@ -7,14 +8,31 @@ import type {
 	ReadingStatus,
 	SearchStage,
 	SortField,
-	SortOrder
+	SortOrder,
+	User,
+	UserSettings
 } from './types';
+import { apiKey } from './stores/auth';
+import { get } from 'svelte/store';
 
 const BASE = '/api';
 
+function authHeaders(): Record<string, string> {
+	const key = get(apiKey);
+	return key ? { 'X-API-Key': key } : {};
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+		...authHeaders()
+	};
+	if (options?.headers) {
+		Object.assign(headers, options.headers as Record<string, string>);
+	}
+
 	const res = await fetch(`${BASE}${path}`, {
-		headers: { 'Content-Type': 'application/json', ...options?.headers },
+		headers,
 		...options
 	});
 	if (!res.ok) {
@@ -26,6 +44,98 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+	auth: {
+		setupRequired(): Promise<{ required: boolean }> {
+			return request<{ required: boolean }>('/auth/setup-required');
+		},
+
+		setup(data: {
+			firstname: string;
+			lastname: string;
+			email: string;
+			password: string;
+		}): Promise<{ user: User; api_key: string }> {
+			return request<{ user: User; api_key: string }>('/auth/setup', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		login(data: { email: string; password: string }): Promise<{ user: User; api_key: string }> {
+			return request<{ user: User; api_key: string }>('/auth/login', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		me(): Promise<User> {
+			return request<User>('/auth/me');
+		},
+
+		logout(): Promise<{ message: string }> {
+			return request<{ message: string }>('/auth/logout', { method: 'POST' });
+		}
+	},
+
+	profile: {
+		get(): Promise<User> {
+			return request<User>('/profile');
+		},
+
+		update(data: Partial<Pick<User, 'firstname' | 'lastname' | 'email'>> & { password?: string }): Promise<User> {
+			return request<User>('/profile', { method: 'PATCH', body: JSON.stringify(data) });
+		},
+
+		getSettings(): Promise<UserSettings> {
+			return request<UserSettings>('/profile/settings');
+		},
+
+		updateSettings(data: { language?: string }): Promise<UserSettings> {
+			return request<UserSettings>('/profile/settings', {
+				method: 'PATCH',
+				body: JSON.stringify(data)
+			});
+		},
+
+		listApiKeys(): Promise<ApiKeyMeta[]> {
+			return request<ApiKeyMeta[]>('/profile/api-keys');
+		},
+
+		createApiKey(data: { description?: string | null }): Promise<{ key: string; api_key: ApiKeyMeta }> {
+			return request<{ key: string; api_key: ApiKeyMeta }>('/profile/api-keys', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		deleteApiKey(id: number): Promise<void> {
+			return request<void>(`/profile/api-keys/${id}`, { method: 'DELETE' });
+		}
+	},
+
+	users: {
+		list(): Promise<User[]> {
+			return request<User[]>('/users');
+		},
+
+		create(data: {
+			firstname: string;
+			lastname: string;
+			email: string;
+			password: string;
+			role: 'admin' | 'user';
+		}): Promise<{ user: User; api_key: string }> {
+			return request<{ user: User; api_key: string }>('/users', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		delete(id: number): Promise<void> {
+			return request<void>(`/users/${id}`, { method: 'DELETE' });
+		}
+	},
+
 	books: {
 		list(params?: {
 			status?: ReadingStatus;
@@ -72,7 +182,11 @@ export const api = {
 		async upload(file: File): Promise<string> {
 			const form = new FormData();
 			form.append('file', file);
-			const res = await fetch(`${BASE}/covers/upload`, { method: 'POST', body: form });
+			const res = await fetch(`${BASE}/covers/upload`, {
+				method: 'POST',
+				headers: authHeaders(),
+				body: form
+			});
 			if (!res.ok) {
 				const detail = await res.json().catch(() => ({}));
 				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
@@ -102,7 +216,8 @@ export const api = {
 			mode: ImportSearchMode = 'auto'
 		): AsyncGenerator<SearchStage> {
 			const res = await fetch(
-				`${BASE}/import/search/stream?q=${encodeURIComponent(q)}&type=${type}&mode=${mode}`
+				`${BASE}/import/search/stream?q=${encodeURIComponent(q)}&type=${type}&mode=${mode}`,
+				{ headers: authHeaders() }
 			);
 			if (!res.ok || !res.body) {
 				const detail = await res.json().catch(() => ({}));
