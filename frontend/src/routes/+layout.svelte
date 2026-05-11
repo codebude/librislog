@@ -136,7 +136,7 @@
 		</header>
 
 		<!-- Page content -->
-		<main class="flex-1 p-4 pb-24 md:pb-4">
+		<main class="flex-1 p-4 pb-24 sm:pr-24 md:pb-4">
 			{@render children()}
 		</main>
 

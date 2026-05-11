@@ -10,7 +10,10 @@
 	let language = $state('en');
 	let description = $state('');
 	let createdKey = $state<string | null>(null);
+	let keyCopied = $state(false);
 	let keys = $state<ApiKeyMeta[]>([]);
+	let pendingDeleteKeyId = $state<number | null>(null);
+	const nonPrimaryKeys = $derived(keys.filter((key) => !key.is_primary));
 
 	$effect(() => {
 		if ($currentUser) {
@@ -43,11 +46,29 @@
 	async function createKey() {
 		const result = await api.profile.createApiKey({ description: description || null });
 		createdKey = result.key;
+		keyCopied = false;
 		description = '';
 		keys = await api.profile.listApiKeys();
 	}
 
-	async function deleteKey(id: number) {
+	async function copyCreatedKey() {
+		if (!createdKey) return;
+		await navigator.clipboard.writeText(createdKey);
+		keyCopied = true;
+	}
+
+	function requestDeleteKey(id: number) {
+		pendingDeleteKeyId = id;
+	}
+
+	function cancelDeleteKey() {
+		pendingDeleteKeyId = null;
+	}
+
+	async function confirmDeleteKey() {
+		if (pendingDeleteKeyId === null) return;
+		const id = pendingDeleteKeyId;
+		pendingDeleteKeyId = null;
 		await api.profile.deleteApiKey(id);
 		keys = await api.profile.listApiKeys();
 	}
@@ -81,27 +102,46 @@
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
-			<p class="text-sm text-base-content/70">{$_('user.primaryKeyHidden')}</p>
 			<div class="flex gap-2">
 				<input class="input input-bordered flex-1" bind:value={description} placeholder={$_('user.keyDescription')} />
 				<button class="btn btn-primary btn-sm" onclick={createKey}>{$_('user.addKey')}</button>
 			</div>
 			{#if createdKey}
-				<div class="alert alert-success text-xs break-all"><span>{$_('user.newKeyShownOnce')}: {createdKey}</span></div>
+				<div class="alert alert-success flex flex-col items-start gap-2 text-xs">
+					<span>{$_('user.newKeyShownOnce')}</span>
+					<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+						{createdKey}
+					</div>
+					<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedKey}>
+						{keyCopied ? $_('common.copied') : $_('common.copy')}
+					</button>
+				</div>
 			{/if}
 			<ul class="flex flex-col gap-2">
-				{#each keys as key}
+				{#each nonPrimaryKeys as key}
 					<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
 						<div class="min-w-0">
 							<p class="font-mono">{key.key_prefix}...</p>
 							<p class="text-base-content/70 truncate">{key.description ?? $_('user.noDescription')}</p>
 						</div>
-						{#if !key.is_primary}
-							<button class="btn btn-error btn-outline btn-xs" onclick={() => deleteKey(key.id)}>{$_('common.delete')}</button>
-						{/if}
+						<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteKey(key.id)}>{$_('common.delete')}</button>
 					</li>
 				{/each}
 			</ul>
 		</div>
 	</div>
 </div>
+
+<dialog class="modal" class:modal-open={pendingDeleteKeyId !== null}>
+	<div class="modal-box">
+		<h3 class="text-lg font-bold">Do you really want to delete?</h3>
+		<p class="py-3 text-sm text-base-content/70">{$_('common.confirm')}</p>
+		<div class="modal-action">
+			<button type="button" class="btn btn-ghost" onclick={cancelDeleteKey}>{$_('common.cancel')}</button>
+			<button type="button" class="btn btn-error" onclick={confirmDeleteKey}>{$_('common.delete')}</button>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button type="button" onclick={cancelDeleteKey}>{$_('common.close')}</button>
+	</form>
+</dialog>
