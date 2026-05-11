@@ -47,6 +47,7 @@ class BookImportCandidate(SQLModel):
     publisher: Optional[str] = None
     published_year: Optional[int] = None
     page_count: Optional[int] = None
+    language: Optional[str] = None
     genre: Optional[str] = None
     source: str  # "open_library" | "google_books"
 

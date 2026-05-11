@@ -15,6 +15,7 @@ from collections.abc import AsyncGenerator
 from typing import Literal, Optional
 
 import httpx
+import pycountry
 
 from app.schemas import BookImportCandidate
 
@@ -159,13 +160,13 @@ async def _search_open_library(
     if search_type == "isbn":
         params = {
             "q": f"isbn:{query}",
-            "fields": "title,author_name,isbn,publisher,first_publish_year,number_of_pages_median,subject,cover_i",
+            "fields": "title,author_name,isbn,publisher,first_publish_year,number_of_pages_median,subject,cover_i,language",
             "limit": 5,
         }
     else:
         params = {
             "q": query,
-            "fields": "title,author_name,isbn,publisher,first_publish_year,number_of_pages_median,subject,cover_i",
+            "fields": "title,author_name,isbn,publisher,first_publish_year,number_of_pages_median,subject,cover_i,language",
             "limit": 10,
         }
 
@@ -213,6 +214,10 @@ def map_open_library(doc: dict) -> BookImportCandidate:
     subjects: list[str] = doc.get("subject") or []
     genre = ", ".join(subjects[:3]) if subjects else None
 
+    # Language: Open Library returns list[str] of ISO 639-2 codes (e.g. ["eng"])
+    languages: list[str] = doc.get("language") or []
+    language = _normalize_language_code(languages[0] if languages else None)
+
     return BookImportCandidate(
         title=doc["title"],
         author=author,
@@ -221,6 +226,7 @@ def map_open_library(doc: dict) -> BookImportCandidate:
         publisher=publisher,
         published_year=doc.get("first_publish_year"),
         page_count=doc.get("number_of_pages_median"),
+        language=language,
         genre=genre,
         source="open_library",
     )
@@ -402,6 +408,9 @@ def map_google_books(item: dict) -> BookImportCandidate:
     categories: list[str] = vi.get("categories") or []
     genre = ", ".join(categories[:3]) if categories else None
 
+    # Language: Google Books uses ISO 639-1 (e.g. "en")
+    language = _normalize_language_code(vi.get("language"))
+
     return BookImportCandidate(
         title=vi["title"],
         author=author,
@@ -410,6 +419,7 @@ def map_google_books(item: dict) -> BookImportCandidate:
         publisher=vi.get("publisher"),
         published_year=published_year,
         page_count=vi.get("pageCount"),
+        language=language,
         genre=genre,
         source="google_books",
     )
@@ -428,3 +438,25 @@ def _pick_isbn(isbns: list[str]) -> Optional[str]:
         if len(clean) == 10 and clean[:9].isdigit():
             return clean
     return isbns[0] if isbns else None
+
+
+def _normalize_language_code(code: str | None) -> str | None:
+    if not code:
+        return None
+    normalized = code.strip().lower()
+    if not normalized.isalpha():
+        return None
+
+    lang = None
+    if len(normalized) == 2:
+        lang = pycountry.languages.get(alpha_2=normalized)
+    elif len(normalized) == 3:
+        # Open Library may return either terminology (fra) or bibliographic (fre) ISO 639-2 codes.
+        lang = pycountry.languages.get(alpha_3=normalized)
+        if lang is None:
+            lang = pycountry.languages.get(bibliographic=normalized)
+    else:
+        return None
+
+    alpha_2 = getattr(lang, "alpha_2", None)
+    return alpha_2.upper() if alpha_2 else None

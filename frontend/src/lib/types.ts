@@ -26,6 +26,7 @@ export interface BookImportCandidate {
 	publisher: string | null;
 	published_year: number | null;
 	page_count: number | null;
+	language: string | null;
 	genre: string | null;
 	source: string;
 }

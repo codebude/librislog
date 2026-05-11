@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.136.1",
     "httpx>=0.28.1",
     "pydantic-settings>=2.14.1",
+    "pycountry>=24.6.1",
     "python-multipart>=0.0.28",
     "sqlmodel>=0.0.38",
     "uvicorn[standard]>=0.46.0",

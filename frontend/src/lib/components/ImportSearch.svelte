@@ -259,7 +259,21 @@
 					{#if candidate.author}
 						<p class="text-xs text-base-content/60">{candidate.author}</p>
 					{/if}
-					<p class="text-xs text-base-content/40">{candidate.source}{candidate.published_year ? ` · ${candidate.published_year}` : ''}</p>
+					<div class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/40">
+						<span>{candidate.source}</span>
+						{#if candidate.published_year}
+							<span>·</span>
+							<span>{candidate.published_year}</span>
+						{/if}
+						{#if candidate.language}
+							<span>·</span>
+							<span class="badge badge-ghost badge-xs">{candidate.language}</span>
+						{/if}
+						{#if candidate.page_count}
+							<span>·</span>
+							<span>{candidate.page_count} pages</span>
+						{/if}
+					</div>
 					{#if alreadyImported}
 						<div class="mt-1">
 							<span class="badge badge-success badge-outline badge-xs">Already imported</span>

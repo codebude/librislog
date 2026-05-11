@@ -21,6 +21,7 @@ OPEN_LIBRARY_DUNE_DOC = {
     "title": "Dune",
     "author_name": ["Frank Herbert"],
     "isbn": ["9780441013593", "0441013597"],
+    "language": ["eng"],
     "publisher": ["Ace Books", "Chilton Books"],
     "first_publish_year": 1965,
     "number_of_pages_median": 412,
@@ -38,6 +39,7 @@ GOOGLE_BOOKS_FOUNDATION_ITEM = {
         ],
         "publisher": "Bantam Books",
         "publishedDate": "1991",
+        "language": "en",
         "pageCount": 255,
         "categories": ["Science Fiction"],
         "imageLinks": {"thumbnail": "http://books.google.com/thumbnail.jpg"},
@@ -54,6 +56,7 @@ def test_map_open_library_fields():
     assert result.isbn == "9780441013593"  # ISBN-13 preferred
     assert result.published_year == 1965
     assert result.page_count == 412
+    assert result.language == "EN"
     assert result.publisher == "Ace Books"
     assert "Science Fiction" in result.genre
     assert result.cover_url == "https://covers.openlibrary.org/b/id/11481354-L.jpg"
@@ -67,6 +70,7 @@ def test_map_open_library_missing_optional_fields():
     assert result.author is None
     assert result.isbn is None
     assert result.cover_url is None
+    assert result.language is None
     assert result.publisher is None
     assert result.genre is None
     assert result.source == "open_library"
@@ -88,6 +92,7 @@ def test_map_google_books_fields():
     assert result.publisher == "Bantam Books"
     assert result.published_year == 1991
     assert result.page_count == 255
+    assert result.language == "EN"
     assert result.genre == "Science Fiction"
     assert result.cover_url == "https://books.google.com/thumbnail.jpg"  # https upgraded
     assert result.source == "google_books"
@@ -100,8 +105,27 @@ def test_map_google_books_missing_optional_fields():
     assert result.author is None
     assert result.isbn is None
     assert result.cover_url is None
+    assert result.language is None
     assert result.published_year is None
     assert result.source == "google_books"
+
+
+def test_normalize_language_code_converts_iso_639_2_to_iso_639_1():
+    assert book_import._normalize_language_code("eng") == "EN"
+    assert book_import._normalize_language_code("fra") == "FR"
+
+
+def test_normalize_language_code_keeps_iso_639_1_uppercase():
+    assert book_import._normalize_language_code("en") == "EN"
+    assert book_import._normalize_language_code(" De ") == "DE"
+
+
+def test_normalize_language_code_rejects_invalid_values():
+    assert book_import._normalize_language_code(None) is None
+    assert book_import._normalize_language_code("") is None
+    assert book_import._normalize_language_code("123") is None
+    assert book_import._normalize_language_code("english") is None
+    assert book_import._normalize_language_code("zzz") is None
 
 
 def test_map_google_books_prefers_isbn13_over_isbn10():
