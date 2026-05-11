@@ -50,7 +50,7 @@ def test_auth_setup_forbidden_when_admin_exists(client: TestClient):
             "firstname": "A",
             "lastname": "B",
             "email": "new-admin@example.com",
-            "password": "secret123",
+            "password": "Secret123!",
         },
     )
     assert resp.status_code == 403
@@ -73,7 +73,7 @@ def test_auth_setup_flow_when_no_admin(session: Session):
                     "firstname": "First",
                     "lastname": "Admin",
                     "email": "first-admin@example.com",
-                    "password": "secret123",
+                    "password": "Secret123!",
                 },
             )
             assert setup.status_code == 200
@@ -95,7 +95,7 @@ def test_auth_setup_flow_when_no_admin(session: Session):
 def test_profile_patch_updates_fields(client: TestClient):
     resp = client.patch(
         "/api/profile",
-        json={"firstname": "Updated", "lastname": "Name", "password": "new-pass"},
+        json={"firstname": "Updated", "lastname": "Name", "password": "Newpass1!"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -110,7 +110,7 @@ def test_profile_patch_ignores_email_changes(client: TestClient, create_user_wit
 
 
 def test_profile_patch_changes_password_and_login_uses_new_password(client: TestClient):
-    updated = client.patch("/api/profile", json={"password": "changed-secret"})
+    updated = client.patch("/api/profile", json={"password": "Changed1!"})
     assert updated.status_code == 200
 
     old_login = client.post(
@@ -121,9 +121,14 @@ def test_profile_patch_changes_password_and_login_uses_new_password(client: Test
 
     new_login = client.post(
         "/api/auth/login",
-        json={"email": "test@example.com", "password": "changed-secret"},
+        json={"email": "test@example.com", "password": "Changed1!"},
     )
     assert new_login.status_code == 200
+
+
+def test_profile_patch_rejects_weak_password(client: TestClient):
+    resp = client.patch("/api/profile", json={"password": "weak"})
+    assert resp.status_code == 400
 
 
 def test_profile_settings_get_and_update(client: TestClient):
@@ -175,7 +180,7 @@ def test_users_create_creates_user_settings_and_primary_key(client: TestClient, 
             "firstname": "New",
             "lastname": "User",
             "email": "new-user@example.com",
-            "password": "secret123",
+            "password": "Secret123!",
             "role": "user",
         },
     )
@@ -205,7 +210,21 @@ def test_users_create_rejects_duplicate_email(client: TestClient):
             "firstname": "Dup",
             "lastname": "User",
             "email": "test@example.com",
-            "password": "secret123",
+            "password": "Secret123!",
+            "role": "user",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_users_create_rejects_weak_password(client: TestClient):
+    resp = client.post(
+        "/api/users",
+        json={
+            "firstname": "Weak",
+            "lastname": "Pass",
+            "email": "weak-pass@example.com",
+            "password": "weakpass",
             "role": "user",
         },
     )
@@ -228,6 +247,12 @@ def test_users_update_user_rejects_duplicate_email(client: TestClient, create_us
     user_a, _ = create_user_with_key(email="dup-a@example.com", role=UserRole.user)
     create_user_with_key(email="dup-b@example.com", role=UserRole.user)
     resp = client.patch(f"/api/users/{user_a.id}", json={"email": "dup-b@example.com"})
+    assert resp.status_code == 400
+
+
+def test_users_update_user_rejects_weak_password(client: TestClient, create_user_with_key):
+    user, _ = create_user_with_key(email="weak-update@example.com", role=UserRole.user)
+    resp = client.patch(f"/api/users/{user.id}", json={"password": "weak"})
     assert resp.status_code == 400
 
 

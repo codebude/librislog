@@ -38,6 +38,7 @@
     "remove": "Entfernen",
     "copy": "Kopieren",
     "copied": "Kopiert",
+    "showPassword": "Passwort anzeigen",
     "saving": "Speichere...",
     "loadingEllipsis": "...",
     "starLabel": "{star} Stern",
@@ -143,7 +144,8 @@
     "loginFailed": "Anmeldung fehlgeschlagen",
     "setupTitle": "Admin-Konto erstellen",
     "setupFailed": "Setup fehlgeschlagen",
-    "createAdmin": "Admin erstellen"
+    "createAdmin": "Admin erstellen",
+    "passwordComplexityError": "Passwort erfüllt die Komplexitätsanforderungen nicht"
   },
   "user": {
     "menu": "Benutzermenü",
@@ -166,5 +168,15 @@
     "edit": "Bearbeiten",
     "saveChanges": "Änderungen speichern",
     "cancelEdit": "Bearbeiten abbrechen"
+  },
+  "password": {
+    "requirementsTitle": "Passwortanforderungen",
+    "minLength": "Mindestens 8 Zeichen",
+    "uppercase": "Mindestens ein Großbuchstabe",
+    "lowercase": "Mindestens ein Kleinbuchstabe",
+    "number": "Mindestens eine Zahl",
+    "special": "Mindestens ein Sonderzeichen",
+    "strongEnough": "Ausreichend stark",
+    "notReady": "Noch nicht ausreichend"
   }
 }

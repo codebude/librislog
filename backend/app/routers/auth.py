@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.auth import (
+    ensure_password_complexity,
     decrypt_api_key,
     encrypt_api_key,
     generate_api_key,
@@ -35,6 +36,8 @@ def setup(request: SetupRequest, session: Session = Depends(get_session)) -> dic
     existing_email = session.exec(select(User).where(User.email == request.email)).first()
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    ensure_password_complexity(request.password)
 
     user = User(
         firstname=request.firstname,

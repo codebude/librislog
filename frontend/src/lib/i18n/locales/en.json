@@ -38,6 +38,7 @@
     "remove": "Remove",
     "copy": "Copy",
     "copied": "Copied",
+    "showPassword": "Show password",
     "saving": "Saving...",
     "loadingEllipsis": "...",
     "starLabel": "{star} star",
@@ -143,7 +144,8 @@
     "loginFailed": "Login failed",
     "setupTitle": "Create Admin Account",
     "setupFailed": "Setup failed",
-    "createAdmin": "Create Admin"
+    "createAdmin": "Create Admin",
+    "passwordComplexityError": "Password does not meet complexity requirements"
   },
   "user": {
     "menu": "User menu",
@@ -166,5 +168,15 @@
     "edit": "Edit",
     "saveChanges": "Save changes",
     "cancelEdit": "Cancel edit"
+  },
+  "password": {
+    "requirementsTitle": "Password requirements",
+    "minLength": "At least 8 characters",
+    "uppercase": "At least one uppercase letter",
+    "lowercase": "At least one lowercase letter",
+    "number": "At least one number",
+    "special": "At least one special character",
+    "strongEnough": "Strong enough",
+    "notReady": "Not ready"
   }
 }

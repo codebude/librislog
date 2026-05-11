@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import re
 import secrets
 from datetime import datetime, timezone
 
@@ -16,6 +17,15 @@ from app.models import ApiKey, User, UserRole
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 fallback_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
+PASSWORD_COMPLEXITY_ERROR = (
+    "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
+)
+
+_UPPERCASE_RE = re.compile(r"[A-Z]")
+_LOWERCASE_RE = re.compile(r"[a-z]")
+_NUMBER_RE = re.compile(r"\d")
+_SPECIAL_RE = re.compile(r"[^A-Za-z0-9\s]")
 
 
 def get_password_hash(password: str) -> str:
@@ -33,6 +43,21 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         except (UnknownHashError, ValueError):
             continue
     return False
+
+
+def password_meets_complexity(password: str) -> bool:
+    return (
+        len(password) >= 8
+        and _UPPERCASE_RE.search(password) is not None
+        and _LOWERCASE_RE.search(password) is not None
+        and _NUMBER_RE.search(password) is not None
+        and _SPECIAL_RE.search(password) is not None
+    )
+
+
+def ensure_password_complexity(password: str) -> None:
+    if not password_meets_complexity(password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=PASSWORD_COMPLEXITY_ERROR)
 
 
 def _fernet() -> Fernet:

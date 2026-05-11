@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { currentUser, setAuthKey } from '$lib/stores/auth';
 	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
 
@@ -8,6 +10,7 @@
 	let lastname = $state('');
 	let email = $state('');
 	let password = $state('');
+	let showPassword = $state(false);
 	let selectedLanguage = $state<AppLocale>('en');
 	let loading = $state(false);
 	let error = $state('');
@@ -27,9 +30,14 @@
 
 	async function submit() {
 		error = '';
+		const passwordToValidate = password.trim();
+		if (!passwordChecksPassed(getPasswordChecks(passwordToValidate))) {
+			error = $_('auth.passwordComplexityError');
+			return;
+		}
 		loading = true;
 		try {
-			const result = await api.auth.setup({ firstname, lastname, email, password });
+			const result = await api.auth.setup({ firstname, lastname, email, password: passwordToValidate });
 			setAuthKey(result.api_key);
 			currentUser.set(result.user);
 			await api.profile.updateSettings({ language: selectedLanguage });
@@ -62,7 +70,21 @@
 				<input class="input input-bordered" placeholder={$_('auth.firstname')} bind:value={firstname} required />
 				<input class="input input-bordered" placeholder={$_('auth.lastname')} bind:value={lastname} required />
 				<input type="email" class="input input-bordered" placeholder={$_('auth.email')} bind:value={email} required />
-				<input type="password" class="input input-bordered" placeholder={$_('auth.password')} bind:value={password} required />
+				<input
+					type={showPassword ? 'text' : 'password'}
+					class="input input-bordered validator"
+					placeholder={$_('auth.password')}
+					bind:value={password}
+					required
+					minlength="8"
+					pattern={passwordPattern}
+					title={$_('password.requirementsTitle')}
+				/>
+				<label class="label cursor-pointer justify-start gap-2">
+					<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showPassword} />
+					<span class="label-text text-xs">{$_('common.showPassword')}</span>
+				</label>
+				<PasswordRequirements {password} />
 				<button type="submit" class="btn btn-primary" disabled={loading}>
 					{loading ? $_('common.loadingEllipsis') : $_('auth.createAdmin')}
 				</button>

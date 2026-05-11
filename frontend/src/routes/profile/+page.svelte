@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { api } from '$lib/api';
+	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import type { ApiKeyMeta } from '$lib/types';
 
 	let firstname = $state('');
 	let lastname = $state('');
 	let password = $state('');
+	let showPassword = $state(false);
+	let profileMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let language = $state('en');
 	let description = $state('');
 	let createdKey = $state<string | null>(null);
@@ -31,11 +35,28 @@
 	void load();
 
 	async function saveProfile() {
+		profileMessage = null;
+		const nextPassword = password.trim();
+		if (nextPassword && !passwordChecksPassed(getPasswordChecks(nextPassword))) {
+			profileMessage = { type: 'error', text: $_('auth.passwordComplexityError') };
+			return;
+		}
 		const payload: { firstname?: string; lastname?: string; password?: string } = { firstname, lastname };
-		if (password.trim()) payload.password = password;
-		const updated = await api.profile.update(payload);
-		currentUser.set(updated);
-		password = '';
+		if (nextPassword) payload.password = nextPassword;
+		try {
+			const updated = await api.profile.update(payload);
+			currentUser.set(updated);
+			password = '';
+			profileMessage = {
+				type: 'success',
+				text: nextPassword ? $_('profile.passwordChangeSuccess') : $_('profile.profileSaveSuccess')
+			};
+		} catch (e: unknown) {
+			profileMessage = {
+				type: 'error',
+				text: e instanceof Error ? e.message : nextPassword ? $_('profile.passwordChangeFailed') : $_('profile.profileSaveFailed')
+			};
+		}
 	}
 
 	async function saveLanguage() {
@@ -82,9 +103,27 @@
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.profile')}</h2>
+			{#if profileMessage}
+				<div class={`alert ${profileMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
+					<span>{profileMessage.text}</span>
+				</div>
+			{/if}
 			<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} />
 			<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} />
-			<input class="input input-bordered" type="password" bind:value={password} placeholder={$_('user.newPassword')} />
+			<input
+				class="input input-bordered validator"
+				type={showPassword ? 'text' : 'password'}
+				bind:value={password}
+				placeholder={$_('user.newPassword')}
+				minlength="8"
+				pattern={passwordPattern}
+				title={$_('password.requirementsTitle')}
+			/>
+			<label class="label cursor-pointer justify-start gap-2">
+				<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showPassword} />
+				<span class="label-text text-xs">{$_('common.showPassword')}</span>
+			</label>
+			<PasswordRequirements {password} />
 			<button class="btn btn-primary btn-sm self-start" onclick={saveProfile}>{$_('common.save')}</button>
 		</div>
 	</div>

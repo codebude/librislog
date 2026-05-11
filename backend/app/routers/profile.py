@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.auth import (
+    ensure_password_complexity,
     generate_api_key,
     get_api_key_prefix,
     get_password_hash,
@@ -38,6 +39,7 @@ def update_profile(
 ) -> User:
     update_data = user_in.model_dump(exclude_unset=True)
     if "password" in update_data:
+        ensure_password_complexity(update_data["password"])
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
 
     current_user.sqlmodel_update(update_data)

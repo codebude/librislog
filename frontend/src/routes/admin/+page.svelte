@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { api } from '$lib/api';
+	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import type { User, UserRole } from '$lib/types';
 	import { _ } from '$lib/i18n';
 
@@ -9,6 +11,7 @@
 	let lastname = $state('');
 	let email = $state('');
 	let password = $state('');
+	let showCreatePassword = $state(false);
 	let role = $state<UserRole>('user');
 
 	let editingUserId = $state<number | null>(null);
@@ -16,7 +19,9 @@
 	let editLastname = $state('');
 	let editEmail = $state('');
 	let editPassword = $state('');
+	let showEditPassword = $state(false);
 	let editRole = $state<UserRole>('user');
+	let adminError = $state('');
 
 	const isAdmin = $derived($currentUser?.role === 'admin');
 
@@ -31,11 +36,17 @@
 	});
 
 	async function createUser() {
+		adminError = '';
+		if (!passwordChecksPassed(getPasswordChecks(password.trim()))) {
+			adminError = $_('auth.passwordComplexityError');
+			return;
+		}
 		await api.users.create({ firstname, lastname, email, password, role });
 		firstname = '';
 		lastname = '';
 		email = '';
 		password = '';
+		showCreatePassword = false;
 		role = 'user';
 		await loadUsers();
 	}
@@ -47,6 +58,7 @@
 		editEmail = user.email;
 		editRole = user.role;
 		editPassword = '';
+		showEditPassword = false;
 	}
 
 	function cancelEdit() {
@@ -56,6 +68,11 @@
 
 	async function saveEdit() {
 		if (editingUserId === null) return;
+		if (editPassword.trim() && !passwordChecksPassed(getPasswordChecks(editPassword.trim()))) {
+			adminError = $_('auth.passwordComplexityError');
+			return;
+		}
+		adminError = '';
 		await api.users.update(editingUserId, {
 			firstname: editFirstname,
 			lastname: editLastname,
@@ -65,6 +82,7 @@
 		});
 		editingUserId = null;
 		editPassword = '';
+		showEditPassword = false;
 		await loadUsers();
 	}
 
@@ -85,16 +103,32 @@
 		<div class="card bg-base-100 border border-base-200 shadow-sm">
 			<div class="card-body gap-3">
 				<h2 class="text-lg font-semibold">{$_('admin.newUser')}</h2>
+				{#if adminError}
+					<div class="alert alert-error text-sm"><span>{adminError}</span></div>
+				{/if}
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 					<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} />
 					<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} />
 					<input class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} />
-					<input class="input input-bordered" type="password" bind:value={password} placeholder={$_('auth.password')} />
+					<input
+						class="input input-bordered validator"
+						type={showCreatePassword ? 'text' : 'password'}
+						bind:value={password}
+						placeholder={$_('auth.password')}
+						minlength="8"
+						pattern={passwordPattern}
+						title={$_('password.requirementsTitle')}
+					/>
+					<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
+						<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showCreatePassword} />
+						<span class="label-text text-xs">{$_('common.showPassword')}</span>
+					</label>
 					<select class="select select-bordered" bind:value={role}>
 						<option value="user">user</option>
 						<option value="admin">admin</option>
 					</select>
 				</div>
+				<PasswordRequirements {password} />
 				<button class="btn btn-primary btn-sm self-start" onclick={createUser}>{$_('admin.create')}</button>
 			</div>
 		</div>
@@ -110,12 +144,25 @@
 									<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} />
 									<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} />
 									<input class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} />
-									<input class="input input-bordered" type="password" bind:value={editPassword} placeholder={$_('user.newPassword')} />
+									<input
+										class="input input-bordered validator"
+										type={showEditPassword ? 'text' : 'password'}
+										bind:value={editPassword}
+										placeholder={$_('user.newPassword')}
+										minlength="8"
+										pattern={passwordPattern}
+										title={$_('password.requirementsTitle')}
+									/>
+									<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
+										<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showEditPassword} />
+										<span class="label-text text-xs">{$_('common.showPassword')}</span>
+									</label>
 									<select class="select select-bordered" bind:value={editRole}>
 										<option value="user">user</option>
 										<option value="admin">admin</option>
 									</select>
 								</div>
+								<PasswordRequirements password={editPassword} />
 								<div class="flex gap-2">
 									<button class="btn btn-primary btn-xs" onclick={saveEdit}>{$_('admin.saveChanges')}</button>
 									<button class="btn btn-ghost btn-xs" onclick={cancelEdit}>{$_('admin.cancelEdit')}</button>

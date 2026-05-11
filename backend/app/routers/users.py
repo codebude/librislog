@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.auth import (
+    ensure_password_complexity,
     encrypt_api_key,
     generate_api_key,
     get_api_key_prefix,
@@ -33,6 +34,8 @@ def create_user(
     existing = session.exec(select(User).where(User.email == user_in.email)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    ensure_password_complexity(user_in.password)
 
     user = User(
         firstname=user_in.firstname,
@@ -78,6 +81,7 @@ def update_user(
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
     if "password" in update_data:
+        ensure_password_complexity(update_data["password"])
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
 
     user.sqlmodel_update(update_data)
