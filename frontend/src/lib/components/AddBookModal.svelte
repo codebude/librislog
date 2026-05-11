@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
 	import ImportSearch from './ImportSearch.svelte';
+	import BarcodeScanner from './BarcodeScanner.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 
 	let {
@@ -17,6 +18,8 @@
 
 	let activeTab = $state<'manual' | 'import'>('manual');
 	let submitting = $state(false);
+	let scannerOpen = $state(false);
+	let scannedIsbn = $state<string | null>(null);
 
 	// Manual form state
 	let title = $state('');
@@ -165,6 +168,13 @@
 				</form>
 			{:else}
 			<ImportSearch
+				onOpenScanner={() => {
+					scannerOpen = true;
+				}}
+				scannedIsbn={scannedIsbn}
+				onScannedHandled={() => {
+					scannedIsbn = null;
+				}}
 				onImport={(book) => {
 					onAdded?.(book);
 					open = false;
@@ -173,6 +183,12 @@
 			/>
 		{/if}
 		</div>
+		<BarcodeScanner
+			bind:open={scannerOpen}
+			onDetected={(isbn) => {
+				scannedIsbn = isbn;
+			}}
+		/>
 		<!-- Click-outside to close -->
 		<div class="modal-backdrop" role="button" tabindex="-1" onkeydown={(e) => e.key === 'Escape' && (open = false)}></div>
 	</div>

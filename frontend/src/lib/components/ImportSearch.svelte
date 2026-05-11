@@ -5,9 +5,15 @@
 	import { toasts } from '$lib/toasts';
 
 	let {
-		onImport
+		onImport,
+		onOpenScanner,
+		scannedIsbn = null,
+		onScannedHandled
 	}: {
 		onImport?: (book: Book) => void;
+		onOpenScanner?: () => void;
+		scannedIsbn?: string | null;
+		onScannedHandled?: () => void;
 	} = $props();
 
 	let query = $state('');
@@ -19,12 +25,28 @@
 	let googleSupplementSearched = $state(false);
 	let supplementAddedCount = $state<number | null>(null);
 	let importing = $state<string | null>(null);
+	let cameraSupported = $state(false);
+	let lastHandledScannedIsbn = $state<string | null>(null);
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
 	let hasOlResults = $derived(results.some((r) => r.source === 'open_library'));
 
 	onMount(async () => {
+		cameraSupported =
+			typeof navigator !== 'undefined' &&
+			!!navigator.mediaDevices &&
+			typeof navigator.mediaDevices.getUserMedia === 'function';
 		await refreshImportedLookups();
+	});
+
+	$effect(() => {
+		if (!scannedIsbn || scannedIsbn === lastHandledScannedIsbn) return;
+		lastHandledScannedIsbn = scannedIsbn;
+		searchType = 'isbn';
+		query = scannedIsbn;
+		toasts.add(`Scanned ISBN: ${scannedIsbn}`, 'success');
+		void search();
+		onScannedHandled?.();
 	});
 
 	function stageLabel(s: SearchStage): string {
@@ -204,6 +226,27 @@
 			<option value="title">Title</option>
 			<option value="isbn">ISBN</option>
 		</select>
+		{#if cameraSupported}
+			<button
+				class="btn btn-outline btn-sm"
+				onclick={() => onOpenScanner?.()}
+				disabled={searching}
+				title="Scan ISBN barcode"
+				aria-label="Scan ISBN barcode"
+			>
+				<svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
+					<rect x="2" y="4" width="1" height="16" fill="currentColor" />
+					<rect x="4" y="4" width="2" height="16" fill="currentColor" />
+					<rect x="7" y="4" width="1" height="16" fill="currentColor" />
+					<rect x="9" y="4" width="3" height="16" fill="currentColor" />
+					<rect x="13" y="4" width="1" height="16" fill="currentColor" />
+					<rect x="15" y="4" width="2" height="16" fill="currentColor" />
+					<rect x="18" y="4" width="1" height="16" fill="currentColor" />
+					<rect x="20" y="4" width="2" height="16" fill="currentColor" />
+				</svg>
+				<span>Scan</span>
+			</button>
+		{/if}
 		<button class="btn btn-primary btn-sm" onclick={search} disabled={searching}>
 			{searching ? '…' : 'Search'}
 		</button>
