@@ -13,7 +13,7 @@ from app.auth import (
     require_admin,
 )
 from app.database import get_session
-from app.models import ApiKey, User, UserSettings
+from app.models import ApiKey, User, UserRole, UserSettings
 from app.schemas import UserAdminUpdate, UserCreate, UserRead
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -68,7 +68,7 @@ def create_user(
 def update_user(
     user_id: int,
     user_in: UserAdminUpdate,
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     session: Session = Depends(get_session),
 ) -> User:
     user = session.get(User, user_id)
@@ -76,6 +76,9 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     update_data = user_in.model_dump(exclude_unset=True)
+    if admin.id == user_id and "role" in update_data and update_data["role"] != UserRole.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot change your own admin role")
+
     if "email" in update_data and update_data["email"] != user.email:
         existing = session.exec(select(User).where(User.email == update_data["email"])).first()
         if existing:

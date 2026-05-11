@@ -39,6 +39,7 @@
     "copy": "Kopieren",
     "copied": "Kopiert",
     "showPassword": "Passwort anzeigen",
+    "required": "Pflichtfeld",
     "saving": "Speichere...",
     "loadingEllipsis": "...",
     "starLabel": "{star} Stern",
@@ -167,7 +168,11 @@
     "editing": "Benutzer bearbeiten",
     "edit": "Bearbeiten",
     "saveChanges": "Änderungen speichern",
-    "cancelEdit": "Bearbeiten abbrechen"
+    "cancelEdit": "Bearbeiten abbrechen",
+    "deleteConfirmTitle": "Möchtest du diesen Benutzer wirklich löschen?",
+    "deleteConfirmBody": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "cannotChangeOwnRole": "Du kannst deine eigene Admin-Rolle nicht ändern.",
+    "requiredFieldError": "Bitte alle Pflichtfelder ausfüllen."
   },
   "password": {
     "requirementsTitle": "Passwortanforderungen",

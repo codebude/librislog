@@ -39,6 +39,7 @@
     "copy": "Copy",
     "copied": "Copied",
     "showPassword": "Show password",
+    "required": "Required",
     "saving": "Saving...",
     "loadingEllipsis": "...",
     "starLabel": "{star} star",
@@ -167,7 +168,11 @@
     "editing": "Editing user",
     "edit": "Edit",
     "saveChanges": "Save changes",
-    "cancelEdit": "Cancel edit"
+    "cancelEdit": "Cancel edit",
+    "deleteConfirmTitle": "Do you really want to delete this user?",
+    "deleteConfirmBody": "This action cannot be undone.",
+    "cannotChangeOwnRole": "You cannot change your own admin role.",
+    "requiredFieldError": "Please fill all required fields."
   },
   "password": {
     "requirementsTitle": "Password requirements",

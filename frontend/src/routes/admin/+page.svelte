@@ -22,6 +22,7 @@
 	let showEditPassword = $state(false);
 	let editRole = $state<UserRole>('user');
 	let adminError = $state('');
+	let pendingDeleteUserId = $state<number | null>(null);
 
 	const isAdmin = $derived($currentUser?.role === 'admin');
 
@@ -37,6 +38,10 @@
 
 	async function createUser() {
 		adminError = '';
+		if (!firstname.trim() || !lastname.trim() || !email.trim() || !password.trim()) {
+			adminError = $_('admin.requiredFieldError');
+			return;
+		}
 		if (!passwordChecksPassed(getPasswordChecks(password.trim()))) {
 			adminError = $_('auth.passwordComplexityError');
 			return;
@@ -68,6 +73,14 @@
 
 	async function saveEdit() {
 		if (editingUserId === null) return;
+		if (!editFirstname.trim() || !editLastname.trim() || !editEmail.trim()) {
+			adminError = $_('admin.requiredFieldError');
+			return;
+		}
+		if ($currentUser?.id === editingUserId && editRole !== 'admin') {
+			adminError = $_('admin.cannotChangeOwnRole');
+			return;
+		}
 		if (editPassword.trim() && !passwordChecksPassed(getPasswordChecks(editPassword.trim()))) {
 			adminError = $_('auth.passwordComplexityError');
 			return;
@@ -86,7 +99,18 @@
 		await loadUsers();
 	}
 
-	async function deleteUser(id: number) {
+	function requestDeleteUser(id: number) {
+		pendingDeleteUserId = id;
+	}
+
+	function cancelDeleteUser() {
+		pendingDeleteUserId = null;
+	}
+
+	async function confirmDeleteUser() {
+		if (pendingDeleteUserId === null) return;
+		const id = pendingDeleteUserId;
+		pendingDeleteUserId = null;
 		await api.users.delete(id);
 		await loadUsers();
 	}
@@ -107,18 +131,31 @@
 					<div class="alert alert-error text-sm"><span>{adminError}</span></div>
 				{/if}
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-					<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} />
-					<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} />
-					<input class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} />
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.firstname')} *</span>
+						<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} required />
+					</label>
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.lastname')} *</span>
+						<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} required />
+					</label>
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.email')} *</span>
+						<input class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} required />
+					</label>
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.password')} *</span>
 					<input
 						class="input input-bordered validator"
 						type={showCreatePassword ? 'text' : 'password'}
 						bind:value={password}
 						placeholder={$_('auth.password')}
+						required
 						minlength="8"
 						pattern={passwordPattern}
 						title={$_('password.requirementsTitle')}
 					/>
+					</label>
 					<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
 						<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showCreatePassword} />
 						<span class="label-text text-xs">{$_('common.showPassword')}</span>
@@ -141,9 +178,20 @@
 						<li class="border border-base-200 rounded p-3 flex flex-col gap-2">
 							{#if editingUserId === user.id}
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-									<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} />
-									<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} />
-									<input class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} />
+									<label class="form-control">
+										<span class="label label-text">{$_('auth.firstname')} *</span>
+										<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} required />
+									</label>
+									<label class="form-control">
+										<span class="label label-text">{$_('auth.lastname')} *</span>
+										<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} required />
+									</label>
+									<label class="form-control">
+										<span class="label label-text">{$_('auth.email')} *</span>
+										<input class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} required />
+									</label>
+									<label class="form-control">
+										<span class="label label-text">{$_('user.newPassword')}</span>
 									<input
 										class="input input-bordered validator"
 										type={showEditPassword ? 'text' : 'password'}
@@ -153,6 +201,7 @@
 										pattern={passwordPattern}
 										title={$_('password.requirementsTitle')}
 									/>
+									</label>
 									<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
 										<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showEditPassword} />
 										<span class="label-text text-xs">{$_('common.showPassword')}</span>
@@ -176,10 +225,10 @@
 									<div class="flex gap-2">
 										<button class="btn btn-outline btn-xs" onclick={() => startEdit(user)}>{$_('admin.edit')}</button>
 										{#if $currentUser?.id !== user.id}
-											<button class="btn btn-error btn-outline btn-xs" onclick={() => deleteUser(user.id)}>{$_('common.delete')}</button>
-										{/if}
-									</div>
+										<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteUser(user.id)}>{$_('common.delete')}</button>
+									{/if}
 								</div>
+							</div>
 							{/if}
 						</li>
 					{/each}
@@ -188,3 +237,17 @@
 		</div>
 	</div>
 {/if}
+
+<dialog class="modal" class:modal-open={pendingDeleteUserId !== null}>
+	<div class="modal-box">
+		<h3 class="text-lg font-bold">{$_('admin.deleteConfirmTitle')}</h3>
+		<p class="py-3 text-sm text-base-content/70">{$_('admin.deleteConfirmBody')}</p>
+		<div class="modal-action">
+			<button type="button" class="btn btn-ghost" onclick={cancelDeleteUser}>{$_('common.cancel')}</button>
+			<button type="button" class="btn btn-error" onclick={confirmDeleteUser}>{$_('common.delete')}</button>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button type="button" onclick={cancelDeleteUser}>{$_('common.close')}</button>
+	</form>
+</dialog>

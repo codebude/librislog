@@ -67,9 +67,20 @@
 				<div class="alert alert-error text-sm"><span>{error}</span></div>
 			{/if}
 			<form class="flex flex-col gap-3" onsubmit={(e) => { e.preventDefault(); submit(); }}>
-				<input class="input input-bordered" placeholder={$_('auth.firstname')} bind:value={firstname} required />
-				<input class="input input-bordered" placeholder={$_('auth.lastname')} bind:value={lastname} required />
-				<input type="email" class="input input-bordered" placeholder={$_('auth.email')} bind:value={email} required />
+				<label class="form-control">
+					<span class="label label-text">{$_('auth.firstname')} *</span>
+					<input class="input input-bordered" placeholder={$_('auth.firstname')} bind:value={firstname} required />
+				</label>
+				<label class="form-control">
+					<span class="label label-text">{$_('auth.lastname')} *</span>
+					<input class="input input-bordered" placeholder={$_('auth.lastname')} bind:value={lastname} required />
+				</label>
+				<label class="form-control">
+					<span class="label label-text">{$_('auth.email')} *</span>
+					<input type="email" class="input input-bordered" placeholder={$_('auth.email')} bind:value={email} required />
+				</label>
+				<label class="form-control">
+					<span class="label label-text">{$_('auth.password')} *</span>
 				<input
 					type={showPassword ? 'text' : 'password'}
 					class="input input-bordered validator"
@@ -80,6 +91,7 @@
 					pattern={passwordPattern}
 					title={$_('password.requirementsTitle')}
 				/>
+				</label>
 				<label class="label cursor-pointer justify-start gap-2">
 					<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showPassword} />
 					<span class="label-text text-xs">{$_('common.showPassword')}</span>

@@ -256,6 +256,15 @@ def test_users_update_user_rejects_weak_password(client: TestClient, create_user
     assert resp.status_code == 400
 
 
+def test_users_update_user_rejects_self_role_demotion(client: TestClient):
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    me_id = me.json()["id"]
+
+    resp = client.patch(f"/api/users/{me_id}", json={"role": "user"})
+    assert resp.status_code == 403
+
+
 def test_users_delete_rejects_self_delete(client: TestClient):
     resp = client.get("/api/auth/me")
     assert resp.status_code == 200
