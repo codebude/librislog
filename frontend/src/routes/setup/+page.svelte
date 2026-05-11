@@ -2,14 +2,28 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { currentUser, setAuthKey } from '$lib/stores/auth';
-	import { _ } from '$lib/i18n';
+	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
 
 	let firstname = $state('');
 	let lastname = $state('');
 	let email = $state('');
 	let password = $state('');
+	let selectedLanguage = $state<AppLocale>('en');
 	let loading = $state(false);
 	let error = $state('');
+
+	$effect(() => {
+		if (SUPPORTED_LOCALES.includes($locale as AppLocale)) {
+			selectedLanguage = $locale as AppLocale;
+		}
+	});
+
+	function onLanguageChange(event: Event) {
+		const next = (event.currentTarget as HTMLSelectElement).value as AppLocale;
+		if (!SUPPORTED_LOCALES.includes(next)) return;
+		selectedLanguage = next;
+		setLocale(next);
+	}
 
 	async function submit() {
 		error = '';
@@ -18,6 +32,8 @@
 			const result = await api.auth.setup({ firstname, lastname, email, password });
 			setAuthKey(result.api_key);
 			currentUser.set(result.user);
+			await api.profile.updateSettings({ language: selectedLanguage });
+			setLocale(selectedLanguage);
 			await goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : $_('auth.setupFailed');
@@ -31,6 +47,14 @@
 	<div class="card bg-base-100 border border-base-200 shadow-sm w-full max-w-md">
 		<div class="card-body gap-4">
 			<h1 class="text-2xl font-bold">{$_('auth.setupTitle')}</h1>
+			<label class="form-control max-w-xs">
+				<span class="label label-text">{$_('settings.languageTitle')}</span>
+				<select class="select select-bordered" value={selectedLanguage} onchange={onLanguageChange}>
+					{#each SUPPORTED_LOCALES as code}
+						<option value={code}>{$_(`languages.${code}`)}</option>
+					{/each}
+				</select>
+			</label>
 			{#if error}
 				<div class="alert alert-error text-sm"><span>{error}</span></div>
 			{/if}

@@ -104,8 +104,6 @@
   "settings": {
     "title": "Settings",
     "languageTitle": "Language",
-    "languageHelp": "Choose the language used across the app interface.",
-    "saved": "Language preference is saved in your browser.",
     "apiDocsTitle": "API Documentation",
     "apiDocsHelp": "Explore and test backend endpoints directly from the app.",
     "apiDocsViewLabel": "View",

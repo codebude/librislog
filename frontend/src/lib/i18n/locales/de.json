@@ -104,8 +104,6 @@
   "settings": {
     "title": "Einstellungen",
     "languageTitle": "Sprache",
-    "languageHelp": "Wähle die Sprache für die Benutzeroberfläche der App.",
-    "saved": "Die Spracheinstellung wird im Browser gespeichert.",
     "apiDocsTitle": "API-Dokumentation",
     "apiDocsHelp": "Erkunde und teste Backend-Endpunkte direkt in der App.",
     "apiDocsViewLabel": "Ansicht",
