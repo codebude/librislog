@@ -34,7 +34,8 @@
 		const path = $page.url.pathname;
 		const isSetupRoute = path.startsWith('/setup');
 		const isLoginRoute = path.startsWith('/login');
-		const publicAuthRoute = isSetupRoute || isLoginRoute;
+		const isOidcCallbackRoute = path.startsWith('/auth/oidc');
+		const publicAuthRoute = isSetupRoute || isLoginRoute || isOidcCallbackRoute;
 
 		try {
 			const setup = await api.auth.setupRequired();

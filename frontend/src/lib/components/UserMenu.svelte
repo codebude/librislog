@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { api } from '$lib/api';
 	import { currentUser, setAuthKey } from '$lib/stores/auth';
 	import { _ } from '$lib/i18n';
 
@@ -9,11 +10,16 @@
 		user ? `${user.firstname.charAt(0)}${user.lastname.charAt(0)}`.toUpperCase() : '??'
 	);
 
-	function logout() {
+	async function logout() {
+		try {
+			await api.auth.logout();
+		} catch {
+			// local logout still proceeds when server logout fails
+		}
 		setAuthKey(null);
 		currentUser.set(null);
 		open = false;
-		void goto('/login');
+		await goto('/login');
 	}
 </script>
 

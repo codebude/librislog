@@ -41,7 +41,10 @@
 				order
 			});
 		} catch (e: unknown) {
-			toasts.add(e instanceof Error ? e.message : $_('import.searchFailed'), 'error');
+			const message = e instanceof Error ? e.message : $_('import.searchFailed');
+			if (message !== 'Missing API key') {
+				toasts.add(message, 'error');
+			}
 		} finally {
 			if (background) {
 				syncing = false;
