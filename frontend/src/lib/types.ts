@@ -1,4 +1,4 @@
-export type ReadingStatus = 'want_to_read' | 'currently_reading' | 'read';
+export type ReadingStatus = 'want_to_read' | 'currently_reading' | 'read' | 'did_not_finish';
 
 export interface Book {
 	id: number;

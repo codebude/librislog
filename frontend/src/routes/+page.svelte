@@ -87,7 +87,8 @@
 	const STATUS_LABELS: Record<string, string> = {
 		want_to_read: 'Want to Read',
 		currently_reading: 'Currently Reading',
-		read: 'Read'
+		read: 'Read',
+		did_not_finish: 'Did Not Finish'
 	};
 </script>
 

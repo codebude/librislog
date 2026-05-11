@@ -78,6 +78,7 @@ def test_list_books_filter_by_status(client: TestClient):
     _create_book(client, title="Want", reading_status="want_to_read")
     _create_book(client, title="Reading", reading_status="currently_reading")
     _create_book(client, title="Done", reading_status="read")
+    _create_book(client, title="DNF", reading_status="did_not_finish")
 
     resp = client.get("/api/books?status=currently_reading")
     assert resp.status_code == 200
@@ -146,6 +147,31 @@ def test_update_book_status(client: TestClient):
     resp = client.patch(f"/api/books/{book['id']}", json={"reading_status": "currently_reading"})
     assert resp.status_code == 200
     assert resp.json()["reading_status"] == "currently_reading"
+
+
+def test_create_book_with_did_not_finish_status(client: TestClient):
+    resp = client.post("/api/books", json={"title": "DNF Book", "reading_status": "did_not_finish"})
+    assert resp.status_code == 201
+    assert resp.json()["reading_status"] == "did_not_finish"
+
+
+def test_list_books_filter_by_did_not_finish_status(client: TestClient):
+    _create_book(client, title="Read", reading_status="read")
+    _create_book(client, title="DNF", reading_status="did_not_finish")
+
+    resp = client.get("/api/books?status=did_not_finish")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["title"] == "DNF"
+
+
+def test_update_book_to_did_not_finish_status(client: TestClient):
+    book = _create_book(client, title="Update To DNF")
+
+    resp = client.patch(f"/api/books/{book['id']}", json={"reading_status": "did_not_finish"})
+    assert resp.status_code == 200
+    assert resp.json()["reading_status"] == "did_not_finish"
 
 
 def test_update_book_rating(client: TestClient):

@@ -16,7 +16,8 @@
 	const NAV_ITEMS: { status: ReadingStatus; label: string; icon: string }[] = [
 		{ status: 'want_to_read', label: 'Want to Read', icon: '📚' },
 		{ status: 'currently_reading', label: 'Reading', icon: '📖' },
-		{ status: 'read', label: 'Read', icon: '✓' }
+		{ status: 'read', label: 'Read', icon: '✓' },
+		{ status: 'did_not_finish', label: 'Did Not Finish', icon: '❌' }
 	];
 </script>
 

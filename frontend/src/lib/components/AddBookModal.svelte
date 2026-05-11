@@ -80,7 +80,8 @@
 	const STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
 		{ value: 'want_to_read', label: 'Want to Read' },
 		{ value: 'currently_reading', label: 'Currently Reading' },
-		{ value: 'read', label: 'Read' }
+		{ value: 'read', label: 'Read' },
+		{ value: 'did_not_finish', label: 'Did Not Finish' }
 	];
 </script>
 

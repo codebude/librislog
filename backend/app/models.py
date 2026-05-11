@@ -9,6 +9,7 @@ class ReadingStatus(str, Enum):
     want_to_read = "want_to_read"
     currently_reading = "currently_reading"
     read = "read"
+    did_not_finish = "did_not_finish"
 
 
 def _utcnow() -> datetime:

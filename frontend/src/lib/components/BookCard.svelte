@@ -7,13 +7,15 @@
 	const STATUS_LABELS: Record<string, string> = {
 		want_to_read: 'Want to Read',
 		currently_reading: 'Reading',
-		read: 'Read'
+		read: 'Read',
+		did_not_finish: 'Did Not Finish'
 	};
 
 	const STATUS_BADGE: Record<string, string> = {
 		want_to_read: 'badge-info',
 		currently_reading: 'badge-warning',
-		read: 'badge-success'
+		read: 'badge-success',
+		did_not_finish: 'badge-error'
 	};
 </script>
 
