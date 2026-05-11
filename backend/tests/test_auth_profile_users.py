@@ -294,3 +294,15 @@ def test_users_delete_soft_revokes_keys_and_removes_user(
     keys = session.exec(select(ApiKey).where(ApiKey.user_id == user_id)).all()
     assert keys
     assert all(k.revoked_at is not None for k in keys)
+
+
+def test_oidc_config_disabled_by_default(client: TestClient):
+    resp = client.get("/api/oidc/config")
+    assert resp.status_code == 200
+    assert resp.json()["enabled"] is False
+
+
+def test_oidc_link_status_disabled_by_default(client: TestClient):
+    resp = client.get("/api/oidc/link-status")
+    assert resp.status_code == 200
+    assert resp.json()["linked"] is False

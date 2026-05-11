@@ -184,5 +184,21 @@
     "special": "Mindestens ein Sonderzeichen",
     "strongEnough": "Ausreichend stark",
     "notReady": "Noch nicht ausreichend"
+  },
+  "oidc": {
+    "orContinueWith": "oder weiter mit",
+    "loginWithProvider": "Weiter mit {provider}",
+    "profileTitle": "Single Sign-On",
+    "notLinked": "Dein Konto ist noch nicht verknuepft.",
+    "linkButton": "{provider}-Konto verknuepfen",
+    "unlinkButton": "Konto-Verknuepfung entfernen",
+    "linkedAs": "Verknuepft mit {provider}",
+    "linkSuccess": "Konto erfolgreich verknuepft",
+    "linkStartFailed": "Konto-Verknuepfung konnte nicht gestartet werden",
+    "unlinkSuccess": "Konto-Verknuepfung entfernt",
+    "unlinkFailed": "Konto-Verknuepfung konnte nicht entfernt werden",
+    "callbackMissingKey": "Fehlendes Login-Token aus OIDC-Callback",
+    "signingIn": "Anmeldung laeuft...",
+    "linkingAccount": "Konto wird verknuepft..."
   }
 }

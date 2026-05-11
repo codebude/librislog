@@ -86,6 +86,19 @@ export interface ApiKeyMeta {
 	last_used_at: string | null;
 }
 
+export interface OidcConfig {
+	enabled: boolean;
+	provider_id: string | null;
+	provider_name: string | null;
+}
+
+export interface OidcLinkStatus {
+	linked: boolean;
+	provider_name: string | null;
+	oidc_email: string | null;
+	oidc_name: string | null;
+}
+
 export type SearchStage =
 	| { stage: 'open_library'; status: 'searching' }
 	| { stage: 'open_library'; status: 'done'; count: number }

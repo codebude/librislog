@@ -9,6 +9,20 @@
 	let selectedLanguage = $state<AppLocale>('en');
 	let loading = $state(false);
 	let error = $state('');
+	let oidcEnabled = $state(false);
+	let oidcProviderName = $state('Single Sign-On');
+
+	$effect(() => {
+		void (async () => {
+			try {
+				const cfg = await api.oidc.config();
+				oidcEnabled = cfg.enabled;
+				oidcProviderName = cfg.provider_name ?? 'Single Sign-On';
+			} catch {
+				oidcEnabled = false;
+			}
+		})();
+	});
 
 	$effect(() => {
 		if (SUPPORTED_LOCALES.includes($locale as AppLocale)) {
@@ -39,6 +53,18 @@
 			loading = false;
 		}
 	}
+
+	function startOidcLogin() {
+		window.location.href = api.oidc.loginUrl();
+	}
+
+	$effect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const oidcError = params.get('oidc_error');
+		if (oidcError) {
+			error = oidcError;
+		}
+	});
 </script>
 
 <div class="min-h-screen bg-base-200 grid place-items-center p-4">
@@ -68,6 +94,12 @@
 				<button type="submit" class="btn btn-primary" disabled={loading}>
 					{loading ? $_('common.loadingEllipsis') : $_('auth.login')}
 				</button>
+				{#if oidcEnabled}
+					<div class="divider text-xs">{$_('oidc.orContinueWith')}</div>
+					<button type="button" class="btn btn-outline" onclick={startOidcLogin}>
+						{$_('oidc.loginWithProvider', { values: { provider: oidcProviderName } })}
+					</button>
+				{/if}
 			</form>
 		</div>
 	</div>

@@ -184,5 +184,21 @@
     "special": "At least one special character",
     "strongEnough": "Strong enough",
     "notReady": "Not ready"
+  },
+  "oidc": {
+    "orContinueWith": "or continue with",
+    "loginWithProvider": "Continue with {provider}",
+    "profileTitle": "Single Sign-On",
+    "notLinked": "Your account is not linked yet.",
+    "linkButton": "Link {provider} account",
+    "unlinkButton": "Unlink account",
+    "linkedAs": "Linked with {provider}",
+    "linkSuccess": "Account linked successfully",
+    "linkStartFailed": "Could not start account linking",
+    "unlinkSuccess": "Account unlinked",
+    "unlinkFailed": "Could not unlink account",
+    "callbackMissingKey": "Missing login token from OIDC callback",
+    "signingIn": "Signing you in...",
+    "linkingAccount": "Linking account..."
   }
 }

@@ -171,3 +171,21 @@ class DateConflict(SQLModel):
 class StatusTransitionResponse(SQLModel):
     book: BookRead
     date_conflict: Optional[DateConflict] = None
+
+
+class OidcConfigRead(SQLModel):
+    enabled: bool
+    provider_id: Optional[str] = None
+    provider_name: Optional[str] = None
+
+
+class OidcLinkRead(SQLModel):
+    linked: bool
+    provider_name: Optional[str] = None
+    oidc_email: Optional[str] = None
+    oidc_name: Optional[str] = None
+
+
+class OidcLoginResponse(SQLModel):
+    user: UserRead
+    api_key: str

@@ -4,7 +4,7 @@
 	import { currentUser } from '$lib/stores/auth';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
-	import type { ApiKeyMeta } from '$lib/types';
+	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -17,6 +17,10 @@
 	let keyCopied = $state(false);
 	let keys = $state<ApiKeyMeta[]>([]);
 	let pendingDeleteKeyId = $state<number | null>(null);
+	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null });
+	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
+	let oidcLoading = $state(false);
+	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	const nonPrimaryKeys = $derived(keys.filter((key) => !key.is_primary));
 
 	$effect(() => {
@@ -30,6 +34,10 @@
 		const settings = await api.profile.getSettings();
 		language = settings.language;
 		keys = await api.profile.listApiKeys();
+		oidcConfig = await api.oidc.config();
+		if (oidcConfig.enabled) {
+			oidcLink = await api.oidc.linkStatus();
+		}
 	}
 
 	void load();
@@ -95,6 +103,38 @@
 		await api.profile.deleteApiKey(id);
 		keys = await api.profile.listApiKeys();
 	}
+
+	async function startOidcLink() {
+		oidcMessage = null;
+		try {
+			const response = await api.oidc.startLink();
+			window.location.href = response.redirect_url;
+		} catch (e: unknown) {
+			oidcMessage = { type: 'error', text: e instanceof Error ? e.message : $_('oidc.linkStartFailed') };
+		}
+	}
+
+	async function unlinkOidc() {
+		oidcMessage = null;
+		oidcLoading = true;
+		try {
+			await api.oidc.unlink();
+			oidcLink = await api.oidc.linkStatus();
+			oidcMessage = { type: 'success', text: $_('oidc.unlinkSuccess') };
+		} catch (e: unknown) {
+			oidcMessage = { type: 'error', text: e instanceof Error ? e.message : $_('oidc.unlinkFailed') };
+		} finally {
+			oidcLoading = false;
+		}
+	}
+
+	$effect(() => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.get('oidc_linked') === '1') {
+			oidcMessage = { type: 'success', text: $_('oidc.linkSuccess') };
+			void load();
+		}
+	});
 </script>
 
 <div class="max-w-3xl mx-auto flex flex-col gap-6">
@@ -171,6 +211,33 @@
 			</ul>
 		</div>
 	</div>
+
+	{#if oidcConfig.enabled}
+		<div class="card bg-base-100 border border-base-200 shadow-sm">
+			<div class="card-body gap-3">
+				<h2 class="text-lg font-semibold">{$_('oidc.profileTitle')}</h2>
+				{#if oidcMessage}
+					<div class={`alert ${oidcMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
+						<span>{oidcMessage.text}</span>
+					</div>
+				{/if}
+				{#if oidcLink.linked}
+					<p class="text-sm text-base-content/70">
+						{$_('oidc.linkedAs', { values: { provider: oidcLink.provider_name ?? oidcConfig.provider_name ?? '' } })}
+						{#if oidcLink.oidc_email} ({oidcLink.oidc_email}){/if}
+					</p>
+					<button class="btn btn-outline btn-sm self-start" onclick={unlinkOidc} disabled={oidcLoading}>
+						{$_('oidc.unlinkButton')}
+					</button>
+				{:else}
+					<p class="text-sm text-base-content/70">{$_('oidc.notLinked')}</p>
+					<button class="btn btn-outline btn-sm self-start" onclick={startOidcLink}>
+						{$_('oidc.linkButton', { values: { provider: oidcConfig.provider_name ?? '' } })}
+					</button>
+				{/if}
+			</div>
+		</div>
+	{/if}
 </div>
 
 <dialog class="modal" class:modal-open={pendingDeleteKeyId !== null}>

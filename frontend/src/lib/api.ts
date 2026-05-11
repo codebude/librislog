@@ -9,6 +9,8 @@ import type {
 	SearchStage,
 	SortField,
 	SortOrder,
+	OidcConfig,
+	OidcLinkStatus,
 	User,
 	UserAdminUpdate,
 	UserSettings
@@ -141,6 +143,28 @@ export const api = {
 
 		delete(id: number): Promise<void> {
 			return request<void>(`/users/${id}`, { method: 'DELETE' });
+		}
+	},
+
+		oidc: {
+		config(): Promise<OidcConfig> {
+			return request<OidcConfig>('/oidc/config');
+		},
+
+		loginUrl(): string {
+			return `${BASE}/oidc/login`;
+		},
+
+		linkStatus(): Promise<OidcLinkStatus> {
+			return request<OidcLinkStatus>('/oidc/link-status');
+		},
+
+		startLink(): Promise<{ redirect_url: string }> {
+			return request<{ redirect_url: string }>('/oidc/link', { method: 'POST' });
+		},
+
+		unlink(): Promise<void> {
+			return request<void>('/oidc/unlink', { method: 'DELETE' });
 		}
 	},
 

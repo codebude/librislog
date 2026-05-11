@@ -68,3 +68,13 @@ class ApiKey(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
     last_used_at: Optional[datetime] = None
     revoked_at: Optional[datetime] = None
+
+
+class OidcLink(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True, unique=True)
+    provider_name: str = Field(index=True)
+    oidc_sub: str = Field(index=True, unique=True)
+    oidc_email: Optional[str] = Field(default=None)
+    oidc_name: Optional[str] = Field(default=None)
+    linked_at: datetime = Field(default_factory=_utcnow)

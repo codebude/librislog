@@ -5,9 +5,11 @@ description = "LibrisLog book tracking API"
 requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.18.4",
+    "authlib>=1.6.5",
     "cryptography>=46.0.3",
     "fastapi>=0.136.1",
     "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.14.1",
     "pycountry>=24.6.1",

@@ -15,7 +15,9 @@
 	let i18nReady = $state(false);
 	let authReady = $state(false);
 	const isPublicAuthRoute = $derived(
-		$page.url.pathname.startsWith('/setup') || $page.url.pathname.startsWith('/login')
+		$page.url.pathname.startsWith('/setup') ||
+			$page.url.pathname.startsWith('/login') ||
+			$page.url.pathname.startsWith('/auth/oidc')
 	);
 	const showAppChrome = $derived(!isPublicAuthRoute && $currentUser !== null);
 

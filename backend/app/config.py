@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     covers_dir: str = "./data/covers"
     api_key_encryption_key: str = "CHANGE_ME_TO_32PLUS_CHARS"
+    oidc_enabled: bool = False
+    oidc_provider_id: str = "oidc"
+    oidc_provider_name: str = "Single Sign-On"
+    oidc_client_id: str = ""
+    oidc_client_secret: str = ""
+    oidc_well_known_url: str = ""
+    oidc_scope: str = "openid email profile"
 
 
 settings = Settings()
