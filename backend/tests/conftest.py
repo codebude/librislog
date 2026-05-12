@@ -1,7 +1,11 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
+
+os.environ.setdefault("API_KEY_ENCRYPTION_KEY", "test-api-key-encryption-secret")
 
 from app.auth import encrypt_api_key, generate_api_key, get_api_key_prefix, get_password_hash, hash_api_key
 from app.models import ApiKey, User, UserRole, UserSettings

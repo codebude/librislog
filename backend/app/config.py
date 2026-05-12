@@ -1,4 +1,5 @@
 from typing import List
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     cors_origins: List[str] = ["http://localhost", "http://localhost:5173", "http://localhost:4173"]
     log_level: str = "INFO"
     covers_dir: str = "./data/covers"
-    api_key_encryption_key: str = "CHANGE_ME_TO_32PLUS_CHARS"
+    api_key_encryption_key: str
     auth_cookie_name: str = "librislog_session"
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
@@ -26,6 +27,15 @@ class Settings(BaseSettings):
     dashboard_quote_url: str = (
         "https://motivational-spark-api.vercel.app/api/quotes/random"
     )
+
+    @field_validator("api_key_encryption_key")
+    @classmethod
+    def validate_api_key_encryption_key(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("API_KEY_ENCRYPTION_KEY must be set")
+        if value == "CHANGE_ME_TO_32PLUS_CHARS":
+            raise ValueError("API_KEY_ENCRYPTION_KEY must be set to a real secret")
+        return value
 
 
 settings = Settings()
