@@ -77,6 +77,7 @@
     "dateStarted": "Begonnen am",
     "dateFinished": "Beendet am",
     "cover": "Cover",
+    "searchForCovers": "Nach Covern suchen",
     "coverOf": "Cover von {title}",
     "openDetailsHint": "Zum Oeffnen der Details klicken"
   },
@@ -120,6 +121,7 @@
     "browse": "auswählen",
     "pasteUrl": "Oder Bild-URL einfügen...",
     "useUrl": "URL verwenden",
+    "urlInvalid": "Cover konnte von der URL nicht geladen werden. Bitte Link prüfen.",
     "uploadFailed": "Upload fehlgeschlagen",
     "previewAlt": "Cover-Vorschau"
   },

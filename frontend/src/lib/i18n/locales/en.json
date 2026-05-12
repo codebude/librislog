@@ -77,6 +77,7 @@
     "dateStarted": "Date started",
     "dateFinished": "Date finished",
     "cover": "Cover",
+    "searchForCovers": "Search for covers",
     "coverOf": "Cover of {title}",
     "openDetailsHint": "Click to open details"
   },
@@ -120,6 +121,7 @@
     "browse": "browse",
     "pasteUrl": "Or paste an image URL...",
     "useUrl": "Use URL",
+    "urlInvalid": "Could not load cover from URL. Please verify the link.",
     "uploadFailed": "Upload failed",
     "previewAlt": "Cover preview"
   },

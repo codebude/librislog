@@ -98,6 +98,9 @@ async def import_book(
             filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)
         if filename:
             cover_url = f"/api/covers/{filename}"
+        else:
+            logger.warning("Cover download failed or invalid for %s — skipping cover during import", cover_url)
+            cover_url = None
 
     book = Book(
         title=c.title,

@@ -196,6 +196,9 @@ async def create_book(
         if filename:
             cover_url = f"/api/covers/{filename}"
             logger.debug("create_book — downloaded cover → %s", cover_url)
+        else:
+            logger.warning("Cover download failed or invalid for %s — skipping cover during creation", cover_url)
+            cover_url = None
 
     book_data = book_in.model_dump()
     book_data["cover_url"] = cover_url
@@ -247,6 +250,9 @@ async def update_book(
         if filename:
             update_data["cover_url"] = f"/api/covers/{filename}"
             logger.debug("update_book — downloaded cover → %s", update_data['cover_url'])
+        else:
+            logger.warning("Cover download failed or invalid for %s — skipping cover update", update_data["cover_url"])
+            update_data.pop("cover_url", None)
 
     # Clean up old local cover if it has changed.
     if "cover_url" in update_data and update_data["cover_url"] != book.cover_url:

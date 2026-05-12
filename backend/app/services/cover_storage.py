@@ -15,7 +15,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_MIN_COVER_BYTES = 5_000
+_MIN_COVER_BYTES = 1_000
 
 _CONTENT_TYPE_TO_EXT: dict[str, str] = {
     "image/jpeg": ".jpg",

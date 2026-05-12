@@ -485,15 +485,15 @@ def test_create_book_with_external_cover_downloads_local(client, tmp_path, monke
     assert (tmp_path / "fakecover123.jpg").exists()
 
 
-def test_create_book_cover_download_fail_falls_back_to_external(client, tmp_path, monkeypatch):
-    """When cover download fails, create_book stores the original external URL."""
+def test_create_book_cover_download_fail_skips_cover(client, tmp_path, monkeypatch):
+    """When cover download fails, create_book stores no cover URL."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
     monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_fail)
 
     ext_url = "https://example.com/fallback.jpg"
     resp = client.post("/api/books", json={"title": "Book", "cover_url": ext_url})
     assert resp.status_code == 201
-    assert resp.json()["cover_url"] == ext_url
+    assert resp.json()["cover_url"] is None
 
 
 def test_create_book_local_cover_url_not_re_downloaded(client, tmp_path, monkeypatch):

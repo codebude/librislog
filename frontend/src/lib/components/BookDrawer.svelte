@@ -177,6 +177,11 @@
 		{ value: 'read', label: 'status.read' },
 		{ value: 'did_not_finish', label: 'status.did_not_finish' }
 	];
+
+	const coverSearchUrl = $derived.by(() => {
+		const query = `${title} ${author}`.trim();
+		return `https://www.google.com/search?q=${encodeURIComponent(query)}&udm=2&tbs=isz:l`;
+	});
 </script>
 
 {#if open && book}
@@ -268,6 +273,11 @@
 			</label>
 
 			<CoverPicker bind:value={cover_url} disabled={saving} />
+			<div class="-mt-1">
+				<a href={coverSearchUrl} target="_blank" rel="noreferrer" class="btn btn-outline btn-xs">
+					{$_('book.searchForCovers')}
+				</a>
+			</div>
 
 			<div class="flex gap-2 mt-auto pt-2">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (open = false)} disabled={saving}>

@@ -15,6 +15,7 @@
 	let uploading = $state(false);
 	let dragging = $state(false);
 	let fileInput: HTMLInputElement | undefined = $state();
+	const URL_PREVIEW_TIMEOUT_MS = 8000;
 
 	async function handleFile(file: File) {
 		if (disabled) return;
@@ -45,8 +46,42 @@
 
 	async function fetchUrl() {
 		if (!urlInput.trim() || disabled) return;
-		value = urlInput.trim();
-		urlInput = '';
+
+		const candidate = urlInput.trim();
+		uploading = true;
+		try {
+			const parsed = new URL(candidate);
+			if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+				throw new Error('Unsupported URL scheme');
+			}
+
+			await new Promise<void>((resolve, reject) => {
+				const image = new Image();
+				const timeout = window.setTimeout(() => {
+					reject(new Error('Image load timeout'));
+				}, URL_PREVIEW_TIMEOUT_MS);
+
+				image.onload = () => {
+					window.clearTimeout(timeout);
+					resolve();
+				};
+				image.onerror = () => {
+					window.clearTimeout(timeout);
+					reject(new Error('Image load failed'));
+				};
+
+				image.src = parsed.toString();
+			});
+
+			value = parsed.toString();
+			urlInput = '';
+		} catch {
+			value = null;
+			urlInput = '';
+			toasts.add($_('coverPicker.urlInvalid'), 'error');
+		} finally {
+			uploading = false;
+		}
 	}
 
 	function clear() {

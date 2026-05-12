@@ -34,7 +34,7 @@ _RETRY_BASE_DELAY = 1.0   # seconds — doubles each attempt (1 → 2 → 4)
 # Google Books imageLinks size keys in preference order (largest first)
 _COVER_SIZE_PREFERENCE = ["extraLarge", "large", "medium", "small", "thumbnail", "smallThumbnail"]
 # Minimum acceptable file size — anything smaller is likely a placeholder/error page
-_MIN_COVER_BYTES = 5_000
+_MIN_COVER_BYTES = 1_000
 
 
 class SourceBackendError(Exception):

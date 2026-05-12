@@ -658,8 +658,8 @@ def test_import_book_downloads_cover_locally(client: TestClient, monkeypatch, tm
     assert resp.json()["cover_url"] == "/api/covers/abc123deadbeef.jpg"
 
 
-def test_import_book_falls_back_to_external_url_on_cover_failure(client: TestClient, monkeypatch, tmp_path):
-    """When download_cover returns None, the original external URL is preserved."""
+def test_import_book_cover_failure_skips_cover(client: TestClient, monkeypatch, tmp_path):
+    """When download_cover returns None, the imported book stores no cover URL."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
 
     async def fake_download(url, covers_dir, http_client, user_id):
@@ -679,7 +679,7 @@ def test_import_book_falls_back_to_external_url_on_cover_failure(client: TestCli
     }
     resp = client.post("/api/import", json=payload)
     assert resp.status_code == 201
-    assert resp.json()["cover_url"] == external_url
+    assert resp.json()["cover_url"] is None
 
 
 def test_import_book_no_cover_url_skips_download(client: TestClient, monkeypatch, tmp_path):
