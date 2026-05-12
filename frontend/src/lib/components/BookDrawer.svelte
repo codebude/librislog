@@ -36,6 +36,10 @@
 	let notes = $state('');
 	let rating = $state<number | null>(null);
 	let reading_status = $state<ReadingStatus>('want_to_read');
+	let publisher = $state('');
+	let published_year = $state('');
+	let page_count = $state('');
+	let genre = $state('');
 	let date_started = $state('');
 	let date_finished = $state('');
 	let cover_url = $state<string | null>(null);
@@ -47,6 +51,10 @@
 			notes = book.notes ?? '';
 			rating = book.rating;
 			reading_status = book.reading_status;
+			publisher = book.publisher ?? '';
+			published_year = book.published_year !== null ? String(book.published_year) : '';
+			page_count = book.page_count !== null ? String(book.page_count) : '';
+			genre = book.genre ?? '';
 			date_started = toDateInputValue(book.date_started);
 			date_finished = toDateInputValue(book.date_finished);
 			cover_url = book.cover_url ?? null;
@@ -61,6 +69,10 @@
 		const payload: Partial<Book> = {
 			title,
 			author: author || null,
+			publisher: publisher || null,
+			published_year: published_year ? parseInt(published_year, 10) : null,
+			page_count: page_count ? parseInt(page_count, 10) : null,
+			genre: genre || null,
 			notes: notes || null,
 			rating,
 			cover_url: cover_url || null
@@ -212,17 +224,6 @@
 			>✕</button>
 		</div>
 
-		<!-- Meta -->
-		<div class="flex gap-4 p-4">
-			<div class="text-sm text-base-content/60 space-y-1">
-				{#if book.publisher}<p>{book.publisher}</p>{/if}
-				{#if book.published_year}<p>{book.published_year}</p>{/if}
-				{#if book.page_count}<p>{book.page_count} {$_('book.pages').toLowerCase()}</p>{/if}
-				{#if book.genre}<p class="italic">{book.genre}</p>{/if}
-				{#if book.isbn}<p class="font-mono text-xs">{$_('book.isbn')} {book.isbn}</p>{/if}
-			</div>
-		</div>
-
 		<!-- Editable form -->
 		<form class="flex flex-col gap-3 px-4 pb-4 flex-1" onsubmit={(e) => { e.preventDefault(); save(); }}>
 			<label class="form-control">
@@ -234,6 +235,32 @@
 				<span class="label label-text">{$_('book.author')}</span>
 				<input class="input input-bordered input-sm" bind:value={author} />
 			</label>
+
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+				<label class="form-control sm:col-span-2">
+					<span class="label label-text">{$_('book.publisher')}</span>
+					<input class="input input-bordered input-sm" bind:value={publisher} />
+				</label>
+
+				<label class="form-control">
+					<span class="label label-text">{$_('book.year')}</span>
+					<input type="number" class="input input-bordered input-sm" bind:value={published_year} min="1000" max="2100" />
+				</label>
+
+				<label class="form-control">
+					<span class="label label-text">{$_('book.pages')}</span>
+					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+				</label>
+			</div>
+
+			<label class="form-control">
+				<span class="label label-text">{$_('book.genre')}</span>
+				<input class="input input-bordered input-sm" bind:value={genre} />
+			</label>
+
+			{#if book.isbn}
+				<p class="text-xs text-base-content/60">{$_('book.isbn')}: <span class="font-mono">{book.isbn}</span></p>
+			{/if}
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.status')}</span>
