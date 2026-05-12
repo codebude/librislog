@@ -72,10 +72,7 @@
 
 	const NAV_ITEMS = $derived.by(() => {
 		const items = [
-			{ href: '/?status=want_to_read', labelKey: 'nav.want_to_read', icon: '📚' },
-			{ href: '/?status=currently_reading', labelKey: 'nav.currently_reading', icon: '📖' },
-			{ href: '/?status=read', labelKey: 'nav.read', icon: '✓' },
-			{ href: '/?status=did_not_finish', labelKey: 'nav.did_not_finish', icon: '❌' },
+			{ href: '/library', labelKey: 'nav.library', icon: '📚' },
 			{ href: '/settings', labelKey: 'app.settings', icon: '⚙️' }
 		];
 		if ($currentUser?.role === 'admin') {
@@ -84,15 +81,12 @@
 		return items;
 	});
 
-	const STATUS_LABEL_KEYS: Record<string, string> = {
-		want_to_read: 'status.want_to_read',
-		currently_reading: 'status.currently_reading',
-		read: 'status.read',
-		did_not_finish: 'status.did_not_finish'
-	};
-
 	function pageTitle() {
 		if (!i18nReady) return 'LibrisLog';
+
+		if ($page.url.pathname.startsWith('/library')) {
+			return `${$_('app.title')} - ${$_('nav.library')}`;
+		}
 
 		if ($page.url.pathname.startsWith('/settings')) {
 			return `${$_('app.title')} - ${$_('settings.title')}`;
@@ -110,9 +104,7 @@
 			return `${$_('app.title')} - ${$_('auth.setupTitle')}`;
 		}
 
-		const status = $page.url.searchParams.get('status') ?? 'want_to_read';
-		const statusKey = STATUS_LABEL_KEYS[status] ?? STATUS_LABEL_KEYS.want_to_read;
-		return `${$_('app.title')} - ${$_(statusKey)}`;
+		return $_('app.title');
 	}
 </script>
 
@@ -142,7 +134,6 @@
 				</a>
 			{/each}
 		</nav>
-		<button class="btn btn-primary btn-sm" onclick={() => (addBookOpen = true)}>+ {$_('app.addBook')}</button>
 	</aside>
 
 	<!-- Main content -->
@@ -150,9 +141,6 @@
 		<!-- Mobile top bar -->
 		<header class="md:hidden flex items-center justify-between px-4 py-3 bg-base-100 shadow-sm sticky top-0 z-20">
 			<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
-			<div class="flex items-center gap-2">
-				<button class="btn btn-primary btn-sm" onclick={() => (addBookOpen = true)}>+ {$_('app.add')}</button>
-			</div>
 		</header>
 
 		<!-- Page content -->

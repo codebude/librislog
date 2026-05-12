@@ -7,6 +7,7 @@
     "language": "Sprache"
   },
   "nav": {
+    "library": "Bibliothek",
     "want_to_read": "Möchte ich lesen",
     "currently_reading": "Lese ich gerade",
     "read": "Gelesen",
