@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional
 from datetime import datetime, timezone
 
+import sqlalchemy as sa
 from sqlmodel import Field, SQLModel
 
 
@@ -30,7 +31,6 @@ class Book(SQLModel, table=True):
     publisher: Optional[str] = None
     published_year: Optional[int] = None
     page_count: Optional[int] = None
-    tags: Optional[str] = None
     notes: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)
@@ -38,6 +38,23 @@ class Book(SQLModel, table=True):
     date_added: datetime = Field(default_factory=_utcnow, index=True)
     date_started: Optional[datetime] = Field(default=None, index=True)
     date_finished: Optional[datetime] = Field(default=None, index=True)
+
+
+class Tag(SQLModel, table=True):
+    __tablename__ = "tag"
+    __table_args__ = (sa.UniqueConstraint("user_id", "name", name="uq_tag_user_id_name"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(index=True)
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class BookTag(SQLModel, table=True):
+    __tablename__ = "book_tag"
+
+    book_id: int = Field(foreign_key="book.id", primary_key=True)
+    tag_id: int = Field(foreign_key="tag.id", primary_key=True)
 
 
 class User(SQLModel, table=True):

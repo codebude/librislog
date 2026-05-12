@@ -68,7 +68,7 @@ class BookRead(SQLModel):
     publisher: Optional[str]
     published_year: Optional[int]
     page_count: Optional[int]
-    tags: Optional[str]
+    tags: Optional[str] = None
     notes: Optional[str]
     rating: Optional[int]
     reading_status: ReadingStatus

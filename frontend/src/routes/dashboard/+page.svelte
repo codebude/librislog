@@ -92,7 +92,7 @@
 
 	async function loadTagCloud() {
 		try {
-			tagCloud = await api.books.tagCloud(30);
+			tagCloud = await api.books.tagCloud(50);
 		} catch {
 			tagCloud = [];
 		}
@@ -100,6 +100,16 @@
 
 	function tagCloudSize(count: number): number {
 		return Math.min(1.2, 0.8 + count * 0.08);
+	}
+
+	function applyTagCloudSearch(tag: string) {
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+		if (searchQuery === tag) {
+			const token = ++searchToken;
+			void runSearch(tag, token);
+			return;
+		}
+		searchQuery = tag;
 	}
 
 	async function loadQuote() {
@@ -267,7 +277,7 @@
 			<div class="relative w-full">
 				<input
 					type="text"
-					class="input input-bordered w-full"
+					class="input input-bordered w-full pr-10"
 					placeholder={$_('common.searchBooks')}
 					bind:value={searchQuery}
 					onkeydown={onSearchKeydown}
@@ -279,6 +289,19 @@
 						showSearchDropdown && highlightedIndex >= 0 ? `dashboard-search-option-${searchResults[highlightedIndex]?.id ?? ''}` : undefined
 					}
 				/>
+
+				{#if searchQuery.trim().length > 0}
+					<button
+						type="button"
+						class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
+						onclick={() => {
+							searchQuery = '';
+						}}
+						aria-label={$_('common.clearForm')}
+					>
+						x
+					</button>
+				{/if}
 
 				{#if showSearchDropdown}
 					<div class="absolute left-0 right-0 top-full mt-2 rounded-lg border border-base-200 bg-base-100 overflow-hidden shadow-lg z-20">
@@ -420,7 +443,7 @@
 							type="button"
 							class="badge badge-outline hover:badge-primary transition-colors cursor-pointer"
 							style={`font-size: ${tagCloudSize(entry.count)}rem;`}
-							onclick={() => goto(`/library?q=${encodeURIComponent(entry.tag)}`)}
+							onclick={() => applyTagCloudSearch(entry.tag)}
 						>
 							{entry.tag}
 							<span class="ml-1 text-xs opacity-70">{entry.count}</span>

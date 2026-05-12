@@ -4,12 +4,12 @@ from typing import List, Literal, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, func, select
+from sqlmodel import Session, func, or_, select
 
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import Book, ReadingStatus, User
+from app.models import Book, BookTag, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookRead,
@@ -27,6 +27,7 @@ from app.services.cover_storage import (
     local_cover_filename,
 )
 from app.services.quote_cache import get_or_fetch_dashboard_quote
+from app.services.tags import build_book_read, cleanup_orphan_tags, sync_book_tags
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def list_books(
     smart_sort: bool = Query(default=True),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> List[Book]:
+) -> List[BookRead]:
     logger.debug(
         "list_books — status=%r q=%r sort=%s order=%s smart_sort=%s",
         status,
@@ -93,10 +94,16 @@ def list_books(
 
     if q:
         pattern = f"%{q}%"
+        matching_tag_book_ids = select(BookTag.book_id).join(Tag, Tag.id == BookTag.tag_id).where(
+            Tag.user_id == current_user.id,
+            Tag.name.ilike(pattern),
+        )
         statement = statement.where(
-            Book.title.ilike(pattern)  # type: ignore[union-attr]
-            | Book.author.ilike(pattern)
-            | Book.tags.ilike(pattern)
+            or_(
+                Book.title.ilike(pattern),  # type: ignore[union-attr]
+                Book.author.ilike(pattern),
+                Book.id.in_(matching_tag_book_ids),
+            )
         )
 
     if smart_sort and status is not None:
@@ -126,7 +133,7 @@ def list_books(
 
     books = list(session.exec(statement).all())
     logger.debug("list_books — returning %d book(s)", len(books))
-    return books
+    return [build_book_read(session, book) for book in books]
 
 
 @router.get("/stats", response_model=LibraryStats)
@@ -191,24 +198,14 @@ def get_tag_cloud(
     session: Session = Depends(get_session),
 ) -> List[TagCloudEntry]:
     rows = session.exec(
-        select(Book.tags).where(
-            Book.user_id == current_user.id,
-            Book.tags.is_not(None),
-        )
+        select(Tag.name, func.count(BookTag.book_id))
+        .join(BookTag, BookTag.tag_id == Tag.id)
+        .where(Tag.user_id == current_user.id)
+        .group_by(Tag.id, Tag.name)
+        .order_by(func.count(BookTag.book_id).desc(), Tag.name.asc())
+        .limit(limit)
     ).all()
-
-    counts: dict[str, int] = {}
-    for raw_tags in rows:
-        if not raw_tags:
-            continue
-        for tag in raw_tags.split(","):
-            normalized = tag.strip()
-            if not normalized:
-                continue
-            counts[normalized] = counts.get(normalized, 0) + 1
-
-    sorted_items = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
-    return [TagCloudEntry(tag=tag, count=count) for tag, count in sorted_items]
+    return [TagCloudEntry(tag=name, count=count) for name, count in rows]
 
 
 @router.post("", response_model=BookRead, status_code=201)
@@ -216,7 +213,7 @@ async def create_book(
     book_in: BookCreate,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> Book:
+) -> BookRead:
     logger.debug("create_book — title=%r", book_in.title)
 
     cover_url = book_in.cover_url
@@ -232,13 +229,16 @@ async def create_book(
 
     book_data = book_in.model_dump()
     book_data["cover_url"] = cover_url
+    book_data.pop("tags", None)
     book_data["user_id"] = current_user.id
     book = Book.model_validate(book_data)
     session.add(book)
+    session.flush()
+    sync_book_tags(session, current_user.id, book.id or 0, book_in.tags)
     session.commit()
     session.refresh(book)
     logger.info("Created book: %r (id=%s)", book.title, book.id)
-    return book
+    return build_book_read(session, book)
 
 
 @router.get("/{book_id}", response_model=BookRead)
@@ -246,13 +246,13 @@ def get_book(
     book_id: int,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> Book:
+) -> BookRead:
     logger.debug("get_book — id=%s", book_id)
     book = session.get(Book, book_id)
     if not book or book.user_id != current_user.id:
         logger.debug("get_book — id=%s not found", book_id)
         raise HTTPException(status_code=404, detail="Book not found")
-    return book
+    return build_book_read(session, book)
 
 
 @router.patch("/{book_id}", response_model=BookRead)
@@ -261,7 +261,7 @@ async def update_book(
     book_in: BookUpdate,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> Book:
+) -> BookRead:
     logger.debug("update_book — id=%s fields=%s", book_id, list(book_in.model_dump(exclude_unset=True)))
     book = session.get(Book, book_id)
     if not book or book.user_id != current_user.id:
@@ -269,6 +269,8 @@ async def update_book(
         raise HTTPException(status_code=404, detail="Book not found")
 
     update_data = book_in.model_dump(exclude_unset=True)
+    tags_provided = "tags" in update_data
+    tags_raw = update_data.pop("tags", None) if tags_provided else None
     target_status = update_data.get("reading_status", book.reading_status)
 
     # Download external cover URL → local file.
@@ -301,10 +303,13 @@ async def update_book(
 
     book.sqlmodel_update(update_data)
     session.add(book)
+    if tags_provided:
+        sync_book_tags(session, current_user.id, book.id, tags_raw)
+        cleanup_orphan_tags(session, current_user.id)
     session.commit()
     session.refresh(book)
     logger.info("Updated book: %r (id=%s) — changed %s", book.title, book.id, list(update_data))
-    return book
+    return build_book_read(session, book)
 
 
 @router.post("/{book_id}/transition-status", response_model=StatusTransitionResponse)
@@ -340,7 +345,7 @@ def transition_status(
                 existing_date=book.date_started,
                 suggested_date=now,
             )
-            return StatusTransitionResponse(book=BookRead.model_validate(book), date_conflict=conflict)
+            return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=conflict)
         update_data["date_started"] = transition.force_date_started
 
     if (
@@ -354,7 +359,7 @@ def transition_status(
                 existing_date=book.date_finished,
                 suggested_date=now,
             )
-            return StatusTransitionResponse(book=BookRead.model_validate(book), date_conflict=conflict)
+            return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=conflict)
         update_data["date_finished"] = transition.force_date_finished
 
     _apply_status_transition_dates(book, transition.new_status, update_data)
@@ -362,7 +367,7 @@ def transition_status(
     session.add(book)
     session.commit()
     session.refresh(book)
-    return StatusTransitionResponse(book=BookRead.model_validate(book), date_conflict=None)
+    return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=None)
 
 
 @router.delete("/{book_id}", status_code=204)
@@ -385,6 +390,9 @@ def delete_book(
         if not shared:
             delete_cover_file(filename, settings.covers_dir)
 
+    for link in session.exec(select(BookTag).where(BookTag.book_id == book.id)).all():
+        session.delete(link)
     session.delete(book)
+    cleanup_orphan_tags(session, current_user.id)
     session.commit()
     logger.info("Deleted book id=%s", book_id)

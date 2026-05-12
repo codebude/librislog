@@ -14,6 +14,7 @@ from app.models import Book, User
 from app.schemas import BookImportCandidate, BookImportRequest, BookRead
 from app.services import book_import
 from app.services.cover_storage import download_cover
+from app.services.tags import build_book_read, sync_book_tags
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ async def import_book(
     body: BookImportRequest,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> Book:
+) -> BookRead:
     """Persist an import candidate into the local database."""
     c = body.candidate
 
@@ -110,12 +111,13 @@ async def import_book(
         publisher=c.publisher,
         published_year=c.published_year,
         page_count=c.page_count,
-        tags=c.tags,
         reading_status=body.reading_status,
         user_id=current_user.id,
     )
     session.add(book)
+    session.flush()
+    sync_book_tags(session, current_user.id, book.id or 0, c.tags)
     session.commit()
     session.refresh(book)
     logger.info("Imported book: %r (isbn=%s id=%s)", book.title, book.isbn, book.id)
-    return book
+    return build_book_read(session, book)

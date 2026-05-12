@@ -132,7 +132,7 @@
 					{#if splitTags(book.tags).length > 0}
 						<div class="flex flex-wrap gap-1">
 							{#each splitTags(book.tags) as tag (tag)}
-								<span class="badge badge-outline badge-primary">{tag}</span>
+								<span class="badge badge-outline badge-primary h-auto py-1 px-2 max-w-full whitespace-normal break-all leading-tight">{tag}</span>
 							{/each}
 						</div>
 					{:else}

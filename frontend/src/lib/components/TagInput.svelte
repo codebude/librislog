@@ -3,13 +3,16 @@
 
 	let {
 		value = $bindable(''),
-		disabled = false
+		disabled = false,
+		maxTagsCount
 	}: {
 		value?: string;
 		disabled?: boolean;
+		maxTagsCount?: number;
 	} = $props();
 
 	let inputValue = $state('');
+	let inputEl: HTMLInputElement | undefined = $state();
 
 	const tags = $derived.by(() =>
 		value
@@ -32,6 +35,11 @@
 			return;
 		}
 
+		if (typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount) {
+			inputValue = '';
+			return;
+		}
+
 		setTags([...tags, next]);
 		inputValue = '';
 	}
@@ -42,7 +50,7 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' || event.key === ',') {
+		if (event.key === 'Enter' || event.key === 'Tab' || event.key === ',') {
 			event.preventDefault();
 			addCurrentTag();
 			return;
@@ -53,40 +61,42 @@
 			setTags(tags.slice(0, -1));
 		}
 	}
+
 </script>
 
 <div class="flex flex-col gap-2">
 	<span class="label label-text">{$_('book.tags')}</span>
 
-	{#if tags.length > 0}
-		<div class="flex flex-wrap gap-2">
-			{#each tags as tag (tag)}
-				<span class="badge badge-outline badge-primary gap-1 px-2 py-3 text-xs">
-					{tag}
-					{#if !disabled}
-						<button
-							type="button"
-							class="btn btn-ghost btn-xs btn-circle"
-							onclick={() => removeTag(tag)}
-							aria-label={$_('common.remove')}
-						>
-							x
-						</button>
-					{/if}
-				</span>
-			{/each}
-		</div>
-	{/if}
+	<div
+		class="min-h-10 w-full rounded-lg border border-base-300 bg-base-100 px-2 py-1.5 flex flex-wrap items-center gap-1.5 cursor-text focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 {disabled ? 'opacity-60 cursor-not-allowed' : ''}"
+	>
+		{#each tags as tag (tag)}
+			<span class="inline-flex items-center gap-1.5 rounded-lg border border-base-300 bg-base-200/70 text-base-content px-2 py-1 text-xs max-w-full shadow-sm">
+				<span class="break-all">{tag}</span>
+				{#if !disabled}
+					<button
+						type="button"
+						class="h-4 w-4 inline-flex items-center justify-center rounded text-base-content/70 hover:text-base-content hover:bg-base-300/80"
+						onclick={() => removeTag(tag)}
+						aria-label={$_('common.remove')}
+					>
+						×
+					</button>
+				{/if}
+			</span>
+		{/each}
 
-	<input
-		type="text"
-		class="input input-bordered input-sm"
-		placeholder={$_('book.tagsPlaceholder')}
-		bind:value={inputValue}
-		{disabled}
-		onkeydown={handleKeydown}
-		onblur={addCurrentTag}
-	/>
+		<input
+			bind:this={inputEl}
+			type="text"
+			class="flex-1 min-w-28 bg-transparent border-0 outline-none text-sm px-1 py-0.5"
+			placeholder={tags.length === 0 ? $_('book.tagsPlaceholder') : ''}
+			bind:value={inputValue}
+			{disabled}
+			onkeydown={handleKeydown}
+			onblur={addCurrentTag}
+		/>
+	</div>
 
 	<p class="text-xs text-base-content/60">{$_('book.tagsHint')}</p>
 </div>
