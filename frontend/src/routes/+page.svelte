@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import type { Book, ReadingStatus, SortField, SortOrder } from '$lib/types';
 	import { api } from '$lib/api';
+	import { shouldShowActionToast } from '$lib/errors';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import BookCard from '$lib/components/BookCard.svelte';
@@ -42,7 +43,7 @@
 			});
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : $_('import.searchFailed');
-			if (message !== 'Missing API key') {
+			if (shouldShowActionToast(message)) {
 				toasts.add(message, 'error');
 			}
 		} finally {
