@@ -60,6 +60,10 @@
 <div class="min-h-screen bg-base-200 grid place-items-center p-4">
 	<div class="card bg-base-100 border border-base-200 shadow-sm w-full max-w-md">
 		<div class="card-body gap-4">
+			<div class="flex items-center justify-center gap-3">
+				<img src="/logo.png" alt="LibrisLog" class="w-16 h-16 rounded-lg" />
+				<span class="text-2xl font-bold tracking-tight">{$_('app.title')}</span>
+			</div>
 			<h1 class="text-2xl font-bold">{$_('auth.setupTitle')}</h1>
 			<label class="form-control max-w-xs">
 				<span class="label label-text">{$_('settings.languageTitle')}</span>

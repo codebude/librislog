@@ -160,7 +160,10 @@
 	<UserMenu />
 	<!-- Sidebar (desktop) -->
 	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
-		<div class="text-xl font-bold tracking-tight py-2 px-1">{$_('app.title')}</div>
+		<div class="flex items-center gap-2 py-2 px-1">
+			<img src="/logo.png" alt="LibrisLog" class="w-8 h-8 rounded" />
+			<div class="text-xl font-bold tracking-tight">{$_('app.title')}</div>
+		</div>
 		<nav class="flex flex-col gap-1 flex-1">
 			{#each NAV_ITEMS as item}
 				<a
@@ -177,7 +180,10 @@
 	<div class="flex-1 flex flex-col md:ml-56 min-h-screen">
 		<!-- Mobile top bar -->
 		<header class="md:hidden flex items-center justify-between px-4 py-3 bg-base-100 shadow-sm sticky top-0 z-20">
-			<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
+			<div class="flex items-center gap-2">
+				<img src="/logo.png" alt="LibrisLog" class="w-7 h-7 rounded" />
+				<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
+			</div>
 		</header>
 
 		<!-- Page content -->
