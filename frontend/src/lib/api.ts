@@ -53,12 +53,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 	const isJson = contentType.includes('application/json');
 
 	if (!res.ok) {
+		const err = new Error(`HTTP ${res.status}`) as Error & { status?: number };
+		err.status = res.status;
 		if (isJson) {
 			const detail = await res.json().catch(() => ({}));
-			throw new Error(detail?.detail ?? `HTTP ${res.status}`);
+			err.message = detail?.detail ?? `HTTP ${res.status}`;
+			throw err;
 		}
 		const text = await res.text().catch(() => '');
-		throw new Error(text || `HTTP ${res.status}`);
+		err.message = text || `HTTP ${res.status}`;
+		throw err;
 	}
 	if (res.status === 204) return undefined as T;
 	if (!isJson) {

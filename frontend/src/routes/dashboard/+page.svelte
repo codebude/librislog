@@ -8,14 +8,6 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 
-	const DASHBOARD_QUOTE_CACHE_KEY = 'librislog.dashboard.quote';
-
-	function getEndOfDayTimestamp(now = new Date()): number {
-		const end = new Date(now);
-		end.setHours(23, 59, 59, 999);
-		return end.getTime();
-	}
-
 	let loading = $state(true);
 	let stats = $state<LibraryStats>({
 		total_books: 0,
@@ -29,7 +21,6 @@
 	let quoteLoading = $state(false);
 	let quoteEnabled = $state(false);
 	let quote = $state<DashboardQuote | null>(null);
-	let quoteCacheRevalidated = $state(false);
 
 	let selectedBook = $state<Book | null>(null);
 	let drawerOpen = $state(false);
@@ -75,62 +66,17 @@
 	async function loadQuote() {
 		quoteLoading = true;
 		try {
-			const now = Date.now();
-			if (typeof localStorage !== 'undefined') {
-				const cachedRaw = localStorage.getItem(DASHBOARD_QUOTE_CACHE_KEY);
-				if (cachedRaw) {
-					const cached = JSON.parse(cachedRaw) as {
-						expiresAt?: number;
-						fetchedAt?: number;
-						quote: DashboardQuote | null;
-						enabled: boolean;
-					};
-					const expiresAt = cached.expiresAt ?? cached.fetchedAt ?? 0;
-					if (!quoteCacheRevalidated) {
-						quoteCacheRevalidated = true;
-					} else if (cached.enabled && now < expiresAt) {
-						quoteEnabled = true;
-						quote = cached.quote;
-						return;
-					} else if (!cached.enabled && now < expiresAt) {
-						quoteEnabled = false;
-						quote = null;
-						return;
-					}
-				}
-			}
-
 			const data = await api.books.dashboardQuote();
-			quoteEnabled = data !== null;
+			quoteEnabled = true;
 			quote = data;
-
-			if (typeof localStorage !== 'undefined') {
-				const expiresAt = getEndOfDayTimestamp();
-				localStorage.setItem(
-					DASHBOARD_QUOTE_CACHE_KEY,
-					JSON.stringify({
-						expiresAt,
-						quote,
-						enabled: quoteEnabled
-					})
-				);
+		} catch (e: unknown) {
+			const status = typeof e === 'object' && e !== null && 'status' in e ? (e as { status?: number }).status : undefined;
+			if (status === 503) {
+				quoteEnabled = false;
+				quote = null;
+				return;
 			}
-		} catch {
-			if (typeof localStorage !== 'undefined') {
-				const cachedRaw = localStorage.getItem(DASHBOARD_QUOTE_CACHE_KEY);
-				if (cachedRaw) {
-					const cached = JSON.parse(cachedRaw) as {
-						expiresAt?: number;
-						fetchedAt?: number;
-						quote: DashboardQuote | null;
-						enabled: boolean;
-					};
-					quoteEnabled = cached.enabled;
-					quote = cached.quote;
-					return;
-				}
-			}
-			quoteEnabled = false;
+			quoteEnabled = true;
 			quote = null;
 		} finally {
 			quoteLoading = false;

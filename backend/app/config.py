@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     dashboard_quote_url: str = (
         "https://motivational-spark-api.vercel.app/api/quotes/random"
     )
+    dashboard_quote_cache_ttl: int = 86400
 
     @field_validator("api_key_encryption_key")
     @classmethod

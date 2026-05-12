@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from app.config import settings
 import app.routers.books as books_router
+from app.services.quote_cache import configure_quote_cache_ttl, invalidate_quote_cache
 
 
 def _create_book(client: TestClient, **kwargs) -> dict:
@@ -77,12 +78,13 @@ def test_book_stats_is_user_scoped(client: TestClient, create_user_with_key):
 
 
 def test_dashboard_quote_returns_none_when_disabled(client: TestClient, monkeypatch):
+    invalidate_quote_cache()
     monkeypatch.setattr(settings, "dashboard_quote_enabled", False)
 
     resp = client.get("/api/books/dashboard-quote")
 
-    assert resp.status_code == 200
-    assert resp.json() is None
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Dashboard quote feature is disabled"
 
 
 class _FakeQuoteResponse:
@@ -108,6 +110,8 @@ class _FakeAsyncClient:
 
 
 def test_dashboard_quote_returns_quote(client: TestClient, monkeypatch):
+    invalidate_quote_cache()
+    configure_quote_cache_ttl(86400)
     monkeypatch.setattr(settings, "dashboard_quote_enabled", True)
     monkeypatch.setattr(books_router.httpx, "AsyncClient", _FakeAsyncClient)
 
@@ -115,3 +119,47 @@ def test_dashboard_quote_returns_quote(client: TestClient, monkeypatch):
 
     assert resp.status_code == 200
     assert resp.json() == {"quote": "Stay humble.", "author": "Anon"}
+
+
+class _ChangingFakeAsyncClient:
+    calls = 0
+
+    def __init__(self, *args, **kwargs):
+        return None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    async def get(self, url):
+        _ChangingFakeAsyncClient.calls += 1
+        if _ChangingFakeAsyncClient.calls == 1:
+            return _FakeQuoteResponse()
+        return _FakeQuoteResponse2()
+
+
+class _FakeQuoteResponse2:
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return {"quote": "Keep going.", "author": "Anon2"}
+
+
+def test_dashboard_quote_uses_backend_cache(client: TestClient, monkeypatch):
+    invalidate_quote_cache()
+    configure_quote_cache_ttl(86400)
+    _ChangingFakeAsyncClient.calls = 0
+    monkeypatch.setattr(settings, "dashboard_quote_enabled", True)
+    monkeypatch.setattr(books_router.httpx, "AsyncClient", _ChangingFakeAsyncClient)
+
+    first = client.get("/api/books/dashboard-quote")
+    second = client.get("/api/books/dashboard-quote")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == {"quote": "Stay humble.", "author": "Anon"}
+    assert second.json() == {"quote": "Stay humble.", "author": "Anon"}
+    assert _ChangingFakeAsyncClient.calls == 1

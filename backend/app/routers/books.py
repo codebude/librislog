@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Literal, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session, func, select
 
 from app.auth import require_user
@@ -25,6 +25,7 @@ from app.services.cover_storage import (
     download_cover,
     local_cover_filename,
 )
+from app.services.quote_cache import get_or_fetch_dashboard_quote
 
 logger = logging.getLogger(__name__)
 
@@ -172,29 +173,12 @@ async def get_dashboard_quote(
     current_user: User = Depends(require_user),
 ) -> DashboardQuote | None:
     if not settings.dashboard_quote_enabled:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Dashboard quote feature is disabled",
+        )
 
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            response = await client.get(settings.dashboard_quote_url)
-            response.raise_for_status()
-            payload = response.json()
-    except Exception as exc:
-        logger.warning("dashboard quote fetch failed: %s", exc)
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-
-    quote = payload.get("quote")
-    if not isinstance(quote, str) or not quote.strip():
-        return None
-
-    author = payload.get("author")
-    if not isinstance(author, str):
-        author = None
-
-    return DashboardQuote(quote=quote.strip(), author=author)
+    return await get_or_fetch_dashboard_quote()
 
 
 @router.post("", response_model=BookRead, status_code=201)
