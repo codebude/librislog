@@ -4,8 +4,12 @@
 	import { onMount } from 'svelte';
 
 	onMount(async () => {
-		const status = $page.url.searchParams.get('status') ?? 'want_to_read';
-		await goto(`/library?status=${status}`, { replaceState: true });
+		const status = $page.url.searchParams.get('status');
+		if (status) {
+			await goto(`/library?status=${status}`, { replaceState: true });
+			return;
+		}
+		await goto('/dashboard', { replaceState: true });
 	});
 </script>
 

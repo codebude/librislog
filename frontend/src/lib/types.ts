@@ -53,6 +53,19 @@ export interface StatusTransitionResponse {
 	date_conflict: DateConflict | null;
 }
 
+export interface LibraryStats {
+	total_books: number;
+	books_read: number;
+	books_reading: number;
+	books_want_to_read: number;
+	books_did_not_finish: number;
+}
+
+export interface DashboardQuote {
+	quote: string;
+	author: string | null;
+}
+
 export type UserRole = 'admin' | 'user';
 
 export interface User {

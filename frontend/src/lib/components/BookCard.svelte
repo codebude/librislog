@@ -39,14 +39,16 @@
 			</div>
 		{/if}
 	</figure>
-	<div class="card-body gap-1">
+	<div class="card-body gap-1 overflow-hidden">
 		<h2 class="card-title text-sm leading-snug line-clamp-2">{book.title}</h2>
 		{#if book.author}
 			<p class="text-xs text-base-content/60 truncate">{book.author}</p>
 		{/if}
-		<div class="flex items-center justify-between mt-1">
-			<StarRating value={book.rating} readonly />
-			<span class="badge badge-xs {STATUS_BADGE[book.reading_status]}">
+		<div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
+			<div class="shrink-0">
+				<StarRating value={book.rating} readonly />
+			</div>
+			<span class="badge badge-xs {STATUS_BADGE[book.reading_status]} shrink-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
 				{$_(STATUS_LABEL_KEYS[book.reading_status])}
 			</span>
 		</div>

@@ -72,6 +72,7 @@
 
 	const NAV_ITEMS = $derived.by(() => {
 		const items = [
+			{ href: '/dashboard', labelKey: 'nav.dashboard', icon: '🏠' },
 			{ href: '/library', labelKey: 'nav.library', icon: '📚' },
 			{ href: '/settings', labelKey: 'app.settings', icon: '⚙️' }
 		];
@@ -83,6 +84,10 @@
 
 	function pageTitle() {
 		if (!i18nReady) return 'LibrisLog';
+
+		if ($page.url.pathname.startsWith('/dashboard')) {
+			return `${$_('app.title')} - ${$_('nav.dashboard')}`;
+		}
 
 		if ($page.url.pathname.startsWith('/library')) {
 			return `${$_('app.title')} - ${$_('nav.library')}`;

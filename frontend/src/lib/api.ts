@@ -2,6 +2,8 @@ import type {
 	ApiKeyMeta,
 	Book,
 	BookImportCandidate,
+	DashboardQuote,
+	LibraryStats,
 	StatusTransitionRequest,
 	StatusTransitionResponse,
 	ImportSearchMode,
@@ -180,6 +182,14 @@ export const api = {
 	},
 
 	books: {
+		stats(): Promise<LibraryStats> {
+			return request<LibraryStats>('/books/stats');
+		},
+
+		dashboardQuote(): Promise<DashboardQuote | null> {
+			return request<DashboardQuote | null>('/books/dashboard-quote');
+		},
+
 		list(params?: {
 			status?: ReadingStatus;
 			q?: string;

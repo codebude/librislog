@@ -77,6 +77,19 @@ class BookRead(SQLModel):
     date_finished: Optional[datetime]
 
 
+class LibraryStats(SQLModel):
+    total_books: int
+    books_read: int
+    books_reading: int
+    books_want_to_read: int
+    books_did_not_finish: int
+
+
+class DashboardQuote(SQLModel):
+    quote: str
+    author: Optional[str] = None
+
+
 class UserLogin(SQLModel):
     email: str
     password: str

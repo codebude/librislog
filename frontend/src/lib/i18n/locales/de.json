@@ -7,11 +7,26 @@
     "language": "Sprache"
   },
   "nav": {
+    "dashboard": "Dashboard",
     "library": "Bibliothek",
     "want_to_read": "Möchte ich lesen",
     "currently_reading": "Lese ich gerade",
     "read": "Gelesen",
     "did_not_finish": "Abgebrochen"
+  },
+  "dashboard": {
+    "title": "Lese-Dashboard",
+    "subtitle": "Ein schneller Überblick über dein Lesen",
+    "quoteTitle": "Zitat des Tages",
+    "quoteUnavailable": "Aktuell ist kein Zitat verfügbar.",
+    "totalBooks": "Gesamt in Bibliothek",
+    "booksRead": "Gelesene Bücher",
+    "booksToRead": "Noch zu lesen",
+    "currentlyReading": "Lese ich gerade",
+    "nextToRead": "Als nächstes lesen",
+    "viewAll": "Alle anzeigen",
+    "noCurrentlyReading": "Du liest aktuell kein Buch.",
+    "noNextToRead": "Noch keine Bücher in deiner Wunschliste."
   },
   "status": {
     "want_to_read": "Möchte ich lesen",

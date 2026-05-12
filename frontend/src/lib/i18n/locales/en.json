@@ -7,11 +7,26 @@
     "language": "Language"
   },
   "nav": {
+    "dashboard": "Dashboard",
     "library": "Library",
     "want_to_read": "Want to Read",
     "currently_reading": "Reading",
     "read": "Read",
     "did_not_finish": "Did Not Finish"
+  },
+  "dashboard": {
+    "title": "Reading Dashboard",
+    "subtitle": "A quick overview of your reading journey",
+    "quoteTitle": "Quote of the Day",
+    "quoteUnavailable": "No quote available right now.",
+    "totalBooks": "Total in Library",
+    "booksRead": "Books Read",
+    "booksToRead": "Books to Read",
+    "currentlyReading": "Currently Reading",
+    "nextToRead": "Next to Read",
+    "viewAll": "View all",
+    "noCurrentlyReading": "You are not currently reading a book.",
+    "noNextToRead": "No books in your want-to-read list yet."
   },
   "status": {
     "want_to_read": "Want to Read",

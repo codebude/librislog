@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.auth import require_user_by_api_key
 from app.config import settings
@@ -14,7 +14,9 @@ from app.schemas import (
     BookCreate,
     BookRead,
     BookUpdate,
+    DashboardQuote,
     DateConflict,
+    LibraryStats,
     StatusTransitionRequest,
     StatusTransitionResponse,
 )
@@ -121,6 +123,78 @@ def list_books(
     books = list(session.exec(statement).all())
     logger.debug("list_books — returning %d book(s)", len(books))
     return books
+
+
+@router.get("/stats", response_model=LibraryStats)
+def get_library_stats(
+    current_user: User = Depends(require_user_by_api_key),
+    session: Session = Depends(get_session),
+) -> LibraryStats:
+    total_books = session.exec(
+        select(func.count()).select_from(Book).where(Book.user_id == current_user.id)
+    ).one()
+    books_read = session.exec(
+        select(func.count()).select_from(Book).where(
+            Book.user_id == current_user.id,
+            Book.reading_status == ReadingStatus.read,
+        )
+    ).one()
+    books_reading = session.exec(
+        select(func.count()).select_from(Book).where(
+            Book.user_id == current_user.id,
+            Book.reading_status == ReadingStatus.currently_reading,
+        )
+    ).one()
+    books_want_to_read = session.exec(
+        select(func.count()).select_from(Book).where(
+            Book.user_id == current_user.id,
+            Book.reading_status == ReadingStatus.want_to_read,
+        )
+    ).one()
+    books_did_not_finish = session.exec(
+        select(func.count()).select_from(Book).where(
+            Book.user_id == current_user.id,
+            Book.reading_status == ReadingStatus.did_not_finish,
+        )
+    ).one()
+
+    return LibraryStats(
+        total_books=total_books,
+        books_read=books_read,
+        books_reading=books_reading,
+        books_want_to_read=books_want_to_read,
+        books_did_not_finish=books_did_not_finish,
+    )
+
+
+@router.get("/dashboard-quote", response_model=DashboardQuote | None)
+async def get_dashboard_quote(
+    current_user: User = Depends(require_user_by_api_key),
+) -> DashboardQuote | None:
+    if not settings.dashboard_quote_enabled:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.get(settings.dashboard_quote_url)
+            response.raise_for_status()
+            payload = response.json()
+    except Exception as exc:
+        logger.warning("dashboard quote fetch failed: %s", exc)
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    quote = payload.get("quote")
+    if not isinstance(quote, str) or not quote.strip():
+        return None
+
+    author = payload.get("author")
+    if not isinstance(author, str):
+        author = None
+
+    return DashboardQuote(quote=quote.strip(), author=author)
 
 
 @router.post("", response_model=BookRead, status_code=201)
