@@ -3,7 +3,15 @@
 	import { _ } from '$lib/i18n';
 	import StarRating from './StarRating.svelte';
 
-	let { book, onClick }: { book: Book; onClick: (book: Book) => void } = $props();
+	let {
+		book,
+		onClick,
+		currentPage = 0
+	}: {
+		book: Book;
+		onClick: (book: Book) => void;
+		currentPage?: number;
+	} = $props();
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
@@ -18,6 +26,10 @@
 		read: 'badge-success',
 		did_not_finish: 'badge-error'
 	};
+
+	const progressPercent = $derived(
+		book.page_count && currentPage > 0 ? Math.round((currentPage / book.page_count) * 100) : 0
+	);
 </script>
 
 <button
@@ -52,6 +64,14 @@
 				{$_(STATUS_LABEL_KEYS[book.reading_status])}
 			</span>
 		</div>
+		{#if progressPercent > 0}
+			<div class="w-full h-1.5 bg-base-200 rounded-full mt-1 overflow-hidden">
+				<div
+					class="h-full bg-primary rounded-full transition-all duration-300"
+					style="width: {progressPercent}%"
+				></div>
+			</div>
+		{/if}
 		<p class="text-[11px] text-base-content/50 mt-1">{$_('book.openDetailsHint')}</p>
 	</div>
 </button>

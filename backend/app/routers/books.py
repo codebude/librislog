@@ -10,7 +10,7 @@ from sqlmodel import Session, func, or_, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import Book, BookTag, ReadingStatus, Tag, User
+from app.models import Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookRead,
@@ -488,6 +488,10 @@ def delete_book(
 
     for link in session.exec(select(BookTag).where(BookTag.book_id == book.id)).all():
         session.delete(link)
+    for entry in session.exec(
+        select(ReadingProgress).where(ReadingProgress.book_id == book.id)
+    ).all():
+        session.delete(entry)
     session.delete(book)
     cleanup_orphan_tags(session, current_user.id)
     session.commit()

@@ -82,7 +82,17 @@
     "cover": "Cover",
     "searchForCovers": "Search for covers",
     "coverOf": "Cover of {title}",
-    "openDetailsHint": "Click to open details"
+    "openDetailsHint": "Click to open details",
+    "readingProgress": "Reading Progress",
+    "currentPage": "Page",
+    "progressLog": "Progress Log",
+    "progressLogEmpty": "No progress entries yet.",
+    "setPageCountFirst": "Please set total pages first.",
+    "logDate": "Date",
+    "logPage": "Page",
+    "deleteEntry": "Delete",
+    "deleteEntryConfirm": "Delete this entry?",
+    "progressGraph": "Progress Over Time"
   },
   "addModal": {
     "manual": "Manual",

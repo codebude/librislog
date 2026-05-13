@@ -120,6 +120,19 @@ export interface OidcLinkStatus {
 	oidc_name: string | null;
 }
 
+export interface ReadingProgressEntry {
+	id: number;
+	book_id: number;
+	page: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface BookProgress {
+	book_id: number;
+	current_page: number;
+}
+
 export type SearchStage =
 	| { stage: 'open_library'; status: 'searching' }
 	| { stage: 'open_library'; status: 'done'; count: number }

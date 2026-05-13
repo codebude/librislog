@@ -7,6 +7,23 @@ from sqlmodel import Field, SQLModel
 from app.models import ReadingStatus, UserRole
 
 
+class ReadingProgressCreate(SQLModel):
+    page: int = Field(ge=0)
+
+
+class ReadingProgressRead(SQLModel):
+    id: int
+    book_id: int
+    page: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReadingProgressLatest(SQLModel):
+    book_id: int
+    current_page: int
+
+
 class BookCreate(SQLModel):
     title: str
     author: Optional[str] = None

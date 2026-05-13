@@ -20,6 +20,7 @@
 	});
 	let currentlyReading = $state<Book[]>([]);
 	let nextToRead = $state<Book[]>([]);
+	let progressMap = $state<Record<number, number>>({});
 	let quoteLoading = $state(false);
 	let quoteEnabled = $state(false);
 	let quote = $state<DashboardQuote | null>(null);
@@ -55,6 +56,19 @@
 		void loadDashboard();
 	});
 
+	async function loadProgressForBooks(books: Book[]) {
+		const ids = books.map((b) => b.id);
+		if (ids.length === 0) return;
+		try {
+			const results = await api.books.progress.latest(ids);
+			for (const p of results) {
+				progressMap[p.book_id] = p.current_page;
+			}
+		} catch {
+			// progress is optional
+		}
+	}
+
 	async function loadDashboard() {
 		loading = true;
 		try {
@@ -77,6 +91,9 @@
 			stats = statsData;
 			currentlyReading = readingBooks.slice(0, 5);
 			nextToRead = wantToReadBooks.slice(0, 5);
+
+			const allBooks = [...currentlyReading, ...nextToRead];
+			void loadProgressForBooks(allBooks);
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(message)) {
@@ -403,7 +420,7 @@
 			{:else}
 				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{#each currentlyReading as book (book.id)}
-						<BookCard {book} onClick={openDetailView} />
+						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
 					{/each}
 				</div>
 			{/if}
@@ -424,7 +441,7 @@
 			{:else}
 				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{#each nextToRead as book (book.id)}
-						<BookCard {book} onClick={openDetailView} />
+						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
 					{/each}
 				</div>
 			{/if}

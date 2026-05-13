@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import auth, books, covers, import_, oidc, profile, users
+from app.routers import auth, books, covers, import_, oidc, profile, progress, users
 
 configure_logging(settings.log_level)
 
@@ -61,6 +61,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(profile.router)
 app.include_router(oidc.router)
+app.include_router(progress.router)
 
 
 def _wrap_docs_html(html: str) -> HTMLResponse:

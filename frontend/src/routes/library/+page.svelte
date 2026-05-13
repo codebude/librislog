@@ -43,6 +43,7 @@
 	});
 
 	let books = $state<Book[]>([]);
+	let progressMap = $state<Record<number, number>>({});
 	let loading = $state(false);
 	let syncing = $state(false);
 	let searchQuery = $state('');
@@ -74,6 +75,15 @@
 				sort,
 				order
 			});
+			const ids = books.map((b) => b.id);
+			if (ids.length > 0) {
+				const results = await api.books.progress.latest(ids);
+				const map: Record<number, number> = {};
+				for (const p of results) {
+					map[p.book_id] = p.current_page;
+				}
+				progressMap = map;
+			}
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : $_('import.searchFailed');
 			if (shouldShowActionToast(message)) {
@@ -213,7 +223,7 @@
 	{:else}
 		<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 			{#each books as book (book.id)}
-				<BookCard {book} onClick={openDetailView} />
+				<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
 			{/each}
 		</div>
 	{/if}

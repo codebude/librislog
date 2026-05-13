@@ -2,8 +2,10 @@ import type {
 	ApiKeyMeta,
 	Book,
 	BookImportCandidate,
+	BookProgress,
 	DashboardQuote,
 	LibraryStats,
+	ReadingProgressEntry,
 	StatusTransitionRequest,
 	StatusTransitionResponse,
 	ImportSearchMode,
@@ -258,6 +260,25 @@ export const api = {
 
 		update(id: number, data: Partial<Book>): Promise<Book> {
 			return request<Book>(`/books/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+		},
+
+		progress: {
+			async list(bookId: number): Promise<ReadingProgressEntry[]> {
+				return request<ReadingProgressEntry[]>(`/books/${bookId}/progress`);
+			},
+			async create(bookId: number, page: number): Promise<ReadingProgressEntry> {
+				return request<ReadingProgressEntry>(`/books/${bookId}/progress`, {
+					method: 'POST',
+					body: JSON.stringify({ page })
+				});
+			},
+			async delete(bookId: number, entryId: number): Promise<void> {
+				return request<void>(`/books/${bookId}/progress/${entryId}`, { method: 'DELETE' });
+			},
+			async latest(bookIds: number[]): Promise<BookProgress[]> {
+				const qs = new URLSearchParams({ book_ids: bookIds.join(',') });
+				return request<BookProgress[]>(`/books/progress/latest?${qs}`);
+			}
 		},
 
 		transitionStatus(id: number, data: StatusTransitionRequest): Promise<StatusTransitionResponse> {

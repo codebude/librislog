@@ -86,6 +86,17 @@ class ApiKey(SQLModel, table=True):
     revoked_at: Optional[datetime] = None
 
 
+class ReadingProgress(SQLModel, table=True):
+    __tablename__ = "reading_progress"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    book_id: int = Field(foreign_key="book.id", index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    page: int = Field(ge=0)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
 class OidcLink(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True, unique=True)
