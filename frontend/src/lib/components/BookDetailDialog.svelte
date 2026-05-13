@@ -470,7 +470,7 @@
 		></div>
 		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
 			<div class="bg-base-100 rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-y-auto pointer-events-auto" role="dialog" aria-label={$_('book.progressLog')}>
-				<div class="flex items-center justify-between p-4 border-b border-base-200">
+				<div class="sticky top-0 bg-base-100 z-10 flex items-center justify-between p-4 border-b border-base-200">
 					<h3 class="font-bold text-sm">{$_('book.progressLog')}</h3>
 					<button
 						type="button"
