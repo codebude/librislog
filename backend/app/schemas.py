@@ -171,10 +171,12 @@ class UserAdminUpdate(SQLModel):
 class UserSettingsRead(SQLModel):
     user_id: int
     language: str
+    timezone: str
 
 
 class UserSettingsUpdate(SQLModel):
     language: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 class ApiKeyCreate(SQLModel):

@@ -2,9 +2,12 @@
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import { formatDate, formatDateTime } from '$lib/date';
+	import { getTimezone } from '$lib/stores/timezone';
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
 	import StarRating from './StarRating.svelte';
+
+	const tz = getTimezone();
 
 	let {
 		book = $bindable(null),
@@ -151,7 +154,7 @@
 	const uniqueDays = $derived.by(() => {
 		const seen = new Set<string>();
 		return progressEntries.filter((e) => {
-			const day = e.created_at.slice(0, 10);
+			const day = formatDate(e.created_at, tz);
 			if (seen.has(day)) return false;
 			seen.add(day);
 			return true;
@@ -167,17 +170,16 @@
 	const chartPoints = $derived.by(() => {
 		if (uniqueDays.length < 1) return null;
 		const oldestEntry = uniqueDays[0];
-		const useStartDate = !!book?.date_started && book.date_started.slice(0, 10) < oldestEntry.created_at.slice(0, 10);
+		const useStartDate = !!book?.date_started && formatDate(book.date_started, tz) < formatDate(oldestEntry.created_at, tz);
 		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
-		const startDate = rawStart?.slice(0, 10);
 		const virtualEntry: ReadingProgressEntry = {
 			id: 0,
 			book_id: book?.id ?? 0,
 			page: 0,
-			created_at: startDate ?? '',
-			updated_at: startDate ?? ''
+			created_at: rawStart ?? '',
+			updated_at: rawStart ?? ''
 		};
-		const entries = startDate ? [virtualEntry, ...uniqueDays] : uniqueDays;
+		const entries = rawStart ? [virtualEntry, ...uniqueDays] : uniqueDays;
 		const maxPage = Math.max(
 			...uniqueDays.map((e) => e.page),
 			book?.page_count ?? 0
@@ -186,7 +188,7 @@
 		return entries.map((e, i) => {
 			const x = svgPadding.left + (i / Math.max(entries.length - 1, 1)) * svgPlotWidth;
 			const y = svgPadding.top + svgPlotHeight - (e.page / yMax) * svgPlotHeight;
-			return { x, y, page: e.page, date: e.created_at.slice(0, 10) };
+			return { x, y, page: e.page, date: formatDate(e.created_at, tz) };
 		});
 	});
 
@@ -351,11 +353,11 @@
 			<div class="grid grid-cols-2 gap-3 text-sm">
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.dateStarted')}</div>
-					<div>{book.date_started ? formatDate(book.date_started) : '-'}</div>
+					<div>{book.date_started ? formatDate(book.date_started, tz) : '-'}</div>
 				</div>
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.dateFinished')}</div>
-					<div>{book.date_finished ? formatDate(book.date_finished) : '-'}</div>
+					<div>{book.date_finished ? formatDate(book.date_finished, tz) : '-'}</div>
 				</div>
 			</div>
 
@@ -496,7 +498,7 @@
 							<tbody>
 								{#each progressEntries as entry (entry.id)}
 									<tr>
-										<td class="text-xs">{formatDateTime(entry.created_at)}</td>
+										<td class="text-xs">{formatDateTime(entry.created_at, tz)}</td>
 										<td class="font-mono text-sm">{entry.page}</td>
 										<td class="text-right">
 											{#if pendingDeleteEntry === entry.id}

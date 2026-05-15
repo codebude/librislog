@@ -203,10 +203,16 @@ def test_profile_settings_get_and_update(client: TestClient):
     current = client.get("/api/profile/settings")
     assert current.status_code == 200
     assert current.json()["language"] == "en"
+    assert current.json()["timezone"] == "UTC"
 
     updated = client.patch("/api/profile/settings", json={"language": "de"})
     assert updated.status_code == 200
     assert updated.json()["language"] == "de"
+    assert updated.json()["timezone"] == "UTC"
+
+    tz_updated = client.patch("/api/profile/settings", json={"timezone": "Europe/Berlin"})
+    assert tz_updated.status_code == 200
+    assert tz_updated.json()["timezone"] == "Europe/Berlin"
 
 
 def test_profile_api_key_lifecycle(client: TestClient):
@@ -249,6 +255,7 @@ def test_users_create_creates_user_settings(client: TestClient, session: Session
     settings = session.exec(select(UserSettings).where(UserSettings.user_id == user.id)).first()
     assert settings is not None
     assert settings.language == "en"
+    assert settings.timezone == "UTC"
 
 def test_users_create_rejects_duplicate_email(client: TestClient):
     resp = client.post(

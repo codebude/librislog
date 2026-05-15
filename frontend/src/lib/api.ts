@@ -125,7 +125,7 @@ export const api = {
 			return request<UserSettings>('/profile/settings');
 		},
 
-		updateSettings(data: { language?: string }): Promise<UserSettings> {
+		updateSettings(data: { language?: string; timezone?: string }): Promise<UserSettings> {
 			return request<UserSettings>('/profile/settings', {
 				method: 'PATCH',
 				body: JSON.stringify(data)

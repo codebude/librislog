@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import { currentUser, csrfToken } from '$lib/stores/auth';
 	import { _, setLocale } from '$lib/i18n';
+	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
 
 	let error = $state('');
 
@@ -15,6 +16,13 @@
 			csrfToken.set(csrf.csrf_token);
 			const settings = await api.profile.getSettings();
 			setLocale((settings.language as 'en' | 'de') ?? 'en');
+			const detected = detectTimezone();
+			if (settings.timezone === 'UTC') {
+				await api.profile.updateSettings({ timezone: detected });
+				setTimezone(detected);
+			} else {
+				setTimezone(settings.timezone);
+			}
 			await goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : $_('auth.loginFailed');

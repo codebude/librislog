@@ -27,6 +27,7 @@
 	"dependencies": {
 		"@tailwindcss/vite": "^4.3.0",
 		"daisyui": "^5.5.19",
+		"dayjs": "^1.11.20",
 		"html5-qrcode": "^2.3.8",
 		"svelte-i18n": "^4.0.1",
 		"tailwindcss": "^4.3.0"

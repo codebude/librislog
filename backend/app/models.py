@@ -106,6 +106,7 @@ class UserSettings(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", unique=True, index=True)
     language: str = Field(default="en", max_length=10)
+    timezone: str = Field(default="UTC", max_length=64)
 
 
 class ApiKey(SQLModel, table=True):

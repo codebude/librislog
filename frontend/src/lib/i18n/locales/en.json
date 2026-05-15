@@ -148,6 +148,12 @@
   "settings": {
     "title": "Settings",
     "languageTitle": "Language",
+    "timezone": "Timezone",
+    "timezoneHelp": "Display dates and times in your local timezone.",
+    "timezoneDetected": "Detected: {tz}",
+    "timezoneSelected": "Selected: {tz}",
+    "timezoneInvalid": "Please select a valid timezone from the list.",
+    "timezonePlaceholder": "Search timezone...",
     "apiDocsTitle": "API Documentation",
     "apiDocsHelp": "Explore and test backend endpoints directly from the app.",
     "apiDocsViewLabel": "View",

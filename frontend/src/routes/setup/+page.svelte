@@ -6,6 +6,7 @@
 	import { isValidEmailFormat } from '$lib/validation';
 	import { currentUser, csrfToken } from '$lib/stores/auth';
 	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
+	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -46,7 +47,9 @@
 			currentUser.set(result.user);
 			const csrf = await api.auth.csrf();
 			csrfToken.set(csrf.csrf_token);
-			await api.profile.updateSettings({ language: selectedLanguage });
+			const detected = detectTimezone();
+			await api.profile.updateSettings({ language: selectedLanguage, timezone: detected });
+			setTimezone(detected);
 			setLocale(selectedLanguage);
 			await goto('/');
 		} catch (e: unknown) {

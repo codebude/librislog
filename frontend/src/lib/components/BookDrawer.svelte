@@ -3,7 +3,8 @@
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
-	import { formatDate, fromDateInputValue, toDateInputValue } from '$lib/date';
+	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '$lib/date';
+	import { getTimezone } from '$lib/stores/timezone';
 	import StarRating from './StarRating.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
@@ -20,7 +21,8 @@
 		onSave?: (book: Book) => void;
 	} = $props();
 
-	let today = $state(new Date().toISOString().slice(0, 10));
+	let tz = $state(getTimezone());
+	let today = $state(tzToday(tz));
 	let saving = $state(false);
 	let dateConflictOpen = $state(false);
 	let conflictField = $state<'date_started' | 'date_finished' | 'started_after_finished'>('date_started');
@@ -57,8 +59,8 @@
 			published_year = book.published_year !== null ? String(book.published_year) : '';
 			page_count = book.page_count !== null ? String(book.page_count) : '';
 			tags = book.tags ?? '';
-			date_started = toDateInputValue(book.date_started);
-			date_finished = toDateInputValue(book.date_finished);
+			date_started = toDateInputValue(book.date_started, tz);
+			date_finished = toDateInputValue(book.date_finished, tz);
 			cover_url = book.cover_url ?? null;
 			dateConflictOpen = false;
 			pendingStatus = null;
@@ -81,8 +83,8 @@
 		};
 
 		if (includeDates) {
-			payload.date_started = fromDateInputValue(date_started);
-			payload.date_finished = fromDateInputValue(date_finished);
+			payload.date_started = fromDateInputValue(date_started, tz);
+			payload.date_finished = fromDateInputValue(date_finished, tz);
 		}
 
 		return payload;
@@ -148,9 +150,9 @@
 			const dateFinishedWasNull = !book.date_finished;
 			const statusChanged = reading_status !== book.reading_status;
 			const dateStartedChanged =
-				fromDateInputValue(date_started) !== (book.date_started ?? null);
+				date_started.trim() !== toDateInputValue(book.date_started, tz);
 			const dateFinishedChanged =
-				fromDateInputValue(date_finished) !== (book.date_finished ?? null);
+				date_finished.trim() !== toDateInputValue(book.date_finished, tz);
 
 			if (statusChanged) {
 				pendingStatus = reading_status;
@@ -342,8 +344,8 @@
 	<DateConflictDialog
 		open={dateConflictOpen}
 		field={conflictField}
-		existingDate={formatDate(conflictExistingDate)}
-		suggestedDate={formatDate(conflictSuggestedDate)}
+		existingDate={formatDate(conflictExistingDate, tz)}
+		suggestedDate={formatDate(conflictSuggestedDate, tz)}
 		onCancel={() => {
 			dateConflictOpen = false;
 			pendingStatus = null;

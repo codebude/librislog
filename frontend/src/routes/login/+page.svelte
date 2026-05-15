@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { currentUser, csrfToken } from '$lib/stores/auth';
 	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
+	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
 
 	let email = $state('');
 	let password = $state('');
@@ -45,7 +46,12 @@
 			currentUser.set(result.user);
 			const csrf = await api.auth.csrf();
 			csrfToken.set(csrf.csrf_token);
-			await api.profile.updateSettings({ language: selectedLanguage });
+			const settings = await api.profile.getSettings();
+			const detected = detectTimezone();
+			const update: { language: string; timezone?: string } = { language: selectedLanguage };
+			if (settings.timezone === 'UTC') update.timezone = detected;
+			await api.profile.updateSettings(update);
+			setTimezone(settings.timezone === 'UTC' ? detected : settings.timezone);
 			setLocale(selectedLanguage);
 			await goto('/');
 		} catch (e: unknown) {

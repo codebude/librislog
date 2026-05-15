@@ -99,6 +99,7 @@ export interface UserAdminUpdate {
 export interface UserSettings {
 	user_id: number;
 	language: string;
+	timezone: string;
 }
 
 export interface ApiKeyMeta {

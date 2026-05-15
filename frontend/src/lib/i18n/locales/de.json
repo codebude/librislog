@@ -148,6 +148,12 @@
   "settings": {
     "title": "Einstellungen",
     "languageTitle": "Sprache",
+    "timezone": "Zeitzone",
+    "timezoneHelp": "Daten und Zeiten in Ihrer lokalen Zeitzone anzeigen.",
+    "timezoneDetected": "Erkannt: {tz}",
+    "timezoneSelected": "Ausgewählt: {tz}",
+    "timezoneInvalid": "Bitte wählen Sie eine gültige Zeitzone aus der Liste.",
+    "timezonePlaceholder": "Zeitzone suchen...",
     "apiDocsTitle": "API-Dokumentation",
     "apiDocsHelp": "Erkunde und teste Backend-Endpunkte direkt in der App.",
     "apiDocsViewLabel": "Ansicht",

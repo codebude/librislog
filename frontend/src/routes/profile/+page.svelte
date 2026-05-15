@@ -4,6 +4,7 @@
 	import { currentUser } from '$lib/stores/auth';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
+	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
 	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
 	let firstname = $state('');
@@ -12,6 +13,8 @@
 	let showPassword = $state(false);
 	let profileMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let language = $state('en');
+	let timezone = $state(getTimezone());
+	let timezoneMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let description = $state('');
 	let createdKey = $state<string | null>(null);
 	let keyCopied = $state(false);
@@ -32,6 +35,8 @@
 	async function load() {
 		const settings = await api.profile.getSettings();
 		language = settings.language;
+		timezone = settings.timezone;
+		setTimezone(settings.timezone);
 		keys = await api.profile.listApiKeys();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
@@ -71,6 +76,22 @@
 		if (SUPPORTED_LOCALES.includes(updated.language as (typeof SUPPORTED_LOCALES)[number])) {
 			setLocale(updated.language as (typeof SUPPORTED_LOCALES)[number]);
 		}
+	}
+
+	const allTimezones: string[] = typeof Intl.supportedValuesOf === 'function'
+		? Intl.supportedValuesOf('timeZone')
+		: [];
+
+	const browserTz = detectTimezone();
+
+	async function saveTimezone() {
+		if (!allTimezones.includes(timezone)) {
+			timezoneMessage = { type: 'error', text: $_('settings.timezoneInvalid') };
+			return;
+		}
+		timezoneMessage = null;
+		await api.profile.updateSettings({ timezone });
+		setTimezone(timezone);
 	}
 
 	async function createKey() {
@@ -187,6 +208,32 @@
 				{/each}
 			</select>
 			<button class="btn btn-primary btn-sm self-start" onclick={saveLanguage}>{$_('common.save')}</button>
+		</div>
+	</div>
+
+	<div class="card bg-base-100 border border-base-200 shadow-sm">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('settings.timezone')}</h2>
+			<p class="text-sm text-base-content/70">{$_('settings.timezoneHelp')}</p>
+			{#if timezoneMessage}
+				<div class={`alert ${timezoneMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm max-w-xs`}>
+					<span>{timezoneMessage.text}</span>
+				</div>
+			{/if}
+			<input
+				list="timezone-list"
+				class="input input-bordered max-w-xs"
+				bind:value={timezone}
+				placeholder={$_('settings.timezonePlaceholder')}
+			/>
+			<datalist id="timezone-list">
+				{#each allTimezones as tz}
+					<option value={tz} />
+				{/each}
+			</datalist>
+			<p class="text-xs text-base-content/50">{$_('settings.timezoneDetected', { values: { tz: browserTz } })}</p>
+			<p class="text-xs text-base-content/50">{$_('settings.timezoneSelected', { values: { tz: timezone } })}</p>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveTimezone}>{$_('common.save')}</button>
 		</div>
 	</div>
 
