@@ -889,3 +889,31 @@ def test_transition_status_ignores_clear_date_finished_when_target_is_read(clien
     data = resp.json()
     assert data["book"]["reading_status"] == "read"
     assert data["book"]["date_finished"] is not None
+
+
+def test_transition_status_respects_force_date_started_to_read(client: TestClient, monkeypatch):
+    """Transition from currently_reading to read with a custom start date."""
+    book = _create_book(
+        client,
+        title="Force DS",
+        reading_status="currently_reading",
+        date_started="2024-01-01",
+    )
+    monkeypatch.setattr(
+        books_router,
+        "_utcnow",
+        lambda: datetime(2026, 5, 11, 10, 30, tzinfo=timezone.utc),
+    )
+
+    resp = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={
+            "new_status": "read",
+            "force_date_started": "2025-06-15T00:00:00Z",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["book"]["reading_status"] == "read"
+    assert data["book"]["date_started"] == "2025-06-15T00:00:00Z"
+    assert data["book"]["date_finished"] == "2026-05-11T10:30:00Z"

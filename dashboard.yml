@@ -1,0 +1,143 @@
+- main [ref=e19]:
+  - generic [ref=e20]:
+    - generic [ref=e23]:
+      - heading "Reading Dashboard" [level=1] [ref=e24]
+      - paragraph [ref=e25]: A quick overview of your reading journey
+    - generic [ref=e27]:
+      - heading "Search all books" [level=2] [ref=e28]
+      - combobox "Search books..." [ref=e30]
+    - generic [ref=e31]:
+      - link "Total in Library 6" [ref=e32] [cursor=pointer]:
+        - /url: /library
+        - generic [ref=e33]: Total in Library
+        - generic [ref=e34]: "6"
+      - link "Books Read 3" [ref=e35] [cursor=pointer]:
+        - /url: /library?status=read
+        - generic [ref=e36]: Books Read
+        - generic [ref=e37]: "3"
+      - link "Books to Read 2" [ref=e38] [cursor=pointer]:
+        - /url: /library?status=want_to_read
+        - generic [ref=e39]: Books to Read
+        - generic [ref=e40]: "2"
+      - link "Currently Reading 1" [ref=e41] [cursor=pointer]:
+        - /url: /library?status=currently_reading
+        - generic [ref=e42]: Currently Reading
+        - generic [ref=e43]: "1"
+    - generic [ref=e45]:
+      - generic [ref=e46]:
+        - heading "Currently Reading" [level=2] [ref=e47]
+        - link "View all" [ref=e48] [cursor=pointer]:
+          - /url: /library?status=currently_reading
+      - button "Bed of Roses Nora Roberts 1 star 2 star 3 star 4 star 5 star Currently Reading Click to open details" [ref=e50] [cursor=pointer]:
+        - figure [ref=e51]:
+          - img "Cover of Bed of Roses" [ref=e52]
+        - generic [ref=e53]:
+          - heading "Bed of Roses" [level=2] [ref=e54]
+          - paragraph [ref=e55]: Nora Roberts
+          - generic [ref=e56]:
+            - generic [ref=e58]:
+              - radio "1 star" [disabled] [ref=e59]
+              - radio "2 star" [disabled] [ref=e60]
+              - radio "3 star" [disabled] [ref=e61]
+              - radio "4 star" [disabled] [ref=e62]
+              - radio "5 star" [disabled] [ref=e63]
+            - generic [ref=e64]: Currently Reading
+          - paragraph [ref=e67]: Click to open details
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - heading "Next to Read" [level=2] [ref=e71]
+        - link "View all" [ref=e72] [cursor=pointer]:
+          - /url: /library?status=want_to_read
+      - generic [ref=e73]:
+        - button "winter 1 star 2 star 3 star 4 star 5 star Want to Read Click to open details" [ref=e74] [cursor=pointer]:
+          - figure [ref=e75]:
+            - img [ref=e77]
+          - generic [ref=e79]:
+            - heading "winter" [level=2] [ref=e80]
+            - generic [ref=e81]:
+              - generic [ref=e83]:
+                - radio "1 star" [disabled] [ref=e84]
+                - radio "2 star" [disabled] [ref=e85]
+                - radio "3 star" [disabled] [ref=e86]
+                - radio "4 star" [disabled] [ref=e87]
+                - radio "5 star" [disabled] [ref=e88]
+              - generic [ref=e89]: Want to Read
+            - paragraph [ref=e90]: Click to open details
+        - button "Where Are the Children? Mary Higgins Clark 1 star 2 star 3 star 4 star 5 star Want to Read Click to open details" [ref=e91] [cursor=pointer]:
+          - figure [ref=e92]:
+            - img "Cover of Where Are the Children?" [ref=e93]
+          - generic [ref=e94]:
+            - heading "Where Are the Children?" [level=2] [ref=e95]
+            - paragraph [ref=e96]: Mary Higgins Clark
+            - generic [ref=e97]:
+              - generic [ref=e99]:
+                - radio "1 star" [disabled] [ref=e100]
+                - radio "2 star" [disabled] [ref=e101]
+                - radio "3 star" [disabled] [ref=e102]
+                - radio "4 star" [disabled] [ref=e103]
+                - radio "5 star" [disabled] [ref=e104]
+              - generic [ref=e105]: Want to Read
+            - paragraph [ref=e108]: Click to open details
+    - generic [ref=e110]:
+      - heading "Popular Tags" [level=2] [ref=e112]
+      - generic [ref=e113]:
+        - button "Fiction 3" [ref=e114] [cursor=pointer]:
+          - text: Fiction
+          - generic [ref=e115]: "3"
+        - button "ddf 2" [ref=e116] [cursor=pointer]:
+          - text: ddf
+          - generic [ref=e117]: "2"
+        - button "Children's fiction 1" [ref=e118] [cursor=pointer]:
+          - text: Children's fiction
+          - generic [ref=e119]: "1"
+        - button "Contemporary 1" [ref=e120] [cursor=pointer]:
+          - text: Contemporary
+          - generic [ref=e121]: "1"
+        - button "Death 1" [ref=e122] [cursor=pointer]:
+          - text: Death
+          - generic [ref=e123]: "1"
+        - button "Florists 1" [ref=e124] [cursor=pointer]:
+          - text: Florists
+          - generic [ref=e125]: "1"
+        - button "Juvenile fiction 1" [ref=e126] [cursor=pointer]:
+          - text: Juvenile fiction
+          - generic [ref=e127]: "1"
+        - button "New York Times bestseller 1" [ref=e128] [cursor=pointer]:
+          - text: New York Times bestseller
+          - generic [ref=e129]: "1"
+        - button "Police 1" [ref=e130] [cursor=pointer]:
+          - text: Police
+          - generic [ref=e131]: "1"
+        - button "Romance 1" [ref=e132] [cursor=pointer]:
+          - text: Romance
+          - generic [ref=e133]: "1"
+        - button "Weddings 1" [ref=e134] [cursor=pointer]:
+          - text: Weddings
+          - generic [ref=e135]: "1"
+        - button "asdd 1" [ref=e136] [cursor=pointer]:
+          - text: asdd
+          - generic [ref=e137]: "1"
+        - button "espionage 1" [ref=e138] [cursor=pointer]:
+          - text: espionage
+          - generic [ref=e139]: "1"
+        - button "general 1" [ref=e140] [cursor=pointer]:
+          - text: general
+          - generic [ref=e141]: "1"
+        - button "l 1" [ref=e142] [cursor=pointer]:
+          - text: l
+          - generic [ref=e143]: "1"
+        - button "m 1" [ref=e144] [cursor=pointer]:
+          - text: m
+          - generic [ref=e145]: "1"
+        - button "n 1" [ref=e146] [cursor=pointer]:
+          - text: "n"
+          - generic [ref=e147]: "1"
+        - button "nyt:combined-print-and-e-book-fiction=2021-08-22 1" [ref=e148] [cursor=pointer]:
+          - text: nyt:combined-print-and-e-book-fiction=2021-08-22
+          - generic [ref=e149]: "1"
+        - button "o 1" [ref=e150] [cursor=pointer]:
+          - text: o
+          - generic [ref=e151]: "1"
+        - button "thrillers 1" [ref=e152] [cursor=pointer]:
+          - text: thrillers
+          - generic [ref=e153]: "1"

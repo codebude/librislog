@@ -556,6 +556,15 @@ def transition_status(
     ):
         update_data["date_finished"] = None
 
+    # Apply user-provided date overrides outside conflict paths
+    # (conflict paths handle force_* inside their own blocks before
+    # returning early, so by the time we reach here force_* values
+    # come from non-conflict user edits).
+    if transition.force_date_started is not None:
+        update_data["date_started"] = transition.force_date_started
+    if transition.force_date_finished is not None:
+        update_data["date_finished"] = transition.force_date_finished
+
     _apply_status_transition_dates(book, transition.new_status, update_data, transition.skip_auto_date_started)
     _validate_dates(update_data)
     _validate_date_finished_for_read(book, update_data, transition.new_status)

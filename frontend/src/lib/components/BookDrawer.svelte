@@ -100,11 +100,21 @@
 
 		const dateFinishedWasNull = !book.date_finished;
 		const dfCleared = !date_finished.trim() && !!book.date_finished;
+		const ds = date_started.trim();
+		const df = date_finished.trim();
+		const dateStartedChanged =
+			ds !== toDateInputValue(book.date_started, tz);
+		const dateFinishedChanged =
+			df !== toDateInputValue(book.date_finished, tz);
 
 		const transition = await api.books.transitionStatus(book.id, {
 			new_status: pendingStatus,
-			force_date_started: params.forceDateStarted,
-			force_date_finished: params.forceDateFinished,
+			force_date_started: params.forceDateStarted !== undefined
+				? params.forceDateStarted
+				: (dateStartedChanged && ds ? fromDateInputValue(date_started, tz) : undefined),
+			force_date_finished: params.forceDateFinished !== undefined
+				? params.forceDateFinished
+				: (dateFinishedChanged && df ? fromDateInputValue(date_finished, tz) : undefined),
 			skip_auto_date_started: params.skipAutoDateStarted,
 			clear_date_started: params.clearDateStarted,
 			...(dfCleared ? { clear_date_finished: true } : {})
@@ -153,13 +163,13 @@
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
 			return;
 		}
+		const dateStartedChanged =
+			ds !== toDateInputValue(book.date_started, tz);
+		const dateFinishedChanged =
+			df !== toDateInputValue(book.date_finished, tz);
 		saving = true;
 		try {
 			const dateFinishedWasNull = !book.date_finished;
-			const dateStartedChanged =
-				date_started.trim() !== toDateInputValue(book.date_started, tz);
-			const dateFinishedChanged =
-				date_finished.trim() !== toDateInputValue(book.date_finished, tz);
 
 			if (statusChanged) {
 				pendingStatus = reading_status;
@@ -167,7 +177,9 @@
 
 				const transition = await api.books.transitionStatus(book.id, {
 					new_status: reading_status,
-					...(dfCleared ? { clear_date_finished: true } : {})
+					...(dfCleared ? { clear_date_finished: true } : {}),
+					...(dateStartedChanged && ds ? { force_date_started: fromDateInputValue(date_started, tz) } : {}),
+					...(dateFinishedChanged && df ? { force_date_finished: fromDateInputValue(date_finished, tz) } : {})
 				});
 
 				if (transition.date_conflict) {
