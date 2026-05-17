@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api/`)"
       - "traefik.http.routers.backend.entrypoints=web"
       - "traefik.http.routers.backend.priority=10"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
