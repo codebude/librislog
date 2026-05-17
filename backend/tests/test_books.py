@@ -746,11 +746,10 @@ def test_health(client: TestClient, monkeypatch):
 
 def test_health_database_down(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "dashboard_quote_enabled", False)
-    import app.main as main_module
 
     def fake_text(*args, **kwargs):
         raise Exception("Connection refused")
-    monkeypatch.setattr(main_module, "text", fake_text)
+    monkeypatch.setattr("app.routers.health.text", fake_text)
     resp = client.get("/api/health")
     assert resp.status_code == 200
     data = resp.json()
@@ -761,33 +760,27 @@ def test_health_database_down(client: TestClient, monkeypatch):
 
 def test_health_missing_tables(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "dashboard_quote_enabled", False)
-    import app.main as main_module
 
     class FakeInspector:
         def get_table_names(self):
             return []
 
-    original_inspect = main_module.inspect
-    monkeypatch.setattr(main_module, "inspect", lambda bind: FakeInspector())
-    try:
-        resp = client.get("/api/health")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "unhealthy"
-        assert data["checks"]["database_schema"]["status"] == "unhealthy"
-        assert "Missing tables" in data["checks"]["database_schema"]["detail"]
-    finally:
-        monkeypatch.undo()
+    monkeypatch.setattr("app.routers.health.inspect", lambda bind: FakeInspector())
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "unhealthy"
+    assert data["checks"]["database_schema"]["status"] == "unhealthy"
+    assert "Missing tables" in data["checks"]["database_schema"]["detail"]
 
 
 def test_health_data_dir_not_writable(client: TestClient, monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "dashboard_quote_enabled", False)
-    import app.main as main_module
 
     db_dir = tmp_path / "data"
     db_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(settings, "database_url", f"sqlite:///{db_dir}/librislog.db")
-    monkeypatch.setattr(main_module.os_module, "access", lambda *a, **kw: False)
+    monkeypatch.setattr("app.routers.health.os_module.access", lambda *a, **kw: False)
     resp = client.get("/api/health")
     assert resp.status_code == 200
     data = resp.json()
@@ -797,7 +790,6 @@ def test_health_data_dir_not_writable(client: TestClient, monkeypatch, tmp_path)
 
 def test_health_quote_service_unhealthy(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "dashboard_quote_enabled", True)
-    import app.main as main_module
 
     class FakeFailingAsyncClient:
         def __init__(self, *args, **kwargs):
@@ -809,7 +801,7 @@ def test_health_quote_service_unhealthy(client: TestClient, monkeypatch):
         async def get(self, url):
             raise Exception("Connection timeout")
 
-    monkeypatch.setattr(main_module.httpx, "AsyncClient", FakeFailingAsyncClient)
+    monkeypatch.setattr("app.routers.health.httpx.AsyncClient", FakeFailingAsyncClient)
     resp = client.get("/api/health")
     assert resp.status_code == 200
     data = resp.json()
