@@ -120,8 +120,17 @@
 		if (pendingDeleteUserId === null) return;
 		const id = pendingDeleteUserId;
 		pendingDeleteUserId = null;
-		await api.users.delete(id);
-		await loadUsers();
+		try {
+			await api.users.delete(id);
+			await loadUsers();
+			adminError = '';
+		} catch (e: unknown) {
+			if (e instanceof Error && e.message.startsWith('error.')) {
+				adminError = $_(e.message);
+			} else {
+				adminError = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'delete' } });
+			}
+		}
 	}
 </script>
 
@@ -230,6 +239,9 @@
 									<div>
 										<p class="font-semibold">{user.firstname} {user.lastname}</p>
 										<p class="text-sm text-base-content/70">{user.email} - {user.role}</p>
+										{#if $currentUser?.id === user.id}
+											<p class="text-xs text-base-content/60 mt-1">{$_('admin.selfDeleteHint')}</p>
+										{/if}
 									</div>
 									<div class="flex gap-2">
 										<button class="btn btn-outline btn-xs" onclick={() => startEdit(user)}>{$_('admin.edit')}</button>

@@ -253,7 +253,8 @@
     "deleteConfirmTitle": "Möchtest du diesen Benutzer wirklich löschen?",
     "deleteConfirmBody": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "cannotChangeOwnRole": "Du kannst deine eigene Admin-Rolle nicht ändern.",
-    "requiredFieldError": "Bitte alle Pflichtfelder ausfüllen."
+    "requiredFieldError": "Bitte alle Pflichtfelder ausfüllen.",
+    "selfDeleteHint": "Zum Löschen des eigenen Kontos bitte Profil > Gefahrenbereich verwenden."
   },
   "password": {
     "requirementsTitle": "Passwortanforderungen",
@@ -272,7 +273,8 @@
     "dateFinishedRequiredForRead": "Ein gelesenes Buch muss ein Enddatum haben. Ändere den Status, wenn du das Enddatum entfernen möchtest.",
     "invalidLanguageCode": "Sprache muss ein 2-stelliger ISO-Code sein (z. B. EN, DE, FR).",
     "invalidConfirmationPhrase": "Bestätigungsphrase stimmt nicht überein.",
-    "cannotDeleteLastAdmin": "Konto kann nicht gelöscht werden: Sie sind der letzte Administrator"
+    "cannotDeleteLastAdmin": "Konto kann nicht gelöscht werden: Sie sind der letzte Administrator",
+    "cannotDeleteOwnAccountHere": "Das eigene Konto kann hier nicht gelöscht werden. Verwenden Sie Profil > Gefahrenbereich."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",

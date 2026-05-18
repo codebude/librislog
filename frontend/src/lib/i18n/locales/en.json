@@ -253,7 +253,8 @@
     "deleteConfirmTitle": "Do you really want to delete this user?",
     "deleteConfirmBody": "This action cannot be undone.",
     "cannotChangeOwnRole": "You cannot change your own admin role.",
-    "requiredFieldError": "Please fill all required fields."
+    "requiredFieldError": "Please fill all required fields.",
+    "selfDeleteHint": "To delete your own account, use Profile > Danger Zone."
   },
   "password": {
     "requirementsTitle": "Password requirements",
@@ -272,7 +273,8 @@
     "dateFinishedRequiredForRead": "A finished book must have an end date. Change the status if you want to remove the finish date.",
     "invalidLanguageCode": "Language must be a 2-letter ISO code (for example: EN, DE, FR).",
     "invalidConfirmationPhrase": "Confirmation phrase does not match.",
-    "cannotDeleteLastAdmin": "Cannot delete account: you are the last administrator"
+    "cannotDeleteLastAdmin": "Cannot delete account: you are the last administrator",
+    "cannotDeleteOwnAccountHere": "You cannot delete your own account here. Use Profile > Danger Zone."
   },
   "oidc": {
     "orContinueWith": "or continue with",

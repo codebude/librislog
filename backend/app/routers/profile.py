@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlmodel import Session, func, select
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlmodel import Session, select
 
 from app.auth import (
     clear_browser_session,
@@ -15,7 +15,7 @@ from app.auth import (
 )
 from app.config import settings as app_settings
 from app.database import get_session
-from app.models import ApiKey, Book, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
+from app.models import ApiKey, User, UserSettings
 from app.schemas import (
     ApiKeyCreate,
     ApiKeyCreateResponse,
@@ -28,7 +28,7 @@ from app.schemas import (
     UserSettingsRead,
     UserSettingsUpdate,
 )
-from app.services.cover_storage import delete_cover_file, local_cover_filename
+from app.services.user_deletion import assert_not_last_admin, delete_user_account_data, delete_user_reading_data
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 logger = logging.getLogger(__name__)
@@ -38,66 +38,9 @@ RESET_DATA_PHRASE = "DELETE ALL MY DATA"
 DELETE_ACCOUNT_PHRASE = "DELETE MY ACCOUNT"
 
 
-def _delete_user_books_and_related_data(
-    session: Session,
-    user_id: int,
-) -> DataResetDeleted:
-    user_books = session.exec(select(Book).where(Book.user_id == user_id)).all()
-    book_ids = [book.id for book in user_books if book.id is not None]
-
-    progress_count = session.exec(
-        select(func.count()).select_from(ReadingProgress).where(ReadingProgress.user_id == user_id)
-    ).one()
-    tags_count = session.exec(
-        select(func.count()).select_from(Tag).where(Tag.user_id == user_id)
-    ).one()
-
-    if book_ids:
-        for cover_url in {book.cover_url for book in user_books if book.cover_url}:
-            filename = local_cover_filename(cover_url)
-            if not filename:
-                continue
-            shared = session.exec(
-                select(Book.id).where(Book.cover_url == cover_url, Book.user_id != user_id)
-            ).first()
-            if not shared:
-                delete_cover_file(filename, app_settings.covers_dir)
-
-        for link in session.exec(select(BookTag).where(BookTag.book_id.in_(book_ids))).all():
-            session.delete(link)
-
-    for entry in session.exec(select(ReadingProgress).where(ReadingProgress.user_id == user_id)).all():
-        session.delete(entry)
-
-    for tag in session.exec(select(Tag).where(Tag.user_id == user_id)).all():
-        session.delete(tag)
-
-    for book in user_books:
-        session.delete(book)
-
-    return DataResetDeleted(
-        books=len(user_books),
-        tags=tags_count,
-        progress_entries=progress_count,
-    )
-
-
 def _validate_confirmation(confirmation: str, expected_phrase: str) -> None:
     if confirmation.strip() != expected_phrase:
         raise HTTPException(status_code=400, detail="error.invalidConfirmationPhrase")
-
-
-def _assert_not_last_admin(session: Session, current_user: User) -> None:
-    if current_user.role != UserRole.admin:
-        return
-    admin_count = session.exec(
-        select(func.count()).select_from(User).where(User.role == UserRole.admin)
-    ).one()
-    if admin_count <= 1:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="error.cannotDeleteLastAdmin",
-        )
 
 
 @router.get("", response_model=UserRead)
@@ -178,7 +121,7 @@ def reset_data(
     _validate_confirmation(body.confirmation, RESET_DATA_PHRASE)
 
     try:
-        deleted = _delete_user_books_and_related_data(session, current_user.id)
+        deleted = delete_user_reading_data(session, current_user.id, app_settings.covers_dir)
         session.commit()
     except Exception:
         session.rollback()
@@ -194,7 +137,11 @@ def reset_data(
 
     return DataResetResponse(
         message="profile.dataResetSuccess",
-        deleted=deleted,
+        deleted=DataResetDeleted(
+            books=deleted.books,
+            tags=deleted.tags,
+            progress_entries=deleted.progress_entries,
+        ),
     )
 
 
@@ -211,28 +158,10 @@ def delete_own_account(
     Requires exact confirmation phrase.
     """
     _validate_confirmation(body.confirmation, DELETE_ACCOUNT_PHRASE)
-    _assert_not_last_admin(session, current_user)
+    assert_not_last_admin(session, current_user)
 
     try:
-        _delete_user_books_and_related_data(session, current_user.id)
-
-        for key in session.exec(select(ApiKey).where(ApiKey.user_id == current_user.id)).all():
-            key.revoked_at = datetime.now(timezone.utc)
-            session.add(key)
-
-        oidc_link = session.exec(
-            select(OidcLink).where(OidcLink.user_id == current_user.id)
-        ).first()
-        if oidc_link:
-            session.delete(oidc_link)
-
-        settings = session.exec(
-            select(UserSettings).where(UserSettings.user_id == current_user.id)
-        ).first()
-        if settings:
-            session.delete(settings)
-
-        session.delete(current_user)
+        delete_user_account_data(session, current_user, app_settings.covers_dir)
         session.commit()
     except Exception:
         session.rollback()

@@ -11,6 +11,7 @@ from app.auth import (
 from app.database import get_session
 from app.models import ApiKey, User, UserRole, UserSettings
 from app.schemas import UserAdminUpdate, UserCreate, UserRead
+from app.services.user_deletion import assert_not_last_admin
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -87,11 +88,13 @@ def delete_user(
     session: Session = Depends(get_session),
 ) -> None:
     if admin.id == user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete your own account")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="error.cannotDeleteOwnAccountHere")
 
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    assert_not_last_admin(session, user)
 
     keys = session.exec(select(ApiKey).where(ApiKey.user_id == user_id)).all()
     for key in keys:
