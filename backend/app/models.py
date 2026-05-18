@@ -47,6 +47,7 @@ class Book(SQLModel, table=True):
     publisher: Optional[str] = None
     published_year: Optional[int] = None
     page_count: Optional[int] = None
+    language: Optional[str] = Field(default=None, max_length=2)
     notes: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)

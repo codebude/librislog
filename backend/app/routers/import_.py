@@ -29,6 +29,17 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     raise
 
 
+def _normalize_language(language: str | None) -> str | None:
+    if language is None:
+        return None
+    normalized = language.strip().upper()
+    if not normalized:
+        return None
+    if len(normalized) != 2 or not normalized.isalpha():
+        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+    return normalized
+
+
 @router.get("/search", response_model=List[BookImportCandidate])
 async def search_books(
     q: str = Query(min_length=1, description="Title string or ISBN"),
@@ -119,6 +130,7 @@ async def import_book(
         publisher=c.publisher,
         published_year=c.published_year,
         page_count=c.page_count,
+        language=_normalize_language(c.language),
         reading_status=body.reading_status,
         user_id=current_user.id,
     )

@@ -74,6 +74,7 @@
     "publisher": "Publisher",
     "year": "Year",
     "pages": "Pages",
+    "language": "Language",
     "tags": "Tags",
     "tagsPlaceholder": "Type a tag and press Enter or comma",
     "tagsHint": "Press Enter or comma to add tags. Backspace removes the last tag.",
@@ -244,7 +245,8 @@
     "isbnAlreadyExists": "This ISBN is already used by another book.",
     "dateInFuture": "Date cannot be in the future.",
     "dateStartedAfterFinished": "Start date cannot be after finish date.",
-    "dateFinishedRequiredForRead": "A finished book must have an end date. Change the status if you want to remove the finish date."
+    "dateFinishedRequiredForRead": "A finished book must have an end date. Change the status if you want to remove the finish date.",
+    "invalidLanguageCode": "Language must be a 2-letter ISO code (for example: EN, DE, FR)."
   },
   "oidc": {
     "orContinueWith": "or continue with",

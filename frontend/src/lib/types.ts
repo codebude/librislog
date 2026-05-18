@@ -9,6 +9,7 @@ export interface Book {
 	publisher: string | null;
 	published_year: number | null;
 	page_count: number | null;
+	language: string | null;
 	tags: string | null;
 	notes: string | null;
 	rating: number | null; // 1–5

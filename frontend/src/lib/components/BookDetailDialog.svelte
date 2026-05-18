@@ -1,10 +1,12 @@
 <script lang="ts">
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
+	import { locale } from '$lib/i18n';
 	import { formatDate, formatDateTime } from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
+	import { formatLanguageCode } from '$lib/utils/language';
 	import StarRating from './StarRating.svelte';
 
 	const tz = getTimezone();
@@ -275,6 +277,10 @@
 			</div>
 
 			<div class="grid grid-cols-2 gap-3 text-sm">
+				<div>
+					<div class="text-xs text-base-content/60">{$_('book.language')}</div>
+					<div>{formatLanguageCode(book.language, $locale ?? 'en')}</div>
+				</div>
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.publisher')}</div>
 					<div>{book.publisher ?? '-'}</div>

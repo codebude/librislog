@@ -30,6 +30,7 @@
 	let publisher = $state('');
 	let published_year = $state('');
 	let page_count = $state('');
+	let language = $state('');
 	let tags = $state('');
 	let notes = $state('');
 	let rating = $state('');
@@ -44,6 +45,7 @@
 		publisher = '';
 		published_year = '';
 		page_count = '';
+		language = '';
 		tags = '';
 		notes = '';
 		rating = '';
@@ -63,6 +65,7 @@
 				publisher: publisher || null,
 				published_year: published_year ? parseInt(published_year) : null,
 				page_count: page_count ? parseInt(page_count) : null,
+				language: language || null,
 				tags: tags || null,
 				notes: notes || null,
 				rating: rating ? parseInt(rating) : null,
@@ -141,6 +144,16 @@
 						<label class="form-control">
 							<span class="label label-text">{$_('book.pages')}</span>
 							<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+						</label>
+						<label class="form-control">
+							<span class="label label-text">{$_('book.language')}</span>
+							<input
+								type="text"
+								class="input input-bordered input-sm"
+								bind:value={language}
+								maxlength="2"
+								placeholder="EN, DE, FR..."
+							/>
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('common.rating')} (1-5)</span>

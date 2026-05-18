@@ -241,6 +241,7 @@ def test_import_book_creates_entry(client: TestClient):
             "publisher": "Ace Books",
             "published_year": 1965,
             "page_count": 412,
+            "language": "EN",
             "tags": "Science Fiction",
             "source": "open_library",
         },
@@ -251,6 +252,7 @@ def test_import_book_creates_entry(client: TestClient):
     data = resp.json()
     assert data["title"] == "Dune"
     assert data["isbn"] == "9780441013593"
+    assert data["language"] == "EN"
     assert data["reading_status"] == "want_to_read"
     assert data["id"] is not None
 

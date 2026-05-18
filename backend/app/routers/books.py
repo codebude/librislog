@@ -106,6 +106,17 @@ def _validate_date_finished_for_read(
         raise HTTPException(status_code=422, detail="error.dateFinishedRequiredForRead")
 
 
+def _normalize_language(language: str | None) -> str | None:
+    if language is None:
+        return None
+    normalized = language.strip().upper()
+    if not normalized:
+        return None
+    if len(normalized) != 2 or not normalized.isalpha():
+        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+    return normalized
+
+
 def _raise_integrity_conflict(exc: IntegrityError) -> None:
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
     if "book.isbn" in message and "unique" in message:
@@ -344,6 +355,7 @@ async def create_book(
             cover_url = None
 
     book_data = book_in.model_dump()
+    book_data["language"] = _normalize_language(book_data.get("language"))
     book_data["cover_url"] = cover_url
     book_data.pop("tags", None)
     book_data["user_id"] = current_user.id
@@ -394,6 +406,8 @@ async def update_book(
         raise HTTPException(status_code=404, detail="Book not found")
 
     update_data = book_in.model_dump(exclude_unset=True)
+    if "language" in update_data:
+        update_data["language"] = _normalize_language(update_data.get("language"))
     tags_provided = "tags" in update_data
     tags_raw = update_data.pop("tags", None) if tags_provided else None
     target_status = update_data.get("reading_status", book.reading_status)

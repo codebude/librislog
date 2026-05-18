@@ -74,6 +74,7 @@
     "publisher": "Verlag",
     "year": "Jahr",
     "pages": "Seiten",
+    "language": "Sprache",
     "tags": "Tags",
     "tagsPlaceholder": "Tag eingeben und Enter oder Komma druecken",
     "tagsHint": "Mit Enter oder Komma Tag hinzufuegen. Backspace entfernt den letzten Tag.",
@@ -244,7 +245,8 @@
     "isbnAlreadyExists": "Diese ISBN wird bereits von einem anderen Buch verwendet.",
     "dateInFuture": "Datum darf nicht in der Zukunft liegen.",
     "dateStartedAfterFinished": "Startdatum darf nicht nach dem Enddatum liegen.",
-    "dateFinishedRequiredForRead": "Ein gelesenes Buch muss ein Enddatum haben. Ändere den Status, wenn du das Enddatum entfernen möchtest."
+    "dateFinishedRequiredForRead": "Ein gelesenes Buch muss ein Enddatum haben. Ändere den Status, wenn du das Enddatum entfernen möchtest.",
+    "invalidLanguageCode": "Sprache muss ein 2-stelliger ISO-Code sein (z. B. EN, DE, FR)."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",

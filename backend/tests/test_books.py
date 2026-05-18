@@ -33,6 +33,7 @@ def test_create_book_with_all_fields(client: TestClient):
         "publisher": "Ace Books",
         "published_year": 1965,
         "page_count": 412,
+        "language": "en",
         "tags": "Science Fiction",
         "notes": "A classic",
         "rating": 5,
@@ -45,6 +46,7 @@ def test_create_book_with_all_fields(client: TestClient):
     data = resp.json()
     assert data["author"] == "Frank Herbert"
     assert data["isbn"] == "9780441013593"
+    assert data["language"] == "EN"
     assert data["rating"] == 5
     assert data["reading_status"] == "read"
 
@@ -190,6 +192,19 @@ def test_update_book_status(client: TestClient):
     resp = client.patch(f"/api/books/{book['id']}", json={"reading_status": "currently_reading"})
     assert resp.status_code == 200
     assert resp.json()["reading_status"] == "currently_reading"
+
+
+def test_update_book_language(client: TestClient):
+    book = _create_book(client)
+    resp = client.patch(f"/api/books/{book['id']}", json={"language": "de"})
+    assert resp.status_code == 200
+    assert resp.json()["language"] == "DE"
+
+
+def test_create_book_invalid_language_returns_422(client: TestClient):
+    resp = client.post("/api/books", json={"title": "Dune", "language": "english"})
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == "error.invalidLanguageCode"
 
 
 def test_create_book_with_did_not_finish_status(client: TestClient):

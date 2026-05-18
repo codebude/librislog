@@ -32,6 +32,7 @@ class BookCreate(SQLModel):
     publisher: Optional[str] = None
     published_year: Optional[int] = None
     page_count: Optional[int] = None
+    language: Optional[str] = None
     tags: Optional[str] = None
     notes: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
@@ -48,6 +49,7 @@ class BookUpdate(SQLModel):
     publisher: Optional[str] = None
     published_year: Optional[int] = None
     page_count: Optional[int] = None
+    language: Optional[str] = None
     tags: Optional[str] = None
     notes: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
@@ -85,6 +87,7 @@ class BookRead(SQLModel):
     publisher: Optional[str]
     published_year: Optional[int]
     page_count: Optional[int]
+    language: Optional[str] = None
     tags: Optional[str] = None
     notes: Optional[str]
     rating: Optional[int]

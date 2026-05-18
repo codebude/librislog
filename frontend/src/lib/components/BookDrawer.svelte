@@ -42,6 +42,7 @@
 	let publisher = $state('');
 	let published_year = $state('');
 	let page_count = $state('');
+	let language = $state('');
 	let tags = $state('');
 	let date_started = $state('');
 	let date_finished = $state('');
@@ -58,6 +59,7 @@
 			publisher = book.publisher ?? '';
 			published_year = book.published_year !== null ? String(book.published_year) : '';
 			page_count = book.page_count !== null ? String(book.page_count) : '';
+			language = book.language ?? '';
 			tags = book.tags ?? '';
 			date_started = toDateInputValue(book.date_started, tz);
 			date_finished = toDateInputValue(book.date_finished, tz);
@@ -76,6 +78,7 @@
 			publisher: publisher || null,
 			published_year: published_year ? parseInt(published_year, 10) : null,
 			page_count: page_count ? parseInt(page_count, 10) : null,
+			language: language || null,
 			tags: tags || null,
 			notes: notes || null,
 			rating,
@@ -311,6 +314,17 @@
 				<label class="form-control">
 					<span class="label label-text">{$_('book.pages')}</span>
 					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+				</label>
+
+				<label class="form-control">
+					<span class="label label-text">{$_('book.language')}</span>
+					<input
+						type="text"
+						class="input input-bordered input-sm"
+						bind:value={language}
+						maxlength="2"
+						placeholder="EN, DE, FR..."
+					/>
 				</label>
 			</div>
 
