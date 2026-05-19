@@ -362,7 +362,7 @@
 			/>
 			<datalist id="timezone-list">
 				{#each allTimezones as tz}
-					<option value={tz} />
+					<option value={tz}></option>
 				{/each}
 			</datalist>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneDetected', { values: { tz: browserTz } })}</p>
@@ -403,6 +403,16 @@
 					</li>
 				{/each}
 			</ul>
+		</div>
+	</div>
+
+	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.dataManagement.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.dataManagement.description')}</p>
+			<div>
+				<a class="btn btn-outline btn-sm" href="/data?tab=export">{$_('profile.dataManagement.link')}</a>
+			</div>
 		</div>
 	</div>
 
@@ -553,6 +563,14 @@
 						>{$_('oidc.profileTitle')}</a>
 					</li>
 				{/if}
+				<li>
+					<a
+						href="#section-data"
+						class="link link-hover text-sm"
+						class:text-primary={activeSection === 'section-data'}
+						data-section="section-data"
+					>{$_('profile.dataManagement.title')}</a>
+				</li>
 				<li>
 					<a
 						href="#section-danger-zone"

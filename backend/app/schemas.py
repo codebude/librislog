@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime
+from typing import Literal
 
 from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
@@ -305,3 +306,73 @@ class OidcLinkRead(SQLModel):
 
 class OidcLoginResponse(SQLModel):
     user: UserRead
+
+
+class DataExportRequest(SQLModel):
+    datasets: list[Literal["books", "progress", "tags", "covers"]]
+    format: Literal["csv", "json"]
+
+
+class DataImportParseResponse(SQLModel):
+    file_id: str
+    format: Literal["csv", "json"]
+    source_fields: list[str]
+    sample_rows: list[dict]
+    row_count: int
+
+
+class DataImportMappingSave(SQLModel):
+    name: str
+    source_fields: list[str]
+    mapping: dict[str, str]
+
+
+class DataImportMappingRead(SQLModel):
+    id: int
+    name: str
+    source_fields: list[str]
+    mapping: dict[str, str]
+    created_at: datetime
+    updated_at: datetime
+
+
+class DataImportMappingListItem(SQLModel):
+    id: int
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class DataImportRunRequest(SQLModel):
+    file_id: str
+    mapping: dict[str, str]
+    import_mode: Literal["rollback_all", "continue_on_error"] = "rollback_all"
+    create_progress_for_read: bool = False
+
+
+class DataImportSuggestRequest(SQLModel):
+    file_id: str
+
+
+class DataImportSuggestResponse(SQLModel):
+    suggested_mapping: dict[str, str]
+    db_fields: list[str]
+
+
+class DataImportValidateRequest(SQLModel):
+    file_id: str
+    mapping: dict[str, str]
+    create_progress_for_read: bool = False
+
+
+class DataImportValidateResponse(SQLModel):
+    valid: bool
+    row_count: int
+    warnings: list[str]
+    errors: list[str]
+
+
+class DataImportExecuteResult(SQLModel):
+    imported: int
+    failed: int
+    failures: list[dict]

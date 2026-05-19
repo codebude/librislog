@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlmodel import Session, func, select
 
 from app.models import ApiKey, Book, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
+from app.time_utils import utcnow
 from app.services.cover_storage import delete_cover_file, local_cover_filename
 
 
@@ -73,7 +73,7 @@ def delete_user_account_data(session: Session, user: User, covers_dir: str) -> R
     deletion_counts = delete_user_reading_data(session, user.id, covers_dir)
 
     for key in session.exec(select(ApiKey).where(ApiKey.user_id == user.id)).all():
-        key.revoked_at = datetime.now(timezone.utc)
+        key.revoked_at = utcnow()
         session.add(key)
 
     oidc_link = session.exec(select(OidcLink).where(OidcLink.user_id == user.id)).first()

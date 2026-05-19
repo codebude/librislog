@@ -449,16 +449,16 @@
 					</button>
 				</div>
 			</div>
-			<div
+			<button
+				type="button"
 				class="modal-backdrop"
-				role="button"
-				tabindex="-1"
+				aria-label={$_('common.close')}
 				onclick={() => {
 					onSave?.(pbook);
 					open = false;
 					pendingProgressBook = null;
 				}}
-			></div>
+			></button>
 		</div>
 	{/if}
 {/if}

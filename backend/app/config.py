@@ -28,6 +28,9 @@ class Settings(BaseSettings):
         "https://motivational-spark-api.vercel.app/api/quotes/random"
     )
     dashboard_quote_cache_ttl: int = 86400
+    max_import_file_size_mb: int = 100
+    max_import_row_count: int = 10000
+    import_temp_dir: str = "./data/import_temp"
 
     @field_validator("api_key_encryption_key")
     @classmethod

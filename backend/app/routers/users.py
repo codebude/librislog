@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -12,6 +10,7 @@ from app.database import get_session
 from app.models import ApiKey, User, UserRole, UserSettings
 from app.schemas import UserAdminUpdate, UserCreate, UserRead
 from app.services.user_deletion import assert_not_last_admin
+from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -74,7 +73,7 @@ def update_user(
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
 
     user.sqlmodel_update(update_data)
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = utcnow()
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -98,7 +97,7 @@ def delete_user(
 
     keys = session.exec(select(ApiKey).where(ApiKey.user_id == user_id)).all()
     for key in keys:
-        key.revoked_at = datetime.now(timezone.utc)
+        key.revoked_at = utcnow()
         session.add(key)
 
     settings = session.exec(select(UserSettings).where(UserSettings.user_id == user_id)).first()

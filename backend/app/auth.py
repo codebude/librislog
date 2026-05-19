@@ -3,7 +3,6 @@ import hashlib
 import hmac
 import re
 import secrets
-from datetime import datetime, timezone
 
 import bcrypt
 from cryptography.fernet import Fernet
@@ -15,6 +14,7 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.database import get_session
 from app.models import ApiKey, User, UserRole
+from app.time_utils import utcnow
 
 
 if not hasattr(bcrypt, "__about__"):
@@ -113,7 +113,7 @@ def require_user_by_api_key(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key user")
 
-    key.last_used_at = datetime.now(timezone.utc)
+    key.last_used_at = utcnow()
     session.add(key)
     session.commit()
     return user

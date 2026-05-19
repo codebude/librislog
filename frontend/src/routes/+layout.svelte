@@ -144,6 +144,10 @@
 			return `${$_('app.title')} - ${$_('nav.statistics')}`;
 		}
 
+		if ($page.url.pathname.startsWith('/data')) {
+			return `${$_('app.title')} - ${$_('nav.data')}`;
+		}
+
 		if ($page.url.pathname.startsWith('/admin')) {
 			return `${$_('app.title')} - ${$_('admin.title')}`;
 		}

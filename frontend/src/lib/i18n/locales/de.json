@@ -10,6 +10,7 @@
     "library": "Bibliothek",
     "timeline": "Zeitleiste",
     "statistics": "Statistiken",
+    "data": "Daten",
     "want_to_read": "Möchte ich lesen",
     "currently_reading": "Lese ich gerade",
     "read": "Gelesen",
@@ -128,7 +129,8 @@
     "manual": "Manuell",
     "searchImport": "Suchen & Importieren",
     "adding": "Füge hinzu...",
-    "failedAdd": "Buch konnte nicht hinzugefügt werden"
+    "failedAdd": "Buch konnte nicht hinzugefügt werden",
+    "importFromFile": "Aus Datei importieren"
   },
   "import": {
     "searchByTitleOrAuthor": "Nach Titel oder Autor suchen...",
@@ -274,7 +276,10 @@
     "invalidLanguageCode": "Sprache muss ein 2-stelliger ISO-Code sein (z. B. EN, DE, FR).",
     "invalidConfirmationPhrase": "Bestätigungsphrase stimmt nicht überein.",
     "cannotDeleteLastAdmin": "Konto kann nicht gelöscht werden: Sie sind der letzte Administrator",
-    "cannotDeleteOwnAccountHere": "Das eigene Konto kann hier nicht gelöscht werden. Verwenden Sie Profil > Gefahrenbereich."
+    "cannotDeleteOwnAccountHere": "Das eigene Konto kann hier nicht gelöscht werden. Verwenden Sie Profil > Gefahrenbereich.",
+    "importMalformedEvent": "Während des Imports wurde ein fehlerhaftes Server-Ereignis empfangen.",
+    "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV- oder JSON-Dateien verwenden.",
+    "importTempFileCreateFailed": "Temporäre Importdatei konnte nicht erstellt werden. Bitte erneut versuchen."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",
@@ -297,6 +302,11 @@
     "profileSaveFailed": "Profil konnte nicht gespeichert werden",
     "passwordChangeSuccess": "Passwort geändert",
     "passwordChangeFailed": "Passwort konnte nicht geändert werden",
+    "dataManagement": {
+      "title": "Meine Daten verwalten",
+      "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",
+      "link": "Datenseite öffnen"
+    },
     "dangerZone": {
       "title": "Gefahrenbereich",
       "subtitle": "Unumkehrbare Aktionen, die Ihre Daten oder Ihr Konto dauerhaft löschen.",
@@ -330,5 +340,84 @@
     "subtitle": "Eine chronologische Ansicht der Bücher, die du gelesen hast",
     "viewInLibrary": "Alle in der Bibliothek anzeigen",
     "noReadBooks": "Noch keine gelesenen Bücher in deiner Bibliothek."
+  },
+  "data": {
+    "title": "Datenverwaltung",
+    "subtitle": "Importiere und exportiere deine persönlichen Bibliotheksdaten",
+    "tabs": {
+      "export": "Export",
+      "import": "Import"
+    },
+    "export": {
+      "title": "Export",
+      "description": "Wähle Datensätze und Format und lade dann ein ZIP-Archiv herunter.",
+      "datasets": {
+        "books": "Bücher",
+        "progress": "Lesefortschritt",
+        "tags": "Tags",
+        "covers": "Cover-Dateien"
+      },
+      "button": "Daten exportieren",
+      "exporting": "Exportiere...",
+      "success": "Export bereit. Download gestartet.",
+      "errors": {
+        "noDatasets": "Wähle mindestens einen Datensatz aus.",
+        "failed": "Export fehlgeschlagen."
+      }
+    },
+    "import": {
+      "title": "Import",
+      "description": "Lade eine CSV- oder JSON-Datei hoch, mappe Felder, simuliere und importiere dann.",
+      "parse": "Datei einlesen",
+      "parsing": "Lese ein...",
+      "fileSummary": "Zeilen: {rows}, Felder: {fields}",
+      "mappingTitle": "Feldzuordnung",
+      "mappingActionsTitle": "Zuordnungen verwalten",
+      "mappingName": "Name der Zuordnung",
+      "loadSavedMapping": "Gespeicherte Zuordnungen",
+      "noSavedMappings": "Noch keine gespeicherten Zuordnungen. Speichere die aktuelle Zuordnung, um sie später wiederzuverwenden.",
+      "selectMapping": "Gespeicherte Zuordnung auswählen",
+      "loadMapping": "Zuordnung laden",
+      "deleteMapping": "Zuordnung löschen",
+      "deleteMappingTitle": "Gespeicherte Zuordnung löschen",
+      "showPreview": "Zuordnungsvorschau anzeigen",
+      "createProgressForRead": "100%-Fortschrittseintrag für als 'Gelesen' importierte Bücher anlegen",
+      "hidePreview": "Zuordnungsvorschau ausblenden",
+      "previewNoMappedFields": "Noch keine Felder zugeordnet. Weise Quellfelder Zielfeldern zu, um Werte zu sehen.",
+      "saveMapping": "Zuordnung speichern",
+      "refreshMappings": "Zuordnungen aktualisieren",
+      "mappingSaved": "Zuordnung gespeichert",
+      "mappingDeleted": "Zuordnung gelöscht",
+      "mappingMissingFields": "Geladene Zuordnung hat {count} fehlende Quellfelder.",
+      "validationTitle": "Simulation",
+      "simulate": "Simulieren",
+      "validating": "Validiere...",
+      "validationOk": "Validierung erfolgreich.",
+      "validationNotOk": "Validierung hat Probleme gefunden.",
+      "rollbackAll": "Bei Fehler alles zurückrollen",
+      "continueOnError": "Bei Fehler fortsetzen",
+      "importNow": "Jetzt importieren",
+      "importing": "Importiere...",
+      "cancelled": "Import abgebrochen.",
+      "confirmImportTitle": "Import starten?",
+      "confirmDestructive": "Dadurch werden Daten in deine Bibliothek geschrieben und es gibt kein automatisches Undo.",
+      "deleteMappingConfirm": "Diese gespeicherte Zuordnung löschen?",
+      "dropzone": "CSV/JSON-Datei ziehen & ablegen, oder",
+      "browse": "durchsuchen",
+      "fileInputLabel": "CSV- oder JSON-Datei auswählen",
+      "showLess": "Weniger anzeigen",
+      "showAllIssues": "Alle Probleme anzeigen ({count})",
+      "showAllFailures": "Alle fehlgeschlagenen Zeilen anzeigen ({count})",
+      "completed": "Import abgeschlossen. Importiert: {imported}, fehlgeschlagen: {failed}",
+      "errors": {
+        "parseFailed": "Datei konnte nicht eingelesen werden.",
+        "saveMappingFailed": "Zuordnung konnte nicht gespeichert werden.",
+        "deleteMappingFailed": "Zuordnung konnte nicht gelöscht werden.",
+        "loadMappingsFailed": "Zuordnungen konnten nicht geladen werden.",
+        "loadMappingFailed": "Zuordnung konnte nicht geladen werden.",
+        "validateFailed": "Validierung fehlgeschlagen.",
+        "executeFailed": "Import fehlgeschlagen."
+      }
+    }
   }
 }

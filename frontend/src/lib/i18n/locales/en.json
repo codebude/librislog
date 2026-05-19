@@ -10,6 +10,7 @@
     "library": "Library",
     "timeline": "Timeline",
     "statistics": "Statistics",
+    "data": "Data",
     "want_to_read": "Want to Read",
     "currently_reading": "Reading",
     "read": "Read",
@@ -128,7 +129,8 @@
     "manual": "Manual",
     "searchImport": "Search & Import",
     "adding": "Adding...",
-    "failedAdd": "Failed to add book"
+    "failedAdd": "Failed to add book",
+    "importFromFile": "Import from file"
   },
   "import": {
     "searchByTitleOrAuthor": "Search by title or author...",
@@ -274,7 +276,10 @@
     "invalidLanguageCode": "Language must be a 2-letter ISO code (for example: EN, DE, FR).",
     "invalidConfirmationPhrase": "Confirmation phrase does not match.",
     "cannotDeleteLastAdmin": "Cannot delete account: you are the last administrator",
-    "cannotDeleteOwnAccountHere": "You cannot delete your own account here. Use Profile > Danger Zone."
+    "cannotDeleteOwnAccountHere": "You cannot delete your own account here. Use Profile > Danger Zone.",
+    "importMalformedEvent": "Received malformed server event during import.",
+    "importUnsupportedContentType": "Unsupported upload content type. Use CSV or JSON files.",
+    "importTempFileCreateFailed": "Could not create a temporary import file. Please try again."
   },
   "oidc": {
     "orContinueWith": "or continue with",
@@ -297,6 +302,11 @@
     "profileSaveFailed": "Failed to save profile",
     "passwordChangeSuccess": "Password changed",
     "passwordChangeFailed": "Failed to change password",
+    "dataManagement": {
+      "title": "Manage my data",
+      "description": "Export your library or import books from a CSV/JSON file.",
+      "link": "Open data page"
+    },
     "dangerZone": {
       "title": "Danger Zone",
       "subtitle": "Irreversible actions that permanently delete your data or account.",
@@ -330,5 +340,84 @@
     "subtitle": "A chronological view of books you've finished reading",
     "viewInLibrary": "View all in library",
     "noReadBooks": "No finished books in your library yet."
+  },
+  "data": {
+    "title": "Data Management",
+    "subtitle": "Import and export your personal library data",
+    "tabs": {
+      "export": "Export",
+      "import": "Import"
+    },
+    "export": {
+      "title": "Export",
+      "description": "Choose datasets and format, then download a ZIP archive.",
+      "datasets": {
+        "books": "Books",
+        "progress": "Reading progress",
+        "tags": "Tags",
+        "covers": "Cover files"
+      },
+      "button": "Export data",
+      "exporting": "Exporting...",
+      "success": "Export ready. Download started.",
+      "errors": {
+        "noDatasets": "Select at least one dataset.",
+        "failed": "Export failed."
+      }
+    },
+    "import": {
+      "title": "Import",
+      "description": "Upload one CSV or JSON file, map fields, validate, then import.",
+      "parse": "Parse file",
+      "parsing": "Parsing...",
+      "fileSummary": "Rows: {rows}, fields: {fields}",
+      "mappingTitle": "Field mapping",
+      "mappingActionsTitle": "Manage mappings",
+      "mappingName": "Mapping name",
+      "loadSavedMapping": "Saved mappings",
+      "noSavedMappings": "No saved mappings yet. Save your current mapping to reuse it later.",
+      "selectMapping": "Select a saved mapping",
+      "loadMapping": "Load mapping",
+      "deleteMapping": "Delete mapping",
+      "deleteMappingTitle": "Delete saved mapping",
+      "showPreview": "Show mapping preview",
+      "createProgressForRead": "Create 100% progress entry for books imported as 'Read'",
+      "hidePreview": "Hide mapping preview",
+      "previewNoMappedFields": "No mapped fields yet. Assign source fields to target fields to preview values.",
+      "saveMapping": "Save mapping",
+      "refreshMappings": "Refresh mappings",
+      "mappingSaved": "Mapping saved",
+      "mappingDeleted": "Mapping deleted",
+      "mappingMissingFields": "Loaded mapping has {count} missing source fields.",
+      "validationTitle": "Simulation",
+      "simulate": "Simulate",
+      "validating": "Validating...",
+      "validationOk": "Validation passed.",
+      "validationNotOk": "Validation found issues.",
+      "rollbackAll": "Rollback all on error",
+      "continueOnError": "Continue on error",
+      "importNow": "Import now",
+      "importing": "Importing...",
+      "cancelled": "Import cancelled.",
+      "confirmImportTitle": "Start import?",
+      "confirmDestructive": "This writes data to your library and cannot be auto-undone.",
+      "deleteMappingConfirm": "Delete this saved mapping?",
+      "dropzone": "Drag & drop a CSV/JSON file, or",
+      "browse": "browse",
+      "fileInputLabel": "Choose CSV or JSON file",
+      "showLess": "Show less",
+      "showAllIssues": "Show all issues ({count})",
+      "showAllFailures": "Show all failed rows ({count})",
+      "completed": "Import complete. Imported: {imported}, failed: {failed}",
+      "errors": {
+        "parseFailed": "Failed to parse file.",
+        "saveMappingFailed": "Failed to save mapping.",
+        "deleteMappingFailed": "Failed to delete mapping.",
+        "loadMappingsFailed": "Failed to load mappings.",
+        "loadMappingFailed": "Failed to load mapping.",
+        "validateFailed": "Validation failed.",
+        "executeFailed": "Import failed."
+      }
+    }
   }
 }

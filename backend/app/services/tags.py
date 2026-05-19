@@ -1,13 +1,8 @@
-from datetime import datetime, timezone
-
 from sqlmodel import Session, select
 
 from app.models import Book, BookTag, Tag
 from app.schemas import BookRead
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+from app.time_utils import utcnow
 
 
 def parse_tags(raw_tags: str | None) -> list[str]:
@@ -47,7 +42,7 @@ def sync_book_tags(session: Session, user_id: int, book_id: int, raw_tags: str |
     for name in parsed:
         if name in name_to_tag:
             continue
-        tag = Tag(user_id=user_id, name=name, created_at=_utcnow())
+        tag = Tag(user_id=user_id, name=name, created_at=utcnow())
         session.add(tag)
         session.flush()
         name_to_tag[name] = tag

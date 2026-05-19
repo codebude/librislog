@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,17 +9,44 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import auth, books, covers, docs, health, import_, oidc, profile, progress, statistics, users
+from app.routers import auth, books, covers, data, docs, health, import_, oidc, profile, progress, statistics, users
+from app.services.data_import import cleanup_temp_files
 
 logger = logging.getLogger(__name__)
 
 configure_logging(settings.log_level)
 
 
+async def _periodic_temp_cleanup(interval_hours: int = 1) -> None:
+    loop = asyncio.get_running_loop()
+    failures = 0
+    while True:
+        await asyncio.sleep(interval_hours * 3600)
+        try:
+            await loop.run_in_executor(None, cleanup_temp_files)
+            logger.info("Periodic temp file cleanup completed")
+            failures = 0
+        except Exception as exc:
+            failures += 1
+            if failures >= 3:
+                logger.error("Temp file cleanup failed %d times consecutively: %s", failures, exc)
+            else:
+                logger.warning("Temp file cleanup failed (%d): %s", failures, exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.covers_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
+    cleanup_temp_files()
+
+    cleanup_task = asyncio.create_task(_periodic_temp_cleanup())
     yield
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
@@ -68,3 +96,4 @@ app.include_router(progress.router)
 app.include_router(docs.router)
 app.include_router(health.router)
 app.include_router(statistics.router)
+app.include_router(data.router)

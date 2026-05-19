@@ -1,5 +1,12 @@
 import type {
 	ApiKeyMeta,
+	DataExportDataset,
+	DataExportFormat,
+	DataImportEvent,
+	DataImportMappingListItem,
+	DataImportMappingRead,
+	DataImportParseResponse,
+	DataImportValidateResponse,
 	DataResetResponse,
 	Book,
 	BookImportCandidate,
@@ -373,6 +380,146 @@ export const api = {
 					if (line.startsWith('data: ')) {
 						const text = line.slice(6).trim();
 						if (text) yield JSON.parse(text) as SearchStage;
+					}
+				}
+			}
+		}
+	},
+
+	data: {
+		async exportData(payload: { datasets: DataExportDataset[]; format: DataExportFormat }): Promise<Blob> {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				...authHeaders()
+			};
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
+			const res = await fetch(`${BASE}/data/export`, {
+				method: 'POST',
+				headers,
+				credentials: 'same-origin',
+				body: JSON.stringify(payload)
+			});
+			if (!res.ok) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+			return res.blob();
+		},
+
+		async parseImportFile(file: File): Promise<DataImportParseResponse> {
+			const headers: Record<string, string> = { ...authHeaders() };
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
+			const form = new FormData();
+			form.append('file', file);
+			const res = await fetch(`${BASE}/data/import/parse`, {
+				method: 'POST',
+				headers,
+				credentials: 'same-origin',
+				body: form
+			});
+			if (!res.ok) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+			return res.json() as Promise<DataImportParseResponse>;
+		},
+
+		suggestMapping(fileId: string): Promise<{ suggested_mapping: Record<string, string>; db_fields: string[] }> {
+			return request<{ suggested_mapping: Record<string, string>; db_fields: string[] }>('/data/import/suggest-mapping', {
+				method: 'POST',
+				body: JSON.stringify({ file_id: fileId })
+			});
+		},
+
+		saveMapping(payload: {
+			name: string;
+			source_fields: string[];
+			mapping: Record<string, string>;
+		}): Promise<DataImportMappingRead> {
+			return request<DataImportMappingRead>('/data/import/mappings', {
+				method: 'POST',
+				body: JSON.stringify(payload)
+			});
+		},
+
+		listMappings(): Promise<DataImportMappingListItem[]> {
+			return request<DataImportMappingListItem[]>('/data/import/mappings');
+		},
+
+		getMapping(id: number): Promise<DataImportMappingRead> {
+			return request<DataImportMappingRead>(`/data/import/mappings/${id}`);
+		},
+
+		deleteMapping(id: number): Promise<void> {
+			return request<void>(`/data/import/mappings/${id}`, { method: 'DELETE' });
+		},
+
+		validateImport(payload: {
+			file_id: string;
+			mapping: Record<string, string>;
+			create_progress_for_read?: boolean;
+		}): Promise<DataImportValidateResponse> {
+			return request<DataImportValidateResponse>('/data/import/validate', {
+				method: 'POST',
+				body: JSON.stringify(payload)
+			});
+		},
+
+		async *executeImport(payload: {
+			file_id: string;
+			mapping: Record<string, string>;
+			import_mode: 'rollback_all' | 'continue_on_error';
+			create_progress_for_read?: boolean;
+			signal?: AbortSignal;
+		}): AsyncGenerator<DataImportEvent> {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				...authHeaders()
+			};
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
+			const res = await fetch(`${BASE}/data/import/execute`, {
+				method: 'POST',
+				headers,
+				credentials: 'same-origin',
+				body: JSON.stringify({
+					file_id: payload.file_id,
+					mapping: payload.mapping,
+					import_mode: payload.import_mode,
+					create_progress_for_read: payload.create_progress_for_read
+				}),
+				signal: payload.signal
+			});
+			if (!res.ok || !res.body) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = '';
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				buffer += decoder.decode(value, { stream: true });
+				const chunks = buffer.split('\n\n');
+				buffer = chunks.pop() ?? '';
+				for (const chunk of chunks) {
+					for (const line of chunk.split('\n')) {
+						if (line.startsWith('data: ')) {
+							const text = line.slice(6).trim();
+							if (!text) continue;
+							try {
+								yield JSON.parse(text) as DataImportEvent;
+							} catch {
+								yield { event: 'error', message: 'error.importMalformedEvent' };
+							}
+						}
 					}
 				}
 			}

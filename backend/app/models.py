@@ -6,6 +6,8 @@ import sqlalchemy as sa
 from sqlalchemy import Column, DateTime, TypeDecorator
 from sqlmodel import Field, SQLModel
 
+from app.time_utils import utcnow
+
 
 class UtcDateTime(TypeDecorator):
     impl = DateTime
@@ -34,10 +36,6 @@ class UserRole(str, Enum):
     user = "user"
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
@@ -53,8 +51,8 @@ class Book(SQLModel, table=True):
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     date_added: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow, index=True)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow, index=True)
     )
     date_started: Optional[datetime] = Field(
         default=None,
@@ -74,8 +72,8 @@ class Tag(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", index=True)
     name: str = Field(index=True)
     created_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
 
 
@@ -94,12 +92,12 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.user, index=True)
     hashed_password: str
     created_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
     updated_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
 
 
@@ -118,8 +116,8 @@ class ApiKey(SQLModel, table=True):
     key_encrypted: Optional[str] = None
     description: Optional[str] = None
     created_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
     last_used_at: Optional[datetime] = Field(
         default=None,
@@ -139,12 +137,12 @@ class ReadingProgress(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", index=True)
     page: int = Field(ge=0)
     created_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
     updated_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )
 
 
@@ -156,6 +154,28 @@ class OidcLink(SQLModel, table=True):
     oidc_email: Optional[str] = Field(default=None)
     oidc_name: Optional[str] = Field(default=None)
     linked_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(UtcDateTime, default=_utcnow)
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+
+
+class ImportMapping(SQLModel, table=True):
+    __tablename__ = "import_mapping"
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "name", name="uq_import_mapping_user_id_name"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(max_length=255)
+    schema_fingerprint: str = Field(max_length=64, index=True)
+    source_fields_json: str
+    mapping_json: str
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
     )

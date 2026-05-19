@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timezone
 from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -13,6 +12,7 @@ from app.models import OidcLink, User
 from app.oidc import get_oidc_client, oidc_is_enabled
 from app.config import settings
 from app.schemas import OidcConfigRead, OidcLinkRead
+from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/oidc", tags=["oidc"])
 logger = logging.getLogger(__name__)
@@ -199,7 +199,7 @@ async def oidc_link_callback(request: Request, session: Session = Depends(get_se
         existing_link.oidc_sub = oidc_sub
         existing_link.oidc_email = userinfo.get("email")
         existing_link.oidc_name = userinfo.get("name")
-        existing_link.linked_at = datetime.now(timezone.utc)
+        existing_link.linked_at = utcnow()
         session.add(existing_link)
     else:
         session.add(

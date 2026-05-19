@@ -213,3 +213,48 @@ export type SearchStage =
 	| { stage: 'google_books'; status: 'error'; reason: string }
 	| { stage: 'complete'; results: BookImportCandidate[] }
 	| { stage: 'error'; message: string };
+
+export type DataExportDataset = 'books' | 'progress' | 'tags' | 'covers';
+export type DataExportFormat = 'csv' | 'json';
+
+export interface DataImportParseResponse {
+	file_id: string;
+	format: 'csv' | 'json';
+	source_fields: string[];
+	sample_rows: Record<string, unknown>[];
+	row_count: number;
+}
+
+export interface DataImportMappingListItem {
+	id: number;
+	name: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface DataImportMappingRead {
+	id: number;
+	name: string;
+	source_fields: string[];
+	mapping: Record<string, string>;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface DataImportValidateResponse {
+	valid: boolean;
+	row_count: number;
+	warnings: string[];
+	errors: string[];
+}
+
+export type DataImportEvent =
+	| { event: 'start'; total_rows: number }
+	| { event: 'progress'; processed: number; total: number; percent: number }
+	| {
+			event: 'complete';
+			imported: number;
+			failed: number;
+			failures: Array<{ row: number; error: string; data: Record<string, unknown> }>;
+	  }
+	| { event: 'error'; message: string };

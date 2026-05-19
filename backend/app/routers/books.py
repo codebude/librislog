@@ -30,6 +30,7 @@ from app.services.cover_storage import (
 )
 from app.services.quote_cache import get_or_fetch_dashboard_quote
 from app.services.tags import build_book_read, cleanup_orphan_tags, sync_book_tags
+from app.time_utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ STATUS_DEFAULT_SORT_COLUMN = {
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return utcnow()
 
 
 def _apply_status_transition_dates(
@@ -73,7 +74,7 @@ def _is_external_url(url: str | None) -> bool:
 
 
 def _validate_dates(data: dict) -> None:
-    now = datetime.now(timezone.utc)
+    now = _utcnow()
     for field in ("date_started", "date_finished"):
         val = data.get(field)
         if val is not None:

@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -28,6 +27,7 @@ from app.schemas import (
     UserSettingsRead,
     UserSettingsUpdate,
 )
+from app.time_utils import utcnow
 from app.services.user_deletion import assert_not_last_admin, delete_user_account_data, delete_user_reading_data
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
@@ -60,7 +60,7 @@ def update_profile(
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
 
     current_user.sqlmodel_update(update_data)
-    current_user.updated_at = datetime.now(timezone.utc)
+    current_user.updated_at = utcnow()
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
@@ -211,6 +211,6 @@ def delete_api_key(
     if not key or key.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    key.revoked_at = datetime.now(timezone.utc)
+    key.revoked_at = utcnow()
     session.add(key)
     session.commit()

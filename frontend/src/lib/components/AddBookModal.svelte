@@ -200,6 +200,9 @@
 					reset();
 				}}
 			/>
+			<div class="mt-3 text-center">
+				<a href="/data?tab=import" class="link link-primary text-sm">{$_('addModal.importFromFile')}</a>
+			</div>
 		{/if}
 		</div>
 		<BarcodeScanner
