@@ -1,9 +1,12 @@
 import io
 import json
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+
+from app.config import settings
 
 
 def _parse_sse(text: str) -> list[dict]:
@@ -207,3 +210,129 @@ def test_data_import_execute_deletes_temp_file_after_completion(client: TestClie
     events = _parse_sse(execute_resp.text)
     assert any(event.get("event") == "complete" for event in events)
     assert not temp_file.exists()
+
+
+def test_data_import_execute_progress_uses_date_finished_for_read_books(
+    client: TestClient, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
+    csv_payload = "Title,Status,Pages,Date Finished\nDune,read,412,2024-01-15T10:30:00Z\n"
+    parse_resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.csv", csv_payload, "text/csv")},
+    )
+    file_id = parse_resp.json()["file_id"]
+
+    execute_resp = client.post(
+        "/api/data/import/execute",
+        json={
+            "file_id": file_id,
+            "mapping": {
+                "Title": "title",
+                "Status": "reading_status",
+                "Pages": "page_count",
+                "Date Finished": "date_finished",
+            },
+            "import_mode": "continue_on_error",
+            "create_progress_for_read": True,
+        },
+    )
+    assert execute_resp.status_code == 200
+
+    books_resp = client.get("/api/books")
+    assert books_resp.status_code == 200
+    books = books_resp.json()
+    assert len(books) == 1
+    book = books[0]
+    assert book["date_finished"] == "2024-01-15T10:30:00Z"
+
+    progress_resp = client.get(f"/api/books/{book['id']}/progress")
+    assert progress_resp.status_code == 200
+    progress = progress_resp.json()
+    assert len(progress) == 1
+    assert progress[0]["page"] == 412
+    assert progress[0]["created_at"] == "2024-01-15T10:30:00Z"
+
+
+def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
+    client: TestClient, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
+    csv_payload = "Title,Status,Pages\nDune,read,412\n"
+    parse_resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.csv", csv_payload, "text/csv")},
+    )
+    file_id = parse_resp.json()["file_id"]
+
+    before = datetime.now(timezone.utc)
+    execute_resp = client.post(
+        "/api/data/import/execute",
+        json={
+            "file_id": file_id,
+            "mapping": {
+                "Title": "title",
+                "Status": "reading_status",
+                "Pages": "page_count",
+            },
+            "import_mode": "continue_on_error",
+            "create_progress_for_read": True,
+        },
+    )
+    after = datetime.now(timezone.utc)
+    assert execute_resp.status_code == 200
+
+    books_resp = client.get("/api/books")
+    assert books_resp.status_code == 200
+    books = books_resp.json()
+    assert len(books) == 1
+    book = books[0]
+    assert book["date_finished"] is None
+
+    progress_resp = client.get(f"/api/books/{book['id']}/progress")
+    assert progress_resp.status_code == 200
+    progress = progress_resp.json()
+    assert len(progress) == 1
+
+    created_at = datetime.fromisoformat(progress[0]["created_at"].replace("Z", "+00:00"))
+    assert before <= created_at <= after
+
+
+def test_data_import_execute_progress_uses_date_only_finished_date(
+    client: TestClient, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
+    csv_payload = "Title,Status,Pages,Date Finished\nDune,read,412,2024-01-15\n"
+    parse_resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.csv", csv_payload, "text/csv")},
+    )
+    file_id = parse_resp.json()["file_id"]
+
+    execute_resp = client.post(
+        "/api/data/import/execute",
+        json={
+            "file_id": file_id,
+            "mapping": {
+                "Title": "title",
+                "Status": "reading_status",
+                "Pages": "page_count",
+                "Date Finished": "date_finished",
+            },
+            "import_mode": "continue_on_error",
+            "create_progress_for_read": True,
+        },
+    )
+    assert execute_resp.status_code == 200
+
+    books_resp = client.get("/api/books")
+    assert books_resp.status_code == 200
+    books = books_resp.json()
+    assert len(books) == 1
+    book = books[0]
+
+    progress_resp = client.get(f"/api/books/{book['id']}/progress")
+    assert progress_resp.status_code == 200
+    progress = progress_resp.json()
+    assert len(progress) == 1
+    assert progress[0]["created_at"] == "2024-01-15T00:00:00Z"

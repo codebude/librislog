@@ -505,10 +505,15 @@ async def execute_import(
                 session.flush()
 
                 if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None:
+                    # Use imported finish date when available; otherwise use current time.
+                    log_date = date_finished if date_finished is not None else utcnow()
+                    if log_date.tzinfo is None:
+                        log_date = log_date.replace(tzinfo=timezone.utc)
                     progress_entry = ReadingProgress(
                         book_id=book.id,
                         user_id=user.id,
                         page=page_count,
+                        created_at=log_date,
                     )
                     session.add(progress_entry)
 
