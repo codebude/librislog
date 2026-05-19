@@ -330,11 +330,16 @@ export const api = {
 
 	covers: {
 		async upload(file: File): Promise<string> {
+			const headers: Record<string, string> = { ...authHeaders() };
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
 			const form = new FormData();
 			form.append('file', file);
 			const res = await fetch(`${BASE}/covers/upload`, {
 				method: 'POST',
-				headers: authHeaders(),
+				headers,
+				credentials: 'same-origin',
 				body: form
 			});
 			if (!res.ok) {
