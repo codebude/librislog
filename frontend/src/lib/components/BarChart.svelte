@@ -65,7 +65,10 @@
       {series}
       {height}
       bandPadding={0.3}
-      props={{ xAxis: { tickSpacing: 80 } }}
+      props={{
+        xAxis: { tickSpacing: 80 },
+        bars: { strokeWidth: 0, stroke: 'none' }
+      }}
     />
   </div>
 {/if}
