@@ -236,6 +236,11 @@
 				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]}">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
 			</div>
 
+			<div class="text-sm">
+				<div class="text-xs text-base-content/60">{$_('book.isbn')}</div>
+				<div class="font-mono break-all">{book.isbn ?? '-'}</div>
+			</div>
+
 			<div>
 				<div class="text-xs text-base-content/60 mb-1">{$_('common.rating')}</div>
 				<StarRating value={book.rating} readonly />
@@ -257,6 +262,14 @@
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.pages')}</div>
 					<div>{book.page_count ?? '-'}</div>
+				</div>
+				<div>
+					<div class="text-xs text-base-content/60">{$_('book.dateStarted')}</div>
+					<div>{book.date_started ? formatDate(book.date_started, tz) : '-'}</div>
+				</div>
+				<div>
+					<div class="text-xs text-base-content/60">{$_('book.dateFinished')}</div>
+					<div>{book.date_finished ? formatDate(book.date_finished, tz) : '-'}</div>
 				</div>
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.tags')}</div>
@@ -314,22 +327,6 @@
 						onchange={handlePageBlur}
 					/>
 				{/if}
-			</div>
-
-			<div class="text-sm">
-				<div class="text-xs text-base-content/60">{$_('book.isbn')}</div>
-				<div class="font-mono break-all">{book.isbn ?? '-'}</div>
-			</div>
-
-			<div class="grid grid-cols-2 gap-3 text-sm">
-				<div>
-					<div class="text-xs text-base-content/60">{$_('book.dateStarted')}</div>
-					<div>{book.date_started ? formatDate(book.date_started, tz) : '-'}</div>
-				</div>
-				<div>
-					<div class="text-xs text-base-content/60">{$_('book.dateFinished')}</div>
-					<div>{book.date_finished ? formatDate(book.date_finished, tz) : '-'}</div>
-				</div>
 			</div>
 
 			{#if lineChartData.length >= 2}
