@@ -59,7 +59,6 @@
 		try {
 			const data = await api.statistics.getPagesPerDay(365);
 			if (isActive()) {
-				console.debug('Pages per day response:', data);
 				calendarData = data;
 			}
 		} catch (e: unknown) {

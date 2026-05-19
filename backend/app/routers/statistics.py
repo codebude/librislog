@@ -66,7 +66,7 @@ def _extract_progress_daily_pages(
 
     for book_id in sorted(grouped):
         book_entries = grouped[book_id]
-        book_entries.sort(key=lambda e: e.created_at)
+        book_entries.sort(key=lambda e: (e.created_at, e.page))
         for prev, curr in zip(book_entries, book_entries[1:]):
             delta = curr.page - prev.page
             if delta > 0:

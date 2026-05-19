@@ -218,3 +218,35 @@ def test_statistics_invalid_timezone_falls_back_to_utc(client, session: Session)
     resp = client.get("/api/statistics")
     assert resp.status_code == 200
     assert resp.json()["books_finished_per_month"] == [{"month": "2026-05", "count": 1}]
+
+
+def test_pages_per_day_counts_single_log_when_started_and_finished_same_day(client, session: Session):
+    date_iso = "2026-05-01T10:00:00Z"
+    created = _create_book(
+        client,
+        title="Same-day single log",
+        reading_status="read",
+        page_count=250,
+        date_started=date_iso,
+        date_finished=date_iso,
+    )
+
+    book = session.get(Book, created["id"])
+    assert book is not None
+    session.add(
+        ReadingProgress(
+            book_id=book.id,
+            user_id=book.user_id,
+            page=250,
+            created_at=datetime(2026, 5, 1, 10, 0, tzinfo=timezone.utc),
+        )
+    )
+    session.commit()
+
+    resp = client.get("/api/statistics/pages-per-day?days=730")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+
+    target = next((row for row in data if row["date"] == "2026-05-01"), None)
+    assert target is not None
+    assert target["pages"] == 250
