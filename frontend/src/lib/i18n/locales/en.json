@@ -248,7 +248,11 @@
     "newPassword": "New password"
   },
   "admin": {
-    "title": "User Management",
+    "title": "Administration",
+    "tabs": {
+      "users": "Users",
+      "backup": "Backup & Restore"
+    },
     "newUser": "Create User",
     "existingUsers": "Existing Users",
     "role": "Role",
@@ -261,7 +265,33 @@
     "deleteConfirmBody": "This action cannot be undone.",
     "cannotChangeOwnRole": "You cannot change your own admin role.",
     "requiredFieldError": "Please fill all required fields.",
-    "selfDeleteHint": "To delete your own account, use Profile > Danger Zone."
+    "selfDeleteHint": "To delete your own account, use Profile > Danger Zone.",
+    "backup": {
+      "title": "Backup",
+      "description": "Download a complete backup of your library including all books, covers, and data.",
+      "download": "Download Backup",
+      "success": "Backup downloaded successfully",
+      "failed": "Backup download failed",
+      "inProgress": "Creating backup..."
+    },
+    "restore": {
+      "title": "Restore",
+      "description": "Restore your library from a previous backup file.",
+      "warning": "Warning: Restoring will replace ALL current data. Make sure you have a recent backup before proceeding.",
+      "upload": "Upload and Restore",
+      "success": "Restore completed successfully. Restored {books} books.",
+      "failed": "Restore failed",
+      "inProgress": "Restoring backup...",
+      "validationFailed": "Could not validate backup file",
+      "invalidBackup": "Invalid backup file structure",
+      "confirmTitle": "Confirm Restore",
+      "confirmBody": "Are you sure you want to restore from this backup? This will replace all current data and cannot be undone.",
+      "confirmWarning": "This action is irreversible. All current data will be lost.",
+      "confirm": "Restore Now",
+      "backupDate": "Backup Date",
+      "backupVersion": "App Version",
+      "coversCount": "Covers"
+    }
   },
   "password": {
     "requirementsTitle": "Password requirements",

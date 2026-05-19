@@ -248,7 +248,11 @@
     "newPassword": "Neues Passwort"
   },
   "admin": {
-    "title": "Benutzerverwaltung",
+    "title": "Administration",
+    "tabs": {
+      "users": "Benutzer",
+      "backup": "Sicherung & Wiederherstellung"
+    },
     "newUser": "Benutzer erstellen",
     "existingUsers": "Bestehende Benutzer",
     "role": "Rolle",
@@ -261,7 +265,33 @@
     "deleteConfirmBody": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "cannotChangeOwnRole": "Du kannst deine eigene Admin-Rolle nicht ändern.",
     "requiredFieldError": "Bitte alle Pflichtfelder ausfüllen.",
-    "selfDeleteHint": "Zum Löschen des eigenen Kontos bitte Profil > Gefahrenbereich verwenden."
+    "selfDeleteHint": "Zum Löschen des eigenen Kontos bitte Profil > Gefahrenbereich verwenden.",
+    "backup": {
+      "title": "Sicherung",
+      "description": "Lade eine vollständige Sicherung deiner Bibliothek herunter, einschließlich aller Bücher, Cover und Daten.",
+      "download": "Sicherung herunterladen",
+      "success": "Sicherung erfolgreich heruntergeladen",
+      "failed": "Sicherung fehlgeschlagen",
+      "inProgress": "Erstelle Sicherung..."
+    },
+    "restore": {
+      "title": "Wiederherstellung",
+      "description": "Stelle deine Bibliothek aus einer früheren Sicherungsdatei wieder her.",
+      "warning": "Warnung: Die Wiederherstellung ersetzt ALLE aktuellen Daten. Stelle sicher, dass du eine aktuelle Sicherung hast, bevor du fortfährst.",
+      "upload": "Hochladen und Wiederherstellen",
+      "success": "Wiederherstellung erfolgreich abgeschlossen. {books} Bücher wiederhergestellt.",
+      "failed": "Wiederherstellung fehlgeschlagen",
+      "inProgress": "Stelle Sicherung wieder her...",
+      "validationFailed": "Sicherungsdatei konnte nicht validiert werden",
+      "invalidBackup": "Ungültige Sicherungsdateistruktur",
+      "confirmTitle": "Wiederherstellung bestätigen",
+      "confirmBody": "Möchtest du wirklich aus dieser Sicherung wiederherstellen? Dies ersetzt alle aktuellen Daten und kann nicht rückgängig gemacht werden.",
+      "confirmWarning": "Diese Aktion ist unwiderruflich. Alle aktuellen Daten gehen verloren.",
+      "confirm": "Jetzt wiederherstellen",
+      "backupDate": "Sicherungsdatum",
+      "backupVersion": "App-Version",
+      "coversCount": "Cover"
+    }
   },
   "password": {
     "requirementsTitle": "Passwortanforderungen",

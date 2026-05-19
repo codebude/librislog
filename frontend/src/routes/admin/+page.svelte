@@ -6,6 +6,7 @@
 	import { isValidEmailFormat } from '$lib/validation';
 	import type { User, UserRole } from '$lib/types';
 	import { _ } from '$lib/i18n';
+	import BackupRestore from '$lib/components/BackupRestore.svelte';
 
 	let users = $state<User[]>([]);
 	let firstname = $state('');
@@ -24,6 +25,8 @@
 	let editRole = $state<UserRole>('user');
 	let adminError = $state('');
 	let pendingDeleteUserId = $state<number | null>(null);
+
+	let activeTab = $state<'users' | 'backup'>('users');
 
 	const isAdmin = $derived($currentUser?.role === 'admin');
 
@@ -142,120 +145,133 @@
 	<div class="max-w-4xl mx-auto flex flex-col gap-6">
 		<h1 class="text-2xl font-bold">{$_('admin.title')}</h1>
 
-		<div class="card bg-base-100 border border-base-200 shadow-sm">
-			<div class="card-body gap-3">
-				<h2 class="text-lg font-semibold">{$_('admin.newUser')}</h2>
-				{#if adminError}
-					<div class="alert alert-error text-sm"><span>{adminError}</span></div>
-				{/if}
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-					<label class="form-control">
-						<span class="label label-text">{$_('auth.firstname')} *</span>
-						<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} required />
-					</label>
-					<label class="form-control">
-						<span class="label label-text">{$_('auth.lastname')} *</span>
-						<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} required />
-					</label>
-					<label class="form-control">
-						<span class="label label-text">{$_('auth.email')} *</span>
-						<input type="email" class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} required />
-					</label>
-					<label class="form-control">
-						<span class="label label-text">{$_('auth.password')} *</span>
-					<input
-						class="input input-bordered validator"
-						type={showCreatePassword ? 'text' : 'password'}
-						bind:value={password}
-						placeholder={$_('auth.password')}
-						required
-						minlength="8"
-						pattern={passwordPattern}
-						title={$_('password.requirementsTitle')}
-					/>
-					</label>
-					<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
-						<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showCreatePassword} />
-						<span class="label-text text-xs">{$_('common.showPassword')}</span>
-					</label>
-					<select class="select select-bordered" bind:value={role}>
-						<option value="user">user</option>
-						<option value="admin">admin</option>
-					</select>
-				</div>
-				<PasswordRequirements {password} />
-				<button class="btn btn-primary btn-sm self-start" onclick={createUser}>{$_('admin.create')}</button>
-			</div>
+		<div role="tablist" class="tabs tabs-bordered">
+			<button role="tab" class="tab" class:tab-active={activeTab === 'users'} onclick={() => activeTab = 'users'}>
+				{$_('admin.tabs.users')}
+			</button>
+			<button role="tab" class="tab" class:tab-active={activeTab === 'backup'} onclick={() => activeTab = 'backup'}>
+				{$_('admin.tabs.backup')}
+			</button>
 		</div>
 
-		<div class="card bg-base-100 border border-base-200 shadow-sm">
-			<div class="card-body gap-3">
-				<h2 class="text-lg font-semibold">{$_('admin.existingUsers')}</h2>
-				<ul class="flex flex-col gap-2">
-					{#each users as user}
-						<li class="border border-base-200 rounded p-3 flex flex-col gap-2">
-							{#if editingUserId === user.id}
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+		{#if activeTab === 'users'}
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body gap-3">
+					<h2 class="text-lg font-semibold">{$_('admin.newUser')}</h2>
+					{#if adminError}
+						<div class="alert alert-error text-sm"><span>{adminError}</span></div>
+					{/if}
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+						<label class="form-control">
+							<span class="label label-text">{$_('auth.firstname')} *</span>
+							<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} required />
+						</label>
+						<label class="form-control">
+							<span class="label label-text">{$_('auth.lastname')} *</span>
+							<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} required />
+						</label>
+						<label class="form-control">
+							<span class="label label-text">{$_('auth.email')} *</span>
+							<input type="email" class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} required />
+						</label>
+						<label class="form-control">
+							<span class="label label-text">{$_('auth.password')} *</span>
+						<input
+							class="input input-bordered validator"
+							type={showCreatePassword ? 'text' : 'password'}
+							bind:value={password}
+							placeholder={$_('auth.password')}
+							required
+							minlength="8"
+							pattern={passwordPattern}
+							title={$_('password.requirementsTitle')}
+						/>
+						</label>
+						<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
+							<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showCreatePassword} />
+							<span class="label-text text-xs">{$_('common.showPassword')}</span>
+						</label>
+						<select class="select select-bordered" bind:value={role}>
+							<option value="user">user</option>
+							<option value="admin">admin</option>
+						</select>
+					</div>
+					<PasswordRequirements {password} />
+					<button class="btn btn-primary btn-sm self-start" onclick={createUser}>{$_('admin.create')}</button>
+				</div>
+			</div>
+
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body gap-3">
+					<h2 class="text-lg font-semibold">{$_('admin.existingUsers')}</h2>
+					<ul class="flex flex-col gap-2">
+						{#each users as user}
+							<li class="border border-base-200 rounded p-3 flex flex-col gap-2">
+								{#if editingUserId === user.id}
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+										<label class="form-control">
+											<span class="label label-text">{$_('auth.firstname')} *</span>
+											<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} required />
+										</label>
+										<label class="form-control">
+											<span class="label label-text">{$_('auth.lastname')} *</span>
+											<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} required />
+										</label>
 									<label class="form-control">
-										<span class="label label-text">{$_('auth.firstname')} *</span>
-										<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} required />
+										<span class="label label-text">{$_('auth.email')} *</span>
+										<input type="email" class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} required />
 									</label>
-									<label class="form-control">
-										<span class="label label-text">{$_('auth.lastname')} *</span>
-										<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} required />
-									</label>
-								<label class="form-control">
-									<span class="label label-text">{$_('auth.email')} *</span>
-									<input type="email" class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} required />
-								</label>
-									<label class="form-control">
-										<span class="label label-text">{$_('user.newPassword')}</span>
-									<input
-										class="input input-bordered validator"
-										type={showEditPassword ? 'text' : 'password'}
-										bind:value={editPassword}
-										placeholder={$_('user.newPassword')}
-										minlength="8"
-										pattern={passwordPattern}
-										title={$_('password.requirementsTitle')}
-									/>
-									</label>
-									<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
-										<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showEditPassword} />
-										<span class="label-text text-xs">{$_('common.showPassword')}</span>
-									</label>
-									<select class="select select-bordered" bind:value={editRole}>
-										<option value="user">user</option>
-										<option value="admin">admin</option>
-									</select>
-								</div>
-								<PasswordRequirements password={editPassword} />
-								<div class="flex gap-2">
-									<button class="btn btn-primary btn-xs" onclick={saveEdit}>{$_('admin.saveChanges')}</button>
-									<button class="btn btn-ghost btn-xs" onclick={cancelEdit}>{$_('admin.cancelEdit')}</button>
-								</div>
-							{:else}
-								<div class="flex items-center justify-between gap-2">
-									<div>
-										<p class="font-semibold">{user.firstname} {user.lastname}</p>
-										<p class="text-sm text-base-content/70">{user.email} - {user.role}</p>
-										{#if $currentUser?.id === user.id}
-											<p class="text-xs text-base-content/60 mt-1">{$_('admin.selfDeleteHint')}</p>
+										<label class="form-control">
+											<span class="label label-text">{$_('user.newPassword')}</span>
+										<input
+											class="input input-bordered validator"
+											type={showEditPassword ? 'text' : 'password'}
+											bind:value={editPassword}
+											placeholder={$_('user.newPassword')}
+											minlength="8"
+											pattern={passwordPattern}
+											title={$_('password.requirementsTitle')}
+										/>
+										</label>
+										<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
+											<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showEditPassword} />
+											<span class="label-text text-xs">{$_('common.showPassword')}</span>
+										</label>
+										<select class="select select-bordered" bind:value={editRole}>
+											<option value="user">user</option>
+											<option value="admin">admin</option>
+										</select>
+									</div>
+									<PasswordRequirements password={editPassword} />
+									<div class="flex gap-2">
+										<button class="btn btn-primary btn-xs" onclick={saveEdit}>{$_('admin.saveChanges')}</button>
+										<button class="btn btn-ghost btn-xs" onclick={cancelEdit}>{$_('admin.cancelEdit')}</button>
+									</div>
+								{:else}
+									<div class="flex items-center justify-between gap-2">
+										<div>
+											<p class="font-semibold">{user.firstname} {user.lastname}</p>
+											<p class="text-sm text-base-content/70">{user.email} - {user.role}</p>
+											{#if $currentUser?.id === user.id}
+												<p class="text-xs text-base-content/60 mt-1">{$_('admin.selfDeleteHint')}</p>
+											{/if}
+										</div>
+										<div class="flex gap-2">
+											<button class="btn btn-outline btn-xs" onclick={() => startEdit(user)}>{$_('admin.edit')}</button>
+											{#if $currentUser?.id !== user.id}
+											<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteUser(user.id)}>{$_('common.delete')}</button>
 										{/if}
 									</div>
-									<div class="flex gap-2">
-										<button class="btn btn-outline btn-xs" onclick={() => startEdit(user)}>{$_('admin.edit')}</button>
-										{#if $currentUser?.id !== user.id}
-										<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteUser(user.id)}>{$_('common.delete')}</button>
-									{/if}
 								</div>
-							</div>
-							{/if}
-						</li>
-					{/each}
-				</ul>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
 			</div>
-		</div>
+		{:else if activeTab === 'backup'}
+			<BackupRestore />
+		{/if}
 	</div>
 {/if}
 

@@ -524,5 +524,60 @@ export const api = {
 				}
 			}
 		}
+	},
+
+	admin: {
+		async downloadBackup(): Promise<Blob> {
+			const res = await fetch(`${BASE}/admin/backup`, {
+				method: 'GET',
+				headers: { ...authHeaders() },
+				credentials: 'same-origin'
+			});
+			if (!res.ok) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+			return res.blob();
+		},
+
+		async validateBackup(file: File): Promise<{ valid: boolean; metadata?: Record<string, unknown>; error?: string }> {
+			const headers: Record<string, string> = { ...authHeaders() };
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
+			const form = new FormData();
+			form.append('file', file);
+			const res = await fetch(`${BASE}/admin/validate-backup`, {
+				method: 'POST',
+				headers,
+				credentials: 'same-origin',
+				body: form
+			});
+			if (!res.ok) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+			return res.json();
+		},
+
+		async restoreBackup(file: File): Promise<{ restored_books: number; restored_covers: number }> {
+			const headers: Record<string, string> = { ...authHeaders() };
+			const csrf = get(csrfToken);
+			if (csrf) headers['X-CSRF-Token'] = csrf;
+
+			const form = new FormData();
+			form.append('file', file);
+			const res = await fetch(`${BASE}/admin/restore`, {
+				method: 'POST',
+				headers,
+				credentials: 'same-origin',
+				body: form
+			});
+			if (!res.ok) {
+				const detail = await res.json().catch(() => ({}));
+				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+			}
+			return res.json();
+		}
 	}
 };
