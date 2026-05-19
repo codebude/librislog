@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { _, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
@@ -135,6 +136,15 @@
 			label: String(entry.year),
 			value: entry.count
 		}));
+	}
+
+	function openCoverBook(bookId: number, status: string) {
+		void goto(`/library?status=${status}&bookId=${bookId}`);
+	}
+
+	function openAuthorSearch(author: string) {
+		const qs = new URLSearchParams({ q: author });
+		void goto(`/dashboard?${qs.toString()}`);
 	}
 
 	const pagesReadPoints = $derived(stats ? toPoints(stats.pages_read_per_month) : []);
@@ -315,16 +325,51 @@
 		</div>
 
 		<div class="card bg-base-100 border border-base-200 shadow-sm">
-			<div class="card-body gap-3">
-				<h2 class="card-title text-base">{$_('statistics.favoriteAuthor')}</h2>
-				{#if stats.favorite_author}
-					<div class="font-semibold text-lg">{stats.favorite_author.author}</div>
-					<div class="text-sm text-base-content/70">
-						{$_('statistics.booksCount', { values: { count: stats.favorite_author.book_count } })}
-					</div>
-					<div class="flex items-end gap-2 overflow-x-auto pb-1">
-						{#each stats.favorite_author.cover_urls as url}
-							<img src={url} alt={$_('book.cover')} class="h-28 w-auto rounded shadow-sm" />
+			<div class="card-body gap-4">
+				<h2 class="card-title text-base">{$_('statistics.topAuthors')}</h2>
+				{#if stats.top_authors.length > 0}
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						{#each stats.top_authors as author, idx}
+							<div class="rounded-lg border border-base-200 p-3 bg-base-50/40">
+								<div class="flex items-center gap-2 mb-2">
+									<span class="badge badge-primary badge-sm">{$_('statistics.rankedNumber', { values: { rank: idx + 1 } })}</span>
+									<button
+										type="button"
+										class="font-semibold text-base leading-tight truncate hover:underline text-left"
+										onclick={() => openAuthorSearch(author.author)}
+									>
+										{author.author}
+									</button>
+								</div>
+								<div class="text-sm text-base-content/70 mb-2">
+									{$_('statistics.booksCount', { values: { count: author.book_count } })}
+								</div>
+								{#if author.covers.length > 0}
+									<!-- Covers overlap with -ml-3 to save space, pl-3 keeps the first cover fully visible. -->
+									<div
+										class="flex items-end overflow-hidden pb-1 pl-3"
+										role="group"
+										aria-label={$_('statistics.coversForAuthor', { values: { author: author.author } })}
+									>
+										{#each author.covers as cover, coverIdx}
+											<button
+												type="button"
+												class="{coverIdx > 0 ? '-ml-3' : ''}"
+												style:z-index={coverIdx + 1}
+												onclick={() => openCoverBook(cover.book_id, cover.reading_status)}
+											>
+												<img
+													src={cover.cover_url}
+													alt={$_('book.coverForAuthor', { values: { author: author.author, index: coverIdx + 1 } })}
+													class="h-24 w-auto rounded shadow-sm ring-1 ring-base-200 bg-base-100"
+												/>
+											</button>
+										{/each}
+									</div>
+								{:else}
+									<p class="text-sm text-base-content/60">{$_('statistics.noData')}</p>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{:else}

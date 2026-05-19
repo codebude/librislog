@@ -161,10 +161,16 @@ class YearlyBooks(SQLModel):
     count: int
 
 
-class FavoriteAuthor(SQLModel):
+class TopAuthor(SQLModel):
     author: str
     book_count: int
-    cover_urls: list[str]
+    covers: list["TopAuthorCover"]
+
+
+class TopAuthorCover(SQLModel):
+    book_id: int
+    reading_status: ReadingStatus
+    cover_url: str
 
 
 class StatisticsResponse(SQLModel):
@@ -180,7 +186,7 @@ class StatisticsResponse(SQLModel):
     pages_read_per_month: list[MonthlyPages]
     books_finished_per_month: list[MonthlyBooks]
     books_finished_per_year: list[YearlyBooks]
-    favorite_author: Optional[FavoriteAuthor]
+    top_authors: list[TopAuthor]
 
 
 class UserLogin(SQLModel):

@@ -40,7 +40,7 @@ def test_statistics_empty_library(client):
     assert data["pages_read_per_month"] == []
     assert data["books_finished_per_month"] == []
     assert data["books_finished_per_year"] == []
-    assert data["favorite_author"] is None
+    assert data["top_authors"] == []
 
 
 def test_statistics_core_metrics_and_distributions(client):
@@ -114,10 +114,59 @@ def test_statistics_core_metrics_and_distributions(client):
     ]
     assert data["books_finished_per_year"] == [{"year": 2026, "count": 3}]
 
-    assert data["favorite_author"]["author"] == "Author A"
-    assert data["favorite_author"]["book_count"] == 3
-    assert "/api/covers/a1.jpg" in data["favorite_author"]["cover_urls"]
-    assert "/api/covers/a2.jpg" in data["favorite_author"]["cover_urls"]
+    assert len(data["top_authors"]) == 2
+    assert data["top_authors"][0]["author"] == "Author A"
+    assert data["top_authors"][0]["book_count"] == 3
+    top_a_cover_urls = [cover["cover_url"] for cover in data["top_authors"][0]["covers"]]
+    assert "/api/covers/a1.jpg" in top_a_cover_urls
+    assert "/api/covers/a2.jpg" in top_a_cover_urls
+    assert data["top_authors"][1]["author"] == "Author B"
+    assert data["top_authors"][1]["book_count"] == 1
+
+
+def test_statistics_top_authors_limit_and_tiebreaker(client):
+    _create_book(client, title="A1", author="Author Z", reading_status="read")
+    _create_book(client, title="A2", author="Author Z", reading_status="read")
+    _create_book(client, title="B1", author="Author A", reading_status="read")
+    _create_book(client, title="B2", author="Author A", reading_status="read")
+    _create_book(client, title="C1", author="Author B", reading_status="read")
+    _create_book(client, title="D1", author="Author C", reading_status="read")
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    top_authors = resp.json()["top_authors"]
+
+    assert len(top_authors) == 3
+    assert [entry["author"] for entry in top_authors] == ["Author A", "Author Z", "Author B"]
+
+
+def test_statistics_top_authors_cover_limit(client):
+    author = "Author Covers"
+    for idx in range(1, 8):
+        _create_book(
+            client,
+            title=f"Cover {idx}",
+            author=author,
+            cover_url=f"/api/covers/{idx}.jpg",
+            reading_status="read",
+        )
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    top_authors = resp.json()["top_authors"]
+    assert top_authors[0]["author"] == author
+    assert len(top_authors[0]["covers"]) == 5
+
+
+def test_statistics_top_authors_no_covers(client):
+    _create_book(client, title="No Cover 1", author="No Cover Author", reading_status="read")
+    _create_book(client, title="No Cover 2", author="No Cover Author", reading_status="read")
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    top_authors = resp.json()["top_authors"]
+    assert top_authors[0]["author"] == "No Cover Author"
+    assert top_authors[0]["covers"] == []
 
 
 def test_statistics_timezone_month_bucketing(client, session: Session):

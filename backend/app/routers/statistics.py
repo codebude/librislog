@@ -14,13 +14,14 @@ from app.models import Book, ReadingProgress, ReadingStatus, User, UserSettings
 from app.schemas import (
     DailyPages,
     DailyPagesResponse,
-    FavoriteAuthor,
     LanguageDistribution,
     MonthlyBooks,
     MonthlyPages,
     PageBuckets,
     StatisticsResponse,
     StatusDistribution,
+    TopAuthor,
+    TopAuthorCover,
     YearlyBooks,
 )
 
@@ -303,28 +304,39 @@ def get_statistics(
         if book.author and book.author.strip():
             author_counts[book.author.strip()] += 1
 
-    favorite_author = None
+    top_authors: list[TopAuthor] = []
     if author_counts:
-        author_name, author_count = min(
-            author_counts.items(),
-            key=lambda item: (-item[1], item[0].lower()),
-        )
-        author_cover_rows = session.exec(
-            select(Book.cover_url)
-            .where(
-                Book.user_id == current_user.id,
-                Book.author == author_name,
-                Book.cover_url.is_not(None),
+        author_items = sorted(author_counts.items(), key=lambda item: item[0].lower())
+        top_author_counts = sorted(author_items, key=lambda item: item[1], reverse=True)[:3]
+        top_author_names = [name for name, _ in top_author_counts]
+
+        covers_by_author: dict[str, list[TopAuthorCover]] = {}
+        for author_name in top_author_names:
+            # Multiple books by the same author can share cover_url; distinct keeps the stack diverse.
+            author_cover_rows = session.exec(
+                select(Book.id, Book.reading_status, Book.cover_url)
+                .where(
+                    Book.user_id == current_user.id,
+                    Book.author == author_name,
+                    Book.cover_url.is_not(None),
+                )
+                .order_by(Book.id)
+                .limit(5)
+            ).all()
+            covers_by_author[author_name] = [
+                TopAuthorCover(book_id=book_id, reading_status=reading_status, cover_url=cover_url)
+                for book_id, reading_status, cover_url in author_cover_rows
+                if cover_url and book_id is not None
+            ]
+
+        top_authors = [
+            TopAuthor(
+                author=author_name,
+                book_count=author_count,
+                covers=covers_by_author.get(author_name, []),
             )
-            .distinct()
-            .limit(20)
-        ).all()
-        cover_urls = [cover_url for cover_url in author_cover_rows if cover_url]
-        favorite_author = FavoriteAuthor(
-            author=author_name,
-            book_count=author_count,
-            cover_urls=cover_urls,
-        )
+            for author_name, author_count in top_author_counts
+        ]
 
     return StatisticsResponse(
         avg_books_per_month=avg_books_per_month,
@@ -339,5 +351,5 @@ def get_statistics(
         pages_read_per_month=pages_read_per_month,
         books_finished_per_month=books_finished_per_month,
         books_finished_per_year=books_finished_per_year,
-        favorite_author=favorite_author,
+        top_authors=top_authors,
     )

@@ -112,10 +112,16 @@ export interface YearlyBooks {
 	count: number;
 }
 
-export interface FavoriteAuthor {
+export interface TopAuthor {
 	author: string;
 	book_count: number;
-	cover_urls: string[];
+	covers: TopAuthorCover[];
+}
+
+export interface TopAuthorCover {
+	book_id: number;
+	reading_status: ReadingStatus;
+	cover_url: string;
 }
 
 export interface StatisticsResponse {
@@ -131,7 +137,7 @@ export interface StatisticsResponse {
 	pages_read_per_month: MonthlyPages[];
 	books_finished_per_month: MonthlyBooks[];
 	books_finished_per_year: YearlyBooks[];
-	favorite_author: FavoriteAuthor | null;
+	top_authors: TopAuthor[];
 }
 
 export type UserRole = 'admin' | 'user';

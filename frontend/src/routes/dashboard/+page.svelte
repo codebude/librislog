@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import type { Book, DashboardQuote, LibraryStats } from '$lib/types';
 	import { api } from '$lib/api';
@@ -54,6 +55,10 @@
 	};
 
 	onMount(() => {
+		const authorQuery = $page.url.searchParams.get('q');
+		if (authorQuery) {
+			searchQuery = authorQuery;
+		}
 		void loadDashboard();
 	});
 
