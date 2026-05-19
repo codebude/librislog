@@ -29,6 +29,7 @@
 		"daisyui": "^5.5.19",
 		"dayjs": "^1.11.20",
 		"html5-qrcode": "^2.3.8",
+		"layerchart": "^2.0.0-next.64",
 		"svelte-i18n": "^4.0.1",
 		"tailwindcss": "^4.3.0"
 	}

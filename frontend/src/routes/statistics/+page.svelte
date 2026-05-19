@@ -5,6 +5,7 @@
 	import type { StatisticsResponse } from '$lib/types';
 	import { toasts } from '$lib/toasts';
 	import { formatLanguageCode } from '$lib/utils/language';
+	import BarChart from '$lib/components/BarChart.svelte';
 
 	type Segment = {
 		label: string;
@@ -111,46 +112,9 @@
 		}));
 	}
 
-	function buildLine(points: Point[]) {
-		if (points.length === 0) return { path: '', circles: [] as Array<{ x: number; y: number; label: string; value: number }> };
-		const width = 360;
-		const height = 140;
-		const padX = 24;
-		const padY = 12;
-		const innerW = width - padX * 2;
-		const innerH = height - padY * 2;
-		if (points.length === 1) {
-			const centerX = width / 2;
-			const max = Math.max(points[0].value, 1);
-			const y = padY + innerH - (points[0].value / max) * innerH;
-			return {
-				path: '',
-				circles: [{ x: centerX, y, label: points[0].label, value: points[0].value }]
-			};
-		}
-		const max = Math.max(...points.map((p) => p.value), 1);
-		const circles = points.map((p, idx) => {
-			const x = padX + (idx / (points.length - 1)) * innerW;
-			const y = padY + innerH - (p.value / max) * innerH;
-			return { x, y, label: p.label, value: p.value };
-		});
-		const path = circles.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-		return { path, circles };
-	}
-
 	const pagesReadPoints = $derived(stats ? toPoints(stats.pages_read_per_month) : []);
 	const booksByMonthPoints = $derived(stats ? toPoints(stats.books_finished_per_month) : []);
 	const booksByYearPoints = $derived(stats ? toYearPoints(stats.books_finished_per_year) : []);
-
-	const pagesReadLine = $derived(buildLine(pagesReadPoints));
-	const booksByMonthLine = $derived(buildLine(booksByMonthPoints));
-	const booksByYearLine = $derived(buildLine(booksByYearPoints));
-
-	function chartLabels(points: Point[]): string[] {
-		if (points.length <= 6) return points.map((p) => p.label);
-		const step = Math.ceil(points.length / 6);
-		return points.map((p, idx) => (idx % step === 0 || idx === points.length - 1 ? p.label : ''));
-	}
 
 	function total(segments: Segment[]): number {
 		return segments.reduce((acc, curr) => acc + curr.value, 0);
@@ -286,59 +250,41 @@
 
 		<div class="grid grid-cols-1 gap-4">
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
-				<div class="card-body gap-4">
+				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.pagesReadPerMonth')}</h2>
-					<svg viewBox="0 0 360 140" role="img" aria-label={$_('statistics.pagesReadPerMonth')} class="w-full h-40">
-						<path d={pagesReadLine.path} class="stroke-primary fill-none" stroke-width="2"></path>
-						{#each pagesReadLine.circles as point}
-							<circle cx={point.x} cy={point.y} r="3" class="fill-primary">
-								<title>{point.label}: {point.value}</title>
-							</circle>
-						{/each}
-					</svg>
-					<div class="flex justify-between gap-2 text-xs text-base-content/60 overflow-hidden">
-						{#each chartLabels(pagesReadPoints) as label}
-							<span class="truncate">{label}</span>
-						{/each}
-					</div>
+					<BarChart
+						labels={pagesReadPoints.map((p) => p.label)}
+						data={pagesReadPoints.map((p) => p.value)}
+						label={$_('statistics.pagesReadPerMonth')}
+						color="primary"
+						emptyText={$_('statistics.noData')}
+					/>
 				</div>
 			</div>
 
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
-				<div class="card-body gap-4">
+				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.booksFinishedPerMonth')}</h2>
-					<svg viewBox="0 0 360 140" role="img" aria-label={$_('statistics.booksFinishedPerMonth')} class="w-full h-40">
-						<path d={booksByMonthLine.path} class="stroke-secondary fill-none" stroke-width="2"></path>
-						{#each booksByMonthLine.circles as point}
-							<circle cx={point.x} cy={point.y} r="3" class="fill-secondary">
-								<title>{point.label}: {point.value}</title>
-							</circle>
-						{/each}
-					</svg>
-					<div class="flex justify-between gap-2 text-xs text-base-content/60 overflow-hidden">
-						{#each chartLabels(booksByMonthPoints) as label}
-							<span class="truncate">{label}</span>
-						{/each}
-					</div>
+					<BarChart
+						labels={booksByMonthPoints.map((p) => p.label)}
+						data={booksByMonthPoints.map((p) => p.value)}
+						label={$_('statistics.booksFinishedPerMonth')}
+						color="secondary"
+						emptyText={$_('statistics.noData')}
+					/>
 				</div>
 			</div>
 
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
-				<div class="card-body gap-4">
+				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.booksFinishedPerYear')}</h2>
-					<svg viewBox="0 0 360 140" role="img" aria-label={$_('statistics.booksFinishedPerYear')} class="w-full h-40">
-						<path d={booksByYearLine.path} class="stroke-accent fill-none" stroke-width="2"></path>
-						{#each booksByYearLine.circles as point}
-							<circle cx={point.x} cy={point.y} r="3" class="fill-accent">
-								<title>{point.label}: {point.value}</title>
-							</circle>
-						{/each}
-					</svg>
-					<div class="flex justify-between gap-2 text-xs text-base-content/60 overflow-hidden">
-						{#each chartLabels(booksByYearPoints) as label}
-							<span class="truncate">{label}</span>
-						{/each}
-					</div>
+					<BarChart
+						labels={booksByYearPoints.map((p) => p.label)}
+						data={booksByYearPoints.map((p) => p.value)}
+						label={$_('statistics.booksFinishedPerYear')}
+						color="accent"
+						emptyText={$_('statistics.noData')}
+					/>
 				</div>
 			</div>
 		</div>

@@ -8,6 +8,7 @@
 	import { toasts } from '$lib/toasts';
 	import { formatLanguageCode } from '$lib/utils/language';
 	import StarRating from './StarRating.svelte';
+	import { LineChart as LayerLineChart } from 'layerchart';
 
 	const tz = getTimezone();
 
@@ -164,67 +165,24 @@
 		}).reverse();
 	});
 
-	const svgWidth = 380;
-	const svgHeight = 120;
-	const svgPadding = { top: 10, right: 10, bottom: 25, left: 35 };
-	const svgPlotWidth = svgWidth - svgPadding.left - svgPadding.right;
-	const svgPlotHeight = svgHeight - svgPadding.top - svgPadding.bottom;
-
-	const chartPoints = $derived.by(() => {
-		if (uniqueDays.length < 1) return null;
+	const lineChartData = $derived.by(() => {
+		if (uniqueDays.length < 1) return [];
 		const oldestEntry = uniqueDays[0];
 		const useStartDate = !!book?.date_started && formatDate(book.date_started, tz) < formatDate(oldestEntry.created_at, tz);
 		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
+		if (!rawStart) return [];
 		const virtualEntry: ReadingProgressEntry = {
 			id: 0,
 			book_id: book?.id ?? 0,
 			page: 0,
-			created_at: rawStart ?? '',
-			updated_at: rawStart ?? ''
+			created_at: rawStart,
+			updated_at: rawStart
 		};
-		const entries = rawStart ? [virtualEntry, ...uniqueDays] : uniqueDays;
-		const maxPage = Math.max(
-			...uniqueDays.map((e) => e.page),
-			book?.page_count ?? 0
-		);
-		const yMax = Math.max(maxPage, 1);
-		return entries.map((e, i) => {
-			const x = svgPadding.left + (i / Math.max(entries.length - 1, 1)) * svgPlotWidth;
-			const y = svgPadding.top + svgPlotHeight - (e.page / yMax) * svgPlotHeight;
-			return { x, y, page: e.page, date: formatDate(e.created_at, tz) };
-		});
-	});
-
-	function smoothPath(points: { x: number; y: number }[]): string {
-		if (!points || points.length < 2) return '';
-		const tension = 0.3;
-		let path = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
-		for (let i = 0; i < points.length - 1; i++) {
-			const p0 = points[Math.max(0, i - 1)];
-			const p1 = points[i];
-			const p2 = points[i + 1];
-			const p3 = points[Math.min(points.length - 1, i + 2)];
-			const cp1x = p1.x + (p2.x - p0.x) * tension;
-			const cp1y = p1.y + (p2.y - p0.y) * tension;
-			const cp2x = p2.x - (p3.x - p1.x) * tension;
-			const cp2y = p2.y - (p3.y - p1.y) * tension;
-			path += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
-		}
-		return path;
-	}
-
-	const linePath = $derived(
-		chartPoints ? smoothPath(chartPoints) : ''
-	);
-
-	let hoveredPoint = $state<{ page: number; date: string; x: number; y: number } | null>(null);
-	let tooltipX = $state(0);
-	let tooltipY = $state(0);
-
-	const xLabels = $derived.by(() => {
-		if (!chartPoints || chartPoints.length < 2) return [];
-		const step = Math.max(1, Math.floor(chartPoints.length / 5));
-		return chartPoints.filter((_, i) => i % step === 0 || i === chartPoints.length - 1);
+		const entries = [virtualEntry, ...uniqueDays];
+		return entries.map((e) => ({
+			date: formatDate(e.created_at, tz),
+			page: e.page
+		}));
 	});
 
 	$effect(() => {
@@ -374,77 +332,20 @@
 				</div>
 			</div>
 
-			{#if chartPoints && chartPoints.length >= 2}
+			{#if lineChartData.length >= 2}
 				<div class="border-t border-base-200 pt-3">
 					<div class="text-xs text-base-content/60 mb-2">{$_('book.progressGraph')}</div>
-					<div class="relative border border-base-300 rounded-xl p-1 bg-base-100">
-						<svg viewBox="0 0 {svgWidth} {svgHeight}" class="w-full h-28 overflow-visible">
-							<rect x={svgPadding.left} y={svgPadding.top} width={svgPlotWidth} height={svgPlotHeight} fill="none" class="stroke-base-200" stroke-width="1" />
-
-							{#each [0, 0.25, 0.5, 0.75, 1] as frac}
-								<line
-									x1={svgPadding.left}
-									y1={svgPadding.top + svgPlotHeight * (1 - frac)}
-									x2={svgPadding.left + svgPlotWidth}
-									y2={svgPadding.top + svgPlotHeight * (1 - frac)}
-									class="stroke-base-200"
-									stroke-width="0.5"
-									stroke-dasharray="3,3"
-								/>
-							{/each}
-
-							{#if xLabels.length > 0}
-								{#each xLabels as label}
-									<text
-										x={label.x}
-										y={svgHeight - 5}
-										text-anchor="middle"
-										class="fill-base-content/40"
-										font-size="9"
-									>{label.date.slice(5)}</text>
-								{/each}
-							{/if}
-
-							<text x={8} y={svgPadding.top + svgPlotHeight / 2} text-anchor="middle" class="fill-base-content/40" font-size="9" transform="rotate(-90, 8, {svgPadding.top + svgPlotHeight / 2})">{$_('book.currentPage')}</text>
-
-							<path
-								d={linePath}
-								fill="none"
-								class="stroke-primary"
-								stroke-width="2"
-								stroke-linejoin="round"
-								stroke-linecap="round"
-							/>
-
-							{#each chartPoints as point}
-								<circle
-									cx={point.x}
-									cy={point.y}
-									r="4"
-									class="fill-primary cursor-pointer"
-									stroke="white"
-									stroke-width="1.5"
-									role="graphics-symbol"
-									onpointerenter={(e) => {
-										hoveredPoint = point;
-										const rect = (e.target as SVGCircleElement).getBoundingClientRect();
-										const cx = rect.left + rect.width / 2;
-										tooltipX = Math.max(100, Math.min(cx, window.innerWidth - 100));
-										tooltipY = rect.top - 8;
-									}}
-									onpointerleave={() => { hoveredPoint = null; }}
-								/>
-							{/each}
-						</svg>
-
-						{#if hoveredPoint}
-							<div
-								class="fixed z-50 px-2 py-1 rounded-md bg-base-content text-base-100 text-xs font-medium shadow-lg pointer-events-none whitespace-nowrap"
-								style="left: {tooltipX}px; top: {tooltipY}px; transform: translate(-50%, -100%);"
-							>
-								{hoveredPoint.page} {$_('book.currentPage')} — {hoveredPoint.date}
-							</div>
-						{/if}
+					<div class="border border-base-300 rounded-xl bg-base-100">
+						<LayerLineChart
+							data={lineChartData}
+							x="date"
+							y="page"
+							height={200}
+							points
+							series={[{ key: 'default', value: 'page', color: 'var(--color-primary)', label: $_('book.currentPage') }]}
+							yDomain={[0, Math.max(...lineChartData.map((d) => d.page), book?.page_count ?? 1)]}
+							props={{ xAxis: { tickSpacing: 80 } }}
+						/>
 					</div>
 				</div>
 			{/if}
