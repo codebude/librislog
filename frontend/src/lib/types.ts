@@ -36,6 +36,21 @@ export interface BookImportCandidate {
 	source: string;
 }
 
+export interface CoverCandidate {
+	source: 'abebooks' | 'openlibrary' | 'amazon';
+	url: string;
+	available: boolean;
+	width: number | null;
+	height: number | null;
+	filesize: number | null;
+	content_type: string | null;
+}
+
+export interface CoverCandidateList {
+	candidates: CoverCandidate[];
+	query_isbn: string;
+}
+
 export interface TagCloudEntry {
 	tag: string;
 	count: number;

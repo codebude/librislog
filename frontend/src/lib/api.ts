@@ -9,6 +9,7 @@ import type {
 	DataImportValidateResponse,
 	DataResetResponse,
 	Book,
+	CoverCandidateList,
 	BookImportCandidate,
 	BookProgress,
 	DailyPagesResponse,
@@ -351,6 +352,19 @@ export const api = {
 				throw new Error((detail as { detail?: string })?.detail ?? `HTTP ${res.status}`);
 			}
 			const data = (await res.json()) as { cover_url: string };
+			return data.cover_url;
+		},
+
+		searchCandidates(isbn: string): Promise<CoverCandidateList> {
+			const qs = new URLSearchParams({ isbn });
+			return request<CoverCandidateList>(`/cover-candidates/search?${qs.toString()}`);
+		},
+
+		async importFromUrl(url: string): Promise<string> {
+			const data = await request<{ cover_url: string }>('/covers/import-url', {
+				method: 'POST',
+				body: JSON.stringify({ url })
+			});
 			return data.cover_url;
 		}
 	},

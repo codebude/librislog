@@ -2,7 +2,6 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Literal, Optional
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, or_, select
@@ -25,9 +24,9 @@ from app.schemas import (
 )
 from app.services.cover_storage import (
     delete_cover_file,
-    download_cover,
     local_cover_filename,
 )
+from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
 from app.services.tags import build_book_read, cleanup_orphan_tags, sync_book_tags
 from app.time_utils import utcnow
@@ -66,11 +65,6 @@ def _apply_status_transition_dates(
     if target_status in (ReadingStatus.read, ReadingStatus.did_not_finish):
         if update_data.get("date_finished") is None:
             update_data["date_finished"] = _utcnow()
-
-
-def _is_external_url(url: str | None) -> bool:
-    """Return True if the URL is an external HTTP(S) URL (not a local /api/covers/ path)."""
-    return bool(url and (url.startswith("http://") or url.startswith("https://")))
 
 
 def _validate_dates(data: dict) -> None:
@@ -351,9 +345,13 @@ async def create_book(
     logger.debug("create_book — title=%r", book_in.title)
 
     cover_url = book_in.cover_url
-    if _is_external_url(cover_url):
-        async with httpx.AsyncClient(timeout=15) as client:
-            filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)  # type: ignore[arg-type]
+    if is_external_cover_url(cover_url):
+        filename = await import_cover_from_url(
+            cover_url,
+            settings.covers_dir,
+            current_user.id,
+            settings.cover_import_timeout_seconds,
+        )
         if filename:
             cover_url = f"/api/covers/{filename}"
             logger.debug("create_book — downloaded cover → %s", cover_url)
@@ -420,11 +418,13 @@ async def update_book(
     target_status = update_data.get("reading_status", book.reading_status)
 
     # Download external cover URL → local file.
-    if "cover_url" in update_data and _is_external_url(update_data["cover_url"]):
-        async with httpx.AsyncClient(timeout=15) as client:
-            filename = await download_cover(
-                update_data["cover_url"], settings.covers_dir, client, current_user.id
-            )
+    if "cover_url" in update_data and is_external_cover_url(update_data["cover_url"]):
+        filename = await import_cover_from_url(
+            update_data["cover_url"],
+            settings.covers_dir,
+            current_user.id,
+            settings.cover_import_timeout_seconds,
+        )
         if filename:
             update_data["cover_url"] = f"/api/covers/{filename}"
             logger.debug("update_book — downloaded cover → %s", update_data['cover_url'])

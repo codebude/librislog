@@ -5,11 +5,13 @@
 	import { toasts } from '$lib/toasts';
 	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
+	import type { CoverCandidate } from '$lib/types';
 	import StarRating from './StarRating.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
 	import TagInput from './TagInput.svelte';
 	import DateConflictDialog from './DateConflictDialog.svelte';
+	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
 
 	let {
 		book = $bindable(null),
@@ -31,6 +33,11 @@
 	let pendingStatus = $state<ReadingStatus | null>(null);
 	let pendingPayload = $state<Partial<Book> | null>(null);
 	let pendingProgressBook = $state<Book | null>(null);
+	let autoSearchOpen = $state(false);
+	let autoSearchLoading = $state(false);
+	let autoSearchError = $state<string | null>(null);
+	let autoSearchCandidates = $state<CoverCandidate[]>([]);
+	let autoSearchRequestId = 0;
 
 	// Editable fields
 	let title = $state('');
@@ -262,6 +269,50 @@
 		const query = `${title} ${author}`.trim();
 		return `https://www.google.com/search?q=${encodeURIComponent(query)}&udm=2&tbs=isz:l`;
 	});
+
+	const isIsbnFilled = $derived.by(() => isbn.trim().length > 0);
+
+	async function openAutoSearchModal() {
+		if (!isIsbnFilled) return;
+		const requestId = ++autoSearchRequestId;
+		autoSearchOpen = true;
+		autoSearchLoading = true;
+		autoSearchError = null;
+		autoSearchCandidates = [];
+		try {
+			const result = await api.covers.searchCandidates(isbn.trim());
+			if (requestId !== autoSearchRequestId) return;
+			autoSearchCandidates = result.candidates.filter((candidate) => candidate.available);
+		} catch (e: unknown) {
+			if (requestId !== autoSearchRequestId) return;
+			autoSearchError = e instanceof Error ? e.message : $_('book.autoSearchError');
+			toasts.add(autoSearchError, 'error');
+		} finally {
+			if (requestId !== autoSearchRequestId) return;
+			autoSearchLoading = false;
+		}
+	}
+
+	function closeAutoSearchModal() {
+		autoSearchRequestId += 1;
+		autoSearchOpen = false;
+		autoSearchError = null;
+		autoSearchCandidates = [];
+	}
+
+	async function importAutoSearchCandidate(candidate: CoverCandidate) {
+		if (saving) return;
+		saving = true;
+		try {
+			cover_url = await api.covers.importFromUrl(candidate.url);
+			autoSearchOpen = false;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : $_('book.autoSearchError');
+			toasts.add(message, 'error');
+		} finally {
+			saving = false;
+		}
+	}
 </script>
 
 {#if open && book}
@@ -375,10 +426,29 @@
 
 			<CoverPicker bind:value={cover_url} disabled={saving} />
 			<div class="-mt-1">
-				<a href={coverSearchUrl} target="_blank" rel="noreferrer" class="btn btn-outline btn-xs">
-					{$_('book.searchForCovers')}
-				</a>
+				<div class="flex flex-wrap gap-2">
+					<a href={coverSearchUrl} target="_blank" rel="noreferrer" class="btn btn-outline btn-xs">
+						{$_('book.googleCovers')}
+					</a>
+					<button
+						type="button"
+						class="btn btn-outline btn-xs"
+						disabled={!isIsbnFilled || saving}
+						onclick={openAutoSearchModal}
+					>
+						{$_('book.autoSearchCovers')}
+					</button>
+				</div>
 			</div>
+
+			<AutoSearchCoverModal
+				bind:open={autoSearchOpen}
+				loading={autoSearchLoading}
+				candidates={autoSearchCandidates}
+				error={autoSearchError}
+				onCancel={closeAutoSearchModal}
+				onSelect={importAutoSearchCandidate}
+			/>
 
 			<div class="sticky bottom-0 bg-base-100 py-3 border-t border-base-200 flex gap-2">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={() => (open = false)} disabled={saving}>

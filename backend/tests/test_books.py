@@ -677,7 +677,7 @@ async def _fake_download_cover_fail(url, covers_dir, http_client, user_id):
 def test_create_book_with_external_cover_downloads_local(client, tmp_path, monkeypatch):
     """When cover_url is external, create_book downloads it locally."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
-    monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_success)
+    monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_success)
 
     resp = client.post("/api/books", json={"title": "Book", "cover_url": "https://example.com/c.jpg"})
     assert resp.status_code == 201
@@ -689,7 +689,7 @@ def test_create_book_with_external_cover_downloads_local(client, tmp_path, monke
 def test_create_book_cover_download_fail_skips_cover(client, tmp_path, monkeypatch):
     """When cover download fails, create_book stores no cover URL."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
-    monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_fail)
+    monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_fail)
 
     ext_url = "https://example.com/fallback.jpg"
     resp = client.post("/api/books", json={"title": "Book", "cover_url": ext_url})
@@ -704,7 +704,7 @@ def test_create_book_local_cover_url_not_re_downloaded(client, tmp_path, monkeyp
     async def spy(*args, **kwargs):
         called.append(True)
         return None
-    monkeypatch.setattr(books_router, "download_cover", spy)
+    monkeypatch.setattr(books_router, "import_cover_from_url", spy)
 
     local_url = "/api/covers/existing.jpg"
     resp = client.post("/api/books", json={"title": "Book", "cover_url": local_url})
@@ -716,7 +716,7 @@ def test_create_book_local_cover_url_not_re_downloaded(client, tmp_path, monkeyp
 def test_update_book_with_external_cover_downloads_local(client, tmp_path, monkeypatch):
     """update_book downloads an external cover_url to local storage."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
-    monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_success)
+    monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_success)
 
     book = _create_book(client, title="Book")
     resp = client.patch(f"/api/books/{book['id']}", json={"cover_url": "https://example.com/c.jpg"})
@@ -727,7 +727,7 @@ def test_update_book_with_external_cover_downloads_local(client, tmp_path, monke
 def test_update_book_cover_change_deletes_old_local_cover(client, tmp_path, monkeypatch):
     """Changing cover_url on update removes the old local cover file."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
-    monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_success)
+    monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_success)
 
     # Create book with an existing local cover.
     old_filename = "oldcover.jpg"
@@ -744,7 +744,7 @@ def test_update_book_cover_change_deletes_old_local_cover(client, tmp_path, monk
 def test_update_book_cover_change_keeps_shared_cover(client, tmp_path, monkeypatch):
     """Old local cover is NOT deleted when another book references it."""
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
-    monkeypatch.setattr(books_router, "download_cover", _fake_download_cover_success)
+    monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_success)
 
     shared_filename = "shared.jpg"
     shared_path = tmp_path / shared_filename

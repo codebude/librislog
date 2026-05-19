@@ -60,7 +60,7 @@ async def download_cover(
         return existing[0].name
 
     try:
-        resp = await client.get(url, follow_redirects=True)
+        resp = await client.get(url)
         resp.raise_for_status()
         body = resp.content
     except Exception as exc:

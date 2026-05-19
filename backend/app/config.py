@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     max_restore_size_mb: int = 500
     backup_temp_dir: str = "./data/backup_temp"
     data_dir: str = "./data"
+    cover_candidate_timeout_seconds: int = 5
+    cover_candidate_min_size_bytes: int = 1000
+    cover_import_timeout_seconds: int = 15
 
     @field_validator("api_key_encryption_key")
     @classmethod

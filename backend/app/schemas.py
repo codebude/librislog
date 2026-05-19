@@ -79,6 +79,25 @@ class BookImportCandidate(SQLModel):
     source: str  # "open_library" | "google_books"
 
 
+class CoverCandidate(SQLModel):
+    source: str
+    url: str
+    available: bool
+    width: Optional[int] = None
+    height: Optional[int] = None
+    filesize: Optional[int] = None
+    content_type: Optional[str] = None
+
+
+class CoverCandidateList(SQLModel):
+    candidates: list[CoverCandidate]
+    query_isbn: str
+
+
+class CoverCandidateImportRequest(SQLModel):
+    url: str
+
+
 class BookImportRequest(SQLModel):
     """Persists a BookImportCandidate into the local DB."""
     candidate: BookImportCandidate

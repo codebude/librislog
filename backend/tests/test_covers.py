@@ -116,3 +116,51 @@ def test_upload_cover_dedup_returns_same_url(covers_client):
     assert r1.status_code == 200
     assert r2.status_code == 200
     assert r1.json()["cover_url"] == r2.json()["cover_url"]
+
+
+def test_import_cover_url_rejects_non_http_scheme(covers_client):
+    client, _ = covers_client
+    resp = client.post("/api/covers/import-url", json={"url": "file:///etc/passwd"})
+    assert resp.status_code == 422
+
+
+def test_import_cover_url_rejects_restricted_network_targets(covers_client):
+    client, _ = covers_client
+    for url in (
+        "http://localhost:8000/secret",
+        "http://127.0.0.1/internal",
+        "http://10.1.2.3/admin",
+        "http://192.168.1.50/admin",
+        "http://169.254.169.254/latest/meta-data/",
+    ):
+        resp = client.post("/api/covers/import-url", json={"url": url})
+        assert resp.status_code == 422
+
+
+def test_import_cover_url_downloads_and_returns_local_cover(covers_client, monkeypatch):
+    client, _ = covers_client
+
+    async def _fake_download(url, covers_dir, http_client, user_id):
+        return "1__imported.jpg"
+
+    import app.routers.covers as covers_router
+
+    monkeypatch.setattr(covers_router, "import_cover_from_url", _fake_download)
+
+    resp = client.post("/api/covers/import-url", json={"url": "https://example.com/cover.jpg"})
+    assert resp.status_code == 200
+    assert resp.json()["cover_url"] == "/api/covers/1__imported.jpg"
+
+
+def test_import_cover_url_returns_422_when_download_fails(covers_client, monkeypatch):
+    client, _ = covers_client
+
+    async def _fake_download(url, covers_dir, http_client, user_id):
+        return None
+
+    import app.routers.covers as covers_router
+
+    monkeypatch.setattr(covers_router, "import_cover_from_url", _fake_download)
+
+    resp = client.post("/api/covers/import-url", json={"url": "https://example.com/missing.jpg"})
+    assert resp.status_code == 422

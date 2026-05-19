@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import admin, auth, books, covers, data, docs, health, import_, oidc, profile, progress, statistics, users
+from app.routers import admin, auth, books, cover_candidates, covers, data, docs, health, import_, oidc, profile, progress, statistics, users
 from app.services.data_import import cleanup_temp_files
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,7 @@ app.add_middleware(
 app.include_router(books.router)
 app.include_router(import_.router)
 app.include_router(covers.router)
+app.include_router(cover_candidates.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(profile.router)
