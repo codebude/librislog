@@ -128,6 +128,7 @@
     "autoSearchLoading": "Durchsuche Cover-Quellen...",
     "autoSearchMetaUnknown": "Unbekannte Größe/Auflösung",
     "autoSearchMeta": "{size} - {resolution}",
+    "autoSearchSourceLabel": "Quelle: {source}",
     "coverOf": "Cover von {title}",
     "openDetailsHint": "Zum Oeffnen der Details klicken",
     "readingProgress": "Lesefortschritt",

@@ -29,10 +29,13 @@ def test_cover_candidates_search_returns_candidates(client: TestClient, monkeypa
         async def head(self, url: str, follow_redirects: bool = True):
             requested_urls.append(url)
             if "abebooks" in url:
-                return _FakeResponse(200, {"content-type": "image/jpeg", "content-length": "43210"}, url)
-            if "openlibrary" in url:
-                return _FakeResponse(200, {"content-type": "image/jpeg", "content-length": "900"}, url)
-            return _FakeResponse(404, {}, url)
+                response = _FakeResponse(200, {"content-type": "image/jpeg", "content-length": "43210"}, url)
+            elif "openlibrary" in url:
+                response = _FakeResponse(200, {"content-type": "image/jpeg", "content-length": "900"}, url)
+            else:
+                response = _FakeResponse(404, {}, url)
+
+            return response
 
     import app.routers.cover_candidates as cover_candidates_router
 
@@ -76,8 +79,11 @@ def test_cover_candidates_search_accepts_isbn10(client: TestClient, monkeypatch)
         async def head(self, url: str, follow_redirects: bool = True):
             requested_urls.append(url)
             if "0451524934" in url:
-                return _FakeResponse(200, url)
-            return _FakeResponse(404, url)
+                response = _FakeResponse(200, url)
+            else:
+                response = _FakeResponse(404, url)
+
+            return response
 
     import app.routers.cover_candidates as cover_candidates_router
 
@@ -85,7 +91,8 @@ def test_cover_candidates_search_accepts_isbn10(client: TestClient, monkeypatch)
 
     resp = client.get("/api/cover-candidates/search?isbn=0451524934")
     assert resp.status_code == 200
-    assert resp.json()["query_isbn"] == "9780451524935"
+    data = resp.json()
+    assert data["query_isbn"] == "9780451524935"
     assert any("9780451524935" in url for url in requested_urls)
     assert any("0451524934" in url for url in requested_urls)
 
@@ -112,8 +119,11 @@ def test_cover_candidates_search_tries_isbn10_with_x_check_digit(client: TestCli
         async def head(self, url: str, follow_redirects: bool = True):
             requested_urls.append(url)
             if "123456789X" in url:
-                return _FakeResponse(200, url)
-            return _FakeResponse(404, url)
+                response = _FakeResponse(200, url)
+            else:
+                response = _FakeResponse(404, url)
+
+            return response
 
     import app.routers.cover_candidates as cover_candidates_router
 
@@ -121,7 +131,8 @@ def test_cover_candidates_search_tries_isbn10_with_x_check_digit(client: TestCli
 
     resp = client.get("/api/cover-candidates/search?isbn=9781234567897")
     assert resp.status_code == 200
-    assert resp.json()["query_isbn"] == "9781234567897"
+    data = resp.json()
+    assert data["query_isbn"] == "9781234567897"
     assert any("9781234567897" in url for url in requested_urls)
     assert any("123456789X" in url for url in requested_urls)
 
@@ -155,6 +166,7 @@ def test_cover_candidates_search_979_isbn_does_not_probe_isbn10(client: TestClie
 
     resp = client.get("/api/cover-candidates/search?isbn=9791234567896")
     assert resp.status_code == 200
-    assert resp.json()["query_isbn"] == "9791234567896"
+    data = resp.json()
+    assert data["query_isbn"] == "9791234567896"
     assert len(requested_urls) == 3
     assert all("9791234567896" in url for url in requested_urls)

@@ -87,7 +87,9 @@
 								onload={(event) => handleImageLoad(candidate, event)}
 							/>
 								<div class="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-									<div class="font-semibold capitalize">{candidate.source}</div>
+									<div class="font-semibold">
+										{$_('book.autoSearchSourceLabel', { values: { source: candidate.source } })}
+									</div>
 									<div>{$_('book.autoSearchMeta', {
 										values: {
 											size: filesizeLabel(candidate.filesize),

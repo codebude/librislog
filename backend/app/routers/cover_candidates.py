@@ -62,9 +62,7 @@ async def _probe_candidate(
     try:
         async with _PROBE_SEMAPHORE:
             resp = await client.head(url, follow_redirects=False)
-        if resp.status_code != 200:
-            return CoverCandidate(source=source, url=url, available=False)
-
+        status_code = resp.status_code
         content_type = (resp.headers.get("content-type") or "").split(";")[0].strip() or None
         content_length_header = resp.headers.get("content-length")
         filesize = None
@@ -76,7 +74,22 @@ async def _probe_candidate(
 
         is_image = bool(content_type and content_type.startswith("image/"))
         large_enough = filesize is None or filesize >= min_size_bytes
-        available = is_image and large_enough
+        available = status_code == 200 and is_image and large_enough
+
+        logger.debug(
+            "cover probe source=%s url=%s status=%s content_type=%s filesize=%s is_image=%s large_enough=%s available=%s",
+            source,
+            url,
+            status_code,
+            content_type,
+            filesize,
+            is_image,
+            large_enough,
+            available,
+        )
+
+        if resp.status_code != 200:
+            return CoverCandidate(source=source, url=url, available=False)
 
         return CoverCandidate(
             source=source,
@@ -98,17 +111,20 @@ async def _probe_source_candidates(
 ) -> CoverCandidate:
     first_candidate: CoverCandidate | None = None
     first_available: CoverCandidate | None = None
+    logger.debug("cover source probe start source=%s urls=%s", source, urls)
     for url in urls:
         candidate = await _probe_candidate(source, url, client, min_size_bytes)
         if first_candidate is None:
             first_candidate = candidate
         if candidate.available and first_available is None:
             first_available = candidate
+            logger.debug("cover source=%s selected candidate url=%s", source, candidate.url)
             break
 
     if first_available is not None:
         return first_available
     if first_candidate is not None:
+        logger.debug("cover source=%s fallback candidate url=%s", source, first_candidate.url)
         return first_candidate
     return CoverCandidate(source=source, url=urls[0], available=False)
 
@@ -120,6 +136,12 @@ async def search_cover_candidates(
 ) -> CoverCandidateList:
     normalized_isbn13 = _normalize_isbn(isbn)
     isbn10 = _isbn13_to_isbn10(normalized_isbn13)
+    logger.debug(
+        "cover candidate search isbn_input=%s normalized_isbn13=%s isbn10=%s",
+        isbn,
+        normalized_isbn13,
+        isbn10,
+    )
 
     provider_urls: dict[str, list[str]] = {
         "abebooks": [f"https://pictures.abebooks.com/isbn/{normalized_isbn13}-de.jpg"],
@@ -131,6 +153,8 @@ async def search_cover_candidates(
         provider_urls["openlibrary"].append(f"https://covers.openlibrary.org/b/isbn/{isbn10}-M.jpg")
         provider_urls["amazon"].append(f"https://images-eu.ssl-images-amazon.com/images/P/{isbn10}.01.L.jpg")
 
+    logger.debug("cover candidate provider URLs: %s", provider_urls)
+
     timeout = httpx.Timeout(settings.cover_candidate_timeout_seconds)
     async with httpx.AsyncClient(timeout=timeout) as client:
         results = await asyncio.gather(
@@ -140,4 +164,5 @@ async def search_cover_candidates(
             ]
         )
 
+    logger.debug("cover candidate results: %s", results)
     return CoverCandidateList(candidates=results, query_isbn=normalized_isbn13)
