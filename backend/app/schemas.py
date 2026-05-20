@@ -76,7 +76,7 @@ class BookImportCandidate(SQLModel):
     language: Optional[str] = None
     tags: Optional[str] = None
     blurb: Optional[str] = None
-    source: str  # "open_library" | "google_books"
+    source: str  # "open_library" | "google_books" | "hardcover"
 
 
 class CoverCandidate(SQLModel):

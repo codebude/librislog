@@ -58,6 +58,14 @@
 				values: { source: 'Open Library', count: s.count, suffix: s.count === 1 ? '' : 's' }
 			});
 		}
+		if (s.stage === 'hardcover') {
+			if (s.status === 'searching') return $_('import.sourceHardcoverSearching');
+			if (s.status === 'skipped') return $_('import.sourceHardcoverSkipped');
+			if ('reason' in s) return $_('import.sourceBackendError', { values: { source: 'Hardcover' } });
+			return $_('import.resultCount', {
+				values: { source: 'Hardcover', count: s.count, suffix: s.count === 1 ? '' : 's' }
+			});
+		}
 		if (s.stage === 'google_books') {
 			if (s.status === 'searching') return $_('import.sourceGoogleSearching');
 			if (s.status === 'skipped') return $_('import.sourceSkipped');
@@ -71,7 +79,7 @@
 	}
 
 	function stageIcon(s: SearchStage): string {
-		if (s.stage === 'open_library' || s.stage === 'google_books') {
+		if (s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') {
 			if (s.status === 'searching') return '◌';
 			if (s.status === 'skipped') return '—';
 			if ('reason' in s) return '!';
@@ -83,13 +91,14 @@
 
 	function stageClass(s: SearchStage): string {
 		if (s.stage === 'error') return 'text-error';
+		if (s.stage === 'hardcover' && s.status === 'skipped') return 'text-base-content/40';
 		if (s.stage === 'google_books' && s.status === 'skipped') return 'text-base-content/40';
 	if (
-		(s.stage === 'open_library' || s.stage === 'google_books') &&
+		(s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') &&
 		s.status === 'searching'
 	)
 		return 'text-base-content/60 animate-pulse';
-	if ((s.stage === 'open_library' || s.stage === 'google_books') && 'reason' in s) {
+	if ((s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') && 'reason' in s) {
 		return 'text-warning';
 	}
 	return 'text-base-content/70';
@@ -173,6 +182,7 @@
 				if (event.stage === 'complete') {
 					results = mergeResults ? mergeCandidates(results, event.results) : event.results;
 				} else {
+					stages = stages.filter((s) => s.stage !== event.stage);
 					stages = [...stages, event];
 				}
 			}

@@ -53,6 +53,7 @@ async def search_books(
             q,
             type,
             api_key=settings.google_books_api_key,
+            hardcover_api_token=settings.hardcover_app_api_token,
             http_client=client,
         )
     logger.debug("Search returning %d candidate(s) for %r", len(results), q)
@@ -75,6 +76,7 @@ async def search_books_stream(
                 q,
                 type,
                 api_key=settings.google_books_api_key,
+                hardcover_api_token=settings.hardcover_app_api_token,
                 mode=mode,
                 http_client=client,
             ):

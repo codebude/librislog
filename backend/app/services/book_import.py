@@ -18,6 +18,8 @@ import httpx
 import pycountry
 
 from app.schemas import BookImportCandidate
+from app.services.cover_import import is_safe_cover_import_url
+from app.services.isbn_utils import normalize_isbn
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,42 @@ OPEN_LIBRARY_SEARCH_URL = "https://openlibrary.org/search.json"
 OPEN_LIBRARY_COVER_URL = "https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
 
 GOOGLE_BOOKS_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
+
+HARDCOVER_GRAPHQL_URL = "https://api.hardcover.app/v1/graphql"
+
+HARDCOVER_SEARCH_QUERY = """
+query SearchQuery($q: String!) {
+  search(query: $q, query_type: "book", per_page: 1, page: 1) {
+    results
+  }
+}
+"""
+
+HARDCOVER_BOOK_MAPPINGS_QUERY = """
+query BookMappingsQuery($where: book_mappings_bool_exp!) {
+  book_mappings(limit: 10, where: $where) {
+    edition {
+      title
+      subtitle
+      isbn_13
+      pages
+      release_date
+      image { url }
+      publisher { name }
+      language { code2 }
+      book {
+        description
+        taggings {
+          tag { tag }
+        }
+      }
+      contributions {
+        author { name }
+      }
+    }
+  }
+}
+"""
 
 # 5xx codes that are worth retrying (transient backend / rate-limit errors)
 _RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
@@ -59,6 +97,7 @@ async def search_with_progress(
     search_type: str,
     *,
     api_key: str = "",
+    hardcover_api_token: str = "",
     mode: Literal["auto", "google_only"] = "auto",
     http_client: Optional[httpx.AsyncClient] = None,
 ) -> AsyncGenerator[dict, None]:
@@ -69,23 +108,28 @@ async def search_with_progress(
     Event shapes (stage / extra fields):
       open_library  / status=searching
       open_library  / status=done, count=int
+      open_library  / status=error, reason=str
+      hardcover     / status=searching
+      hardcover     / status=done, count=int
+      hardcover     / status=skipped, reason=str
+      hardcover     / status=error, reason=str
       google_books  / status=searching
       google_books  / status=done, count=int
       google_books  / status=skipped, reason=str
+      google_books  / status=error, reason=str
       complete      / results=list[dict]
       error         / message=str
     """
     logger.debug(
-        "search_with_progress() called — query=%r search_type=%r has_api_key=%s",
-        query, search_type, bool(api_key),
+        "search_with_progress() called — query=%r search_type=%r has_api_key=%s has_hc_token=%s",
+        query, search_type, bool(api_key), bool(hardcover_api_token),
     )
 
     own_client = http_client is None
     client = http_client or httpx.AsyncClient(timeout=10.0)
 
     try:
-        ol_results: list[BookImportCandidate] = []
-        gb_results: list[BookImportCandidate] = []
+        results: list[BookImportCandidate] = []
 
         if mode == "google_only":
             if not api_key:
@@ -94,62 +138,77 @@ async def search_with_progress(
             else:
                 logger.debug(
                     "Google Books invocation — mode=%s query=%r search_type=%r api_key=%s",
-                    mode,
-                    query,
-                    search_type,
-                    _truncate_api_key(api_key),
+                    mode, query, search_type, _truncate_api_key(api_key),
                 )
                 yield {"stage": "google_books", "status": "searching"}
                 try:
                     gb_results = await _search_google_books(query, search_type, api_key, client)
                     logger.info("Google Books returned %d result(s) for %r", len(gb_results), query)
                     yield {"stage": "google_books", "status": "done", "count": len(gb_results)}
+                    results = gb_results
                 except SourceBackendError as exc:
-                    logger.warning(
-                        "Google Books backend error for %r: status=%s", query, exc.status_code
-                    )
+                    logger.warning("Google Books backend error for %r: status=%s", query, exc.status_code)
                     yield {"stage": "google_books", "status": "error", "reason": "backend_error"}
-            results = gb_results
         else:
-            yield {"stage": "open_library", "status": "searching"}
-            try:
-                ol_results = await _search_open_library(query, search_type, client)
-                logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
-                yield {"stage": "open_library", "status": "done", "count": len(ol_results)}
-            except SourceBackendError as exc:
-                logger.warning(
-                    "Open Library backend error for %r: status=%s", query, exc.status_code
-                )
-                yield {"stage": "open_library", "status": "error", "reason": "backend_error"}
+            ol_events: list[dict] = []
+            hc_events: list[dict] = []
+            ol_results: list[BookImportCandidate] = []
+            hc_results: list[BookImportCandidate] = []
 
-            if not ol_results:
+            yield {"stage": "open_library", "status": "searching"}
+            if hardcover_api_token.strip():
+                yield {"stage": "hardcover", "status": "searching"}
+
+            async def _run_ol():
+                nonlocal ol_results, ol_events
+                try:
+                    r = await _search_open_library(query, search_type, client)
+                    ol_results = r
+                    ol_events.append({"stage": "open_library", "status": "done", "count": len(r)})
+                except SourceBackendError as exc:
+                    ol_events.append({"stage": "open_library", "status": "error", "reason": "backend_error"})
+
+            async def _run_hc():
+                nonlocal hc_results, hc_events
+                if not hardcover_api_token.strip():
+                    hc_events.append({"stage": "hardcover", "status": "skipped", "reason": "no_api_token"})
+                    return
+                try:
+                    r = await _search_hardcover(query, search_type, hardcover_api_token, client)
+                    hc_results = r
+                    hc_events.append({"stage": "hardcover", "status": "done", "count": len(r)})
+                except Exception:
+                    logger.exception("hardcover search error")
+                    hc_events.append({"stage": "hardcover", "status": "error", "reason": "backend_error"})
+
+            await asyncio.gather(_run_ol(), _run_hc())
+
+            for e in ol_events:
+                yield e
+            for e in hc_events:
+                yield e
+
+            results = _merge_and_deduplicate(ol_results, hc_results)
+
+            if not results:
                 if not api_key:
-                    logger.warning(
-                        "No Open Library results for %r and GOOGLE_BOOKS_API_KEY is not set",
-                        query,
-                    )
+                    logger.warning("No results for %r and GOOGLE_BOOKS_API_KEY is not set", query)
                     yield {"stage": "google_books", "status": "skipped", "reason": "no_api_key"}
                 else:
-                    logger.info("No Open Library results — falling back to Google Books")
+                    logger.info("No OL/HC results — falling back to Google Books")
                     logger.debug(
                         "Google Books invocation — mode=%s query=%r search_type=%r api_key=%s",
-                        mode,
-                        query,
-                        search_type,
-                        _truncate_api_key(api_key),
+                        mode, query, search_type, _truncate_api_key(api_key),
                     )
                     yield {"stage": "google_books", "status": "searching"}
                     try:
                         gb_results = await _search_google_books(query, search_type, api_key, client)
                         logger.info("Google Books returned %d result(s) for %r", len(gb_results), query)
                         yield {"stage": "google_books", "status": "done", "count": len(gb_results)}
+                        results = gb_results
                     except SourceBackendError as exc:
-                        logger.warning(
-                            "Google Books backend error for %r: status=%s", query, exc.status_code
-                        )
+                        logger.warning("Google Books backend error for %r: status=%s", query, exc.status_code)
                         yield {"stage": "google_books", "status": "error", "reason": "backend_error"}
-
-            results = ol_results or gb_results
 
         yield {"stage": "complete", "results": [r.model_dump() for r in results]}
     except Exception as exc:
@@ -165,33 +224,51 @@ async def search(
     search_type: str,
     *,
     api_key: str = "",
+    hardcover_api_token: str = "",
     http_client: Optional[httpx.AsyncClient] = None,
 ) -> list[BookImportCandidate]:
-    """Search Open Library first; fall back to Google Books if no results."""
-    logger.debug("search() called — query=%r search_type=%r has_api_key=%s",
-                 query, search_type, bool(api_key))
+    """Search Open Library in parallel with Hardcover; fall back to Google Books if both empty."""
+    logger.debug("search() called — query=%r search_type=%r has_api_key=%s has_hc_token=%s",
+                 query, search_type, bool(api_key), bool(hardcover_api_token))
 
     own_client = http_client is None
     client = http_client or httpx.AsyncClient(timeout=10.0)
 
     try:
-        try:
-            results = await _search_open_library(query, search_type, client)
-        except SourceBackendError as exc:
-            logger.warning("Open Library backend error for %r: status=%s", query, exc.status_code)
-            results = []
-        logger.info("Open Library returned %d result(s) for %r", len(results), query)
+        tasks = [_search_open_library(query, search_type, client)]
+        if hardcover_api_token.strip():
+            tasks.append(_search_hardcover(query, search_type, hardcover_api_token, client))
+
+        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+
+        ol_results = results_list[0] if not isinstance(results_list[0], Exception) else []
+        if isinstance(results_list[0], SourceBackendError):
+            logger.warning("Open Library backend error for %r: status=%s", query, results_list[0].status_code)
+        elif isinstance(results_list[0], Exception):
+            logger.warning("Open Library error for %r: %s", query, results_list[0])
+
+        hc_results: list[BookImportCandidate] = []
+        if len(results_list) > 1:
+            if not isinstance(results_list[1], Exception):
+                hc_results = results_list[1]
+            else:
+                logger.warning("Hardcover error for %r: %s", query, results_list[1])
+
+        logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
+        logger.info("Hardcover returned %d result(s) for %r", len(hc_results), query)
+
+        results = _merge_and_deduplicate(ol_results, hc_results)
 
         if not results:
             if not api_key:
                 logger.warning(
-                    "No Open Library results for %r and GOOGLE_BOOKS_API_KEY is not set — "
+                    "No results for %r and GOOGLE_BOOKS_API_KEY is not set — "
                     "Google Books requires an API key for all requests. "
                     "Set GOOGLE_BOOKS_API_KEY in .env to enable the fallback.",
                     query,
                 )
             else:
-                logger.info("No Open Library results — falling back to Google Books")
+                logger.info("No OL/HC results — falling back to Google Books")
                 try:
                     results = await _search_google_books(query, search_type, api_key, client)
                 except SourceBackendError as exc:
@@ -486,6 +563,242 @@ def map_google_books(item: dict) -> BookImportCandidate:
         blurb=vi.get("description") or None,
         source="google_books",
     )
+
+
+# ── Hardcover.app ──────────────────────────────────────────────────────────────
+
+async def _search_hardcover(
+    query: str,
+    search_type: str,
+    api_token: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search hardcover.app via GraphQL."""
+    if not api_token.strip():
+        return []
+
+    try:
+        if search_type == "title":
+            isbn13s = await _hardcover_search_title(query, api_token, client)
+            if not isbn13s:
+                return []
+            return await _hardcover_fetch_books(isbn13s, api_token, client)
+        else:
+            try:
+                isbn13 = normalize_isbn(query)
+            except ValueError:
+                logger.warning("hardcover invalid ISBN: %s", query)
+                return []
+            return await _hardcover_fetch_books([isbn13], api_token, client)
+    except Exception:
+        logger.exception("hardcover search failed for %r", query)
+        return []
+
+
+async def _hardcover_search_title(
+    query: str,
+    api_token: str,
+    client: httpx.AsyncClient,
+) -> list[str]:
+    """Step 1: execute search query and extract unique ISBN-13 values."""
+    variables = {"q": query}
+    logger.debug("hardcover search request — url=%s query=%r", HARDCOVER_GRAPHQL_URL, query)
+    try:
+        resp = await client.post(
+            HARDCOVER_GRAPHQL_URL,
+            json={"query": HARDCOVER_SEARCH_QUERY, "variables": variables},
+            headers={"Authorization": f"Bearer {api_token}"},
+        )
+    except httpx.HTTPError as exc:
+        logger.warning("hardcover search request failed: %s", exc)
+        return []
+
+    if resp.status_code != 200:
+        logger.debug("hardcover search HTTP %d: %s", resp.status_code, resp.text[:200])
+        return []
+
+    data = resp.json()
+    if "errors" in data:
+        logger.warning("hardcover search GraphQL errors: %s", data["errors"])
+        return []
+
+    search_results = data.get("data", {}).get("search", {}).get("results") or {}
+    hits = search_results.get("hits") or []
+    logger.debug("hardcover search response — found=%s hits=%d",
+                 search_results.get("found"), len(hits))
+    seen: set[str] = set()
+    result: list[str] = []
+    for hit in hits:
+        document = hit.get("document") or {}
+        for raw in (document.get("isbns") or []):
+            if not isinstance(raw, str):
+                continue
+            try:
+                normalized = normalize_isbn(raw)
+            except ValueError:
+                continue
+            if normalized not in seen:
+                seen.add(normalized)
+                result.append(normalized)
+            if len(result) >= 10:
+                return result
+
+    logger.debug("hardcover search extracted %d unique ISBN(s) from title search", len(result))
+    return result
+
+
+async def _hardcover_fetch_books(
+    isbn13s: list[str],
+    api_token: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Step 2: fetch full book metadata for a list of ISBN-13 values."""
+    if not isbn13s:
+        return []
+
+    where = {"edition": {"isbn_13": {"_in": isbn13s}}}
+    variables = {"where": where}
+    logger.debug("hardcover book_mappings request — url=%s isbn13s=%s", HARDCOVER_GRAPHQL_URL, isbn13s)
+
+    try:
+        resp = await client.post(
+            HARDCOVER_GRAPHQL_URL,
+            json={"query": HARDCOVER_BOOK_MAPPINGS_QUERY, "variables": variables},
+            headers={"Authorization": f"Bearer {api_token}"},
+        )
+    except httpx.HTTPError as exc:
+        logger.warning("hardcover book_mappings request failed: %s", exc)
+        return []
+
+    if resp.status_code != 200:
+        logger.debug("hardcover book_mappings HTTP %d: %s", resp.status_code, resp.text[:200])
+        return []
+
+    data = resp.json()
+    if "errors" in data:
+        logger.warning("hardcover book_mappings GraphQL errors: %s", data["errors"])
+        return []
+
+    mappings = data.get("data", {}).get("book_mappings") or []
+    logger.debug("hardcover book_mappings response — %d mapping(s) returned", len(mappings))
+    candidates: list[BookImportCandidate] = []
+    seen: set[tuple] = set()
+
+    for mapping in mappings:
+        edition = mapping.get("edition") or {}
+        candidate = map_hardcover(edition)
+        if candidate is None:
+            continue
+        key = _hardcover_dedup_key(edition)
+        if key is not None and key in seen:
+            continue
+        if key is not None:
+            seen.add(key)
+        candidates.append(candidate)
+        logger.debug("  HC candidate: title=%r isbn=%r cover=%r",
+                     candidate.title, candidate.isbn, candidate.cover_url)
+
+    logger.debug("hardcover book_mappings yielded %d candidate(s) after dedup", len(candidates))
+    return candidates
+
+
+def _hardcover_dedup_key(edition: dict) -> tuple | None:
+    """Composite dedup key: (isbn_13, pages, language_code)."""
+    isbn = edition.get("isbn_13")
+    if not isbn:
+        return None
+    pages = edition.get("pages")
+    lang = (edition.get("language") or {}).get("code2", "")
+    return (isbn, pages, lang)
+
+
+def map_hardcover(edition: dict) -> BookImportCandidate | None:
+    """Map a hardcover edition node to BookImportCandidate."""
+    title = edition.get("title")
+    if not title:
+        return None
+
+    contributions = edition.get("contributions") or []
+    author = None
+    for c in contributions:
+        author_name = c.get("author", {}).get("name")
+        if author_name:
+            author = author_name
+            break
+
+    isbn = edition.get("isbn_13") or None
+
+    image = edition.get("image") or {}
+    raw_cover_url = image.get("url")
+    cover_url = None
+    if raw_cover_url and is_safe_cover_import_url(raw_cover_url):
+        cover_url = raw_cover_url
+
+    publisher = (edition.get("publisher") or {}).get("name") or None
+
+    release_date = edition.get("release_date") or ""
+    published_year = None
+    if len(release_date) >= 4:
+        try:
+            published_year = int(release_date[:4])
+        except ValueError:
+            pass
+
+    page_count = edition.get("pages") or None
+
+    language = (edition.get("language") or {}).get("code2") or None
+    if language:
+        language = language.upper()
+
+    taggings = edition.get("book", {}).get("taggings") or []
+    tags_list = [t["tag"]["tag"] for t in taggings if t.get("tag", {}).get("tag")][:3]
+    tags = ", ".join(tags_list) if tags_list else None
+
+    blurb = edition.get("book", {}).get("description") or None
+
+    return BookImportCandidate(
+        title=title,
+        subtitle=edition.get("subtitle") or None,
+        author=author,
+        isbn=isbn,
+        cover_url=cover_url,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=tags,
+        blurb=blurb,
+        source="hardcover",
+    )
+
+
+# ── Merge / Deduplicate ───────────────────────────────────────────────────────
+
+def _merge_and_deduplicate(
+    primary: list[BookImportCandidate],
+    secondary: list[BookImportCandidate],
+) -> list[BookImportCandidate]:
+    """Merge two candidate lists, deduplicating by (isbn, page_count, language).
+    Primary list items come first in the result.
+    Same ISBN with different page_count/language → kept as separate candidates.
+    When two candidates collide, the one with a cover image is preferred."""
+    seen: dict[str, BookImportCandidate] = {}
+
+    def _key(c: BookImportCandidate) -> str:
+        isbn = (c.isbn or "").replace("-", "").replace(" ", "")
+        pages = str(c.page_count or "")
+        lang = (c.language or "").upper()
+        return f"isbn:{isbn}|pages:{pages}|lang:{lang}"
+
+    for c in primary + secondary:
+        k = _key(c)
+        existing = seen.get(k)
+        if existing is None:
+            seen[k] = c
+        elif existing.cover_url is None and c.cover_url is not None:
+            seen[k] = c
+
+    return list(seen.values())
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import re
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,48 +9,13 @@ from app.config import settings
 from app.models import User
 from app.schemas import CoverCandidate, CoverCandidateList
 from app.services.cover_import import is_safe_cover_import_url
+from app.services.isbn_utils import isbn13_to_isbn10, normalize_isbn
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/cover-candidates", tags=["cover-candidates"])
 
-_ISBN10_RE = re.compile(r"^\d{9}[\dX]$")
-_ISBN13_RE = re.compile(r"^\d{13}$")
 _PROBE_SEMAPHORE = asyncio.Semaphore(20)
-
-
-def _normalize_isbn(isbn: str) -> str:
-    compact = re.sub(r"[^0-9Xx]", "", isbn).upper()
-    if _ISBN13_RE.fullmatch(compact):
-        return compact
-
-    if not _ISBN10_RE.fullmatch(compact):
-        raise HTTPException(status_code=400, detail="Invalid ISBN format")
-
-    core = compact[:-1]
-    isbn13_core = f"978{core}"
-    checksum_sum = sum(int(digit) * (1 if idx % 2 == 0 else 3) for idx, digit in enumerate(isbn13_core))
-    checksum_digit = (10 - (checksum_sum % 10)) % 10
-    return f"{isbn13_core}{checksum_digit}"
-
-
-def _isbn13_to_isbn10(isbn13: str) -> str | None:
-    if not _ISBN13_RE.fullmatch(isbn13):
-        return None
-    if not isbn13.startswith("978"):
-        return None
-
-    core9 = isbn13[3:-1]
-    weighted_sum = sum(int(digit) * (10 - idx) for idx, digit in enumerate(core9))
-    remainder = weighted_sum % 11
-    check_value = 11 - remainder
-    if check_value == 10:
-        check_digit = "X"
-    elif check_value == 11:
-        check_digit = "0"
-    else:
-        check_digit = str(check_value)
-    return f"{core9}{check_digit}"
 
 
 async def _query_hardcover_graphql(
@@ -218,8 +182,11 @@ async def search_cover_candidates(
     isbn: str = Query(min_length=1),
     _current_user: User = Depends(require_user),
 ) -> CoverCandidateList:
-    normalized_isbn13 = _normalize_isbn(isbn)
-    isbn10 = _isbn13_to_isbn10(normalized_isbn13)
+    try:
+        normalized_isbn13 = normalize_isbn(isbn)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ISBN format")
+    isbn10 = isbn13_to_isbn10(normalized_isbn13)
     logger.debug(
         "cover candidate search isbn_input=%s normalized_isbn13=%s isbn10=%s",
         isbn,

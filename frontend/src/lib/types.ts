@@ -37,7 +37,7 @@ export interface BookImportCandidate {
 }
 
 export interface CoverCandidate {
-	source: 'abebooks' | 'openlibrary' | 'amazon';
+	source: 'abebooks' | 'openlibrary' | 'amazon' | 'hardcover';
 	url: string;
 	available: boolean;
 	width: number | null;
@@ -244,6 +244,10 @@ export type SearchStage =
 	| { stage: 'open_library'; status: 'searching' }
 	| { stage: 'open_library'; status: 'done'; count: number }
 	| { stage: 'open_library'; status: 'error'; reason: string }
+	| { stage: 'hardcover'; status: 'searching' }
+	| { stage: 'hardcover'; status: 'done'; count: number }
+	| { stage: 'hardcover'; status: 'skipped'; reason: string }
+	| { stage: 'hardcover'; status: 'error'; reason: string }
 	| { stage: 'google_books'; status: 'searching' }
 	| { stage: 'google_books'; status: 'done'; count: number }
 	| { stage: 'google_books'; status: 'skipped'; reason: string }
