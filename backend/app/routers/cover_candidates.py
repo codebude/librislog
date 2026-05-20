@@ -9,6 +9,7 @@ from app.auth import require_user
 from app.config import settings
 from app.models import User
 from app.schemas import CoverCandidate, CoverCandidateList
+from app.services.cover_import import is_safe_cover_import_url
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,89 @@ def _isbn13_to_isbn10(isbn13: str) -> str | None:
     else:
         check_digit = str(check_value)
     return f"{core9}{check_digit}"
+
+
+async def _query_hardcover_graphql(
+    isbn13: str,
+    client: httpx.AsyncClient,
+    api_token: str,
+) -> str | None:
+    query = """
+    query CoverQuery($isbn: String!) {
+      book_mappings(limit: 1, where: {edition: {isbn_13: {_eq: $isbn}}}) {
+        edition {
+          image {
+            url
+          }
+        }
+      }
+    }
+    """
+
+    variables = {"isbn": isbn13}
+
+    try:
+        async with _PROBE_SEMAPHORE:
+            resp = await client.post(
+                "https://api.hardcover.app/v1/graphql",
+                json={"query": query, "variables": variables},
+                headers={"Authorization": f"Bearer {api_token}"},
+            )
+
+        if resp.status_code != 200:
+            logger.debug(
+                "hardcover GraphQL error status=%d body=%s",
+                resp.status_code,
+                resp.text[:200],
+            )
+            return None
+
+        data = resp.json()
+        book_mappings = data.get("data", {}).get("book_mappings", [])
+        if not book_mappings:
+            logger.debug("hardcover no book_mappings for isbn=%s", isbn13)
+            return None
+
+        edition = book_mappings[0].get("edition", {})
+        image = edition.get("image", {})
+        url = image.get("url")
+
+        if not url:
+            logger.debug("hardcover no image URL for isbn=%s", isbn13)
+            return None
+
+        logger.debug("hardcover found url=%s for isbn=%s", url, isbn13)
+        return url
+
+    except Exception as exc:
+        logger.warning("hardcover GraphQL query failed for isbn=%s: %s", isbn13, exc)
+        return None
+
+
+async def _probe_hardcover_candidate(
+    client: httpx.AsyncClient,
+    isbn13: str,
+    api_token: str,
+    min_size_bytes: int,
+) -> CoverCandidate:
+    image_url = await _query_hardcover_graphql(isbn13, client, api_token)
+
+    if not image_url:
+        return CoverCandidate(
+            source="hardcover",
+            url="",
+            available=False,
+        )
+
+    if not is_safe_cover_import_url(image_url):
+        logger.warning("hardcover returned unsafe URL: %s", image_url)
+        return CoverCandidate(
+            source="hardcover",
+            url="",
+            available=False,
+        )
+
+    return await _probe_candidate("hardcover", image_url, client, min_size_bytes)
 
 
 async def _probe_candidate(
@@ -157,12 +241,25 @@ async def search_cover_candidates(
 
     timeout = httpx.Timeout(settings.cover_candidate_timeout_seconds)
     async with httpx.AsyncClient(timeout=timeout) as client:
-        results = await asyncio.gather(
-            *[
-                _probe_source_candidates(source, urls, client, settings.cover_candidate_min_size_bytes)
-                for source, urls in provider_urls.items()
-            ]
-        )
+        tasks = [
+            _probe_source_candidates(source, urls, client, settings.cover_candidate_min_size_bytes)
+            for source, urls in provider_urls.items()
+        ]
+
+        if settings.hardcover_app_api_token.strip():
+            logger.debug("cover candidate adding hardcover source (token configured)")
+            tasks.append(
+                _probe_hardcover_candidate(
+                    client,
+                    normalized_isbn13,
+                    settings.hardcover_app_api_token,
+                    settings.cover_candidate_min_size_bytes,
+                )
+            )
+        else:
+            logger.debug("cover candidate skipping hardcover (no token configured)")
+
+        results = await asyncio.gather(*tasks)
 
     logger.debug("cover candidate results: %s", results)
     return CoverCandidateList(candidates=results, query_isbn=normalized_isbn13)
