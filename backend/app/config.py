@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     cover_candidate_min_size_bytes: int = 1000
     cover_import_timeout_seconds: int = 15
     hardcover_app_api_token: str = ""
+    thalia_cover_search_enabled: bool = True
 
     @field_validator("api_key_encryption_key")
     @classmethod
