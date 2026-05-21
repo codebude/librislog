@@ -5,9 +5,10 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import Response
 
 from app.config import settings
 from app.logging_config import configure_logging
@@ -97,6 +98,32 @@ app.add_middleware(
     https_only=settings.auth_cookie_secure,
     domain=cookie_domain,
 )
+
+def _parse_forwarded_allow_ips(value: str) -> set[str]:
+    """Parse the comma/space-separated ``forwarded_allow_ips`` setting."""
+    if value.strip() == "*":
+        return {"*"}
+    return {ip.strip() for ip in value.replace(",", " ").split() if ip.strip()}
+
+
+_TRUSTED_PROXY_IPS = _parse_forwarded_allow_ips(settings.forwarded_allow_ips)
+
+
+@app.middleware("http")
+async def proxy_headers_middleware(request: Request, call_next) -> Response:
+    """Respect ``X-Forwarded-Proto`` from trusted proxies to fix URL scheme.
+
+    Without this middleware, ``request.url.scheme`` stays ``http`` when a TLS
+    termination proxy (e.g. Traefik) forwards requests to the backend on HTTP.
+    That breaks OIDC flows because Authlib validates the redirect URI against
+    ``request.url``.
+    """
+    if "*" in _TRUSTED_PROXY_IPS or (request.client and request.client.host in _TRUSTED_PROXY_IPS):
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        if forwarded_proto:
+            request.scope["scheme"] = forwarded_proto
+    return await call_next(request)
+
 
 app.include_router(books.router)
 app.include_router(import_.router)

@@ -49,6 +49,7 @@ All configuration is done through the `.env` file in the project root. See `.env
 | `CORS_ORIGINS` | `["http://localhost", …]` | Allowed CORS origins |
 | `LOG_LEVEL` | `INFO` | Python log level |
 | `API_KEY_ENCRYPTION_KEY` | — | **Required.** 32+ char secret for API key encryption |
+| `FORWARDED_ALLOW_IPS` | `*` | Trusted proxy IPs for forwarded headers. `*` trusts all (recommended behind your own TLS proxy). Set to specific IPs to restrict. |
 
 ### Authentication
 
