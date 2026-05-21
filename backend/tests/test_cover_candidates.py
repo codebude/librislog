@@ -720,7 +720,13 @@ def test_cover_candidates_thalia_403_blocked(client: TestClient, monkeypatch) ->
     monkeypatch.setattr(config.settings, "hardcover_app_api_token", "")
 
     import app.routers.cover_candidates as cc_module
-    monkeypatch.setattr(cc_module, "_THALIA_FETCHER_CLASS", _make_mock_page(status=403))
+
+    class _FakeFetcher:
+        @classmethod
+        def get(cls, url: str, **kwargs: object) -> object:
+            return _make_mock_page(status=403)
+
+    monkeypatch.setattr(cc_module, "_THALIA_FETCHER_CLASS", _FakeFetcher)
 
     class _FakeResponse:
         def __init__(self, status_code: int, headers: dict[str, str], url: str) -> None:
@@ -890,10 +896,15 @@ def test_cover_candidates_hardcover_no_image_url(client: TestClient, monkeypatch
     monkeypatch.setattr(config.settings, "thalia_cover_search_enabled", False)
 
     class _FakeResponse:
-        def __init__(self, status_code: int, headers: dict[str, str], url: str) -> None:
+        def __init__(self, status_code: int, headers: dict[str, str], url: str, json_data: dict | None = None) -> None:
             self.status_code = status_code
             self.headers = headers
             self.url = url
+            self._json_data = json_data or {}
+
+        def json(self) -> dict:
+            return self._json_data
+
     class _FakeAsyncClient:
         def __init__(self, *args: object, **kwargs: object) -> None:
             pass
