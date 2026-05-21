@@ -8,6 +8,7 @@
 	let email = $state('');
 	let password = $state('');
 	let selectedLanguage = $state<AppLocale>('en');
+	let languageChanged = $state(false);
 	let loading = $state(false);
 	let error = $state('');
 	let oidcEnabled = $state(false);
@@ -35,6 +36,7 @@
 		const next = (event.currentTarget as HTMLSelectElement).value as AppLocale;
 		if (!SUPPORTED_LOCALES.includes(next)) return;
 		selectedLanguage = next;
+		languageChanged = true;
 		setLocale(next);
 	}
 
@@ -48,11 +50,17 @@
 			csrfToken.set(csrf.csrf_token);
 			const settings = await api.profile.getSettings();
 			const detected = detectTimezone();
-			const update: { language: string; timezone?: string } = { language: selectedLanguage };
+			const update: { language?: string; timezone?: string } = {};
+			if (languageChanged) update.language = selectedLanguage;
 			if (settings.timezone === 'UTC') update.timezone = detected;
 			await api.profile.updateSettings(update);
 			setTimezone(settings.timezone === 'UTC' ? detected : settings.timezone);
-			setLocale(selectedLanguage);
+			const localeToSet: AppLocale = languageChanged
+				? selectedLanguage
+				: SUPPORTED_LOCALES.includes(settings.language as AppLocale)
+					? (settings.language as AppLocale)
+					: 'en';
+			setLocale(localeToSet);
 			await goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : $_('auth.loginFailed');
