@@ -21,9 +21,11 @@ def test_custom_redoc_docs_available(client: TestClient) -> None:
     assert "LibrisLog API - ReDoc" in resp.text
 
 
-def test_default_docs_disabled(client: TestClient) -> None:
-    """Default /docs and /redoc should be disabled (404)."""
-    swagger_default = client.get("/docs")
-    redoc_default = client.get("/redoc")
-    assert swagger_default.status_code == 404
-    assert redoc_default.status_code == 404
+def test_default_docs_redirect(client: TestClient) -> None:
+    """Default /docs and /redoc should redirect to custom paths."""
+    swagger_default = client.get("/docs", follow_redirects=False)
+    redoc_default = client.get("/redoc", follow_redirects=False)
+    assert swagger_default.status_code == 307
+    assert swagger_default.headers["location"] == "/api/docs"
+    assert redoc_default.status_code == 307
+    assert redoc_default.headers["location"] == "/api/redoc"

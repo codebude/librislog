@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +80,11 @@ def _wrap_docs_html(html: str) -> HTMLResponse:
     return HTMLResponse(html.replace("</head>", f"{custom_css}</head>"))
 
 
+@router.get("/docs", include_in_schema=False)
+def redirect_to_custom_swagger_docs(request: Request) -> RedirectResponse:
+    """Redirect to the custom-themed Swagger UI page."""
+    return RedirectResponse(url="/api/docs")
+
 @router.get("/api/docs", include_in_schema=False)
 def custom_swagger_docs(request: Request) -> HTMLResponse:
     """Serve a custom-themed Swagger UI page."""
@@ -94,6 +99,10 @@ def custom_swagger_docs(request: Request) -> HTMLResponse:
     ).body.decode("utf-8")
     return _wrap_docs_html(html)
 
+@router.get("/redoc", include_in_schema=False)
+def redirect_to_custom_redoc_docs(request: Request) -> RedirectResponse:
+    """Redirect to the custom-themed ReDoc page."""
+    return RedirectResponse(url="/api/redoc")
 
 @router.get("/api/redoc", include_in_schema=False)
 def custom_redoc_docs(request: Request) -> HTMLResponse:

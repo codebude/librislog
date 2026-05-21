@@ -8,7 +8,8 @@ import secrets
 
 import bcrypt
 from cryptography.fernet import Fernet
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 from passlib.exc import UnknownHashError
 from passlib.context import CryptContext
 from sqlmodel import Session, select
@@ -114,8 +115,11 @@ def get_api_key_prefix(api_key: str) -> str:
     return api_key[:12]
 
 
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
 def require_user_by_api_key(
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    x_api_key: str | None = Security(api_key_header),
     session: Session = Depends(get_session),
 ) -> User:
     """Authenticate a request using an X-API-Key header.
@@ -145,7 +149,7 @@ def require_user_by_api_key(
 
 def require_user(
     request: Request,
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    x_api_key: str | None = Security(api_key_header),
     x_csrf_token: str | None = Header(default=None, alias="X-CSRF-Token"),
     session: Session = Depends(get_session),
 ) -> User:
