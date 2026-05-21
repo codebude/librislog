@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
+from app._build_info import __git_sha__, __version__
 from app.config import settings
 from app.logging_config import configure_logging
 from app.routers import admin, auth, books, cover_candidates, covers, data, docs, health, import_, oidc, profile, progress, statistics, users
@@ -61,9 +62,15 @@ async def lifespan(app: FastAPI):
         pass
 
 
+if __git_sha__ != "unknown" and __version__.find(__git_sha__[:7]) == -1:
+    _display_version = f"{__version__} ({__git_sha__[:7]})"
+else:
+    _display_version = __version__
+
 app = FastAPI(
     title="LibrisLog API",
     description="Backend API for LibrisLog.",
+    version=_display_version,
     lifespan=lifespan,
     openapi_url="/api/openapi.json",
     docs_url=None,

@@ -194,7 +194,7 @@
 			{/each}
 		</nav>
 		<div class="text-[10px] text-base-content/40 px-1 mt-auto">
-			{version}{#if gitSha && gitSha !== 'unknown'} ({gitSha.slice(0, 7)}){/if}
+			{version}{#if gitSha && gitSha !== 'unknown' && !version.includes(gitSha.slice(0, 7))} ({gitSha.slice(0, 7)}){/if}
 		</div>
 	</aside>
 
