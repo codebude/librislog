@@ -95,3 +95,25 @@ def cmd_merge() -> None:
     except Exception as exc:
         console.print(f"[red]PR merge failed: {exc}[/red]")
         raise typer.Exit(code=1)
+
+
+def cmd_list() -> None:
+    try:
+        llc._gh.check_gh()
+    except Exception as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        prs = llc._gh.list_open_prs()
+    except Exception as exc:
+        console.print(f"[red]Failed to list PRs: {exc}[/red]")
+        raise typer.Exit(code=1)
+
+    if not prs:
+        console.print("[yellow]No open pull requests.[/yellow]")
+        raise typer.Exit()
+
+    for pr in prs:
+        author = pr.get("author", {}).get("login", "?")
+        console.print(f"  #[bold]{pr['number']}[/bold] — {pr['title']} ({author})")

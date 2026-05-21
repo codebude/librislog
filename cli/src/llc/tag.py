@@ -4,6 +4,7 @@ import typer
 import llc._git
 import llc._interactive
 from llc._interactive import console
+from llc._git import GitError
 
 
 def _parse_tag(tag: str) -> tuple[int, int, int, int | None]:
@@ -123,3 +124,42 @@ def cmd_create() -> None:
         except Exception:
             pass
         raise typer.Exit(code=1)
+
+
+def cmd_delete() -> None:
+    try:
+        tags = llc._git.fetch_tags("v*")
+    except Exception:
+        console.print("[red]Failed to fetch tags.[/red]")
+        raise typer.Exit(code=1)
+
+    recent = tags[:5]
+    choices = recent + ["Enter tag name manually"]
+    preselect = recent[0] if recent else None
+    choice = llc._interactive.select_from_list(
+        choices, title="Select tag to delete", preselect=preselect
+    )
+    if choice is None:
+        console.print("[yellow]Cancelled.[/yellow]")
+        raise typer.Exit()
+
+    if choice == "Enter tag name manually":
+        tagname = llc._interactive.prompt_text("Enter tag name")
+        if not tagname or not tagname.strip():
+            console.print("[yellow]Cancelled.[/yellow]")
+            raise typer.Exit()
+        tagname = tagname.strip()
+    else:
+        tagname = choice
+
+    try:
+        llc._git.delete_tag(tagname)
+        console.print(f"[green]Deleted local tag {tagname}.[/green]")
+    except GitError:
+        console.print(f"[yellow]Local tag {tagname} not found or could not be deleted. Proceeding...[/yellow]")
+
+    try:
+        llc._git.delete_remote_tag(tagname)
+        console.print(f"[green]Deleted remote tag {tagname}.[/green]")
+    except GitError as exc:
+        console.print(f"[yellow]Remote tag {tagname} not found or could not be deleted: {exc}. Proceeding...[/yellow]")

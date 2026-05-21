@@ -98,6 +98,14 @@ def fetch() -> None:
     _run_git(["fetch", "origin"])
 
 
+def delete_tag(tagname: str) -> None:
+    _run_git(["tag", "-d", tagname])
+
+
+def delete_remote_tag(tagname: str) -> None:
+    _run_git(["push", "origin", "--delete", tagname], interactive=True)
+
+
 def tag_exists(tagname: str) -> bool:
     try:
         _run_git(["rev-parse", "-q", "--verify", f"refs/tags/{tagname}"])
