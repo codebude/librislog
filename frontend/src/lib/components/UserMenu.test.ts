@@ -131,4 +131,14 @@ describe('UserMenu', () => {
 
 		expect(screen.queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument();
 	});
+
+	it('closes dropdown when profile link clicked', async () => {
+		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		render(UserMenu);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'User menu' }));
+		await fireEvent.click(screen.getByRole('link', { name: 'Profile' }));
+
+		expect(screen.queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument();
+	});
 });

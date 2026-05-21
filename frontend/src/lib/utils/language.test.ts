@@ -31,4 +31,17 @@ describe('formatLanguageCode', () => {
 		// Intl.DisplayNames may return the code itself or uppercase it
 		expect(result).toMatch(/xx/i);
 	});
+
+	it('returns uppercase code when Intl.DisplayNames throws', () => {
+		const OriginalDisplayNames = Intl.DisplayNames;
+		// @ts-expect-error mock
+		Intl.DisplayNames = vi.fn(() => {
+			throw new TypeError('Intl not available');
+		});
+		try {
+			expect(formatLanguageCode('fr', 'en')).toBe('FR');
+		} finally {
+			Intl.DisplayNames = OriginalDisplayNames;
+		}
+	});
 });

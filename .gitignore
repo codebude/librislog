@@ -226,3 +226,4 @@ __marimo__/
 !frontend/src/lib
 cookies.txt
 profile-snapshot
+.plan/

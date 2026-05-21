@@ -45,4 +45,26 @@ describe('StarRating', () => {
 		expect(screen.getByLabelText('1 star')).toBeInTheDocument();
 		expect(screen.getByLabelText('5 star')).toBeInTheDocument();
 	});
+
+	it('uses fallback group name when crypto.randomUUID is unavailable', () => {
+		const originalCrypto = globalThis.crypto;
+		const mockCrypto = { getRandomValues: originalCrypto.getRandomValues.bind(originalCrypto) };
+		Object.defineProperty(globalThis, 'crypto', {
+			value: mockCrypto,
+			writable: true,
+			configurable: true
+		});
+		try {
+			const { container } = render(StarRating, { props: { value: null } });
+			const radios = container.querySelectorAll('input[type="radio"]');
+			expect(radios[0].name).toMatch(/^rating-\d+$/);
+			expect(radios[0].name).toBe(radios[1].name);
+		} finally {
+			Object.defineProperty(globalThis, 'crypto', {
+				value: originalCrypto,
+				writable: true,
+				configurable: true
+			});
+		}
+	});
 });

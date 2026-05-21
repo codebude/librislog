@@ -95,4 +95,17 @@ describe('auth sync', () => {
 		const { broadcastLogout } = await import('./auth');
 		expect(() => broadcastLogout()).not.toThrow();
 	});
+
+	it('initAuthSync returns early if already initialized', async () => {
+		const { initAuthSync } = await import('./auth');
+		const onLogout1 = vi.fn();
+		const onLogout2 = vi.fn();
+		initAuthSync(onLogout1);
+		// Second call should return early, not create a new channel
+		initAuthSync(onLogout2);
+		// Only the first listener should be registered
+		channelInstance.postMessage('logout');
+		expect(onLogout1).toHaveBeenCalledOnce();
+		expect(onLogout2).not.toHaveBeenCalled();
+	});
 });

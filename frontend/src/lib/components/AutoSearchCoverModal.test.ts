@@ -115,4 +115,49 @@ describe('AutoSearchCoverModal', () => {
 		});
 		expect(document.body.textContent).toContain('n/a - n/a');
 	});
+
+	it('shows KB filesize label', () => {
+		const candidateKB = [
+			{ source: 'Test', url: 'https://example.com/kb.jpg', available: true, filesize: 5120, width: 100, height: 150 }
+		];
+		render(AutoSearchCoverModal, {
+			props: { open: true, loading: false, candidates: candidateKB, error: null, onCancel, onSelect }
+		});
+		expect(document.body.textContent).toContain('5.0 KB');
+	});
+
+	it('updates resolution map when image loads', async () => {
+		const candidateWithLoad = [
+			{ source: 'Test', url: 'https://example.com/load.jpg', available: true, filesize: 1000, width: null, height: null }
+		];
+		render(AutoSearchCoverModal, {
+			props: { open: true, loading: false, candidates: candidateWithLoad, error: null, onCancel, onSelect }
+		});
+		const img = document.querySelector('img');
+		expect(img).toBeTruthy();
+		// Simulate image load with natural dimensions
+		const loadEvent = new Event('load');
+		Object.defineProperty(img!, 'naturalWidth', { value: 800 });
+		Object.defineProperty(img!, 'naturalHeight', { value: 1200 });
+		await fireEvent(img!, loadEvent);
+		// After load, resolution should show 800x1200 instead of n/a
+		expect(document.body.textContent).toContain('800x1200');
+	});
+
+	it('skips resolution update when image has no natural dimensions', async () => {
+		const candidateWithLoad = [
+			{ source: 'Test', url: 'https://example.com/load2.jpg', available: true, filesize: 1000, width: null, height: null }
+		];
+		render(AutoSearchCoverModal, {
+			props: { open: true, loading: false, candidates: candidateWithLoad, error: null, onCancel, onSelect }
+		});
+		const img = document.querySelector('img');
+		// Simulate image load with zero natural dimensions
+		const loadEvent = new Event('load');
+		Object.defineProperty(img!, 'naturalWidth', { value: 0 });
+		Object.defineProperty(img!, 'naturalHeight', { value: 0 });
+		await fireEvent(img!, loadEvent);
+		// Resolution should still show n/a since natural dimensions are 0
+		expect(document.body.textContent).toContain('n/a');
+	});
 });

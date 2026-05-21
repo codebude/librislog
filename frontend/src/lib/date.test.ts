@@ -51,6 +51,9 @@ describe('fromDateInputValue', () => {
 		const result = fromDateInputValue(' 2026-05-16 ', 'UTC');
 		expect(result).toBe('2026-05-16T00:00:00.000Z');
 	});
+
+	// Note: line 19 (isValid check) is unreachable because dayjs.tz() throws
+	// for invalid input before isValid() can be called.
 });
 
 describe('formatDate', () => {
@@ -74,6 +77,10 @@ describe('formatDateTime', () => {
 
 	it('returns empty string for null', () => {
 		expect(formatDateTime(null, 'UTC')).toBe('');
+	});
+
+	it('returns empty string for invalid date', () => {
+		expect(formatDateTime('not-a-date', 'UTC')).toBe('');
 	});
 });
 

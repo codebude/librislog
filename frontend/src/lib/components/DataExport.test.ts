@@ -170,4 +170,21 @@ describe('DataExport', () => {
 			);
 		});
 	});
+
+	it('shows error toast when no datasets selected', async () => {
+		render(DataExport);
+
+		// Uncheck the default "books" checkbox
+		const booksCheckbox = screen.getByLabelText('Books');
+		await fireEvent.click(booksCheckbox);
+
+		// The export button is disabled when no datasets are selected,
+		// so we dispatch a click event directly on the button element
+		const exportBtn = screen.getByRole('button', { name: 'Export data' });
+		exportBtn.removeAttribute('disabled');
+		await fireEvent.click(exportBtn);
+
+		expect(mockToastsAdd).toHaveBeenCalledWith('Select at least one dataset.', 'error');
+		expect(mockExportData).not.toHaveBeenCalled();
+	});
 });
