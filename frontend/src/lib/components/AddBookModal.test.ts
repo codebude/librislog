@@ -103,9 +103,9 @@ describe('AddBookModal', () => {
 		render(AddBookModal, { props: { open: true } });
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Subtitle/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Author/)).toBeInTheDocument();
+		expect(screen.getByText(/Author/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/ISBN/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Publisher/)).toBeInTheDocument();
+		expect(screen.getByText(/Publisher/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Language/)).toBeInTheDocument();
@@ -121,6 +121,14 @@ describe('AddBookModal', () => {
 		expect(select).toBeInTheDocument();
 	});
 
+	function fillAuthorAndPages(value: string) {
+		const searchboxes = screen.getAllByRole('searchbox');
+		const authorInput = searchboxes[0];
+		fireEvent.input(authorInput, { target: { value } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		fireEvent.input(pagesInput, { target: { value: '412' } });
+	}
+
 	it('submits form and calls api.books.create', async () => {
 		mockBooksCreate.mockResolvedValue({ id: 1, title: 'Test Book' });
 		const onAdded = vi.fn();
@@ -129,10 +137,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
-		const authorInput = screen.getByLabelText(/Author/);
-		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
-		const pagesInput = screen.getByLabelText(/Pages/);
-		await fireEvent.input(pagesInput, { target: { value: '412' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -158,10 +163,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
-		const authorInput = screen.getByLabelText(/Author/);
-		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
-		const pagesInput = screen.getByLabelText(/Pages/);
-		await fireEvent.input(pagesInput, { target: { value: '412' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -179,10 +181,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
-		const authorInput = screen.getByLabelText(/Author/);
-		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
-		const pagesInput = screen.getByLabelText(/Pages/);
-		await fireEvent.input(pagesInput, { target: { value: '412' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -199,10 +198,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
-		const authorInput = screen.getByLabelText(/Author/);
-		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
-		const pagesInput = screen.getByLabelText(/Pages/);
-		await fireEvent.input(pagesInput, { target: { value: '412' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);

@@ -7,6 +7,7 @@
 	import BarcodeScanner from './BarcodeScanner.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import TagInput from './TagInput.svelte';
+	import SuggestionInput from './SuggestionInput.svelte';
 
 	let {
 		open = $bindable(false),
@@ -137,18 +138,22 @@
 						<input class="input input-bordered input-sm" bind:value={subtitle} />
 					</label>
 					<div class="grid grid-cols-2 gap-2">
-						<label class="form-control">
-							<span class="label label-text">{$_('book.author')} <span class="text-error">*</span></span>
-							<input class="input input-bordered input-sm" bind:value={author} required />
-						</label>
+						<SuggestionInput
+							bind:value={author}
+							label={$_('book.author') + ' *'}
+							placeholder={$_('book.author')}
+							fetchSuggestions={(q) => api.books.suggestions.authors(q)}
+						/>
 						<label class="form-control">
 							<span class="label label-text">{$_('book.isbn')}</span>
 							<input class="input input-bordered input-sm" bind:value={isbn} />
 						</label>
-						<label class="form-control">
-							<span class="label label-text">{$_('book.publisher')}</span>
-							<input class="input input-bordered input-sm" bind:value={publisher} />
-						</label>
+						<SuggestionInput
+							bind:value={publisher}
+							label={$_('book.publisher')}
+							placeholder={$_('book.publisher')}
+							fetchSuggestions={(q) => api.books.suggestions.publishers(q)}
+						/>
 						<label class="form-control">
 							<span class="label label-text">{$_('book.year')}</span>
 							<input type="number" class="input input-bordered input-sm" bind:value={published_year} min="1000" max="2100" />
@@ -172,7 +177,7 @@
 							<input type="number" class="input input-bordered input-sm" bind:value={rating} min="1" max="5" />
 						</label>
 					</div>
-					<TagInput bind:value={tags} disabled={submitting} />
+					<TagInput bind:value={tags} disabled={submitting} fetchSuggestions={(q) => api.books.suggestions.tags(q)} />
 					<label class="form-control">
 						<span class="label label-text">{$_('book.status')}</span>
 						<select class="select select-bordered select-sm" bind:value={status}>
