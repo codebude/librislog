@@ -9,6 +9,7 @@
 	import { formatLanguageCode } from '$lib/utils/language';
 	import StarRating from './StarRating.svelte';
 	import { LineChart as LayerLineChart } from 'layerchart';
+	import { curveCatmullRom } from 'd3-shape';
 
 	const tz = getTimezone();
 
@@ -341,7 +342,7 @@
 							points
 							series={[{ key: 'default', value: 'page', color: 'var(--color-primary)', label: $_('book.currentPage') }]}
 							yDomain={[0, Math.max(...lineChartData.map((d) => d.page), book?.page_count ?? 1)]}
-							props={{ xAxis: { tickSpacing: 80 } }}
+							props={{ xAxis: { tickSpacing: 80 }, spline: { curve: curveCatmullRom } }}
 						/>
 					</div>
 				</div>
