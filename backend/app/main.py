@@ -128,7 +128,12 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     if "*" in _TRUSTED_PROXY_IPS or (request.client and request.client.host in _TRUSTED_PROXY_IPS):
         forwarded_proto = request.headers.get("x-forwarded-proto")
         if forwarded_proto:
+            logger.debug("X-Forwarded-Proto=%s — patching scheme to %s", forwarded_proto, forwarded_proto)
             request.scope["scheme"] = forwarded_proto
+        else:
+            logger.debug("No X-Forwarded-Proto header received — keeping scheme=%s", request.scope.get("scheme", "unknown"))
+    else:
+        logger.debug("Request not from trusted proxy (client=%s) — skipping X-Forwarded-Proto check", request.client)
     return await call_next(request)
 
 
