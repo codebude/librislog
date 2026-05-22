@@ -123,3 +123,15 @@ def get_upstream_branch() -> str | None:
         return None
     except GitError:
         return None
+
+
+def create_branch(branch_name: str, base_branch: str) -> None:
+    _run_git(["branch", branch_name, base_branch])
+
+
+def delete_branch(branch_name: str) -> None:
+    _run_git(["branch", "-D", branch_name])
+
+
+def push_and_set_upstream(branch_name: str) -> None:
+    _run_git(["push", "--set-upstream", "origin", branch_name], interactive=True)
