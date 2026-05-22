@@ -136,6 +136,7 @@
 		<input
 			bind:this={fileInput}
 			type="file"
+			name="cover-file"
 			accept="image/*"
 			class="hidden"
 			onchange={onFileChange}
@@ -145,6 +146,7 @@
 		<div class="flex gap-2">
 			<input
 				class="input input-bordered input-sm flex-1"
+				name="cover-url"
 				placeholder={$_('coverPicker.pasteUrl')}
 				bind:value={urlInput}
 				{disabled}

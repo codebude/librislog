@@ -344,18 +344,21 @@
 			{/if}
 			<input
 				class="input input-bordered"
+				name="firstname"
 				bind:value={firstname}
 				placeholder={$_('auth.firstname')}
 				autocomplete="given-name"
 			/>
 			<input
 				class="input input-bordered"
+				name="lastname"
 				bind:value={lastname}
 				placeholder={$_('auth.lastname')}
 				autocomplete="family-name"
 			/>
 			<input
 				class="input input-bordered validator"
+				name="password"
 				type={showPassword ? 'text' : 'password'}
 				bind:value={password}
 				placeholder={$_('user.newPassword')}
@@ -365,7 +368,7 @@
 				title={$_('password.requirementsTitle')}
 			/>
 			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showPassword} />
+				<input type="checkbox" class="checkbox checkbox-xs" name="show-password" bind:checked={showPassword} />
 				<span class="label-text text-xs">{$_('common.showPassword')}</span>
 			</label>
 			<PasswordRequirements {password} />
@@ -376,7 +379,7 @@
 	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.languageTitle')}</h2>
-			<select class="select select-bordered max-w-xs" bind:value={language}>
+			<select class="select select-bordered max-w-xs" name="language" bind:value={language}>
 				{#each SUPPORTED_LOCALES as code}
 					<option value={code}>{$_(`languages.${code}`)}</option>
 				{/each}
@@ -396,6 +399,7 @@
 			{/if}
 			<input
 				list="timezone-list"
+				name="timezone"
 				class="input input-bordered max-w-xs"
 				bind:value={timezone}
 				placeholder={$_('settings.timezonePlaceholder')}
@@ -422,7 +426,7 @@
 			<span class="label">
 				<span class="label-text">{$_('settings.themeSelect')}</span>
 			</span>
-			<select class="select select-bordered max-w-xs" bind:value={customTheme}>
+			<select class="select select-bordered max-w-xs" name="custom-theme" bind:value={customTheme}>
 				{#each [...DAISYUI_THEMES].sort() as t}
 					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
 				{/each}
@@ -438,7 +442,7 @@
 				<a href="/api-docs" class="link link-primary">{$_('settings.apiDocsTitle')}</a>
 			</p>
 			<div class="flex gap-2">
-				<input class="input input-bordered flex-1" bind:value={description} placeholder={$_('user.keyDescription')} />
+				<input class="input input-bordered flex-1" name="key-description" bind:value={description} placeholder={$_('user.keyDescription')} />
 				<button class="btn btn-primary btn-sm" onclick={createKey}>{$_('user.addKey')}</button>
 			</div>
 			{#if createdKey}
@@ -516,6 +520,7 @@
 				<p class="text-xs font-semibold text-warning">{$_('profile.dangerZone.resetData.warning')}</p>
 				<input
 					class="input input-bordered max-w-md"
+					name="reset-data-confirmation"
 					bind:value={resetDataConfirmation}
 					placeholder={$_('profile.dangerZone.resetData.placeholder')}
 				/>
@@ -544,6 +549,7 @@
 				<p class="text-xs font-semibold text-error">{$_('profile.dangerZone.deleteAccount.warning')}</p>
 				<input
 					class="input input-bordered max-w-md"
+					name="delete-account-confirmation"
 					bind:value={deleteAccountConfirmation}
 					placeholder={$_('profile.dangerZone.deleteAccount.placeholder')}
 				/>

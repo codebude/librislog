@@ -3,11 +3,13 @@
 
 	let {
 		value = $bindable(''),
+		name = '',
 		disabled = false,
 		maxTagsCount,
 		fetchSuggestions
 	}: {
 		value?: string;
+		name?: string;
 		disabled?: boolean;
 		maxTagsCount?: number;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
@@ -213,6 +215,7 @@
 			<input
 				bind:this={inputEl}
 				type="text"
+				name={name || 'tags'}
 				class="flex-1 min-w-28 bg-transparent border-0 outline-none text-sm px-1 py-0.5"
 				placeholder={tags.length === 0 ? $_('book.tagsPlaceholder') : ''}
 				bind:value={inputValue}

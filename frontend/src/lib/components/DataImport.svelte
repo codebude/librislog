@@ -309,6 +309,7 @@
 				<input
 					bind:this={fileInput}
 					type="file"
+					name="import-file"
 					class="hidden"
 					accept=".csv,.json"
 					aria-label={$_('data.import.fileInputLabel')}
@@ -338,7 +339,7 @@
 					<div class="grid md:grid-cols-[1fr_auto] gap-2 items-end">
 						<label class="form-control">
 							<span class="label-text text-xs">{$_('data.import.mappingName')}</span>
-							<input class="input input-bordered input-sm" bind:value={mappingName} />
+							<input class="input input-bordered input-sm" name="mapping-name" bind:value={mappingName} />
 						</label>
 						<button class="btn btn-outline btn-sm" onclick={saveMapping} disabled={!mappingName.trim()}>
 							{$_('data.import.saveMapping')}
@@ -348,7 +349,7 @@
 					<div class="grid md:grid-cols-[1fr_auto_auto] gap-2 items-end">
 						<label class="form-control">
 							<span class="label-text text-xs">{$_('data.import.loadSavedMapping')}</span>
-							<select class="select select-bordered select-sm" bind:value={selectedMappingId} disabled={mappings.length === 0}>
+							<select class="select select-bordered select-sm" name="load-mapping" bind:value={selectedMappingId} disabled={mappings.length === 0}>
 								<option value="">{$_('data.import.selectMapping')}</option>
 								{#each mappings as item}
 									<option value={String(item.id)}>{item.name}</option>
@@ -415,12 +416,12 @@
 					<button class="btn btn-primary btn-sm" onclick={simulate} disabled={validating}>
 						{validating ? $_('data.import.validating') : $_('data.import.simulate')}
 					</button>
-					<select class="select select-bordered select-sm" bind:value={importMode}>
+					<select class="select select-bordered select-sm" name="import-mode" bind:value={importMode}>
 						<option value="rollback_all">{$_('data.import.rollbackAll')}</option>
 						<option value="continue_on_error">{$_('data.import.continueOnError')}</option>
 					</select>
 					<label class="label cursor-pointer gap-2">
-						<input type="checkbox" class="checkbox checkbox-sm" bind:checked={createProgressForRead} />
+						<input type="checkbox" class="checkbox checkbox-sm" name="create-progress" bind:checked={createProgressForRead} />
 						<span class="label-text text-xs">{$_('data.import.createProgressForRead')}</span>
 					</label>
 					<button class="btn btn-secondary btn-sm" onclick={openImportModal} disabled={importing || !!(validation && !validation.valid)}>

@@ -244,12 +244,13 @@
 	<div class="flex gap-2">
 		<input
 			type="text"
+			name="import-query"
 			class="input input-bordered input-sm flex-1"
 			placeholder={searchType === 'isbn' ? $_('import.enterIsbn') : $_('import.searchByTitleOrAuthor')}
 			bind:value={query}
 			onkeydown={(e) => e.key === 'Enter' && search()}
 		/>
-		<select class="select select-bordered select-sm" bind:value={searchType}>
+		<select class="select select-bordered select-sm" name="import-type" bind:value={searchType}>
 			<option value="title">{$_('book.title')}</option>
 			<option value="isbn">{$_('book.isbn')}</option>
 		</select>

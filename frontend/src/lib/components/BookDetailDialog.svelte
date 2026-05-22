@@ -304,6 +304,7 @@
 						<span class="text-sm font-mono">
 							<input
 								type="number"
+								name="current-page"
 								class="input input-bordered input-sm w-20 text-center"
 								bind:value={currentPage}
 								min="0"
@@ -322,6 +323,7 @@
 
 					<input
 						type="range"
+						name="progress-range"
 						min="0"
 						max={book.page_count}
 						class="range range-primary range-xs mt-2"

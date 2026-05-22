@@ -3,12 +3,14 @@
 		value = $bindable(''),
 		label = '',
 		placeholder = '',
+		name = '',
 		disabled = false,
 		fetchSuggestions = async (_q: string): Promise<string[]> => []
 	}: {
 		value?: string;
 		label?: string;
 		placeholder?: string;
+		name?: string;
 		disabled?: boolean;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
 	} = $props();
@@ -125,6 +127,7 @@
 			onblur={handleBlur}
 			{placeholder}
 			{disabled}
+			{name}
 			autocomplete="off"
 			role="searchbox"
 			aria-autocomplete="list"

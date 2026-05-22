@@ -350,15 +350,16 @@
 		<form class="flex flex-col gap-3 px-4 pb-4 flex-1 min-h-0 overflow-y-auto" onsubmit={(e) => { e.preventDefault(); save(); }}>
 			<label class="form-control">
 				<span class="label label-text">{$_('book.title')}</span>
-				<input class="input input-bordered input-sm" bind:value={title} required />
+				<input class="input input-bordered input-sm" name="title" bind:value={title} required />
 			</label>
 			<label class="form-control">
 				<span class="label label-text">{$_('book.subtitle')}</span>
-				<input class="input input-bordered input-sm" bind:value={subtitle} />
+				<input class="input input-bordered input-sm" name="subtitle" bind:value={subtitle} />
 			</label>
 
 			<SuggestionInput
 				bind:value={author}
+				name="author"
 				label={$_('book.author') + ' *'}
 				placeholder={$_('book.author')}
 				fetchSuggestions={(q) => api.books.suggestions.authors(q)}
@@ -367,7 +368,7 @@
 			<label class="form-control">
 				<span class="label label-text">{$_('book.isbn')}</span>
 				<div class="flex gap-2">
-					<input class="input input-bordered input-sm flex-1" bind:value={isbn} />
+					<input class="input input-bordered input-sm flex-1" name="isbn" bind:value={isbn} />
 					<button
 						type="button"
 						class="btn btn-outline btn-sm"
@@ -392,6 +393,7 @@
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 				<SuggestionInput
 					bind:value={publisher}
+					name="publisher"
 					label={$_('book.publisher')}
 					placeholder={$_('book.publisher')}
 					fetchSuggestions={(q) => api.books.suggestions.publishers(q)}
@@ -399,12 +401,12 @@
 
 				<label class="form-control">
 					<span class="label label-text">{$_('book.year')}</span>
-					<input type="number" class="input input-bordered input-sm" bind:value={published_year} min="1000" max="2100" />
+					<input type="number" class="input input-bordered input-sm" name="published_year" bind:value={published_year} min="1000" max="2100" />
 				</label>
 
 				<label class="form-control">
 					<span class="label label-text">{$_('book.pages')} <span class="text-error">*</span></span>
-					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" required />
+					<input type="number" class="input input-bordered input-sm" name="page_count" bind:value={page_count} min="1" required />
 				</label>
 
 				<label class="form-control">
@@ -412,6 +414,7 @@
 					<input
 						type="text"
 						class="input input-bordered input-sm"
+						name="language"
 						bind:value={language}
 						maxlength="2"
 						placeholder="EN, DE, FR..."
@@ -419,11 +422,11 @@
 				</label>
 			</div>
 
-			<TagInput bind:value={tags} disabled={saving} fetchSuggestions={(q) => api.books.suggestions.tags(q)} />
+			<TagInput bind:value={tags} name="tags" disabled={saving} fetchSuggestions={(q) => api.books.suggestions.tags(q)} />
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.status')}</span>
-				<select class="select select-bordered select-sm" bind:value={reading_status}>
+				<select class="select select-bordered select-sm" name="status" bind:value={reading_status}>
 					{#each STATUS_OPTIONS as opt}
 						<option value={opt.value}>{$_(opt.label)}</option>
 					{/each}
@@ -437,21 +440,21 @@
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.dateStarted')}</span>
-				<input type="date" class="input input-bordered input-sm" bind:value={date_started} max={today} />
+				<input type="date" class="input input-bordered input-sm" name="date_started" bind:value={date_started} max={today} />
 			</label>
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.dateFinished')}</span>
-				<input type="date" class="input input-bordered input-sm" bind:value={date_finished} max={today} />
+				<input type="date" class="input input-bordered input-sm" name="date_finished" bind:value={date_finished} max={today} />
 			</label>
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.notes')}</span>
-				<textarea class="textarea textarea-bordered text-sm" rows="4" bind:value={notes}></textarea>
+				<textarea class="textarea textarea-bordered text-sm" name="notes" rows="4" bind:value={notes}></textarea>
 			</label>
 			<label class="form-control">
 				<span class="label label-text">{$_('book.blurb')}</span>
-				<textarea class="textarea textarea-bordered text-sm" rows="4" bind:value={blurb}></textarea>
+				<textarea class="textarea textarea-bordered text-sm" name="blurb" rows="4" bind:value={blurb}></textarea>
 			</label>
 
 			<CoverPicker bind:value={cover_url} disabled={saving} />

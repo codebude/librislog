@@ -174,20 +174,21 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 						<label class="form-control">
 							<span class="label label-text">{$_('auth.firstname')} *</span>
-							<input class="input input-bordered" bind:value={firstname} placeholder={$_('auth.firstname')} required />
+							<input class="input input-bordered" name="create-firstname" bind:value={firstname} placeholder={$_('auth.firstname')} required />
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('auth.lastname')} *</span>
-							<input class="input input-bordered" bind:value={lastname} placeholder={$_('auth.lastname')} required />
+							<input class="input input-bordered" name="create-lastname" bind:value={lastname} placeholder={$_('auth.lastname')} required />
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('auth.email')} *</span>
-							<input type="email" class="input input-bordered" bind:value={email} placeholder={$_('auth.email')} required />
+							<input type="email" class="input input-bordered" name="create-email" bind:value={email} placeholder={$_('auth.email')} required />
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('auth.password')} *</span>
 						<input
 							class="input input-bordered validator"
+							name="create-password"
 							type={showCreatePassword ? 'text' : 'password'}
 							bind:value={password}
 							placeholder={$_('auth.password')}
@@ -198,10 +199,10 @@
 						/>
 						</label>
 						<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
-							<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showCreatePassword} />
+							<input type="checkbox" class="checkbox checkbox-xs" name="create-show-password" bind:checked={showCreatePassword} />
 							<span class="label-text text-xs">{$_('common.showPassword')}</span>
 						</label>
-						<select class="select select-bordered" bind:value={role}>
+						<select class="select select-bordered" name="create-role" bind:value={role}>
 							<option value="user">user</option>
 							<option value="admin">admin</option>
 						</select>
@@ -221,20 +222,21 @@
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 										<label class="form-control">
 											<span class="label label-text">{$_('auth.firstname')} *</span>
-											<input class="input input-bordered" bind:value={editFirstname} placeholder={$_('auth.firstname')} required />
+											<input class="input input-bordered" name="edit-firstname" bind:value={editFirstname} placeholder={$_('auth.firstname')} required />
 										</label>
 										<label class="form-control">
 											<span class="label label-text">{$_('auth.lastname')} *</span>
-											<input class="input input-bordered" bind:value={editLastname} placeholder={$_('auth.lastname')} required />
+											<input class="input input-bordered" name="edit-lastname" bind:value={editLastname} placeholder={$_('auth.lastname')} required />
 										</label>
 									<label class="form-control">
 										<span class="label label-text">{$_('auth.email')} *</span>
-										<input type="email" class="input input-bordered" bind:value={editEmail} placeholder={$_('auth.email')} required />
+										<input type="email" class="input input-bordered" name="edit-email" bind:value={editEmail} placeholder={$_('auth.email')} required />
 									</label>
 										<label class="form-control">
 											<span class="label label-text">{$_('user.newPassword')}</span>
 										<input
 											class="input input-bordered validator"
+											name="edit-password"
 											type={showEditPassword ? 'text' : 'password'}
 											bind:value={editPassword}
 											placeholder={$_('user.newPassword')}
@@ -244,10 +246,10 @@
 										/>
 										</label>
 										<label class="label cursor-pointer justify-start gap-2 md:col-span-2">
-											<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showEditPassword} />
+											<input type="checkbox" class="checkbox checkbox-xs" name="edit-show-password" bind:checked={showEditPassword} />
 											<span class="label-text text-xs">{$_('common.showPassword')}</span>
 										</label>
-										<select class="select select-bordered" bind:value={editRole}>
+										<select class="select select-bordered" name="edit-role" bind:value={editRole}>
 											<option value="user">user</option>
 											<option value="admin">admin</option>
 										</select>

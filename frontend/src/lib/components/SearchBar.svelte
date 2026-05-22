@@ -28,6 +28,7 @@
 	</svg>
 	<input
 		type="text"
+		name="search"
 		class="grow bg-transparent outline-none text-sm"
 		placeholder={effectivePlaceholder}
 		{value}

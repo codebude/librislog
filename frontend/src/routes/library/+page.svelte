@@ -389,16 +389,16 @@
 		<div class="flex items-center gap-2 text-sm">
 			<label class="label cursor-pointer gap-2">
 				<span class="label-text text-xs">{$_('sort.smart')}</span>
-				<input type="checkbox" class="toggle toggle-xs" bind:checked={smartSort} />
+				<input type="checkbox" class="toggle toggle-xs" name="smart-sort" bind:checked={smartSort} />
 			</label>
-			<select class="select select-bordered select-xs" bind:value={sort} disabled={smartSort}>
+			<select class="select select-bordered select-xs" name="sort-field" bind:value={sort} disabled={smartSort}>
 				<option value="date_added">{$_('common.dateAdded')}</option>
 				<option value="title">{$_('book.title')}</option>
 				<option value="date_started">{$_('book.dateStarted')}</option>
 				<option value="date_finished">{$_('book.dateFinished')}</option>
 				<option value="rating">{$_('common.rating')}</option>
 			</select>
-			<select class="select select-bordered select-xs" bind:value={order} disabled={smartSort}>
+			<select class="select select-bordered select-xs" name="sort-order" bind:value={order} disabled={smartSort}>
 				<option value="desc">{$_('common.desc')}</option>
 				<option value="asc">{$_('common.asc')}</option>
 			</select>

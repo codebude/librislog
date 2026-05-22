@@ -29,6 +29,7 @@
 			<div class="text-base-content/50 text-center">-&gt;</div>
 			<select
 				class="select select-bordered select-sm"
+				name={`mapping-${source}`}
 				value={mapping[source] ?? ''}
 				onchange={(e) => update(source, e.currentTarget.value)}
 			>

@@ -101,6 +101,7 @@
 			{:else}
 				<input
 					type="file"
+					name="restore-file"
 					class="file-input file-input-bordered file-input-sm"
 					accept=".zip"
 					onchange={(e) => {
