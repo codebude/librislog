@@ -12,6 +12,7 @@
 	import TagInput from './TagInput.svelte';
 	import DateConflictDialog from './DateConflictDialog.svelte';
 	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
+	import BarcodeScanner from './BarcodeScanner.svelte';
 
 	let {
 		book = $bindable(null),
@@ -38,6 +39,7 @@
 	let autoSearchError = $state<string | null>(null);
 	let autoSearchCandidates = $state<CoverCandidate[]>([]);
 	let autoSearchRequestId = 0;
+	let scannerOpen = $state(false);
 
 	// Editable fields
 	let title = $state('');
@@ -364,7 +366,27 @@
 
 			<label class="form-control">
 				<span class="label label-text">{$_('book.isbn')}</span>
-				<input class="input input-bordered input-sm" bind:value={isbn} />
+				<div class="flex gap-2">
+					<input class="input input-bordered input-sm flex-1" bind:value={isbn} />
+					<button
+						type="button"
+						class="btn btn-outline btn-sm"
+						onclick={() => (scannerOpen = true)}
+						title={$_('import.scanIsbn')}
+						aria-label={$_('import.scanIsbn')}
+					>
+						<svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
+							<rect x="2" y="4" width="1" height="16" fill="currentColor" />
+							<rect x="4" y="4" width="2" height="16" fill="currentColor" />
+							<rect x="7" y="4" width="1" height="16" fill="currentColor" />
+							<rect x="9" y="4" width="3" height="16" fill="currentColor" />
+							<rect x="13" y="4" width="1" height="16" fill="currentColor" />
+							<rect x="15" y="4" width="2" height="16" fill="currentColor" />
+							<rect x="18" y="4" width="1" height="16" fill="currentColor" />
+							<rect x="20" y="4" width="2" height="16" fill="currentColor" />
+						</svg>
+					</button>
+				</div>
 			</label>
 
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -553,4 +575,12 @@
 			></button>
 		</div>
 	{/if}
+
+	<BarcodeScanner
+		bind:open={scannerOpen}
+		onDetected={(detected) => {
+			isbn = detected;
+			scannerOpen = false;
+		}}
+	/>
 {/if}
