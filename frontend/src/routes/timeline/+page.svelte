@@ -10,29 +10,63 @@
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 
+	const PAGE_SIZE = 40;
+
 	let loading = $state(true);
+	let loadingMore = $state(false);
+	let hasMore = $state(true);
+	let nextOffset = $state(0);
 	let books = $state<Book[]>([]);
 	let selectedBook = $state<Book | null>(null);
 	let detailOpen = $state(false);
 	let drawerOpen = $state(false);
 	let tz = $state('UTC');
+	let loadMoreAnchor = $state<HTMLDivElement | null>(null);
+	let observer: IntersectionObserver | null = null;
 	const appLocale: string = $derived($locale ?? 'en');
 
 	onMount(() => {
 		tz = getTimezone();
 		void loadTimeline();
+		if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
+		observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) {
+					void loadMoreTimeline();
+				}
+			},
+			{ root: null, rootMargin: '300px 0px', threshold: 0 }
+		);
+		return () => {
+			observer?.disconnect();
+			observer = null;
+		};
+	});
+
+	$effect(() => {
+		const anchor = loadMoreAnchor;
+		if (!anchor || !observer) return;
+		observer.observe(anchor);
+		return () => observer?.unobserve(anchor);
 	});
 
 	async function loadTimeline() {
 		loading = true;
 		try {
-			const allRead = await api.books.list({
+			const page = await api.books.list({
 				status: 'read',
 				sort: 'date_finished',
 				order: 'desc',
-				smart_sort: false
+				smart_sort: false,
+				offset: 0,
+				limit: PAGE_SIZE
 			});
-			books = allRead.filter((b) => b.date_finished !== null);
+			books = page.filter((b) => b.date_finished !== null);
+			nextOffset = page.length;
+			hasMore = page.length === PAGE_SIZE;
+			if (hasMore && books.length > 0) {
+				await maybePrefillViewport();
+			}
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
@@ -41,6 +75,45 @@
 			books = [];
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function maybePrefillViewport() {
+		let safety = 0;
+		while (
+			hasMore &&
+			!loadingMore &&
+			document.documentElement.scrollHeight <= window.innerHeight + 240 &&
+			safety < 4
+		) {
+			safety += 1;
+			await loadMoreTimeline();
+		}
+	}
+
+	async function loadMoreTimeline() {
+		if (loadingMore || loading || !hasMore) return;
+		loadingMore = true;
+		try {
+			const page = await api.books.list({
+				status: 'read',
+				sort: 'date_finished',
+				order: 'desc',
+				smart_sort: false,
+				offset: nextOffset,
+				limit: PAGE_SIZE
+			});
+			const filtered = page.filter((b) => b.date_finished !== null);
+			books = [...books, ...filtered];
+			nextOffset += page.length;
+			hasMore = page.length === PAGE_SIZE;
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
+			if (shouldShowActionToast(msg)) {
+				toasts.add(msg, 'error');
+			}
+		} finally {
+			loadingMore = false;
 		}
 	}
 
@@ -199,6 +272,14 @@
 				</li>
 			{/each}
 		</ul>
+		{#if hasMore}
+			<div bind:this={loadMoreAnchor} class="h-1"></div>
+		{/if}
+		{#if loadingMore}
+			<div class="flex justify-center py-4">
+				<span class="loading loading-spinner loading-md"></span>
+			</div>
+		{/if}
 	{/if}
 </div>
 
