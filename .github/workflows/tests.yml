@@ -101,6 +101,8 @@ jobs:
       checks: write
       pull-requests: write
     steps:
+      - uses: actions/checkout@v6
+
       - uses: actions/download-artifact@v5
         with:
           path: artifacts
