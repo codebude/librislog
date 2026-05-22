@@ -20,6 +20,7 @@
 	let isOpen = $state(false);
 	let isLoading = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined = $state();
+	let dropdownStyle = $state('');
 
 	const tags = $derived.by(() =>
 		value
@@ -157,6 +158,18 @@
 		const after = text.slice(idx + query.length);
 		return `${before}<mark class="bg-primary/20 text-primary font-medium rounded">${match}</mark>${after}`;
 	}
+
+	$effect(() => {
+		if (!isOpen || !inputEl) return;
+		const rect = inputEl.getBoundingClientRect();
+		const spaceBelow = window.innerHeight - rect.bottom;
+		const dropdownHeight = Math.min(192, suggestions.length * 36 + 16);
+		if (spaceBelow >= dropdownHeight + 8) {
+			dropdownStyle = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		} else {
+			dropdownStyle = `position:fixed;bottom:${window.innerHeight - rect.top + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		}
+	});
 </script>
 
 <div class="flex flex-col gap-2">
@@ -204,7 +217,8 @@
 		{#if isOpen}
 			<ul
 				role="listbox"
-				class="absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				class="z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				style={dropdownStyle || 'position:absolute;left:0;right:0;margin-top:0.25rem'}
 			>
 				{#each suggestions as suggestion, i}
 					<li

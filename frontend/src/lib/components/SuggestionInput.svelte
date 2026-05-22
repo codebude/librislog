@@ -20,9 +20,23 @@
 	let isLoading = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined = $state();
 	let containerEl: HTMLDivElement | undefined = $state();
+	let dropdownStyle = $state('');
+	let inputEl: HTMLInputElement | undefined = $state();
 
 	$effect(() => {
 		inputValue = value;
+	});
+
+	$effect(() => {
+		if (!isOpen || !inputEl) return;
+		const rect = inputEl.getBoundingClientRect();
+		const spaceBelow = window.innerHeight - rect.bottom;
+		const dropdownHeight = Math.min(192, suggestions.length * 36 + 16);
+		if (spaceBelow >= dropdownHeight + 8) {
+			dropdownStyle = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		} else {
+			dropdownStyle = `position:fixed;bottom:${window.innerHeight - rect.top + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		}
 	});
 
 	function handleInput() {
@@ -104,6 +118,7 @@
 		<input
 			type="text"
 			class="input input-bordered input-sm w-full"
+			bind:this={inputEl}
 			bind:value={inputValue}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
@@ -124,7 +139,8 @@
 			<ul
 				id="suggestion-list"
 				role="listbox"
-				class="absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				class="z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				style={dropdownStyle || 'position:absolute;left:0;right:0;margin-top:0.25rem'}
 			>
 				{#each suggestions as suggestion, i}
 					<li
