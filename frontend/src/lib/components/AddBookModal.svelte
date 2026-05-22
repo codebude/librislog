@@ -60,16 +60,18 @@
 
 	async function submitManual() {
 		if (!title.trim()) return;
+		if (!author.trim()) return;
+		if (!page_count) return;
 		submitting = true;
 		try {
 			const book = await api.books.create({
 				title: title.trim(),
 				subtitle: subtitle || null,
-				author: author || null,
+				author: author.trim(),
 				isbn: isbn || null,
 				publisher: publisher || null,
 				published_year: published_year ? parseInt(published_year) : null,
-				page_count: page_count ? parseInt(page_count) : null,
+				page_count: parseInt(page_count),
 				language: language || null,
 				tags: tags || null,
 				notes: notes || null,
@@ -136,8 +138,8 @@
 					</label>
 					<div class="grid grid-cols-2 gap-2">
 						<label class="form-control">
-							<span class="label label-text">{$_('book.author')}</span>
-							<input class="input input-bordered input-sm" bind:value={author} />
+							<span class="label label-text">{$_('book.author')} <span class="text-error">*</span></span>
+							<input class="input input-bordered input-sm" bind:value={author} required />
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('book.isbn')}</span>
@@ -152,8 +154,8 @@
 							<input type="number" class="input input-bordered input-sm" bind:value={published_year} min="1000" max="2100" />
 						</label>
 						<label class="form-control">
-							<span class="label label-text">{$_('book.pages')}</span>
-							<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+							<span class="label label-text">{$_('book.pages')} <span class="text-error">*</span></span>
+							<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" required />
 						</label>
 						<label class="form-control">
 							<span class="label label-text">{$_('book.language')}</span>

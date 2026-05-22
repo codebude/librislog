@@ -85,11 +85,11 @@
 		const payload: Partial<Book> = {
 			title,
 			subtitle: subtitle || null,
-			author: author || null,
+			author: author.trim(),
 			isbn: isbn || null,
 			publisher: publisher || null,
 			published_year: published_year ? parseInt(published_year, 10) : null,
-			page_count: page_count ? parseInt(page_count, 10) : null,
+			page_count: parseInt(page_count, 10),
 			language: language || null,
 			tags: tags || null,
 			notes: notes || null,
@@ -167,6 +167,14 @@
 
 	async function save() {
 		if (!book) return;
+		if (!author.trim()) {
+			toasts.add($_('error.authorRequired'), 'error');
+			return;
+		}
+		if (!page_count) {
+			toasts.add($_('error.pageCountRequired'), 'error');
+			return;
+		}
 		const ds = date_started.trim();
 		const df = date_finished.trim();
 		if (ds && df && ds > df) {
@@ -349,7 +357,7 @@
 
 			<SuggestionInput
 				bind:value={author}
-				label={$_('book.author')}
+				label={$_('book.author') + ' *'}
 				placeholder={$_('book.author')}
 				fetchSuggestions={(q) => api.books.suggestions.authors(q)}
 			/>
@@ -373,8 +381,8 @@
 				</label>
 
 				<label class="form-control">
-					<span class="label label-text">{$_('book.pages')}</span>
-					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+					<span class="label label-text">{$_('book.pages')} <span class="text-error">*</span></span>
+					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" required />
 				</label>
 
 				<label class="form-control">

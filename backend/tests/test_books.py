@@ -18,7 +18,7 @@ import app.routers.books as books_router
 
 def _create_book(client: TestClient, **kwargs: Any) -> dict[str, Any]:
     """Create a book via POST /api/books and return the response JSON."""
-    payload: dict[str, Any] = {"title": "Test Book", **kwargs}
+    payload: dict[str, Any] = {"title": "Test Book", "author": "Test Author", "page_count": 100, **kwargs}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()
@@ -27,7 +27,7 @@ def _create_book(client: TestClient, **kwargs: Any) -> dict[str, Any]:
 # ── create ────────────────────────────────────────────────────────────────────
 
 def test_create_book_returns_201(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"title": "Dune"})
+    resp = client.post("/api/books", json={"title": "Dune", "author": "Frank Herbert", "page_count": 412})
     assert resp.status_code == 201
     data = resp.json()
     assert data["title"] == "Dune"
@@ -62,12 +62,12 @@ def test_create_book_with_all_fields(client: TestClient) -> None:
 
 
 def test_create_book_missing_title_returns_422(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"author": "Frank Herbert"})
+    resp = client.post("/api/books", json={"author": "Frank Herbert", "page_count": 400})
     assert resp.status_code == 422
 
 
 def test_create_book_invalid_rating_returns_422(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"title": "Dune", "rating": 6})
+    resp = client.post("/api/books", json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "rating": 6})
     assert resp.status_code == 422
 
 
@@ -212,13 +212,13 @@ def test_update_book_language(client: TestClient) -> None:
 
 
 def test_create_book_invalid_language_returns_422(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"title": "Dune", "language": "english"})
+    resp = client.post("/api/books", json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "language": "english"})
     assert resp.status_code == 422
     assert resp.json()["detail"] == "error.invalidLanguageCode"
 
 
 def test_create_book_with_did_not_finish_status(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"title": "DNF Book", "reading_status": "did_not_finish"})
+    resp = client.post("/api/books", json={"title": "DNF Book", "author": "Test Author", "page_count": 100, "reading_status": "did_not_finish"})
     assert resp.status_code == 201
     assert resp.json()["reading_status"] == "did_not_finish"
 
@@ -688,7 +688,7 @@ def test_create_book_with_external_cover_downloads_local(client: TestClient, tmp
     monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
     monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_success)
 
-    resp = client.post("/api/books", json={"title": "Book", "cover_url": "https://example.com/c.jpg"})
+    resp = client.post("/api/books", json={"title": "Book", "author": "Test Author", "page_count": 100, "cover_url": "https://example.com/c.jpg"})
     assert resp.status_code == 201
     data = resp.json()
     assert data["cover_url"] == "/api/covers/fakecover123.jpg"
@@ -701,7 +701,7 @@ def test_create_book_cover_download_fail_skips_cover(client: TestClient, tmp_pat
     monkeypatch.setattr(books_router, "import_cover_from_url", _fake_download_cover_fail)
 
     ext_url = "https://example.com/fallback.jpg"
-    resp = client.post("/api/books", json={"title": "Book", "cover_url": ext_url})
+    resp = client.post("/api/books", json={"title": "Book", "author": "Test Author", "page_count": 100, "cover_url": ext_url})
     assert resp.status_code == 201
     assert resp.json()["cover_url"] is None
 
@@ -716,7 +716,7 @@ def test_create_book_local_cover_url_not_re_downloaded(client: TestClient, tmp_p
     monkeypatch.setattr(books_router, "import_cover_from_url", spy)
 
     local_url = "/api/covers/existing.jpg"
-    resp = client.post("/api/books", json={"title": "Book", "cover_url": local_url})
+    resp = client.post("/api/books", json={"title": "Book", "author": "Test Author", "page_count": 100, "cover_url": local_url})
     assert resp.status_code == 201
     assert resp.json()["cover_url"] == local_url
     assert called == []  # download_cover must NOT be called
@@ -911,7 +911,7 @@ def test_suggest_user_isolation(client: TestClient, create_user_with_key: Callab
     user2, key2 = create_user_with_key(email="other@example.com")
     with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key2})
-        resp2 = c2.post("/api/books", json={"title": "User2 Book", "author": "Isaac Asimov"})
+        resp2 = c2.post("/api/books", json={"title": "User2 Book", "author": "Isaac Asimov", "page_count": 200})
         assert resp2.status_code == 201
 
         resp = client.get("/api/books/suggestions/authors?q=frank")
@@ -1046,7 +1046,7 @@ def test_create_book_future_date_started_returns_422(client: TestClient, monkeyp
         "_utcnow",
         lambda: datetime(2024, 1, 1, tzinfo=timezone.utc),
     )
-    resp = client.post("/api/books", json={"title": "Future", "date_started": "2025-01-01"})
+    resp = client.post("/api/books", json={"title": "Future", "author": "Test Author", "page_count": 100, "date_started": "2025-01-01"})
     assert resp.status_code == 422
     assert resp.json()["detail"] == "error.dateInFuture"
 
@@ -1054,21 +1054,21 @@ def test_create_book_future_date_started_returns_422(client: TestClient, monkeyp
 def test_create_book_date_started_after_finished_returns_422(client: TestClient) -> None:
     resp = client.post(
         "/api/books",
-        json={"title": "Bad Dates", "date_started": "2024-02-01", "date_finished": "2024-01-01"},
+        json={"title": "Bad Dates", "author": "Test Author", "page_count": 100, "date_started": "2024-02-01", "date_finished": "2024-01-01"},
     )
     assert resp.status_code == 422
     assert resp.json()["detail"] == "error.dateStartedAfterFinished"
 
 
 def test_create_book_whitespace_language_returns_none(client: TestClient) -> None:
-    resp = client.post("/api/books", json={"title": "Whitespace Lang", "language": "   "})
+    resp = client.post("/api/books", json={"title": "Whitespace Lang", "author": "Test Author", "page_count": 100, "language": "   "})
     assert resp.status_code == 201
     assert resp.json()["language"] is None
 
 
 def test_create_book_duplicate_isbn_returns_409(client: TestClient) -> None:
     _create_book(client, title="First", isbn="9780441013593")
-    resp = client.post("/api/books", json={"title": "Duplicate", "isbn": "9780441013593"})
+    resp = client.post("/api/books", json={"title": "Duplicate", "author": "Test Author", "page_count": 100, "isbn": "9780441013593"})
     assert resp.status_code == 409
     assert resp.json()["detail"] == "error.isbnAlreadyExists"
 
@@ -1231,7 +1231,7 @@ def test_create_book_commit_integrity_error(client: TestClient, monkeypatch: Mon
 
     monkeypatch.setattr(Session, "commit", _fake_commit)
     with pytest.raises(SQLAIntegrityError):
-        client.post("/api/books", json={"title": "Commit Conflict"})
+        client.post("/api/books", json={"title": "Commit Conflict", "author": "Test Author", "page_count": 100})
 
 
 def test_update_book_commit_integrity_error(client: TestClient, monkeypatch: MonkeyPatch) -> None:

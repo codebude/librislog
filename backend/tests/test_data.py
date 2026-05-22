@@ -24,7 +24,7 @@ def _parse_sse(text: str) -> list[dict[str, str | int | bool | None]]:
 def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
     )
     assert create_resp.status_code == 201
 
@@ -51,7 +51,7 @@ def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) ->
 def test_data_export_csv_format(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
     )
     assert create_resp.status_code == 201
 
@@ -78,7 +78,7 @@ def test_data_export_with_covers(client: TestClient, monkeypatch: MonkeyPatch, t
 
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "reading_status": "read", "cover_url": "/api/covers/test_cover.jpg"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "cover_url": "/api/covers/test_cover.jpg"},
     )
     assert create_resp.status_code == 201
 
@@ -105,7 +105,7 @@ def test_data_export_missing_cover_skipped(client: TestClient, monkeypatch: Monk
 
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "reading_status": "read", "cover_url": "/api/covers/missing.jpg"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "cover_url": "/api/covers/missing.jpg"},
     )
     assert create_resp.status_code == 201
 

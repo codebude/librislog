@@ -510,8 +510,8 @@ def test_profile_reset_data_requires_confirmation_phrase(client: TestClient) -> 
 
 
 def test_profile_reset_data_deletes_books_tags_progress(client: TestClient) -> None:
-    b1 = client.post("/api/books", json={"title": "A", "tags": "one,two"}).json()
-    b2 = client.post("/api/books", json={"title": "B", "tags": "one"}).json()
+    b1 = client.post("/api/books", json={"title": "A", "author": "Test Author", "page_count": 100, "tags": "one,two"}).json()
+    b2 = client.post("/api/books", json={"title": "B", "author": "Test Author", "page_count": 100, "tags": "one"}).json()
     client.post(f"/api/books/{b1['id']}/progress", json={"page": 10})
     client.post(f"/api/books/{b1['id']}/progress", json={"page": 20})
 
@@ -540,7 +540,7 @@ def test_profile_delete_account_deletes_regular_user_data(
     with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key})
 
-        create = c2.post("/api/books", json={"title": "To Delete", "tags": "x"})
+        create = c2.post("/api/books", json={"title": "To Delete", "author": "Test Author", "page_count": 100, "tags": "x"})
         assert create.status_code == 201
         book_id = create.json()["id"]
         c2.post(f"/api/books/{book_id}/progress", json={"page": 7})

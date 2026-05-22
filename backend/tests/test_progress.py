@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 def _create_book(client: TestClient, **kwargs: Any) -> dict[str, Any]:
     """Helper to create a book via the API and return the JSON response."""
-    payload = {"title": "Progress Test Book", **kwargs}
+    payload = {"title": "Progress Test Book", "author": "Test Author", "page_count": 200, **kwargs}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()
@@ -29,7 +29,9 @@ def test_create_progress_page_exceeds_page_count(client: TestClient) -> None:
 
 
 def test_create_progress_no_page_count_allowed(client: TestClient) -> None:
-    book = _create_book(client, page_count=None)
+    book = _create_book(client)
+    resp = client.patch(f"/api/books/{book['id']}", json={"page_count": None})
+    assert resp.status_code == 200
     resp = client.post(f"/api/books/{book['id']}/progress", json={"page": 50})
     assert resp.status_code == 201
     assert resp.json()["page"] == 50

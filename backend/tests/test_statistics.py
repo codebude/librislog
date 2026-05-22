@@ -12,7 +12,7 @@ from app.routers.statistics import _extract_book_level_daily_pages
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
     """Helper to create a book via the API and return the JSON response."""
-    payload = {"title": "Book", **overrides}
+    payload = {"title": "Book", "author": "Test Author", "page_count": 100, **overrides}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()
@@ -61,7 +61,7 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
         page_count=300, language="DE", reading_status="read",
         date_finished="2026-03-01T10:00:00Z",
     )
-    _create_book(client, title="Want", page_count=120, language="EN", reading_status="want_to_read")
+    _create_book(client, title="Want", author="Author B", page_count=120, language="EN", reading_status="want_to_read")
     dnf = _create_book(client, title="DNF", author="Author A", language="FR", reading_status="did_not_finish")
 
     client.post(f"/api/books/{dnf['id']}/progress", json={"page": 40})
@@ -73,7 +73,7 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert data["avg_books_per_month"] == 1.5
     assert data["busiest_month"] == "2026-01"
     assert data["busiest_month_count"] == 2
-    assert data["avg_page_count"] == 180
+    assert data["avg_page_count"] == 164.0
     assert data["most_popular_language"] == "EN"
     assert data["most_popular_language_count"] == 3
     assert data["status_distribution"] == {
@@ -98,7 +98,7 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert "/api/covers/a1.jpg" in top_a_cover_urls
     assert "/api/covers/a2.jpg" in top_a_cover_urls
     assert data["top_authors"][1]["author"] == "Author B"
-    assert data["top_authors"][1]["book_count"] == 1
+    assert data["top_authors"][1]["book_count"] == 2
 
 
 def test_statistics_top_authors_limit_and_tiebreaker(client: Any) -> None:
@@ -199,8 +199,9 @@ def test_pages_per_day_fallback_books_without_progress(client: Any) -> None:
 def test_pages_per_day_skips_books_missing_dates_or_pages(client: Any) -> None:
     """Books without date_started, date_finished, or page_count should be skipped in fallback."""
     _create_book(client, title="No Dates", reading_status="read", page_count=100)
-    _create_book(client, title="No Pages", reading_status="read",
-                 date_started="2026-05-01T10:00:00Z", date_finished="2026-05-02T10:00:00Z")
+    book2 = _create_book(client, title="No Pages", reading_status="read",
+                         date_started="2026-05-01T10:00:00Z", date_finished="2026-05-02T10:00:00Z")
+    client.patch(f"/api/books/{book2['id']}", json={"page_count": None})
 
     resp = client.get("/api/statistics/pages-per-day?days=730")
     assert resp.status_code == 200

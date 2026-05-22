@@ -332,6 +332,8 @@
     "cannotDeleteOwnAccountHere": "You cannot delete your own account here. Use Profile > Danger Zone.",
     "importMalformedEvent": "Received malformed server event during import.",
     "importUnsupportedContentType": "Unsupported upload content type. Use CSV or JSON files.",
+    "authorRequired": "Author is required.",
+    "pageCountRequired": "Page count is required.",
     "importTempFileCreateFailed": "Could not create a temporary import file. Please try again.",
     "fileTooLarge": "The file is too large. Please try a smaller file or check server limits."
   },

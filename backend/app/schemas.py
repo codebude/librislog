@@ -34,12 +34,12 @@ class BookCreate(SQLModel):
     """Request body to create a new book."""
     title: str
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: str
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
     published_year: Optional[int] = None
-    page_count: Optional[int] = None
+    page_count: int
     language: Optional[str] = None
     tags: Optional[str] = None
     notes: Optional[str] = None

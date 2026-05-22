@@ -129,6 +129,10 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		const authorInput = screen.getByLabelText(/Author/);
+		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		await fireEvent.input(pagesInput, { target: { value: '412' } });
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -137,6 +141,8 @@ describe('AddBookModal', () => {
 			expect(mockBooksCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					title: 'Test Book',
+					author: 'Frank Herbert',
+					page_count: 412,
 					reading_status: 'want_to_read'
 				})
 			);
@@ -152,6 +158,10 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		const authorInput = screen.getByLabelText(/Author/);
+		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		await fireEvent.input(pagesInput, { target: { value: '412' } });
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -169,6 +179,10 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		const authorInput = screen.getByLabelText(/Author/);
+		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		await fireEvent.input(pagesInput, { target: { value: '412' } });
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -185,6 +199,10 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		const authorInput = screen.getByLabelText(/Author/);
+		await fireEvent.input(authorInput, { target: { value: 'Frank Herbert' } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		await fireEvent.input(pagesInput, { target: { value: '412' } });
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);

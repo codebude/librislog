@@ -332,6 +332,8 @@
     "cannotDeleteOwnAccountHere": "Das eigene Konto kann hier nicht gelöscht werden. Verwenden Sie Profil > Gefahrenbereich.",
     "importMalformedEvent": "Während des Imports wurde ein fehlerhaftes Server-Ereignis empfangen.",
     "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV- oder JSON-Dateien verwenden.",
+    "authorRequired": "Autor ist erforderlich.",
+    "pageCountRequired": "Seitenanzahl ist erforderlich.",
     "importTempFileCreateFailed": "Temporäre Importdatei konnte nicht erstellt werden. Bitte erneut versuchen.",
     "fileTooLarge": "Die Datei ist zu groß. Bitte versuche eine kleinere Datei oder prüfe die Server-Limits."
   },
