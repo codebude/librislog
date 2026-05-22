@@ -194,7 +194,8 @@
     "previewAlt": "Cover preview"
   },
   "toasts": {
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "newVersion": "A new version ({version}) is available. Reload for updates."
   },
   "settings": {
     "title": "Settings",

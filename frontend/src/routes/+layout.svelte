@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import AddBookModal from '$lib/components/AddBookModal.svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
 	import UserMenu from '$lib/components/UserMenu.svelte';
@@ -10,12 +10,14 @@
 	import { _, setupI18n } from '$lib/i18n';
 	import { setTimezone, setQuoteServiceEnabled } from '$lib/stores/timezone';
 	import { version, gitSha } from '$lib/version';
+	import { toasts } from '$lib/toasts';
 
 	let { children } = $props();
 
 	let addBookOpen = $state(false);
 	let i18nReady = $state(false);
 	let authReady = $state(false);
+	let versionInterval: ReturnType<typeof setInterval> | undefined;
 	const isPublicAuthRoute = $derived(
 		$page.url.pathname.startsWith('/setup') ||
 			$page.url.pathname.startsWith('/login') ||
@@ -106,7 +108,29 @@
 		} finally {
 			authReady = true;
 		}
+
+		// Version change detection: poll for new deployments
+		const checkVersion = async () => {
+			try {
+				const res = await fetch('/version.json');
+				if (!res.ok) return;
+				const data: { version?: string } = await res.json();
+				if (data.version && data.version !== version) {
+					toasts.add(
+						$_('toasts.newVersion', { values: { version: data.version } }),
+						'info',
+						120000
+					);
+				}
+			} catch {
+				// network errors, retry later
+			}
+		};
+		checkVersion();
+		versionInterval = setInterval(checkVersion, 300000);
 	});
+
+	onDestroy(() => clearInterval(versionInterval));
 
 	const NAV_ITEMS = $derived.by(() => {
 		const items = [

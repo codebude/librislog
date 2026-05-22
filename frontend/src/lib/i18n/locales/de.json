@@ -194,7 +194,8 @@
     "previewAlt": "Cover-Vorschau"
   },
   "toasts": {
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "newVersion": "Eine neue Version ({version}) ist verfügbar. Seite neu laden für Updates."
   },
   "settings": {
     "title": "Einstellungen",

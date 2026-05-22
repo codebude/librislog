@@ -11,6 +11,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN echo "export const version = '${APP_VERSION}'; export const gitSha = '${GIT_SHA}';" > src/lib/version.ts
+RUN echo "{\"version\":\"${APP_VERSION}\",\"sha\":\"${GIT_SHA}\"}" > static/version.json
 RUN npm run build
 
 # Stage 2: serve
