@@ -129,7 +129,9 @@ jobs:
             const r = JSON.parse('${{ toJSON(steps.results.outputs) }}');
             const total = parseInt(r.passed) + parseInt(r.failed) + parseInt(r.skipped);
             const emoji = r.conclusion === 'success' ? '✅' : '❌';
-            const summary = `${emoji} **Test Results** — ${r.passed} passed, ${r.failed} failed, ${r.skipped} skipped (${total} total)`;
+            const sha = context.sha;
+            const shaLink = `[\`${sha.slice(0, 7)}\`](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${sha})`;
+            const summary = `${emoji} **Test Results** — ${r.passed} passed, ${r.failed} failed, ${r.skipped} skipped (${total} total) — ${shaLink}`;
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
