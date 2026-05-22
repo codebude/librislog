@@ -22,11 +22,12 @@ def cmd_sync() -> None:
 
     candidates = [b for b in remotes if b != cur]
     upstream = llc._git.get_upstream_branch()
+    preselect = upstream if upstream in candidates else None
 
     target = llc._interactive.select_from_list(
         candidates,
         title="Select origin branch to merge into current",
-        preselect=upstream,
+        preselect=preselect,
     )
     if target is None:
         console.print("[yellow]Cancelled.[/yellow]")

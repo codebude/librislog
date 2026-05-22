@@ -11,7 +11,7 @@ class TestSync:
         mock_merge = mocker.patch("llc._git.merge")
         mock_push = mocker.patch("llc._git.push")
 
-        result = runner.invoke(app, ["sync"])
+        result = runner.invoke(app, ["branch", "sync"])
         assert result.exit_code == 0
         mock_merge.assert_called_once_with("develop")
         mock_push.assert_called_once()
@@ -22,5 +22,5 @@ class TestSync:
         mocker.patch("llc._git.remote_origin_branches", return_value=["main", "develop"])
         mocker.patch("llc._interactive.select_from_list", return_value=None)
 
-        result = runner.invoke(app, ["sync"])
+        result = runner.invoke(app, ["branch", "sync"])
         assert result.exit_code == 0

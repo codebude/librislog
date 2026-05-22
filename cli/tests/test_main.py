@@ -18,6 +18,6 @@ class TestHelp:
         assert "create" in result.stdout
 
     def test_sync_help(self, runner):
-        result = runner.invoke(app, ["sync", "--help"])
+        result = runner.invoke(app, ["branch", "sync", "--help"])
         assert result.exit_code == 0
         assert "Sync" in result.stdout

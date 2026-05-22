@@ -24,7 +24,7 @@ test_app = typer.Typer(
 )
 branch_app = typer.Typer(
     name="branch",
-    help="Manage branches (create, delete)",
+    help="Manage branches (create, delete, sync)",
     rich_markup_mode="rich",
 )
 app.add_typer(pr_app)
@@ -110,8 +110,8 @@ def branch_delete():
     cmd_delete()
 
 
-@app.command()
-def sync():
+@branch_app.command("sync")
+def branch_sync():
     """Sync current branch with an origin branch."""
     from llc.sync import cmd_sync
     cmd_sync()
