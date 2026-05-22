@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import type { Book, DashboardQuote, LibraryStats } from '$lib/types';
@@ -235,12 +234,13 @@
 		};
 	});
 
-	async function openFromSearch(book: Book) {
+	function openFromSearch(book: Book) {
 		searchQuery = '';
 		searchResults = [];
 		searchLoading = false;
 		highlightedIndex = -1;
-		await goto(`/library?status=${book.reading_status}&bookId=${book.id}`);
+		selectedBook = book;
+		detailOpen = true;
 	}
 
 	$effect(() => {
