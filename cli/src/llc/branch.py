@@ -38,7 +38,7 @@ def cmd_delete() -> None:
                 raise typer.Exit()
 
         confirmed = llc._interactive.confirm(
-            f"Are you sure you want to delete branch [bold]{selected}[/bold]?",
+            f"Are you sure you want to delete branch «{selected}»?",
             default=False,
         )
         if not confirmed:
