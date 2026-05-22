@@ -58,6 +58,21 @@
 	}
 
 	function handleInput() {
+		const commaIdx = inputValue.lastIndexOf(',');
+		if (commaIdx >= 0) {
+			const before = inputValue.slice(0, commaIdx).trim();
+			if (before && !tags.some((t) => t.toLowerCase() === before.toLowerCase())) {
+				if (!(typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount)) {
+					setTags([...tags, before]);
+				}
+			}
+			inputValue = inputValue.slice(commaIdx + 1).trimStart();
+			suggestions = [];
+			isOpen = false;
+			highlightedIndex = -1;
+			return;
+		}
+
 		if (!fetchSuggestions) return;
 		clearTimeout(debounceTimer);
 		const trimmed = inputValue.trim();
@@ -206,6 +221,7 @@
 				onkeydown={handleKeydown}
 				onblur={handleBlur}
 				autocomplete="off"
+				enterkeyhint="done"
 			/>
 			{#if isLoading}
 				<div class="absolute right-2 top-1/2 -translate-y-1/2">
