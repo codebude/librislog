@@ -207,7 +207,7 @@
 	></div>
 
 	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
-		<div class="flex items-center justify-between p-4 border-b border-base-200">
+		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
 			<div class="min-w-0 flex-1">
 				<h2 class="text-lg font-bold truncate">{book.title}</h2>
 				{#if book.subtitle}
@@ -221,17 +221,19 @@
 			>✕</button>
 		</div>
 
-		<div class="p-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-			<div class="rounded-lg bg-base-200 overflow-hidden aspect-[2/3] w-40 self-center">
-				{#if book.cover_url}
+		{#if book.cover_url}
+			<div class="shrink-0 px-4 pt-4 pb-2">
+				<div class="rounded-lg bg-base-200 overflow-hidden aspect-[2/3] w-40 mx-auto">
 					<img
 						src={book.cover_url}
 						alt={$_('book.coverOf', { values: { title: book.title } })}
 						class="w-full h-full object-cover"
 					/>
-				{/if}
+				</div>
 			</div>
+		{/if}
 
+		<div class="px-4 pb-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
 			<div class="flex items-center justify-between gap-2">
 				<div class="text-sm text-base-content/70">{book.author ?? '-'}</div>
 				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]}">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>

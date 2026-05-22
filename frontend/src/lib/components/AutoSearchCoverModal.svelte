@@ -20,6 +20,24 @@
 
 	let imageResolutionMap = $state<Record<string, string>>({});
 
+	const available = $derived(candidates.filter((c) => c.available));
+
+	function resolutionKey(candidate: CoverCandidate): string {
+		return `${candidate.source}:${candidate.url}`;
+	}
+
+	function resolutionScore(candidate: CoverCandidate): number {
+		const detected = imageResolutionMap[resolutionKey(candidate)];
+		if (detected) {
+			const parts = detected.split('x');
+			return parseInt(parts[0], 10) * parseInt(parts[1], 10);
+		}
+		if (candidate.width && candidate.height) return candidate.width * candidate.height;
+		return 0;
+	}
+
+	const sorted = $derived.by(() => [...available].sort((a, b) => resolutionScore(b) - resolutionScore(a)));
+
 	function close() {
 		onCancel?.();
 	}
@@ -32,9 +50,8 @@
 	}
 
 	function resolutionLabel(candidate: CoverCandidate): string {
-		const key = `${candidate.source}:${candidate.url}`;
-		const fromImage = imageResolutionMap[key];
-		if (fromImage) return fromImage;
+		const detected = imageResolutionMap[resolutionKey(candidate)];
+		if (detected) return detected;
 		if (!candidate.width || !candidate.height) return 'n/a';
 		return `${candidate.width}x${candidate.height}`;
 	}
@@ -44,7 +61,7 @@
 		if (!target?.naturalWidth || !target?.naturalHeight) return;
 		imageResolutionMap = {
 			...imageResolutionMap,
-			[`${candidate.source}:${candidate.url}`]: `${target.naturalWidth}x${target.naturalHeight}`
+			[resolutionKey(candidate)]: `${target.naturalWidth}x${target.naturalHeight}`
 		};
 	}
 </script>
@@ -69,33 +86,33 @@
 
 				<p class="text-sm text-base-content/70 mb-3">{$_('book.autoSearchInfo')}</p>
 
-				{#if candidates.length === 0}
+				{#if sorted.length === 0}
 					<div class="text-sm text-base-content/60 py-4">{$_('book.autoSearchNoCandidates')}</div>
 				{:else}
 					<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-						{#each candidates.filter((candidate) => candidate.available) as candidate (candidate.source + candidate.url)}
+						{#each sorted as candidate (resolutionKey(candidate))}
 							<button
 								type="button"
-								class="relative group rounded-lg overflow-hidden border border-base-300 hover:border-primary"
+								class="card card-compact border border-base-300 hover:border-primary text-left"
 								onclick={() => onSelect?.(candidate)}
 							>
-							<img
-								src={candidate.url}
-								alt={`Cover ${candidate.source}`}
-								class="w-full aspect-[2/3] object-cover bg-base-200"
-								loading="lazy"
-								onload={(event) => handleImageLoad(candidate, event)}
-							/>
-								<div class="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-									<div class="font-semibold">
+								<figure class="bg-base-200">
+									<img
+										src={candidate.url}
+										alt={`Cover ${candidate.source}`}
+										class="w-full aspect-[2/3] object-cover"
+										loading="lazy"
+										onload={(event) => handleImageLoad(candidate, event)}
+									/>
+								</figure>
+								<div class="card-body gap-1 p-2 text-xs">
+									<div class="font-semibold truncate">
 										{$_('book.autoSearchSourceLabel', { values: { source: candidate.source } })}
 									</div>
-									<div>{$_('book.autoSearchMeta', {
-										values: {
-											size: filesizeLabel(candidate.filesize),
-											resolution: resolutionLabel(candidate)
-										}
-									})}</div>
+									<div class="text-base-content/60">
+										{filesizeLabel(candidate.filesize)}
+										{#if resolutionLabel(candidate) !== 'n/a'} · {resolutionLabel(candidate)}{/if}
+									</div>
 								</div>
 							</button>
 						{/each}
