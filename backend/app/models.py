@@ -126,12 +126,14 @@ class User(SQLModel, table=True):
 
 
 class UserSettings(SQLModel, table=True):
-    """Per-user settings such as language and timezone."""
+    """Per-user settings such as language, timezone, and theme."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", unique=True, index=True)
     language: str = Field(default="en", max_length=10)
     timezone: str = Field(default="UTC", max_length=64)
+    theme: str = Field(default="light", max_length=20)
+    custom_theme: Optional[str] = Field(default=None, max_length=30)
 
 
 class ApiKey(SQLModel, table=True):

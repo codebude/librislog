@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime
 from typing import Literal
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_validator
 from sqlmodel import Field, SQLModel
 
 from app.models import ReadingStatus, UserRole
@@ -297,12 +297,30 @@ class UserSettingsRead(SQLModel):
     language: str
     timezone: str
     quote_service_enabled: bool
+    theme: str
+    custom_theme: Optional[str] = None
 
 
 class UserSettingsUpdate(SQLModel):
     """User settings update request."""
     language: Optional[str] = None
     timezone: Optional[str] = None
+    theme: Optional[str] = None
+    custom_theme: Optional[str] = None
+
+    @field_validator('theme')
+    @classmethod
+    def validate_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ('light', 'dark', 'custom'):
+            raise ValueError('theme must be one of: light, dark, custom')
+        return v
+
+    @field_validator('custom_theme')
+    @classmethod
+    def validate_custom_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip() == '':
+            return None
+        return v
 
 
 class ConfirmationPhrase(SQLModel):

@@ -6,6 +6,7 @@
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
+	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, DAISYUI_THEMES } from '$lib/stores/theme';
 	import { toasts } from '$lib/toasts';
 	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
@@ -26,6 +27,9 @@
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);
 	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let themeMode = $state(getThemeMode());
+	let customTheme = $state<string>(getCustomTheme() ?? 'dracula');
+	let themeMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let resetDataConfirmation = $state('');
 	let resetDataMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let deleteAccountConfirmation = $state('');
@@ -107,6 +111,12 @@
 		language = settings.language;
 		timezone = settings.timezone;
 		setTimezone(settings.timezone);
+		themeMode = sanitizeThemeMode(settings.theme);
+		customTheme = settings.custom_theme ?? 'dracula';
+		setThemeMode(themeMode);
+		setCustomTheme(customTheme);
+		applyThemeToDocument();
+		saveThemeToStorage();
 		keys = await api.profile.listApiKeys();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
@@ -164,6 +174,34 @@
 		timezoneMessage = null;
 		await api.profile.updateSettings({ timezone });
 		setTimezone(timezone);
+	}
+
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			setCustomTheme(customTheme);
+			if (getThemeMode() === 'custom') {
+				applyThemeToDocument();
+				saveThemeToStorage();
+			}
+		}
+	});
+
+	async function saveTheme() {
+		themeMessage = null;
+		setThemeMode('custom');
+		setCustomTheme(customTheme);
+		themeMode = 'custom';
+		applyThemeToDocument();
+		saveThemeToStorage();
+		try {
+			await api.profile.updateSettings({
+				theme: 'custom',
+				custom_theme: customTheme,
+			});
+			themeMessage = { type: 'success', text: $_('common.saved') };
+		} catch (e: unknown) {
+			themeMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		}
 	}
 
 	async function createKey() {
@@ -379,6 +417,26 @@
 		</div>
 	</div>
 
+	<div id="section-theme" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('settings.themeTitle')}</h2>
+			{#if themeMessage}
+				<div class={`alert ${themeMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm max-w-xs`}>
+					<span>{themeMessage.text}</span>
+				</div>
+			{/if}
+			<label class="label">
+				<span class="label-text">{$_('settings.themeSelect')}</span>
+			</label>
+			<select class="select select-bordered max-w-xs" bind:value={customTheme}>
+				{#each [...DAISYUI_THEMES].sort() as t}
+					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+				{/each}
+			</select>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveTheme}>{$_('common.save')}</button>
+		</div>
+	</div>
+
 	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
@@ -530,6 +588,7 @@
 		<li><a href="#section-profile" class:menu-active={activeSection === 'section-profile'}>{$_('user.profile')}</a></li>
 		<li><a href="#section-language" class:menu-active={activeSection === 'section-language'}>{$_('settings.languageTitle')}</a></li>
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
+		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
 		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>
 		{#if oidcConfig.enabled}

@@ -183,6 +183,8 @@ export interface UserSettings {
 	language: string;
 	timezone: string;
 	quote_service_enabled: boolean;
+	theme: string;
+	custom_theme: string | null;
 }
 
 export interface ApiKeyMeta {

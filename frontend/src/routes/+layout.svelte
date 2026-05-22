@@ -9,10 +9,16 @@
 	import { currentUser, csrfToken, loadAuthFromStorage, initAuthSync } from '$lib/stores/auth';
 	import { _, setupI18n } from '$lib/i18n';
 	import { setTimezone, setQuoteServiceEnabled } from '$lib/stores/timezone';
+	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY } from '$lib/stores/theme';
 	import { version, gitSha } from '$lib/version';
 	import { toasts } from '$lib/toasts';
 
 	let { children } = $props();
+
+	if (typeof window !== 'undefined') {
+		loadThemeFromStorage();
+		applyThemeToDocument();
+	}
 
 	let addBookOpen = $state(false);
 	let i18nReady = $state(false);
@@ -93,6 +99,12 @@
 					const settings = await api.profile.getSettings();
 					setTimezone(settings.timezone);
 					setQuoteServiceEnabled(settings.quote_service_enabled);
+					if (!localStorage.getItem(THEME_MODE_KEY) && settings.theme) {
+						setThemeMode(sanitizeThemeMode(settings.theme));
+						setCustomTheme(settings.custom_theme);
+						applyThemeToDocument();
+						saveThemeToStorage();
+					}
 				} catch {
 					csrfToken.set(null);
 					window.location.href = '/login';
