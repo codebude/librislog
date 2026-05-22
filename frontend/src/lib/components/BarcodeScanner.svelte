@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { Html5QrcodeSupportedFormats, BaseLoggger } from 'html5-qrcode/esm/core';
 	import { Html5QrcodeShim } from 'html5-qrcode/esm/code-decoder';
 	import { _ } from '$lib/i18n';

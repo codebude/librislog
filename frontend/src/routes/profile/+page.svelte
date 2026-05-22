@@ -7,6 +7,7 @@
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
 	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, DAISYUI_THEMES } from '$lib/stores/theme';
+	import Alert from '$lib/components/Alert.svelte';
 	import { toasts } from '$lib/toasts';
 	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
@@ -344,9 +345,9 @@
 		<form class="card-body gap-3" onsubmit={(e) => { e.preventDefault(); saveProfile(); }}>
 			<h2 class="text-lg font-semibold">{$_('user.profile')}</h2>
 			{#if profileMessage}
-				<div class={`alert ${profileMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-					<span>{profileMessage.text}</span>
-				</div>
+				<Alert type={profileMessage.type === 'success' ? 'success' : 'error'} onClose={() => (profileMessage = null)}>
+					{profileMessage.text}
+				</Alert>
 			{/if}
 			<input
 				class="input input-bordered"
@@ -396,9 +397,9 @@
 			<h2 class="text-lg font-semibold">{$_('settings.timezone')}</h2>
 			<p class="text-sm text-base-content/70">{$_('settings.timezoneHelp')}</p>
 			{#if timezoneMessage}
-				<div class={`alert ${timezoneMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm max-w-xs`}>
-					<span>{timezoneMessage.text}</span>
-				</div>
+				<Alert type={timezoneMessage.type === 'success' ? 'success' : 'error'} onClose={() => (timezoneMessage = null)}>
+					{timezoneMessage.text}
+				</Alert>
 			{/if}
 			<input
 				list="timezone-list"
@@ -421,9 +422,9 @@
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.themeTitle')}</h2>
 			{#if themeMessage}
-				<div class={`alert ${themeMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm max-w-xs`}>
-					<span>{themeMessage.text}</span>
-				</div>
+				<Alert type={themeMessage.type === 'success' ? 'success' : 'error'} onClose={() => (themeMessage = null)}>
+					{themeMessage.text}
+				</Alert>
 			{/if}
 			<label class="label">
 				<span class="label-text">{$_('settings.themeSelect')}</span>
@@ -448,15 +449,17 @@
 				<button class="btn btn-primary btn-sm" onclick={createKey}>{$_('user.addKey')}</button>
 			</div>
 			{#if createdKey}
-				<div class="alert alert-success flex flex-col items-start gap-2 text-xs">
-					<span>{$_('user.newKeyShownOnce')}</span>
-					<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
-						{createdKey}
+				<Alert type="success" onClose={() => (createdKey = null)}>
+					<div class="flex flex-col items-start gap-2 text-xs">
+						<span>{$_('user.newKeyShownOnce')}</span>
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+							{createdKey}
+						</div>
+						<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedKey}>
+							{keyCopied ? $_('common.copied') : $_('common.copy')}
+						</button>
 					</div>
-					<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedKey}>
-						{keyCopied ? $_('common.copied') : $_('common.copy')}
-					</button>
-				</div>
+				</Alert>
 			{/if}
 			<ul class="flex flex-col gap-2">
 				{#each keys as key}
@@ -487,9 +490,9 @@
 			<div class="card-body gap-3">
 				<h2 class="text-lg font-semibold">{$_('oidc.profileTitle')}</h2>
 				{#if oidcMessage}
-					<div class={`alert ${oidcMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{oidcMessage.text}</span>
-					</div>
+					<Alert type={oidcMessage.type === 'success' ? 'success' : 'error'} onClose={() => (oidcMessage = null)}>
+						{oidcMessage.text}
+					</Alert>
 				{/if}
 				{#if oidcLink.linked}
 					<p class="text-sm text-base-content/70">
@@ -525,9 +528,9 @@
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.resetData.hint')}</p>
 				{#if resetDataMessage}
-					<div class={`alert ${resetDataMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{resetDataMessage.text}</span>
-					</div>
+					<Alert type={resetDataMessage.type === 'success' ? 'success' : 'error'} onClose={() => (resetDataMessage = null)}>
+						{resetDataMessage.text}
+					</Alert>
 				{/if}
 				<button
 					type="button"
@@ -553,9 +556,9 @@
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.deleteAccount.hint')}</p>
 				{#if deleteAccountMessage}
-					<div class={`alert ${deleteAccountMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{deleteAccountMessage.text}</span>
-					</div>
+					<Alert type={deleteAccountMessage.type === 'success' ? 'success' : 'error'} onClose={() => (deleteAccountMessage = null)}>
+						{deleteAccountMessage.text}
+					</Alert>
 				{/if}
 				<button
 					type="button"

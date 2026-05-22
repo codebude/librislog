@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import type { CoverCandidate } from '$lib/types';
 	import { _ } from '$lib/i18n';
 
@@ -81,7 +82,9 @@
 				</div>
 			{:else}
 				{#if error}
-					<div class="alert alert-error mb-3">{error}</div>
+					<Alert type="error" onClose={onCancel}>
+						{error}
+					</Alert>
 				{/if}
 
 				<p class="text-sm text-base-content/70 mb-3">{$_('book.autoSearchInfo')}</p>

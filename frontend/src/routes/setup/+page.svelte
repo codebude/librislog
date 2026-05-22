@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
@@ -77,7 +78,9 @@
 				</select>
 			</label>
 			{#if error}
-				<div class="alert alert-error text-sm"><span>{error}</span></div>
+				<Alert type="error" onClose={() => (error = '')}>
+					{error}
+				</Alert>
 			{/if}
 			<form class="flex flex-col gap-3" onsubmit={(e) => { e.preventDefault(); submit(); }}>
 				<label class="form-control">

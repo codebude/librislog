@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
@@ -159,7 +160,9 @@
 				<div class="card-body gap-3">
 					<h2 class="text-lg font-semibold">{$_('admin.newUser')}</h2>
 					{#if adminError}
-						<div class="alert alert-error text-sm"><span>{adminError}</span></div>
+						<Alert type="error" onClose={() => (adminError = '')}>
+							{adminError}
+						</Alert>
 					{/if}
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 						<label class="form-control">
