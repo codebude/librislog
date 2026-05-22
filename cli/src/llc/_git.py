@@ -59,6 +59,7 @@ def local_branches() -> list[str]:
 
 
 def remote_origin_branches() -> list[str]:
+    _run_git(["fetch", "--prune"])
     result = _run_git(["branch", "-r", "--format=%(refname:short)"])
     branches = [b.strip() for b in result.stdout.strip().splitlines() if b.strip()]
     prefix = "origin/"
