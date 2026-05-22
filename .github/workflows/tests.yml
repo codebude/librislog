@@ -126,12 +126,15 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const r = JSON.parse('${{ toJSON(steps.results.outputs) }}');
-            const total = parseInt(r.passed) + parseInt(r.failed) + parseInt(r.skipped);
-            const emoji = r.conclusion === 'success' ? '✅' : '❌';
+            const passed = parseInt('${{ steps.results.outputs.passed }}');
+            const failed = parseInt('${{ steps.results.outputs.failed }}');
+            const skipped = parseInt('${{ steps.results.outputs.skipped }}');
+            const conclusion = '${{ steps.results.outputs.conclusion }}';
+            const total = passed + failed + skipped;
+            const emoji = conclusion === 'success' ? '✅' : '❌';
             const sha = context.sha;
             const shaLink = `[\`${sha.slice(0, 7)}\`](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${sha})`;
-            const summary = `${emoji} **Test Results** — ${r.passed} passed, ${r.failed} failed, ${r.skipped} skipped (${total} total) — ${shaLink}`;
+            const summary = `${emoji} **Test Results** — ${passed} passed, ${failed} failed, ${skipped} skipped (${total} total) — ${shaLink}`;
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
