@@ -47,7 +47,7 @@ DELETE_ACCOUNT_PHRASE: str = "DELETE MY ACCOUNT"
 def _validate_confirmation(confirmation: str, expected_phrase: str) -> None:
     """Validate that *confirmation* matches *expected_phrase* exactly."""
     if confirmation.strip() != expected_phrase:
-        raise HTTPException(status_code=400, detail="error.invalidConfirmationPhrase")
+        raise HTTPException(status_code=400, detail="Confirmation phrase does not match.")
 
 
 @router.get("", response_model=UserRead)

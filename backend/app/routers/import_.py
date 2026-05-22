@@ -28,7 +28,7 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     """Convert ISBN unique-constraint violations to HTTP 409."""
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
     if "book.isbn" in message and "unique" in message:
-        raise HTTPException(status_code=409, detail="error.isbnAlreadyExists") from exc
+        raise HTTPException(status_code=409, detail="This ISBN is already used by another book.") from exc
     raise
 
 
@@ -40,7 +40,7 @@ def _normalize_language(language: str | None) -> str | None:
     if not normalized:
         return None
     if len(normalized) != 2 or not normalized.isalpha():
-        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+        raise HTTPException(status_code=422, detail="Language must be a 2-letter ISO code (for example: EN, DE, FR).")
     return normalized
 
 

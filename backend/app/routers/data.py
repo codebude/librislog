@@ -61,7 +61,7 @@ def export_data(
 ) -> Response:
     """Export user data as a ZIP archive with CSV or JSON datasets."""
     if not body.datasets:
-        raise HTTPException(status_code=400, detail="error.exportNoDatasets")
+        raise HTTPException(status_code=400, detail="Select at least one dataset to export.")
     zip_bytes, filename = build_export_zip(
         session=session,
         user=current_user,
@@ -90,7 +90,7 @@ async def parse_import_file(
         "text/plain",
     }
     if file.content_type and file.content_type not in allowed_content_types:
-        raise HTTPException(status_code=415, detail="error.importUnsupportedContentType")
+        raise HTTPException(status_code=415, detail="Unsupported upload content type. Use CSV or JSON files.")
     try:
         payload = parse_upload(await file.read(), file.filename or "upload", current_user.id)
     except (ValueError, json.JSONDecodeError) as exc:
@@ -156,7 +156,7 @@ def save_import_mapping(
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="error.importMappingNameConflict") from exc
+        raise HTTPException(status_code=409, detail="A mapping with this name already exists.") from exc
     session.refresh(mapping)
     return _mapping_read(mapping)
 
@@ -194,7 +194,7 @@ def get_import_mapping(
     """Return a single saved import mapping by ID."""
     row = session.get(ImportMapping, mapping_id)
     if not row or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="error.importMappingNotFound")
+        raise HTTPException(status_code=404, detail="Import mapping not found.")
     return _mapping_read(row)
 
 
@@ -207,7 +207,7 @@ def delete_import_mapping(
     """Delete a saved import mapping."""
     row = session.get(ImportMapping, mapping_id)
     if not row or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="error.importMappingNotFound")
+        raise HTTPException(status_code=404, detail="Import mapping not found.")
     session.delete(row)
     session.commit()
 

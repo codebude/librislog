@@ -348,7 +348,10 @@
     "authorRequired": "Author is required.",
     "pageCountRequired": "Page count is required.",
     "importTempFileCreateFailed": "Could not create a temporary import file. Please try again.",
-    "fileTooLarge": "The file is too large. Please try a smaller file or check server limits."
+    "fileTooLarge": "The file is too large. Please try a smaller file or check server limits.",
+    "exportNoDatasets": "Select at least one dataset to export.",
+    "importMappingNameConflict": "A mapping with this name already exists.",
+    "importMappingNotFound": "Import mapping not found."
   },
   "oidc": {
     "orContinueWith": "or continue with",

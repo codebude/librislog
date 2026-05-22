@@ -214,7 +214,7 @@ def test_update_book_language(client: TestClient) -> None:
 def test_create_book_invalid_language_returns_422(client: TestClient) -> None:
     resp = client.post("/api/books", json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "language": "english"})
     assert resp.status_code == 422
-    assert resp.json()["detail"] == "error.invalidLanguageCode"
+    assert resp.json()["detail"] == "Language must be a 2-letter ISO code (for example: EN, DE, FR)."
 
 
 def test_create_book_with_did_not_finish_status(client: TestClient) -> None:
@@ -930,7 +930,7 @@ def test_update_book_rejects_clearing_date_finished_for_read(client: TestClient)
 
     resp = client.patch(f"/api/books/{book['id']}", json={"date_finished": None})
     assert resp.status_code == 422
-    assert resp.json()["detail"] == "error.dateFinishedRequiredForRead"
+    assert resp.json()["detail"] == "A finished book must have an end date. Change the status if you want to remove the finish date."
 
 
 def test_update_book_allows_clearing_date_finished_when_changing_status(client: TestClient) -> None:
@@ -1048,7 +1048,7 @@ def test_create_book_future_date_started_returns_422(client: TestClient, monkeyp
     )
     resp = client.post("/api/books", json={"title": "Future", "author": "Test Author", "page_count": 100, "date_started": "2025-01-01"})
     assert resp.status_code == 422
-    assert resp.json()["detail"] == "error.dateInFuture"
+    assert resp.json()["detail"] == "Date cannot be in the future."
 
 
 def test_create_book_date_started_after_finished_returns_422(client: TestClient) -> None:
@@ -1057,7 +1057,7 @@ def test_create_book_date_started_after_finished_returns_422(client: TestClient)
         json={"title": "Bad Dates", "author": "Test Author", "page_count": 100, "date_started": "2024-02-01", "date_finished": "2024-01-01"},
     )
     assert resp.status_code == 422
-    assert resp.json()["detail"] == "error.dateStartedAfterFinished"
+    assert resp.json()["detail"] == "Start date cannot be after finish date."
 
 
 def test_create_book_whitespace_language_returns_none(client: TestClient) -> None:
@@ -1070,7 +1070,7 @@ def test_create_book_duplicate_isbn_returns_409(client: TestClient) -> None:
     _create_book(client, title="First", isbn="9780441013593")
     resp = client.post("/api/books", json={"title": "Duplicate", "author": "Test Author", "page_count": 100, "isbn": "9780441013593"})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "error.isbnAlreadyExists"
+    assert resp.json()["detail"] == "This ISBN is already used by another book."
 
 
 def test_list_books_sort_by_date_started(client: TestClient) -> None:
@@ -1156,7 +1156,7 @@ def test_update_book_duplicate_isbn_returns_409(client: TestClient) -> None:
         json={"isbn": "9780441013593"},
     )
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "error.isbnAlreadyExists"
+    assert resp.json()["detail"] == "This ISBN is already used by another book."
 
 
 def test_transition_status_not_found_returns_404(client: TestClient) -> None:

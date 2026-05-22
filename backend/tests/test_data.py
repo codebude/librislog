@@ -417,7 +417,7 @@ def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
 def test_data_export_no_datasets_raises_400(client: TestClient) -> None:
     resp = client.post("/api/data/export", json={"datasets": [], "format": "json"})
     assert resp.status_code == 400
-    assert resp.json()["detail"] == "error.exportNoDatasets"
+    assert resp.json()["detail"] == "Select at least one dataset to export."
 
 
 def test_data_import_parse_unsupported_content_type(client: TestClient) -> None:
@@ -426,7 +426,7 @@ def test_data_import_parse_unsupported_content_type(client: TestClient) -> None:
         files={"file": ("test.exe", b"invalid", "application/octet-stream")},
     )
     assert resp.status_code == 415
-    assert resp.json()["detail"] == "error.importUnsupportedContentType"
+    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV or JSON files."
 
 
 def test_data_import_parse_invalid_json(client: TestClient) -> None:
@@ -469,7 +469,7 @@ def test_data_import_mapping_update_existing(client: TestClient) -> None:
 def test_data_import_mapping_not_found(client: TestClient) -> None:
     resp = client.get("/api/data/import/mappings/99999")
     assert resp.status_code == 404
-    assert resp.json()["detail"] == "error.importMappingNotFound"
+    assert resp.json()["detail"] == "Import mapping not found."
 
     resp = client.delete("/api/data/import/mappings/99999")
     assert resp.status_code == 404
@@ -512,7 +512,7 @@ def test_data_import_mapping_integrity_error_new_mapping(client: TestClient, ses
         json={"name": "Conflict", "source_fields": ["F1"], "mapping": {"F1": "title"}},
     )
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "error.importMappingNameConflict"
+    assert resp.json()["detail"] == "A mapping with this name already exists."
 
 
 def test_data_import_execute_rollback_when_not_completed(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:

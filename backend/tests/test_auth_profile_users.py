@@ -520,7 +520,7 @@ def test_oidc_link_status_disabled_by_default(client: TestClient) -> None:
 def test_profile_reset_data_requires_confirmation_phrase(client: TestClient) -> None:
     resp = client.post("/api/profile/reset-data", json={"confirmation": "WRONG"})
     assert resp.status_code == 400
-    assert resp.json()["detail"] == "error.invalidConfirmationPhrase"
+    assert resp.json()["detail"] == "Confirmation phrase does not match."
 
 
 def test_profile_reset_data_deletes_books_tags_progress(client: TestClient) -> None:
@@ -542,7 +542,7 @@ def test_profile_reset_data_deletes_books_tags_progress(client: TestClient) -> N
 def test_profile_delete_account_rejects_last_admin(client: TestClient) -> None:
     resp = client.request("DELETE", "/api/profile/account", json={"confirmation": "DELETE MY ACCOUNT"})
     assert resp.status_code == 403
-    assert resp.json()["detail"] == "error.cannotDeleteLastAdmin"
+    assert resp.json()["detail"] == "Cannot delete the last administrator account."
 
 
 def test_profile_delete_account_deletes_regular_user_data(

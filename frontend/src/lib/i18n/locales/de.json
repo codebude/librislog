@@ -348,7 +348,10 @@
     "authorRequired": "Autor ist erforderlich.",
     "pageCountRequired": "Seitenanzahl ist erforderlich.",
     "importTempFileCreateFailed": "Temporäre Importdatei konnte nicht erstellt werden. Bitte erneut versuchen.",
-    "fileTooLarge": "Die Datei ist zu groß. Bitte versuche eine kleinere Datei oder prüfe die Server-Limits."
+    "fileTooLarge": "Die Datei ist zu groß. Bitte versuche eine kleinere Datei oder prüfe die Server-Limits.",
+    "exportNoDatasets": "Wähle mindestens einen Datensatz zum Exportieren aus.",
+    "importMappingNameConflict": "Ein Mapping mit diesem Namen existiert bereits.",
+    "importMappingNotFound": "Import-Mapping nicht gefunden."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",

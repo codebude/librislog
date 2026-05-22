@@ -80,7 +80,7 @@ def _validate_dates(data: dict) -> None:
             if val.tzinfo is None:
                 val = val.replace(tzinfo=timezone.utc)
             if val > now:
-                raise HTTPException(status_code=422, detail="error.dateInFuture")
+                raise HTTPException(status_code=422, detail="Date cannot be in the future.")
     ds = data.get("date_started")
     df = data.get("date_finished")
     if ds is not None and df is not None and ds.tzinfo is None:
@@ -88,7 +88,7 @@ def _validate_dates(data: dict) -> None:
     if df is not None and df.tzinfo is None:
         df = df.replace(tzinfo=timezone.utc)
     if ds is not None and df is not None and ds > df:
-        raise HTTPException(status_code=422, detail="error.dateStartedAfterFinished")
+        raise HTTPException(status_code=422, detail="Start date cannot be after finish date.")
 
 
 def _validate_date_finished_for_read(
@@ -104,7 +104,7 @@ def _validate_date_finished_for_read(
     if book.date_finished is None:
         return
     if book.reading_status == ReadingStatus.read and target_status == ReadingStatus.read:
-        raise HTTPException(status_code=422, detail="error.dateFinishedRequiredForRead")
+        raise HTTPException(status_code=422, detail="A finished book must have an end date. Change the status if you want to remove the finish date.")
 
 
 def _normalize_language(language: str | None) -> str | None:
@@ -115,7 +115,7 @@ def _normalize_language(language: str | None) -> str | None:
     if not normalized:
         return None
     if len(normalized) != 2 or not normalized.isalpha():
-        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+        raise HTTPException(status_code=422, detail="Language must be a 2-letter ISO code (for example: EN, DE, FR).")
     return normalized
 
 
@@ -123,7 +123,7 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     """Convert ISBN unique-constraint violations to HTTP 409."""
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
     if "book.isbn" in message and "unique" in message:
-        raise HTTPException(status_code=409, detail="error.isbnAlreadyExists") from exc
+        raise HTTPException(status_code=409, detail="This ISBN is already used by another book.") from exc
     raise
 
 

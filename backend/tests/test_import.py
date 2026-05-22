@@ -1074,7 +1074,7 @@ def test_normalize_language_invalid_code() -> None:
     with pytest.raises(HTTPException) as exc_info:
         import_router._normalize_language("english")
     assert exc_info.value.status_code == 422
-    assert "invalidLanguageCode" in exc_info.value.detail
+    assert "Language must be a 2-letter ISO code" in exc_info.value.detail
 
 
 def test_raise_integrity_conflict_isbn_unique() -> None:
@@ -1083,7 +1083,7 @@ def test_raise_integrity_conflict_isbn_unique() -> None:
     with pytest.raises(HTTPException) as exc_info:
         import_router._raise_integrity_conflict(exc)
     assert exc_info.value.status_code == 409
-    assert "isbnAlreadyExists" in exc_info.value.detail
+    assert "This ISBN is already used by another book." in exc_info.value.detail
 
 
 def test_raise_integrity_conflict_other() -> None:
@@ -1120,7 +1120,7 @@ def test_import_book_flush_integrity_error(client: TestClient, session: Session,
     }
     resp = client.post("/api/import", json=payload)
     assert resp.status_code == 409
-    assert "isbnAlreadyExists" in resp.json()["detail"]
+    assert "This ISBN is already used by another book." in resp.json()["detail"]
 
 
 def test_import_book_commit_integrity_error(client: TestClient, session: Session, monkeypatch: MonkeyPatch) -> None:
@@ -1147,4 +1147,4 @@ def test_import_book_commit_integrity_error(client: TestClient, session: Session
     }
     resp = client.post("/api/import", json=payload)
     assert resp.status_code == 409
-    assert "isbnAlreadyExists" in resp.json()["detail"]
+    assert "This ISBN is already used by another book." in resp.json()["detail"]
