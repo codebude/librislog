@@ -10,7 +10,6 @@ on:
 env:
   PYTHON_VERSION: "3.14"
   NODE_VERSION: "24"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   backend:
@@ -101,7 +100,7 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -120,3 +119,61 @@ jobs:
           path: "artifacts/**/report.xml"
           reporter: java-junit
           fail-on-error: "false"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            function parseJUnit(filePath) {
+              const xml = fs.readFileSync(filePath, 'utf8');
+              const m = xml.match(/testsuite\s[^>]*tests="(\d+)"\s+failures="(\d+)"\s+errors="(\d+)"(?:\s+skipped="(\d+)")?/);
+              if (!m) return null;
+              const total = parseInt(m[1]);
+              const failures = parseInt(m[2]);
+              const errors = parseInt(m[3]);
+              const skipped = parseInt(m[4] || '0');
+              const passed = total - failures - errors - skipped;
+              return { passed, failed: failures + errors, skipped, total };
+            }
+
+            const reports = {
+              Backend: parseJUnit('artifacts/test-report-backend/report.xml'),
+              CLI: parseJUnit('artifacts/test-report-cli/report.xml'),
+              Frontend: parseJUnit('artifacts/test-report-frontend/report.xml'),
+            };
+
+            let summary = '## ✅ Test Results\n\n';
+            summary += '| Suite | Passed | Failed | Skipped | Total |\n';
+            summary += '|-------|--------|--------|---------|-------|\n';
+            let totalPassed = 0, totalFailed = 0, totalSkipped = 0, totalAll = 0;
+            let anyFailed = false;
+
+            for (const [name, r] of Object.entries(reports)) {
+              if (!r) {
+                summary += `| ${name} | ⚠️ No report | - | - | - |\n`;
+                continue;
+              }
+              const status = r.failed > 0 ? '❌' : '✅';
+              if (r.failed > 0) anyFailed = true;
+              summary += `| ${name} | ${r.passed} | ${r.failed > 0 ? `**${r.failed}**` : '0'} | ${r.skipped} | ${r.total} |\n`;
+              totalPassed += r.passed;
+              totalFailed += r.failed;
+              totalSkipped += r.skipped;
+              totalAll += r.total;
+            }
+
+            summary += `| **Total** | **${totalPassed}** | **${totalFailed}** | **${totalSkipped}** | **${totalAll}** |\n\n`;
+            summary += anyFailed
+              ? '❌ Some tests failed. Check the **Test Results** check run for details.'
+              : '✅ All tests passed.';
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary,
+            });
