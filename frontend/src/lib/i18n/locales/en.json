@@ -258,6 +258,7 @@
   "user": {
     "menu": "User menu",
     "profile": "Profile",
+    "about": "About",
     "logout": "Logout",
     "apiKeys": "API Keys",
     "keyDescription": "Description (optional)",
@@ -477,5 +478,16 @@
         "executeFailed": "Import failed."
       }
     }
+  },
+  "about": {
+    "title": "About LibrisLog",
+    "description": "A book tracking webapp to manage your reading lists, import books from online sources, and track your reading progress — all through a modern dashboard.",
+    "author": "Author",
+    "version": "Version",
+    "technologies": "Technologies Used",
+    "thankYou": "Thank You",
+    "thankYouText": "LibrisLog would not exist without the amazing open-source libraries and frameworks it builds upon. Our thanks go to all developers who contribute to these projects.",
+    "frontend": "Frontend",
+    "backend": "Backend"
   }
 }

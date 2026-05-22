@@ -57,8 +57,8 @@
     "currentlyReading": "Lese ich gerade",
     "nextToRead": "Als nächstes lesen",
     "viewAll": "Alle anzeigen",
-    "searchAllBooks": "Alle Buecher durchsuchen",
-    "noSearchResults": "Keine Buecher gefunden",
+    "searchAllBooks": "Alle Bücher durchsuchen",
+    "noSearchResults": "Keine Bücher gefunden",
     "noCurrentlyReading": "Du liest aktuell kein Buch.",
     "noNextToRead": "Noch keine Bücher in deiner Wunschliste.",
     "popularTags": "Beliebte Tags"
@@ -111,8 +111,8 @@
     "pages": "Seiten",
     "language": "Sprache",
     "tags": "Tags",
-    "tagsPlaceholder": "Tag eingeben und Enter oder Komma druecken",
-    "tagsHint": "Mit Enter oder Komma Tag hinzufuegen. Backspace entfernt den letzten Tag.",
+    "tagsPlaceholder": "Tag eingeben und Enter oder Komma drücken",
+    "tagsHint": "Mit Enter oder Komma Tag hinzufügen. Backspace entfernt den letzten Tag.",
     "notes": "Notizen",
     "blurb": "Beschreibung",
     "about": "Über das Buch",
@@ -130,7 +130,7 @@
     "autoSearchMeta": "{size} - {resolution}",
     "autoSearchSourceLabel": "Quelle: {source}",
     "coverOf": "Cover von {title}",
-    "openDetailsHint": "Zum Oeffnen der Details klicken",
+    "openDetailsHint": "Zum Öffnen der Details klicken",
     "readingProgress": "Lesefortschritt",
     "currentPage": "Seite",
     "progressLog": "Verlauf",
@@ -173,7 +173,7 @@
     "sourceSkipped": "Google Books übersprungen (kein API-Schlüssel konfiguriert)",
     "sourceOpenLibrarySearching": "Durchsuche Open Library...",
     "sourceGoogleSearching": "Durchsuche Google Books...",
-    "sourceBackendError": "{source}-Backendfehler (Backend-Logs pruefen)",
+    "sourceBackendError": "{source}-Backendfehler (Backend-Logs prüfen)",
     "sourceError": "Suche fehlgeschlagen: {message}",
     "resultCount": "{source} - {count} Ergebnis{suffix}"
   },
@@ -252,12 +252,13 @@
     "setupTitle": "Admin-Konto erstellen",
     "setupFailed": "Setup fehlgeschlagen",
     "createAdmin": "Admin erstellen",
-    "invalidEmailError": "Bitte eine gueltige E-Mail-Adresse eingeben",
+    "invalidEmailError": "Bitte eine gültige E-Mail-Adresse eingeben",
     "passwordComplexityError": "Passwort erfüllt die Komplexitätsanforderungen nicht"
   },
   "user": {
     "menu": "Benutzermenü",
     "profile": "Profil",
+    "about": "Über",
     "logout": "Abmelden",
     "apiKeys": "API-Schlüssel",
     "keyDescription": "Beschreibung (optional)",
@@ -342,16 +343,16 @@
     "orContinueWith": "oder weiter mit",
     "loginWithProvider": "Weiter mit {provider}",
     "profileTitle": "Single Sign-On",
-    "notLinked": "Dein Konto ist noch nicht verknuepft.",
-    "linkButton": "{provider}-Konto verknuepfen",
-    "unlinkButton": "Konto-Verknuepfung entfernen",
-    "linkedAs": "Verknuepft mit {provider}",
-    "linkSuccess": "Konto erfolgreich verknuepft",
-    "linkStartFailed": "Konto-Verknuepfung konnte nicht gestartet werden",
-    "unlinkSuccess": "Konto-Verknuepfung entfernt",
-    "unlinkFailed": "Konto-Verknuepfung konnte nicht entfernt werden",
-    "signingIn": "Anmeldung laeuft...",
-    "linkingAccount": "Konto wird verknuepft..."
+    "notLinked": "Dein Konto ist noch nicht verknüpft.",
+    "linkButton": "{provider}-Konto verknüpfen",
+    "unlinkButton": "Konto-Verknüpfung entfernen",
+    "linkedAs": "Verknüpft mit {provider}",
+    "linkSuccess": "Konto erfolgreich verknüpft",
+    "linkStartFailed": "Konto-Verknüpfung konnte nicht gestartet werden",
+    "unlinkSuccess": "Konto-Verknüpfung entfernt",
+    "unlinkFailed": "Konto-Verknüpfung konnte nicht entfernt werden",
+    "signingIn": "Anmeldung läuft...",
+    "linkingAccount": "Konto wird verknüpft..."
   },
   "profile": {
     "sectionNav": "Auf dieser Seite",
@@ -477,5 +478,16 @@
         "executeFailed": "Import fehlgeschlagen."
       }
     }
+  },
+  "about": {
+    "title": "Über LibrisLog",
+    "description": "Eine Web-App zur Buchverwaltung — verwalte deine Leselisten, importiere Bücher aus Online-Quellen und verfolge deinen Lesefortschritt in einem modernen Dashboard.",
+    "author": "Autor",
+    "version": "Version",
+    "technologies": "Verwendete Technologien",
+    "thankYou": "Danksagung",
+    "thankYouText": "LibrisLog wäre ohne die erstaunlichen Open-Source-Bibliotheken und Frameworks, auf denen es aufbaut, nicht möglich. Unser Dank gilt allen Entwicklern, die zu diesen Projekten beitragen.",
+    "frontend": "Frontend",
+    "backend": "Backend"
   }
 }
