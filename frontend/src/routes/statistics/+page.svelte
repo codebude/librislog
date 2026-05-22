@@ -3,11 +3,13 @@
 	import { onMount } from 'svelte';
 	import { _, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
-	import type { DailyPagesResponse, StatisticsResponse } from '$lib/types';
+	import type { Book, DailyPagesResponse, StatisticsResponse } from '$lib/types';
 	import { toasts } from '$lib/toasts';
 	import { formatLanguageCode } from '$lib/utils/language';
 	import BarChart from '$lib/components/BarChart.svelte';
 	import CalendarHeatmap from '$lib/components/CalendarHeatmap.svelte';
+	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '$lib/components/BookDrawer.svelte';
 
 	type Segment = {
 		label: string;
@@ -24,6 +26,9 @@
 	let stats = $state<StatisticsResponse | null>(null);
 	let calendarData = $state<DailyPagesResponse | null>(null);
 	let calendarLoading = $state(false);
+	let selectedBook = $state<Book | null>(null);
+	let detailOpen = $state(false);
+	let drawerOpen = $state(false);
 
 	onMount(() => {
 		let active = true;
@@ -137,8 +142,30 @@
 		}));
 	}
 
-	function openCoverBook(bookId: number, status: string) {
-		void goto(`/library?status=${status}&bookId=${bookId}`);
+	function openCoverBook(bookId: number) {
+		void loadAndOpenBook(bookId);
+	}
+
+	async function loadAndOpenBook(bookId: number) {
+		try {
+			const book = await api.books.get(bookId);
+			selectedBook = book;
+			detailOpen = true;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			toasts.add(message, 'error');
+		}
+	}
+
+	function openEditFromDetail(book: Book) {
+		selectedBook = book;
+		detailOpen = false;
+		drawerOpen = true;
+	}
+
+	function handleDelete(_bookId: number) {
+		selectedBook = null;
+		detailOpen = false;
 	}
 
 	function openAuthorSearch(author: string) {
@@ -355,7 +382,7 @@
 												type="button"
 												class="{coverIdx > 0 ? '-ml-3' : ''}"
 												style:z-index={coverIdx + 1}
-												onclick={() => openCoverBook(cover.book_id, cover.reading_status)}
+												onclick={() => openCoverBook(cover.book_id)}
 											>
 												<img
 													src={cover.cover_url}
@@ -408,3 +435,12 @@
 		{/if}
 	{/if}
 </div>
+
+<BookDetailDialog
+	bind:book={selectedBook}
+	bind:open={detailOpen}
+	onEdit={openEditFromDetail}
+	onDelete={handleDelete}
+/>
+
+<BookDrawer bind:book={selectedBook} bind:open={drawerOpen} />
