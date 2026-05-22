@@ -4,6 +4,8 @@
 	import { broadcastLogout, currentUser, csrfToken } from '$lib/stores/auth';
 	import { _ } from '$lib/i18n';
 
+	let { floating = true }: { floating?: boolean } = $props();
+
 	let open = $state(false);
 	const user = $derived($currentUser);
 	const initials = $derived(
@@ -24,7 +26,7 @@
 	}
 </script>
 
-<div class="fixed top-4 right-4 z-50">
+<div class="{floating ? 'fixed top-4 right-4 z-50' : 'relative'}">
 	<button
 		type="button"
 		class="btn btn-ghost btn-circle"
@@ -37,9 +39,12 @@
 	</button>
 
 	{#if open}
-		<div class="absolute right-0 mt-2 w-40 rounded-box border border-base-200 bg-base-100 shadow z-50 p-1 origin-top-right">
-			<a class="btn btn-ghost btn-sm justify-start w-full" href="/profile" onclick={() => (open = false)}>{$_('user.profile')}</a>
-			<button type="button" class="btn btn-ghost btn-sm justify-start w-full" onclick={logout}>{$_('user.logout')}</button>
-		</div>
+		<ul
+			tabindex="-1"
+			class="menu menu-sm dropdown-content absolute right-0 mt-3 w-40 rounded-box bg-base-100 shadow z-50 p-2"
+		>
+			<li><a href="/profile" onclick={() => (open = false)}>{$_('user.profile')}</a></li>
+			<li><button type="button" class="cursor-pointer" onclick={logout}>{$_('user.logout')}</button></li>
+		</ul>
 	{/if}
 </div>

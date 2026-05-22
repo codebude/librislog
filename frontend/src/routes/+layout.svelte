@@ -200,7 +200,10 @@
 	{@render children()}
 {:else}
 <div class="min-h-screen bg-base-200 flex">
-	<UserMenu />
+	<!-- Floating user menu (desktop) -->
+	<div class="hidden md:block">
+		<UserMenu />
+	</div>
 	<!-- Sidebar (desktop) -->
 	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
 		<a href="/" class="flex items-center gap-2 py-2 px-1">
@@ -224,13 +227,18 @@
 
 	<!-- Main content -->
 	<div class="flex-1 flex flex-col md:ml-56 min-h-screen">
-		<!-- Mobile top bar -->
-		<header class="md:hidden flex items-center justify-between px-4 py-3 bg-base-100 shadow-sm sticky top-0 z-20">
-			<a href="/" class="flex items-center gap-2">
-				<img src="/logo.png" alt="LibrisLog" class="w-7 h-7 rounded" />
-				<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
-			</a>
-		</header>
+		<!-- Mobile top bar with navbar -->
+		<div class="navbar md:hidden bg-base-100 shadow-sm sticky top-0 z-20">
+			<div class="navbar-start">
+				<a href="/" class="btn btn-ghost text-lg px-3 py-2">
+					<img src="/logo.png" alt="LibrisLog" class="w-7 h-7 rounded shrink-0" />
+					<span class="font-bold tracking-tight hidden sm:inline">{$_('app.title')}</span>
+				</a>
+			</div>
+			<div class="navbar-end">
+				<UserMenu floating={false} />
+			</div>
+		</div>
 
 		<!-- Page content -->
 		<main class="flex-1 p-4 pb-24 sm:pr-24 md:pb-4">
