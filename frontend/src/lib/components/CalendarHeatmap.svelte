@@ -35,8 +35,8 @@
 		<p>{emptyText}</p>
 	</div>
 {:else}
-	<div class="w-full" bind:clientWidth={containerWidth}>
-		<Chart
+  <div class="w-full select-none" bind:clientWidth={containerWidth}>
+    <Chart
 			data={data}
 			x={(d: DailyPages) => {
 				const [yr, mo, dy] = d.date.split('-').map(Number);

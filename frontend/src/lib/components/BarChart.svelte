@@ -84,6 +84,17 @@
     { key: 'default', value: 'value' as const, color: resolveColor(color), label },
   ]);
 
+  const touchStyles = 'touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none';
+  const enhancedTransform = $derived(
+    transform ? { ...transform, style: touchStyles } : undefined
+  );
+
+  let chartKey = $state(0);
+
+  function resetZoom() {
+    chartKey++;
+  }
+
 </script>
 
 <svelte:document onclick={handleDocumentClick} />
@@ -93,21 +104,32 @@
     <p>{emptyText}</p>
   </div>
 {:else}
-  <div role="img" aria-label={label} class="relative" bind:this={chartRef}>
-    <LayerBarChart
-      data={chartData}
-      x="label"
-      y="value"
-      {series}
-      {height}
-      bandPadding={0.3}
-      {transform}
-      props={{
-        xAxis: { tickSpacing: 80 },
-        bars: { strokeWidth: 0, stroke: 'none' }
-      }}
-      onBarClick={handleBarClick}
-    />
+  <div role="img" aria-label={label} class="relative select-none" bind:this={chartRef}>
+    {#key chartKey}
+      <LayerBarChart
+        data={chartData}
+        x="label"
+        y="value"
+        {series}
+        {height}
+        bandPadding={0.3}
+        transform={enhancedTransform}
+        props={{
+          xAxis: { tickSpacing: 80 },
+          bars: { strokeWidth: 0, stroke: 'none' }
+        }}
+        onBarClick={handleBarClick}
+      />
+    {/key}
+
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs absolute top-1 right-1 opacity-60 hover:opacity-100"
+      title="Reset zoom"
+      onclick={resetZoom}
+    >
+      ↺
+    </button>
 
     {#if touchTooltip}
       {@const tooltipX = touchTooltip.x}
