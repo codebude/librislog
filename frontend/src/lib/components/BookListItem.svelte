@@ -33,10 +33,10 @@
 </script>
 
 <button
-	class="flex items-center gap-3 p-2 bg-base-100 rounded-box shadow-sm hover:shadow-md transition-shadow cursor-pointer w-full text-left"
+	class="flex items-center gap-3 p-3 bg-base-100 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer w-full text-left"
 	onclick={() => onClick(book)}
 >
-	<div class="w-10 h-14 shrink-0 bg-base-200 rounded overflow-hidden">
+	<div class="w-10 h-14 shrink-0 bg-base-200 rounded-lg overflow-hidden">
 		{#if book.cover_url}
 			<img src={book.cover_url} alt={$_('book.coverOf', { values: { title: book.title } })} class="w-full h-full object-cover" />
 		{:else}
@@ -49,9 +49,9 @@
 	</div>
 
 	<div class="flex-1 min-w-0">
-		<p class="text-sm font-medium truncate">{book.title}</p>
+		<p class="text-sm font-semibold truncate">{book.title}</p>
 		{#if book.author}
-			<p class="text-xs text-base-content/60 truncate">{book.author}</p>
+			<p class="text-xs text-base-content/50 truncate">{book.author}</p>
 		{/if}
 	</div>
 
@@ -59,13 +59,16 @@
 		<StarRating value={book.rating} readonly />
 	</div>
 
-	<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} shrink-0 hidden sm:inline-flex">
+	<span class="badge badge-sm badge-ghost {STATUS_BADGE[book.reading_status]} shrink-0 hidden sm:inline-flex">
 		{$_(STATUS_LABEL_KEYS[book.reading_status])}
 	</span>
 
 	{#if progressPercent > 0}
-		<div class="hidden sm:block w-20 h-1.5 bg-base-200 rounded-full overflow-hidden shrink-0">
-			<div class="h-full bg-primary rounded-full" style="width: {progressPercent}%"></div>
+		<div class="hidden sm:flex flex-col shrink-0 w-24">
+			<span class="text-[10px] font-medium text-primary leading-none mb-1">{progressPercent}%</span>
+			<div class="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
+				<div class="h-full bg-primary rounded-full transition-all duration-500" style="width: {progressPercent}%"></div>
+			</div>
 		</div>
 	{/if}
 </button>

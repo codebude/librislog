@@ -38,6 +38,10 @@
 	let deletingEntry = $state<number | null>(null);
 	let pendingDeleteEntry = $state<number | null>(null);
 
+	const progressPercent = $derived(
+		book?.page_count && currentPage > 0 ? Math.round((currentPage / book.page_count) * 100) : 0
+	);
+
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
 		currently_reading: 'status.currently_reading',
@@ -355,7 +359,7 @@
 			</div>
 
 			<!-- Reading Progress Block -->
-			<div class="border-t border-base-200 pt-3 {!book.page_count ? 'opacity-50 pointer-events-none' : ''}">
+			<div class="border-t border-base-200 pt-4 {!book.page_count ? 'opacity-50 pointer-events-none' : ''}">
 				<div class="text-xs text-base-content/60 mb-2">{$_('book.readingProgress')}</div>
 
 				{#if !book.page_count}
@@ -366,8 +370,24 @@
 						{$_('common.loadingEllipsis')}
 					</div>
 				{:else}
-					<div class="flex items-center gap-2">
-						<span class="text-sm font-mono">
+					<div class="text-center mb-3">
+						<span class="text-2xl font-bold text-primary">{progressPercent}%</span>
+						<span class="text-sm text-base-content/50 ml-2">{currentPage} / {book.page_count} {$_('book.pages')}</span>
+					</div>
+
+					<input
+						type="range"
+						name="progress-range"
+						min="0"
+						max={book.page_count}
+						class="range range-primary"
+						value={currentPage}
+						oninput={handleSliderInput}
+						onchange={handlePageBlur}
+					/>
+
+					<div class="flex items-center justify-between mt-2">
+						<div class="flex items-center gap-2">
 							<input
 								type="number"
 								name="current-page"
@@ -377,26 +397,14 @@
 								max={book.page_count}
 								onblur={handlePageBlur}
 							/>
-							<span class="mx-1">/</span>
-							{book.page_count}
-						</span>
+							<span class="text-sm text-base-content/50">/ {book.page_count}</span>
+						</div>
 						<button
 							type="button"
 							class="btn btn-ghost btn-xs"
 							onclick={() => (logModalOpen = true)}
 						>{$_('book.progressLog')}</button>
 					</div>
-
-					<input
-						type="range"
-						name="progress-range"
-						min="0"
-						max={book.page_count}
-						class="range range-primary range-xs mt-2"
-						value={currentPage}
-						oninput={handleSliderInput}
-						onchange={handlePageBlur}
-					/>
 				{/if}
 			</div>
 
@@ -411,7 +419,7 @@
 
 			<div>
 				<div class="text-xs text-base-content/60 mb-1">{$_('book.notes')}</div>
-				<div class="text-sm whitespace-pre-wrap break-words rounded border border-base-200 p-2 min-h-12">
+				<div class="text-sm whitespace-pre-wrap break-words bg-base-200/50 rounded-xl p-3 min-h-12">
 					{book.notes ?? '-'}
 				</div>
 			</div>
@@ -424,7 +432,7 @@
 				{@const displayBlurb = blurbExpanded || !isTruncated
 					? book.blurb
 					: book.blurb.slice(0, MAX_BLURB_LENGTH) + '...'}
-				<div class="text-sm whitespace-pre-wrap break-words rounded border border-base-200 p-3">
+				<div class="text-sm whitespace-pre-wrap break-words bg-base-200/50 rounded-xl p-3">
 					{displayBlurb}
 					{#if isTruncated}
 						<button

@@ -6,7 +6,8 @@ const DAISYUI_THEMES = [
 	'cyberpunk', 'valentine', 'halloween', 'garden', 'forest', 'aqua',
 	'lofi', 'pastel', 'fantasy', 'wireframe', 'black', 'luxury', 'dracula',
 	'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee',
-	'winter', 'dim', 'nord', 'sunset', 'caramellatte', 'abyss', 'silk'
+	'winter', 'dim', 'nord', 'sunset', 'caramellatte', 'abyss', 'silk',
+	'librislog'
 ] as const;
 
 export type DaisyUITheme = (typeof DAISYUI_THEMES)[number];

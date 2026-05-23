@@ -333,7 +333,7 @@
 <div id="profile-content" class="max-w-3xl mx-auto flex flex-col gap-6">
 	<h1 class="text-2xl font-bold">{$_('user.profile')}</h1>
 
-	<div id="section-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<form class="card-body gap-3" onsubmit={(e) => { e.preventDefault(); saveProfile(); }}>
 			<h2 class="text-lg font-semibold">{$_('user.profile')}</h2>
 			{#if profileMessage}
@@ -375,7 +375,7 @@
 		</form>
 	</div>
 
-	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.languageTitle')}</h2>
 			<select class="select select-bordered max-w-xs" name="language" bind:value={language}>
@@ -387,7 +387,7 @@
 		</div>
 	</div>
 
-	<div id="section-timezone" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-timezone" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.timezone')}</h2>
 			<p class="text-sm text-base-content/70">{$_('settings.timezoneHelp')}</p>
@@ -414,7 +414,7 @@
 		</div>
 	</div>
 
-	<div id="section-theme" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-theme" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.themeTitle')}</h2>
 			{#if themeMessage}
@@ -434,7 +434,7 @@
 		</div>
 	</div>
 
-	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
 			<p class="text-sm text-base-content/70">
@@ -471,7 +471,7 @@
 		</div>
 	</div>
 
-	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('profile.dataManagement.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.dataManagement.description')}</p>
@@ -482,7 +482,7 @@
 	</div>
 
 	{#if oidcConfig.enabled}
-		<div id="section-oidc" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+		<div id="section-oidc" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 			<div class="card-body gap-3">
 				<h2 class="text-lg font-semibold">{$_('oidc.profileTitle')}</h2>
 				{#if oidcMessage}
@@ -513,7 +513,7 @@
 			<h2 class="text-lg font-semibold text-error">{$_('profile.dangerZone.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.dangerZone.subtitle')}</p>
 
-			<div class="border border-error/20 rounded-lg p-4 flex flex-col gap-3">
+			<div class="border border-error/20 rounded-xl p-4 flex flex-col gap-3">
 				<h3 class="font-medium">{$_('profile.dangerZone.resetData.title')}</h3>
 				<p class="text-sm text-base-content/70">{$_('profile.dangerZone.resetData.description')}</p>
 				<p class="text-xs font-semibold text-warning">{$_('profile.dangerZone.resetData.warning')}</p>
@@ -542,7 +542,7 @@
 				</button>
 			</div>
 
-			<div class="border border-error/20 rounded-lg p-4 flex flex-col gap-3">
+			<div class="border border-error/20 rounded-xl p-4 flex flex-col gap-3">
 				<h3 class="font-medium">{$_('profile.dangerZone.deleteAccount.title')}</h3>
 				<p class="text-sm text-base-content/70">{$_('profile.dangerZone.deleteAccount.description')}</p>
 				<p class="text-xs font-semibold text-error">{$_('profile.dangerZone.deleteAccount.warning')}</p>
@@ -584,7 +584,7 @@
 	style:left="{navLeft}px"
 	aria-label={$_('profile.sectionNav')}
 >
-	<ul class="menu menu-sm bg-base-200 rounded-box border border-base-300">
+	<ul class="menu menu-sm bg-base-200 rounded-xl border border-base-300">
 		<li class="menu-title"><span>{$_('profile.sectionNav')}</span></li>
 		<li><a href="#section-profile" class:menu-active={activeSection === 'section-profile'}>{$_('user.profile')}</a></li>
 		<li><a href="#section-language" class:menu-active={activeSection === 'section-language'}>{$_('settings.languageTitle')}</a></li>

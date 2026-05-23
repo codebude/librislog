@@ -63,6 +63,7 @@ describe('theme store', () => {
 		expect(DAISYUI_THEMES).toContain('dracula');
 		expect(DAISYUI_THEMES).toContain('nord');
 		expect(DAISYUI_THEMES).toContain('sunset');
+		expect(DAISYUI_THEMES).toContain('librislog');
 		expect(DAISYUI_THEMES).not.toContain('light');
 		expect(DAISYUI_THEMES).not.toContain('dark');
 	});

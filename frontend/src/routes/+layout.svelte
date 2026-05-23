@@ -212,6 +212,9 @@
 
 <svelte:head>
 	<title>{pageTitle()}</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </svelte:head>
 
 {#if !i18nReady || !authReady}
@@ -236,7 +239,7 @@
 			{#each NAV_ITEMS as item}
 				<a
 					href={item.href}
-					class="btn btn-ghost btn-sm justify-start gap-2 font-normal"
+					class="btn btn-ghost btn-sm justify-start gap-2 font-normal rounded-xl"
 				>
 					<span>{item.icon}</span>{$_(item.labelKey)}
 				</a>
@@ -276,7 +279,7 @@
 		</div>
 
 		<!-- Page content -->
-		<main class="flex-1 p-4 pb-24 sm:pr-24 md:pb-4">
+		<main class="flex-1 p-4 pb-24 sm:pr-24 md:p-8 md:pb-4">
 			{@render children()}
 		</main>
 

@@ -83,26 +83,19 @@
 	{#if open}
 		<ul
 			tabindex="-1"
-			class="menu menu-sm dropdown-content absolute right-0 mt-3 w-40 rounded-box bg-base-100 shadow z-50 p-2"
+			class="menu menu-sm dropdown-content absolute right-0 mt-3 w-40 rounded-xl bg-base-100 shadow z-50 p-2"
 		>
 			<li><a href="/profile" onclick={() => (open = false)}>{$_('user.profile')}</a></li>
 			<li><a href="/about" onclick={() => (open = false)}>{$_('user.about')}</a></li>
-			<li><hr class="menu-divider"></li>
+			<li><hr class="menu-divider opacity-30 mt-2 mb-2" style="border-radius: 0; padding: 0;"></li>
 			<li>
 				<button type="button" class="cursor-pointer flex items-center gap-2" onclick={toggleTheme}>
 					<span>{themeIcon}</span>
 					<span>{$_('user.theme')}: {themeLabel}</span>
 				</button>
 			</li>
-			<li><hr class="menu-divider"></li>
+			<li><hr class="menu-divider opacity-30 mt-2 mb-2" style="border-radius: 0; padding: 0;"></li>
 			<li><button type="button" class="cursor-pointer" onclick={logout}>{$_('user.logout')}</button></li>
 		</ul>
 	{/if}
 </div>
-
-<style>
-	:global(.dropdown-content hr.menu-divider) {
-		border-radius: 0;
-		opacity: 0.3;
-	}
-</style>

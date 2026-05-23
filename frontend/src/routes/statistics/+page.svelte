@@ -189,7 +189,7 @@
 	<div class="hero rounded-2xl bg-base-100 shadow-sm border border-base-200">
 		<div class="hero-content text-center py-10">
 			<div class="max-w-2xl">
-				<h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">{$_('statistics.title')}</h1>
+				<h1 class="text-2xl sm:text-3xl font-bold tracking-tight">{$_('statistics.title')}</h1>
 				<p class="text-base-content/70 mt-2">{$_('statistics.subtitle')}</p>
 			</div>
 		</div>
@@ -220,7 +220,7 @@
 		<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
 				<div class="stat-title">{$_('statistics.avgBooksPerMonth')}</div>
-				<div class="stat-value text-primary text-3xl">{formatNumber(stats.avg_books_per_month, 2, 1)}</div>
+				<div class="stat-value text-primary text-2xl">{formatNumber(stats.avg_books_per_month, 2, 1)}</div>
 			</div>
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
 				<div class="stat-title">{$_('statistics.busiestMonth')}</div>
@@ -229,7 +229,7 @@
 			</div>
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
 				<div class="stat-title">{$_('statistics.avgPageCount')}</div>
-				<div class="stat-value text-info text-3xl">{formatNumber(stats.avg_page_count, 0)}</div>
+				<div class="stat-value text-info text-2xl">{formatNumber(stats.avg_page_count, 0)}</div>
 			</div>
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
 				<div class="stat-title">{$_('statistics.mostPopularLanguage')}</div>
@@ -244,7 +244,7 @@
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
 				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.languageDistribution')}</h2>
-					<div role="img" aria-label={$_('statistics.languageDistribution')} class="flex h-8 w-full overflow-hidden rounded-lg bg-base-200">
+					<div role="img" aria-label={$_('statistics.languageDistribution')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
 						{#if total(languageSegments) === 0}
 							<div class="w-full h-full"></div>
 						{:else}
@@ -267,7 +267,7 @@
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
 				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.statusDistribution')}</h2>
-					<div role="img" aria-label={$_('statistics.statusDistribution')} class="flex h-8 w-full overflow-hidden rounded-lg bg-base-200">
+					<div role="img" aria-label={$_('statistics.statusDistribution')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
 						{#if total(statusSegments) === 0}
 							<div class="w-full h-full"></div>
 						{:else}
@@ -291,7 +291,7 @@
 		<div class="card bg-base-100 border border-base-200 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-base">{$_('statistics.pageBuckets')}</h2>
-				<div role="img" aria-label={$_('statistics.pageBuckets')} class="flex h-8 w-full overflow-hidden rounded-lg bg-base-200">
+				<div role="img" aria-label={$_('statistics.pageBuckets')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
 					{#if total(pageSegments) === 0}
 						<div class="w-full h-full"></div>
 					{:else}
@@ -398,7 +398,7 @@
 				{#if stats.top_authors.length > 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 						{#each stats.top_authors as author, idx}
-							<div class="rounded-lg border border-base-200 p-3 bg-base-50/40">
+							<div class="rounded-xl border border-base-200 p-3 bg-base-200/40">
 								<div class="flex items-center gap-2 mb-2">
 									<span class="badge badge-primary badge-sm">{$_('statistics.rankedNumber', { values: { rank: idx + 1 } })}</span>
 									<button

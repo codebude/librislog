@@ -326,7 +326,7 @@
 		{/each}
 	</div>
 
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3">
+	<div class="flex flex-col sm:flex-row sm:items-center gap-4">
 		<h1 class="text-xl font-bold">{$_(STATUS_LABEL_KEYS[activeStatus])}</h1>
 		{#if syncing}
 			<span class="text-xs text-base-content/60 inline-flex items-center gap-1">
@@ -432,8 +432,8 @@
 		{/if}
 	{:else}
 		<div
-			class="grid gap-3 {viewMode === 'small'
-				? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2'
+			class="grid gap-4 {viewMode === 'small'
+				? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3'
 				: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}"
 		>
 			{#each books as book (book.id)}
