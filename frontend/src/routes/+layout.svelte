@@ -100,11 +100,16 @@
 					const settings = await api.profile.getSettings();
 					setTimezone(settings.timezone);
 					setQuoteServiceEnabled(settings.quote_service_enabled);
-					if (!localStorage.getItem(THEME_MODE_KEY) && settings.theme) {
-						setThemeMode(sanitizeThemeMode(settings.theme));
-						setCustomTheme(settings.custom_theme);
-						applyThemeToDocument();
-						saveThemeToStorage();
+					if (settings.theme) {
+						const dbMode = sanitizeThemeMode(settings.theme);
+						const storedMode = localStorage.getItem(THEME_MODE_KEY);
+						const storedCustom = localStorage.getItem('custom_theme');
+						if (!storedMode || storedMode !== dbMode || storedCustom !== (settings.custom_theme ?? null)) {
+							setThemeMode(dbMode);
+							setCustomTheme(settings.custom_theme);
+							applyThemeToDocument();
+							saveThemeToStorage();
+						}
 					}
 				} catch {
 					csrfToken.set(null);
