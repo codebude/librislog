@@ -104,7 +104,7 @@ describe('AddBookModal', () => {
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Subtitle/)).toBeInTheDocument();
 		expect(screen.getByText(/Author/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/ISBN/)).toBeInTheDocument();
+		expect(screen.getByRole('textbox', { name: 'ISBN' })).toBeInTheDocument();
 		expect(screen.getByText(/Publisher/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();

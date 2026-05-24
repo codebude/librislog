@@ -148,7 +148,18 @@
 						/>
 						<label class="form-control">
 							<span class="label label-text">{$_('book.isbn')}</span>
-							<input class="input input-bordered input-sm" name="isbn" bind:value={isbn} />
+							<div class="flex gap-2">
+								<input class="input input-bordered input-sm flex-1" name="isbn" bind:value={isbn} />
+								<button
+									type="button"
+									class="btn btn-outline btn-sm"
+									onclick={() => (scannerOpen = true)}
+									title={$_('import.scanIsbn')}
+									aria-label={$_('import.scanIsbn')}
+								>
+									<ScanBarcode class="w-4 h-4" />
+								</button>
+							</div>
 						</label>
 						<SuggestionInput
 							bind:value={publisher}
