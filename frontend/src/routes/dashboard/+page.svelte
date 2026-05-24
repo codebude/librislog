@@ -302,10 +302,13 @@ import { X } from '@lucide/svelte';
 			<div class="relative w-full">
 				<input
 					type="text"
-					class="input input-bordered w-full pr-10"
+					class="input input-bordered w-full pr-10 scroll-mt-20"
 					placeholder={$_('common.searchBooks')}
 					bind:value={searchQuery}
 					onkeydown={onSearchKeydown}
+					onfocus={(e) => {
+						e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					}}
 					role="combobox"
 					aria-autocomplete="list"
 					aria-expanded={showSearchDropdown ? 'true' : 'false'}
