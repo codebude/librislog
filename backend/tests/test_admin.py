@@ -207,7 +207,7 @@ def test_admin_restore_success(admin_client_with_file_db: tuple[TestClient, str]
 
     # 2. Modify the database (add a new book)
     conn = sqlite3.connect(db_path)
-    conn.execute("INSERT INTO book (title, user_id, reading_status) VALUES ('New Book', 1, 'read')")
+    conn.execute("INSERT INTO book (title, author, page_count, user_id, reading_status) VALUES ('New Book', '', 0, 1, 'read')")
     conn.commit()
     row = conn.execute("SELECT COUNT(*) FROM book").fetchone()
     assert row[0] == 2

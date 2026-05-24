@@ -199,9 +199,9 @@ def test_pages_per_day_fallback_books_without_progress(client: Any) -> None:
 def test_pages_per_day_skips_books_missing_dates_or_pages(client: Any) -> None:
     """Books without date_started, date_finished, or page_count should be skipped in fallback."""
     _create_book(client, title="No Dates", reading_status="read", page_count=100)
-    book2 = _create_book(client, title="No Pages", reading_status="read",
-                         date_started="2026-05-01T10:00:00Z", date_finished="2026-05-02T10:00:00Z")
-    client.patch(f"/api/books/{book2['id']}", json={"page_count": None})
+    _create_book(client, title="No Pages", reading_status="read",
+                 page_count=0,
+                 date_started="2026-05-01T10:00:00Z", date_finished="2026-05-02T10:00:00Z")
 
     resp = client.get("/api/statistics/pages-per-day?days=730")
     assert resp.status_code == 200

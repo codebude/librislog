@@ -28,15 +28,6 @@ def test_create_progress_page_exceeds_page_count(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
-def test_create_progress_no_page_count_allowed(client: TestClient) -> None:
-    book = _create_book(client)
-    resp = client.patch(f"/api/books/{book['id']}", json={"page_count": None})
-    assert resp.status_code == 200
-    resp = client.post(f"/api/books/{book['id']}/progress", json={"page": 50})
-    assert resp.status_code == 201
-    assert resp.json()["page"] == 50
-
-
 def test_create_progress_wrong_user_returns_404(client: TestClient, create_user_with_key: Callable[..., Any]) -> None:
     book = _create_book(client)
     _user2, key2 = create_user_with_key(email="other@example.com")
