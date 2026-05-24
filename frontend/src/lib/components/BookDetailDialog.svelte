@@ -230,6 +230,8 @@
 			},
 			y: {
 				beginAtZero: true,
+				suggestedMax: book?.page_count ?? 1,
+				grace: '5%',
 				grid: {
 					color: getDaisyColorRgb('base-200'),
 				},
