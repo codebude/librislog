@@ -27,6 +27,7 @@
 	let stats = $state<StatisticsResponse | null>(null);
 	let calendarData = $state<DailyPagesResponse | null>(null);
 	let calendarLoading = $state(false);
+	let activeBookId = $state<number | null>(null);
 	let selectedBook = $state<Book | null>(null);
 	let detailOpen = $state(false);
 	let drawerOpen = $state(false);
@@ -410,19 +411,32 @@
 										class="flex items-end overflow-hidden pt-4 pb-1 pl-3"
 										role="group"
 										aria-label={$_('statistics.coversForAuthor', { values: { author: author.author } })}
+										ontouchmove={(e) => {
+											const touch = e.touches[0];
+											const el = document.elementFromPoint(touch.clientX, touch.clientY);
+											const button = el?.closest('[data-book-id]');
+											if (button) {
+												activeBookId = parseInt(button.getAttribute('data-book-id')!, 10);
+											} else {
+												activeBookId = null;
+											}
+										}}
+										ontouchend={() => { activeBookId = null; }}
+										ontouchcancel={() => { activeBookId = null; }}
 									>
 										{#each author.covers as cover, coverIdx}
-											<button
-												type="button"
-												class="cursor-pointer transition-all duration-200 hover:z-50 {coverIdx > 0 ? '-ml-3' : ''} hover:-translate-y-1"
-												style:z-index={coverIdx + 1}
-												onclick={() => openCoverBook(cover.book_id)}
-											>
-												<img
-													src={cover.cover_url}
-													alt={$_('book.coverForAuthor', { values: { author: author.author, index: coverIdx + 1 } })}
-													class="h-24 w-auto rounded shadow-sm ring-1 ring-base-200 bg-base-100 transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/30 hover:ring-2 hover:ring-primary"
-												/>
+										<button
+											type="button"
+											class="cursor-pointer transition-all duration-200 hover:z-50 {coverIdx > 0 ? '-ml-3' : ''} hover:-translate-y-1 {activeBookId === cover.book_id ? 'z-50 -translate-y-1' : ''}"
+											style:z-index={activeBookId === cover.book_id ? 50 : coverIdx + 1}
+											data-book-id={cover.book_id}
+											onclick={() => openCoverBook(cover.book_id)}
+										>
+											<img
+												src={cover.cover_url}
+												alt={$_('book.coverForAuthor', { values: { author: author.author, index: coverIdx + 1 } })}
+												class="h-24 w-auto rounded shadow-sm ring-1 ring-base-200 bg-base-100 transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/30 hover:ring-2 hover:ring-primary {activeBookId === cover.book_id ? 'shadow-lg shadow-primary/30 ring-2 ring-primary' : ''}"
+											/>
 											</button>
 										{/each}
 									</div>
