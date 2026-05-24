@@ -115,9 +115,11 @@
 		try {
 			await api.books.progress.delete(book.id, entryId);
 			progressEntries = progressEntries.filter((e) => e.id !== entryId);
-			if (progressEntries.length > 0 && latestDbPage === entryId) {
+			if (progressEntries.length > 0) {
+				currentPage = progressEntries[0].page;
 				latestDbPage = progressEntries[0].page;
-			} else if (progressEntries.length === 0) {
+			} else {
+				currentPage = 0;
 				latestDbPage = 0;
 			}
 		} catch (e: unknown) {
