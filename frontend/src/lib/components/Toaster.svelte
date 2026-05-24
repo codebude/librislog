@@ -1,6 +1,7 @@
-<script lang="ts">
+	<script lang="ts">
 	import { _ } from '$lib/i18n';
 	import { toasts, type ToastLevel } from '$lib/toasts';
+	import { X } from '@lucide/svelte';
 
 	const CLASSES: Record<ToastLevel, string> = {
 		error: 'alert-error',
@@ -18,7 +19,7 @@
 				class="btn btn-ghost btn-xs ml-auto"
 				onclick={() => toasts.remove(toast.id)}
 				aria-label={$_('toasts.dismiss')}
-			>✕</button>
+			><X class="w-4 h-4" /></button>
 		</div>
 	{/each}
 </div>

@@ -56,12 +56,12 @@ class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     subtitle: Optional[str] = None
-    author: Optional[str] = Field(default=None, index=True)
+    author: str = Field(default="", index=True)
     isbn: Optional[str] = Field(default=None, unique=True)
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
     published_year: Optional[int] = None
-    page_count: Optional[int] = None
+    page_count: int = Field(default=0)
     language: Optional[str] = Field(default=None, max_length=2)
     notes: Optional[str] = None
     blurb: Optional[str] = None

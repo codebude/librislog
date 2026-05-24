@@ -94,7 +94,7 @@ describe('AddBookModal', () => {
 
 	it('closes modal when close button clicked', async () => {
 		render(AddBookModal, { props: { open: true } });
-		const closeBtn = screen.getByRole('button', { name: '✕' });
+		const closeBtn = screen.getByRole('button', { name: /close/i });
 		await fireEvent.click(closeBtn);
 		expect(screen.queryByRole('heading', { name: 'Add Book' })).not.toBeInTheDocument();
 	});

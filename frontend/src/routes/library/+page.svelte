@@ -1,30 +1,31 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
-	import type { Book, LibraryStats, ReadingStatus, SortField, SortOrder } from '$lib/types';
+	<script lang="ts">
+	import type { Book, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
 	import { api } from '$lib/api';
-	import { shouldShowActionToast } from '$lib/errors';
 	import { _ } from '$lib/i18n';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import { toasts } from '$lib/toasts';
+	import { shouldShowActionToast } from '$lib/errors';
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookListItem from '$lib/components/BookListItem.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import SearchBar from '$lib/components/SearchBar.svelte';
 	import AddBookModal from '$lib/components/AddBookModal.svelte';
+	import SearchBar from '$lib/components/SearchBar.svelte';
+	import { BookOpen as BookOpenIcon, Book as BookIcon, Check, X } from '@lucide/svelte';
 
 	type Tab = {
 		status: ReadingStatus;
 		labelKey: string;
-		icon: string;
+		Icon: typeof BookOpenIcon;
 	};
 
 	const TABS: Tab[] = [
-		{ status: 'want_to_read', labelKey: 'status.want_to_read', icon: '📚' },
-		{ status: 'currently_reading', labelKey: 'status.currently_reading', icon: '📖' },
-		{ status: 'read', labelKey: 'status.read', icon: '✓' },
-		{ status: 'did_not_finish', labelKey: 'status.did_not_finish', icon: '❌' }
+		{ status: 'want_to_read', labelKey: 'status.want_to_read', Icon: BookOpenIcon },
+		{ status: 'currently_reading', labelKey: 'status.currently_reading', Icon: BookIcon },
+		{ status: 'read', labelKey: 'status.read', Icon: Check },
+		{ status: 'did_not_finish', labelKey: 'status.did_not_finish', Icon: X }
 	];
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -320,7 +321,7 @@
 				class="tab whitespace-nowrap {activeStatus === tab.status ? 'tab-active' : ''}"
 				onclick={() => changeTab(tab.status)}
 			>
-				<span class="mr-1">{tab.icon}</span>
+				<tab.Icon class="w-4 h-4 mr-1" />
 				{$_(tab.labelKey)} ({formatCount(getStatusCount(tab.status))})
 			</button>
 		{/each}
@@ -414,7 +415,7 @@
 		</div>
 	{:else if books.length === 0}
 		<div class="text-center py-16 text-base-content/40">
-			<p class="text-4xl mb-2">📚</p>
+			<BookOpenIcon class="w-12 h-12 mx-auto mb-2 opacity-50" />
 			<p>{$_('common.noBooksYet')}</p>
 			<button class="btn btn-primary btn-sm mt-4" onclick={() => (addBookOpen = true)}>{$_('common.addFirstBook')}</button>
 		</div>

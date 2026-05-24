@@ -6,6 +6,16 @@
 	const frontendDeps = Object.entries(pkg.dependencies).sort((a, b) => a[0].localeCompare(b[0]));
 	const devDeps = Object.entries(pkg.devDependencies).sort((a, b) => a[0].localeCompare(b[0]));
 
+	const additionalDeps: Array<{ name: string; url: string }> = [
+		{ name: '@lucide/svelte', url: 'https://lucide.dev/' },
+		{ name: '@fontsource/inter', url: 'https://fontsource.org/fonts/inter' },
+		{ name: 'Chart.js', url: 'https://www.chartjs.org/' },
+		{ name: 'svelte-chartjs', url: 'https://github.com/SauravKanchan/svelte-chartjs' },
+		{ name: 'chartjs-plugin-zoom', url: 'https://github.com/chartjs/chartjs-plugin-zoom' },
+		{ name: 'chartjs-chart-matrix', url: 'https://github.com/kurkle/chartjs-chart-matrix' },
+		{ name: 'Hammer.js', url: 'https://hammerjs.github.io/' },
+	];
+
 	const backendDeps: Array<{ name: string; url: string }> = [
 		{ name: 'FastAPI', url: 'https://fastapi.tiangolo.com/' },
 		{ name: 'SQLModel', url: 'https://sqlmodel.tiangolo.com/' },
@@ -89,6 +99,14 @@
 							class="badge badge-outline badge-sm hover:badge-primary transition-colors"
 						>{name}</a>
 					{/each}
+					{#each additionalDeps as dep}
+						<a
+							href={dep.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="badge badge-outline badge-sm hover:badge-primary transition-colors"
+						>{dep.name}</a>
+					{/each}
 				</div>
 			</div>
 
@@ -107,7 +125,7 @@
 			</div>
 
 			<div>
-				<h3 class="text-sm font-semibold text-base-content/70 uppercase tracking-wider mb-2">Dev Tools</h3>
+				<h3 class="text-sm font-semibold text-base-content/70 uppercase tracking-wider mb-2">{$_('about.devTools')}</h3>
 				<div class="flex flex-wrap gap-1.5">
 					{#each devDeps as [name, ver]}
 						<a

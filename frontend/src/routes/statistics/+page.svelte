@@ -10,6 +10,7 @@
 	import CalendarHeatmap from '$lib/components/CalendarHeatmap.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import { RotateCcw } from '@lucide/svelte';
 
 	type Segment = {
 		label: string;
@@ -323,10 +324,7 @@
 						onclick={() => pagesChart?.resetZoom()}
 						disabled={!pagesChart}
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-							<path d="M3 3v5h5" />
-						</svg>
+						<RotateCcw class="h-4 w-4" />
 					</button>
 					<BarChart
 						labels={pagesReadPoints.map((p) => p.label)}
@@ -349,10 +347,7 @@
 						onclick={() => booksMonthChart?.resetZoom()}
 						disabled={!booksMonthChart}
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-							<path d="M3 3v5h5" />
-						</svg>
+						<RotateCcw class="h-4 w-4" />
 					</button>
 					<BarChart
 						labels={booksByMonthPoints.map((p) => p.label)}
@@ -375,10 +370,7 @@
 						onclick={() => booksYearChart?.resetZoom()}
 						disabled={!booksYearChart}
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-							<path d="M3 3v5h5" />
-						</svg>
+						<RotateCcw class="h-4 w-4" />
 					</button>
 					<BarChart
 						labels={booksByYearPoints.map((p) => p.label)}

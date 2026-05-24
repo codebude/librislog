@@ -1,9 +1,10 @@
-<script lang="ts">
+	<script lang="ts">
 	import Alert from '$lib/components/Alert.svelte';
 	import { Html5QrcodeSupportedFormats, BaseLoggger } from 'html5-qrcode/esm/core';
 	import { Html5QrcodeShim } from 'html5-qrcode/esm/code-decoder';
 	import { _ } from '$lib/i18n';
 	import { onDestroy } from 'svelte';
+	import { X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -168,7 +169,7 @@
 			<div class="w-full max-w-4xl h-[88dvh] bg-base-100 rounded-xl shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label={$_('scanner.title')}>
 				<div class="flex items-center justify-between px-4 py-3 border-b border-base-200">
 					<h3 class="text-lg font-semibold">{$_('scanner.title')}</h3>
-					<button class="btn btn-ghost btn-sm btn-circle" onclick={closeScanner} aria-label={$_('scanner.close')}>✕</button>
+					<button class="btn btn-ghost btn-sm btn-circle" onclick={closeScanner} aria-label={$_('scanner.close')}><X class="w-4 h-4" /></button>
 				</div>
 
 				<div class="flex-1 min-h-0 p-4 flex flex-col gap-3 overflow-y-auto">

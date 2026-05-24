@@ -11,8 +11,14 @@
 	import { _, setupI18n } from '$lib/i18n';
 	import { setTimezone, setQuoteServiceEnabled } from '$lib/stores/timezone';
 	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY } from '$lib/stores/theme';
+	import { LayoutDashboard, BookOpen, ScrollText, BarChart3, Settings } from '@lucide/svelte';
 	import { version, gitSha } from '$lib/version';
 	import { toasts } from '$lib/toasts';
+	import '@fontsource/inter/300.css';
+	import '@fontsource/inter/400.css';
+	import '@fontsource/inter/500.css';
+	import '@fontsource/inter/600.css';
+	import '@fontsource/inter/700.css';
 
 	let { children } = $props();
 
@@ -152,13 +158,13 @@
 
 	const NAV_ITEMS = $derived.by(() => {
 		const items = [
-			{ href: '/dashboard', labelKey: 'nav.dashboard', icon: '🏠' },
-			{ href: '/library', labelKey: 'nav.library', icon: '📚' },
-			{ href: '/timeline', labelKey: 'nav.timeline', icon: '📖' },
-			{ href: '/statistics', labelKey: 'nav.statistics', icon: '📊' }
+			{ href: '/dashboard', labelKey: 'nav.dashboard', Icon: LayoutDashboard },
+			{ href: '/library', labelKey: 'nav.library', Icon: BookOpen },
+			{ href: '/timeline', labelKey: 'nav.timeline', Icon: ScrollText },
+			{ href: '/statistics', labelKey: 'nav.statistics', Icon: BarChart3 }
 		];
 		if ($currentUser?.role === 'admin') {
-			items.push({ href: '/admin', labelKey: 'admin.title', icon: '🛠️' });
+			items.push({ href: '/admin', labelKey: 'admin.title', Icon: Settings });
 		}
 		return items;
 	});
@@ -212,9 +218,6 @@
 
 <svelte:head>
 	<title>{pageTitle()}</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com">
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </svelte:head>
 
 {#if !i18nReady || !authReady}
@@ -241,7 +244,7 @@
 					href={item.href}
 					class="btn btn-ghost btn-sm justify-start gap-2 font-normal rounded-xl"
 				>
-					<span>{item.icon}</span>{$_(item.labelKey)}
+					<item.Icon class="w-4 h-4" />{$_(item.labelKey)}
 				</a>
 			{/each}
 		</nav>
@@ -290,7 +293,7 @@
 					href={item.href}
 					class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 text-base-content/60 hover:text-base-content"
 				>
-					<span class="text-lg leading-none">{item.icon}</span>
+					<item.Icon class="w-5 h-5" />
 					<span>{$_(item.labelKey)}</span>
 				</a>
 			{/each}

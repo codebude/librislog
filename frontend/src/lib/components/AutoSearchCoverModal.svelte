@@ -1,7 +1,8 @@
-<script lang="ts">
+	<script lang="ts">
 	import Alert from '$lib/components/Alert.svelte';
 	import type { CoverCandidate } from '$lib/types';
 	import { _ } from '$lib/i18n';
+	import { X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -72,7 +73,7 @@
 		<div class="modal-box max-w-3xl">
 			<div class="flex items-center justify-between mb-3">
 				<h3 class="font-bold text-lg">{$_('book.autoSearchCovers')}</h3>
-				<button type="button" class="btn btn-ghost btn-xs btn-circle" onclick={close} aria-label={$_('common.close')}>✕</button>
+				<button type="button" class="btn btn-ghost btn-xs btn-circle" onclick={close} aria-label={$_('common.close')}><X class="w-3 h-3" /></button>
 			</div>
 
 			{#if loading}

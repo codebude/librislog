@@ -1,4 +1,4 @@
-<script lang="ts">
+	<script lang="ts">
 	import type { Book, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -13,6 +13,7 @@
 	import DateConflictDialog from './DateConflictDialog.svelte';
 	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
+	import { X } from '@lucide/svelte';
 
 	let {
 		book = $bindable(null),
@@ -343,7 +344,7 @@
 				class="btn btn-ghost btn-sm btn-circle"
 				onclick={() => (open = false)}
 				aria-label={$_('common.close')}
-			>✕</button>
+			><X class="w-4 h-4" /></button>
 		</div>
 
 		<!-- Editable form -->

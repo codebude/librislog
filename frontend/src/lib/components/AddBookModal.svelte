@@ -1,4 +1,4 @@
-<script lang="ts">
+	<script lang="ts">
 	import type { Book, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -8,6 +8,7 @@
 	import CoverPicker from './CoverPicker.svelte';
 	import TagInput from './TagInput.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
+	import { X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -110,7 +111,7 @@
 		<div class="modal-box w-full max-w-lg">
 			<div class="flex items-center justify-between mb-4">
 				<h3 class="text-lg font-bold">{$_('app.addBook')}</h3>
-				<button class="btn btn-ghost btn-sm btn-circle" onclick={() => { open = false; }}>✕</button>
+				<button class="btn btn-ghost btn-sm btn-circle" onclick={() => { open = false; }} aria-label={$_('common.close')}><X class="w-4 h-4" /></button>
 			</div>
 
 			<!-- Tabs -->

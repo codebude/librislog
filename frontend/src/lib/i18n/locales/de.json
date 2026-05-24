@@ -504,6 +504,7 @@
     "thankYou": "Danksagung",
     "thankYouText": "LibrisLog wäre ohne die erstaunlichen Open-Source-Bibliotheken und Frameworks, auf denen es aufbaut, nicht möglich. Unser Dank gilt allen Entwicklern, die zu diesen Projekten beitragen.",
     "frontend": "Frontend",
-    "backend": "Backend"
+    "backend": "Backend",
+    "devTools": "Entwicklungswerkzeuge"
   }
 }

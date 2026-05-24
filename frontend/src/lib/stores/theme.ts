@@ -103,10 +103,11 @@ export function applyThemeToDocument() {
 
 export function getThemeIcon(): string {
 	switch (_themeMode) {
-		case 'light': return '☀️';
-		case 'dark': return '🌙';
-		case 'custom': return '🎨';
+		case 'light': return 'Sun';
+		case 'dark': return 'Moon';
+		case 'custom': return 'Palette';
 	}
+	return 'Sun';
 }
 
 export { DAISYUI_THEMES };

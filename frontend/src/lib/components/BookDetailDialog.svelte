@@ -1,4 +1,4 @@
-<script lang="ts">
+	<script lang="ts">
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import { locale } from '$lib/i18n';
@@ -9,6 +9,7 @@
 	import { formatLanguageCode } from '$lib/utils/language';
 	import StarRating from './StarRating.svelte';
 	import { Line } from 'svelte-chartjs';
+	import { X } from '@lucide/svelte';
 	import '$lib/chartjs/register';
 	import { getDaisyColorRgb } from '$lib/chartjs/theme';
 	import type { ChartData, ChartOptions } from 'chart.js';
@@ -288,7 +289,7 @@
 				class="btn btn-ghost btn-sm btn-circle shrink-0"
 				onclick={() => (open = false)}
 				aria-label={$_('common.close')}
-			>✕</button>
+			><X class="w-4 h-4" /></button>
 		</div>
 
 		{#if book.cover_url}
@@ -484,7 +485,7 @@
 						class="btn btn-ghost btn-xs btn-circle"
 						onclick={() => (logModalOpen = false)}
 						aria-label={$_('common.close')}
-					>✕</button>
+					><X class="w-4 h-4" /></button>
 				</div>
 				<div class="p-4">
 					{#if progressEntries.length === 0}

@@ -10,6 +10,7 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+import { X } from '@lucide/svelte';
 
 	let loading = $state(true);
 	let stats = $state<LibraryStats>({
@@ -323,7 +324,7 @@
 						}}
 						aria-label={$_('common.clearForm')}
 					>
-						x
+						<X class="w-4 h-4" />
 					</button>
 				{/if}
 
