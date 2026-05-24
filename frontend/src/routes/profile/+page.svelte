@@ -18,6 +18,7 @@
 	let showPassword = $state(false);
 	let profileMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let language = $state('en');
+	let languageMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let timezone = $state(getTimezone());
 	let timezoneMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let description = $state('');
@@ -162,6 +163,7 @@
 		if (SUPPORTED_LOCALES.includes(updated.language as (typeof SUPPORTED_LOCALES)[number])) {
 			setLocale(updated.language as (typeof SUPPORTED_LOCALES)[number]);
 		}
+		languageMessage = { type: 'success', text: $_('common.saved') };
 	}
 
 	const allTimezones: string[] = typeof Intl.supportedValuesOf === 'function'
@@ -178,6 +180,7 @@
 		timezoneMessage = null;
 		await api.profile.updateSettings({ timezone });
 		setTimezone(timezone);
+		timezoneMessage = { type: 'success', text: $_('common.saved') };
 	}
 
 	$effect(() => {
@@ -378,6 +381,11 @@
 	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.languageTitle')}</h2>
+			{#if languageMessage}
+				<Alert type={languageMessage.type === 'success' ? 'success' : 'error'} onClose={() => (languageMessage = null)}>
+					{languageMessage.text}
+				</Alert>
+			{/if}
 			<select class="select select-bordered max-w-xs" name="language" bind:value={language}>
 				{#each SUPPORTED_LOCALES as code}
 					<option value={code}>{$_(`languages.${code}`)}</option>
