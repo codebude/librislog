@@ -7,20 +7,20 @@ import {
 
 describe('theme store', () => {
 	beforeEach(() => {
-		setThemeMode('light');
-		setCustomTheme(null);
+		setThemeMode('custom');
+		setCustomTheme('librislog');
 		localStorage.clear();
 	});
 
-	it('defaults to light mode', () => {
-		expect(getThemeMode()).toBe('light');
-		expect(getEffectiveTheme()).toBe('light');
+	it('defaults to custom mode with librislog theme', () => {
+		expect(getThemeMode()).toBe('custom');
+		expect(getEffectiveTheme()).toBe('librislog');
 	});
 
-	it('cycles through modes', () => {
+	it('cycles through modes starting from custom', () => {
+		expect(cycleTheme()).toBe('light');
 		expect(cycleTheme()).toBe('dark');
 		expect(cycleTheme()).toBe('custom');
-		expect(cycleTheme()).toBe('light');
 	});
 
 	it('uses custom theme when in custom mode', () => {
@@ -29,10 +29,10 @@ describe('theme store', () => {
 		expect(getEffectiveTheme()).toBe('dracula');
 	});
 
-	it('falls back to dracula when custom theme is not set', () => {
+	it('falls back to librislog when custom theme is not set', () => {
 		setThemeMode('custom');
 		setCustomTheme(null);
-		expect(getEffectiveTheme()).toBe('dracula');
+		expect(getEffectiveTheme()).toBe('librislog');
 	});
 
 	it('rejects invalid custom themes', () => {

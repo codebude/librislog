@@ -15,8 +15,8 @@ export type DaisyUITheme = (typeof DAISYUI_THEMES)[number];
 export const THEME_MODE_KEY = 'librislog_theme_mode';
 export const CUSTOM_THEME_KEY = 'librislog_custom_theme';
 
-let _themeMode: ThemeMode = 'light';
-let _customTheme: DaisyUITheme | null = null;
+let _themeMode: ThemeMode = 'custom';
+let _customTheme: DaisyUITheme | null = 'librislog';
 let _version = 0;
 
 export function getThemeMode(): ThemeMode {
@@ -47,7 +47,7 @@ export function setCustomTheme(theme: DaisyUITheme | string | null) {
 const VALID_MODES: ThemeMode[] = ['light', 'dark', 'custom'];
 
 export function sanitizeThemeMode(raw: string): ThemeMode {
-	return VALID_MODES.includes(raw as ThemeMode) ? (raw as ThemeMode) : 'light';
+	return VALID_MODES.includes(raw as ThemeMode) ? (raw as ThemeMode) : 'custom';
 }
 
 export function getEffectiveTheme(): string {
@@ -55,13 +55,13 @@ export function getEffectiveTheme(): string {
 		return _customTheme;
 	}
 	if (_themeMode === 'custom') {
-		return 'dracula';
+		return 'librislog';
 	}
 	return _themeMode;
 }
 
 export function cycleTheme(): ThemeMode {
-	const order: ThemeMode[] = ['light', 'dark', 'custom'];
+	const order: ThemeMode[] = ['custom', 'light', 'dark'];
 	const idx = order.indexOf(_themeMode);
 	_themeMode = order[(idx + 1) % order.length];
 	return _themeMode;
