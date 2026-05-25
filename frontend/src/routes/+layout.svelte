@@ -273,7 +273,7 @@
 		<div class="navbar md:hidden bg-base-100 shadow-sm sticky top-0 z-20">
 			<div class="navbar-start">
 				<a href="/" class="btn btn-ghost text-lg px-3 py-2">
-					<Logo class="w-7 h-7 shrink-0" />
+					<Logo class="w-10 h-10 shrink-0" />
 					<span class="font-bold tracking-tight hidden sm:inline">{$_('app.title')}</span>
 				</a>
 			</div>

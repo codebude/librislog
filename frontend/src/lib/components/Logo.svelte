@@ -10,7 +10,7 @@
 		   Q 12 86 12 80
 		   L 12 28
 		   Q 12 22 18 22 Z"
-		class="fill-primary"
+		class="fill-neutral"
 	/>
 	<!-- Pages (top edge) -->
 	<path
@@ -23,7 +23,7 @@
 		   Q 14 32 14 28
 		   L 14 26
 		   Q 14 22 18 22 Z"
-		class="fill-primary-content"
+		class="fill-base-100"
 	/>
 	<!-- Spine highlight -->
 	<path
@@ -36,7 +36,7 @@
 		   Q 14 22 20 22
 		   L 18 22
 		   Q 12 22 12 28 Z"
-		class="fill-primary/80"
+		class="fill-neutral/70"
 	/>
 	<!-- Bookmark -->
 	<path
@@ -46,14 +46,14 @@
 		   L 56 36
 		   L 50 42
 		   Z"
-		class="fill-secondary"
+		class="fill-primary"
 	/>
 	<!-- Text lines on cover -->
-	<rect x="22" y="44" width="44" height="6" rx="3" class="fill-secondary/60" />
-	<rect x="22" y="56" width="36" height="6" rx="3" class="fill-secondary/60" />
-	<rect x="22" y="68" width="28" height="6" rx="3" class="fill-secondary/60" />
+	<rect x="22" y="44" width="44" height="6" rx="3" class="fill-neutral/40" />
+	<rect x="22" y="56" width="36" height="6" rx="3" class="fill-neutral/40" />
+	<rect x="22" y="68" width="28" height="6" rx="3" class="fill-neutral/40" />
 	<!-- Checkmark badge background -->
-	<circle cx="74" cy="70" r="16" class="fill-secondary" />
+	<circle cx="74" cy="70" r="16" class="fill-primary" />
 	<!-- Checkmark -->
 	<path
 		d="M 65 70
@@ -63,7 +63,7 @@
 		stroke-width="4"
 		stroke-linecap="round"
 		stroke-linejoin="round"
-		class="stroke-primary"
+		class="stroke-primary-content"
 	/>
 </svg>
 
