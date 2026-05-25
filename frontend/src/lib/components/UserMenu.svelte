@@ -4,6 +4,7 @@
 	import { broadcastLogout, currentUser, csrfToken } from '$lib/stores/auth';
 	import { _ } from '$lib/i18n';
 	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '$lib/stores/theme';
+	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
 	import { Sun, Moon, Palette } from '@lucide/svelte';
 
 	let { floating = true }: { floating?: boolean } = $props();
@@ -76,9 +77,13 @@
 		onclick={onMenuToggle}
 		aria-label={$_('user.menu')}
 	>
-		<div class="w-9 h-9 rounded-full bg-primary text-primary-content text-xs grid place-items-center font-semibold">
-			{initials}
-		</div>
+		{#if user}
+			<AnimalAvatar seed={user.email} size={36} class="w-9 h-9" />
+		{:else}
+			<div class="w-9 h-9 rounded-full bg-primary text-primary-content text-xs grid place-items-center font-semibold">
+				{initials}
+			</div>
+		{/if}
 	</button>
 
 	{#if open}

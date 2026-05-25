@@ -35,6 +35,7 @@
 		"@fontsource/inter": "^5.2.8",
 		"@lucide/svelte": "^1.16.0",
 		"@tailwindcss/vite": "^4.3.0",
+		"animal-avatar-generator": "^1.2.0",
 		"chart.js": "^4.5.1",
 		"chartjs-chart-matrix": "^3.0.4",
 		"chartjs-plugin-zoom": "^2.2.0",

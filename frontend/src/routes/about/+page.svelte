@@ -17,6 +17,7 @@
 		{ name: 'DaisyUI', url: 'https://daisyui.com/' },
 		{ name: 'Hammer.js', url: 'https://hammerjs.github.io/' },
 		{ name: 'html5-qrcode', url: 'https://github.com/mebjas/html5-qrcode' },
+		{ name: 'animal-avatar-generator', url: 'https://github.com/roma-lukashik/animal-avatar-generator' },
 	];
 
 	const backendDeps: Array<{ name: string; url: string }> = [
