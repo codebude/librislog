@@ -144,7 +144,8 @@
 					toasts.add(
 						$_('toasts.newVersion', { values: { version: data.version } }),
 						'info',
-						120000
+						120000,
+						{ label: $_('toasts.reload'), onClick: () => window.location.reload() }
 					);
 				}
 			} catch {

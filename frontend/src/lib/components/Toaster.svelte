@@ -13,13 +13,21 @@
 
 <div class="toast toast-top toast-end z-[100] pointer-events-none">
 	{#each $toasts as toast (toast.id)}
-		<div class="alert {CLASSES[toast.level]} shadow-lg pointer-events-auto max-w-sm">
+		<div class="alert {CLASSES[toast.level]} shadow-lg pointer-events-auto max-w-sm flex-wrap">
 			<span class="text-sm">{toast.message}</span>
-			<button
-				class="btn btn-ghost btn-xs ml-auto"
-				onclick={() => toasts.remove(toast.id)}
-				aria-label={$_('toasts.dismiss')}
-			><X class="w-4 h-4" /></button>
+			<div class="flex gap-1 ml-auto">
+				{#if toast.action}
+					<button
+						class="btn btn-ghost btn-xs"
+						onclick={() => { toast.action!.onClick(); toasts.remove(toast.id); }}
+					>{toast.action.label}</button>
+				{/if}
+				<button
+					class="btn btn-ghost btn-xs"
+					onclick={() => toasts.remove(toast.id)}
+					aria-label={$_('toasts.dismiss')}
+				><X class="w-4 h-4" /></button>
+			</div>
 		</div>
 	{/each}
 </div>

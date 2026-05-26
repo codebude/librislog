@@ -202,7 +202,8 @@
   },
   "toasts": {
     "dismiss": "Dismiss",
-    "newVersion": "A new version ({version}) is available. Reload for updates."
+    "newVersion": "A new version ({version}) is available.",
+    "reload": "Reload"
   },
   "settings": {
     "title": "Settings",

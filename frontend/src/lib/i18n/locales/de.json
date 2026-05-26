@@ -202,7 +202,8 @@
   },
   "toasts": {
     "dismiss": "Schließen",
-    "newVersion": "Eine neue Version ({version}) ist verfügbar. Seite neu laden für Updates."
+    "newVersion": "Eine neue Version ({version}) ist verfügbar.",
+    "reload": "Neu laden"
   },
   "settings": {
     "title": "Einstellungen",
