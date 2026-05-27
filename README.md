@@ -3,11 +3,11 @@
 **Multi-user book tracking webapp** — maintain four reading lists (Want to Read, Currently Reading, Read, Did Not Finish), import books from Open Library & Google Books, scrape cover art, and manage your collection through a modern Svelte dashboard.
 
 <p>
-  <a href="https://librislog.codebude.at/librislog/">📚 Full Documentation</a>
+  <a href="https://codebude.github.io/librislog/">📚 Full Documentation</a>
   &nbsp;·&nbsp;
-  <a href="https://librislog.codebude.at/librislog/guide/getting-started">Quick Start</a>
+  <a href="https://codebude.github.io/librislog/guide/getting-started">Quick Start</a>
   &nbsp;·&nbsp;
-  <a href="https://librislog.codebude.at/librislog/api/">API Reference</a>
+  <a href="https://codebude.github.io/librislog/api/">API Reference</a>
 </p>
 
 [![Tests](https://github.com/codebude/librislog/actions/workflows/tests.yml/badge.svg)](https://github.com/codebude/librislog/actions/workflows/tests.yml)

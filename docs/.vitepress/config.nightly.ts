@@ -12,7 +12,7 @@ export default defineConfig({
     ...baseConfig.themeConfig,
     nav: [
       ...(baseConfig.themeConfig?.nav || []),
-      { text: 'Release Docs', link: 'https://librislog.codebude.at/librislog/' },
+      { text: 'Release Docs', link: 'https://codebude.github.io/librislog/' },
     ],
   },
 })
