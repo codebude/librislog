@@ -22,7 +22,7 @@ The most common tags in your library are shown, sized by frequency. Click any ta
 
 ## Timeline
 
-The timeline page shows a chronological view of your reading activity:
+Access the timeline page from the left navigation menu under "Timeline". The timeline page shows a chronological view of your reading activity:
 - Books started and finished
 - Reading progress updates
 - Date conflicts (when a book's start date is after its finish date)

@@ -6,6 +6,7 @@ Get LibrisLog running in minutes.
 
 - [Docker](https://docs.docker.com/get-docker/) (includes Docker Compose)
 - `curl` or `wget` (to download files)
+- OpenSSL (to generate encryption key) or Python 3.6+
 
 ## Setup
 
@@ -27,11 +28,11 @@ Start the application:
 docker compose up -d
 ```
 
-Open http://localhost:8001 in your browser.
+The backend API will be available at http://localhost:8000 and the frontend at http://localhost:8001.
 
 ## First-Time Setup
 
-On first launch, create a user account through the web interface.
+On first launch, create a user account through the web interface at http://localhost:8001.
 
 ![Dashboard](/screenshots/dashboard.png)
 
@@ -46,3 +47,5 @@ curl http://localhost:8000/api/health
 ```
 
 You should see a JSON response with status information.
+
+You can also verify the frontend is accessible by opening http://localhost:8001 in your browser.

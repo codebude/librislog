@@ -14,6 +14,8 @@ Enables Google Books as a fallback search source and improves cover resolution.
 6. Click **Create Credentials** → **API Key**
 7. Copy the key and set it as `GOOGLE_BOOKS_API_KEY` in your `.env`
 
+> **Note**: Google Books API has usage limits. For most personal use, the free tier is sufficient. See [Google's documentation](https://developers.google.com/books) for quota details.
+
 ## Hardcover API
 
 Enables Hardcover.app as an additional search source.

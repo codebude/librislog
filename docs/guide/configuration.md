@@ -9,7 +9,7 @@ All configuration is done via environment variables in a `.env` file at the proj
 | `DATABASE_URL` | SQLite database file path | `sqlite:///./data/librislog.db` |
 | `CORS_ORIGINS` | Allowed CORS origins (JSON array or comma-separated) | `["http://localhost", "http://localhost:5173", "http://localhost:4173"]` |
 | `LOG_LEVEL` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
-| `API_KEY_ENCRYPTION_KEY` | Secret key for API key encryption (must be real, not placeholder) | — |
+| `API_KEY_ENCRYPTION_KEY` | Secret key for API key encryption (must be real, not placeholder) | Requires 32+ characters |
 | `FORWARDED_ALLOW_IPS` | Trusted proxy IPs | `*` |
 
 ## Authentication
@@ -69,7 +69,7 @@ All configuration is done via environment variables in a `.env` file at the proj
 
 ## Validation Rules
 
-- `API_KEY_ENCRYPTION_KEY` must be a real secret key. Do not use the placeholder value from `.env.example`. If left as placeholder, API key creation will fail.
+- `API_KEY_ENCRYPTION_KEY` must be a real secret key (minimum 32 characters). Do not use the placeholder value from `.env.example`. If left as placeholder or set to a weak value, API key creation will fail.
 - When `OIDC_ENABLED=true`, all three OIDC variables must be set.
 - `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library.
 
@@ -79,7 +79,7 @@ All configuration is done via environment variables in a `.env` file at the proj
 DATABASE_URL=sqlite:///./data/librislog.db
 CORS_ORIGINS=["http://localhost", "http://localhost:5173", "http://localhost:4173"]
 LOG_LEVEL=INFO
-API_KEY_ENCRYPTION_KEY=  # CHANGE ME: generate with `python -c "import secrets; print(secrets.token_urlsafe(32))`"
+API_KEY_ENCRYPTION_KEY=  # CHANGE ME: generate with `openssl rand -base64 32`
 FORWARDED_ALLOW_IPS=*
 
 AUTH_COOKIE_NAME=librislog_session
