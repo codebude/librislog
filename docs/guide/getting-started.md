@@ -6,19 +6,33 @@ Get LibrisLog running in minutes.
 
 - [Docker](https://docs.docker.com/get-docker/) (includes Docker Compose)
 - `curl` or `wget` (to download files)
-- OpenSSL (to generate encryption key) or Python 3.6+
 
 ## Setup
 
-Download the files, create your environment, and generate a secure encryption key:
+Download the files, create your environment, and generate a secure encryption key.
 
-```bash
+::: code-group
+
+```bash [Linux/macOS]
 mkdir librislog && cd librislog \
   && curl -O https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml \
   && curl -O https://raw.githubusercontent.com/codebude/librislog/main/.env.example \
   && cp .env.example .env \
   && sed -i "s/CHANGE_ME_TO_32PLUS_CHARS/$(openssl rand -base64 32)/" .env
 ```
+
+```powershell [Windows]
+mkdir librislog; cd librislog
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml -OutFile docker-compose.yml
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/codebude/librislog/main/.env.example -OutFile .env.example
+Copy-Item .env.example .env
+$key = [Convert]::ToBase64String([byte[]](1..32 | ForEach-Object {Get-Random -Maximum 256}))
+(Get-Content .env).Replace('CHANGE_ME_TO_32PLUS_CHARS', $key) | Set-Content .env
+```
+
+:::
+
+> **Alternative key generation**: If you don't have OpenSSL or PowerShell, run `python -c "import secrets; print(secrets.token_urlsafe(32))"` or use an online generator like [base64encode.org](https://www.base64encode.org/) (generate 32 random bytes, encode to base64). Then manually replace `CHANGE_ME_TO_32PLUS_CHARS` in your `.env` file.
 
 > The `.env` file can be further customized — see [Configuration](/guide/configuration) for all available options.
 

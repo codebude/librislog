@@ -28,12 +28,26 @@
 
 ## Quick Start
 
+### Linux/macOS
+
 ```bash
 mkdir librislog && cd librislog
 curl -O https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/codebude/librislog/main/.env.example
 cp .env.example .env
-# Edit API_KEY_ENCRYPTION_KEY in .env — generate one with: openssl rand -base64 32
+sed -i "s/CHANGE_ME_TO_32PLUS_CHARS/$(openssl rand -base64 32)/" .env
+docker compose up -d
+```
+
+### Windows
+
+```powershell
+mkdir librislog; cd librislog
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml -OutFile docker-compose.yml
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/codebude/librislog/main/.env.example -OutFile .env.example
+Copy-Item .env.example .env
+$key = [Convert]::ToBase64String([byte[]](1..32 | ForEach-Object {Get-Random -Maximum 256}))
+(Get-Content .env).Replace('CHANGE_ME_TO_32PLUS_CHARS', $key) | Set-Content .env
 docker compose up -d
 ```
 
