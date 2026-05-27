@@ -1,6 +1,6 @@
 # About LibrisLog
 
-LibrisLog is a **single-user book tracking web application** designed for readers who want to organize their library, track reading progress, and gain insights into their reading habits.
+LibrisLog is a **multi-user book tracking web application** designed for readers who want to organize their library, track reading progress, and gain insights into their reading habits.
 
 ## Features
 

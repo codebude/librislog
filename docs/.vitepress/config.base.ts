@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'LibrisLog',
-  description: 'Documentation for LibrisLog — a single-user book tracking webapp',
+  description: 'Documentation for LibrisLog — a multi-user book tracking webapp',
   lang: 'en-US',
   lastUpdated: true,
   ignoreDeadLinks: [/^http:\/\/localhost/],

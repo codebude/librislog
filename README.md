@@ -1,6 +1,6 @@
 # LibrisLog
 
-**Single-user book tracking webapp** — maintain three reading lists (Want to Read, Currently Reading, Read), import books from Open Library & Google Books, scrape cover art, and manage your collection through a modern Svelte dashboard.
+**Multi-user book tracking webapp** — maintain three reading lists (Want to Read, Currently Reading, Read), import books from Open Library & Google Books, scrape cover art, and manage your collection through a modern Svelte dashboard.
 
 [![Tests](https://github.com/codebude/librislog/actions/workflows/tests.yml/badge.svg)](https://github.com/codebude/librislog/actions/workflows/tests.yml)
 [![Docker Build](https://github.com/codebude/librislog/actions/workflows/docker.yml/badge.svg)](https://github.com/codebude/librislog/actions/workflows/docker.yml)
