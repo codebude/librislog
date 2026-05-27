@@ -1,71 +1,29 @@
 # Progress Tracking
 
-Track your reading progress over time with page-level granularity and visual timelines.
-
-## Dashboard Overview
-
-The dashboard shows:
-- A random inspirational quote (if enabled)
-- Currently reading books with progress bars
-- Next book suggestions from your "Want to Read" list
-- Tag cloud showing most common tags in your library
+Track your reading progress with page-level granularity. Each update is recorded in a log, giving you a complete history of your reading journey.
 
 ## Updating Progress
 
-### From the Library
+For books with a page count, open the book detail view and drag the progress slider or type the current page number. Progress is saved automatically when you release the slider or blur the input.
 
-For books with a page count set:
-1. Open the book detail view
-2. Drag the progress slider or type the current page number
-3. Progress is saved automatically when you release the slider or blur the input
-
-### Progress Log
+## Progress Log
 
 Each book maintains a progress log showing the history of page updates:
-- Date and time of each update
+
+- Date and time of each entry
 - Page number reached
-- Edit or delete individual log entries
+- Actions to edit or delete individual entries
 
 The log is append-only — each update adds a new entry rather than modifying the previous one.
 
-## Timeline Page
+### Editing an Entry
 
-The dedicated timeline page shows a chronological view of your reading activity:
-- Books started and finished
-- Progress updates
-- Date conflicts (when a book's start date is after its finish date)
+Click the edit button next to a progress log entry to change its date. This is useful if you forgot to log progress on the correct day. The page number cannot be changed — instead, add a new entry with the corrected page.
 
-## Date Management
+### Deleting an Entry
 
-### Date Started / Date Finished
-
-When marking a book as "Read" from "Currently Reading":
-- The start date is set automatically (from when you first marked it as "Currently Reading")
-- The finish date is set to today
-
-When switching between statuses manually:
-- Marking as "Currently Reading" sets the start date
-- Marking as "Read" sets the finish date
-- Marking as "Want to Read" or "Did Not Finish" clears both dates
-
-### Date Conflicts
-
-If a book has a finish date before its start date, a conflict indicator appears. You can resolve this by editing the dates in the book detail view.
+Click the delete button next to an entry to remove it from the log. A confirmation prompt appears before deletion.
 
 ## Reading Percentage
 
-For books with a page count, the detail view shows:
-- Current page number
-- Total pages
-- Reading percentage
-- Visual progress bar
-
-## Statistics
-
-Progress data feeds into the statistics dashboard, showing:
-- Pages read per month (bar chart)
-- Books finished per month and year
-- Calendar heatmap of daily reading activity
-- Average pages per day
-
-See the [Statistics](./statistics.md) guide for more details.
+For books with a page count, the detail view shows your current page, total pages, reading percentage, and a visual progress bar.

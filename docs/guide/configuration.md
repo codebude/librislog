@@ -34,8 +34,8 @@ All configuration is done via environment variables in a `.env` file at the proj
 
 | Variable | Description |
 |----------|-------------|
-| `GOOGLE_BOOKS_API_KEY` | Google Books API key (optional, enables fallback search) |
-| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (optional, enables additional source) |
+| `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | 
+| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (see [API Keys](/guide/api-keys)) |
 
 ## Cover Scraping
 
@@ -43,6 +43,8 @@ All configuration is done via environment variables in a `.env` file at the proj
 |----------|-------------|---------|
 | `COVERS_DIR` | Directory for cached cover images | `./data/covers` |
 | `THALIA_COVER_SEARCH_ENABLED` | Enable Thalia cover search | `false` |
+
+> **Disclaimer:** Enabling Thalia cover search uses automated scraping of thalia.de. This likely violates their Terms of Service. The app ships with this feature disabled by default. Enable it only for research purposes and at your own risk. Do not use in production.
 
 ## Dashboard
 
@@ -69,7 +71,7 @@ All configuration is done via environment variables in a `.env` file at the proj
 
 - `API_KEY_ENCRYPTION_KEY` must be a real secret key. Do not use the placeholder value from `.env.example`. If left as placeholder, API key creation will fail.
 - When `OIDC_ENABLED=true`, all three OIDC variables must be set.
-- `GOOGLE_BOOKS_API_KEY` is optional but enables Google Books fallback search. The app runs fine without it using Open Library.
+- `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library.
 
 ## Example .env
 

@@ -15,7 +15,7 @@ Books are categorized into four statuses:
 
 Each status has its own tab in the library view, making it easy to browse your collection by reading state.
 
-![Library](/screenshots/library-want-to-read.png)
+![Library](/screenshots/library-read.png)
 
 ## Navigation
 

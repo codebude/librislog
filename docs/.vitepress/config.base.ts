@@ -19,17 +19,27 @@ export default defineConfig({
           text: 'Getting Started',
           items: [
             { text: 'Quick Start', link: '/guide/getting-started' },
-            { text: 'Installation', link: '/guide/installation' },
             { text: 'Configuration', link: '/guide/configuration' },
+            { text: 'API Keys', link: '/guide/api-keys' },
+            {
+              text: 'Developer Setup',
+              link: '/guide/developer-setup',
+              collapsed: true,
+              items: [
+                { text: 'CLI Reference', link: '/guide/cli' },
+              ],
+            },
           ],
         },
         {
           text: 'Using LibrisLog',
           items: [
+            { text: 'Dashboard', link: '/guide/using-librislog/dashboard' },
             { text: 'Library', link: '/guide/using-librislog/library' },
             { text: 'Progress Tracking', link: '/guide/using-librislog/progress' },
             { text: 'Statistics', link: '/guide/using-librislog/statistics' },
             { text: 'Import & Export', link: '/guide/using-librislog/import-export' },
+            { text: 'Administration', link: '/guide/using-librislog/administration' },
           ],
         },
       ],

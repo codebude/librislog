@@ -1,60 +1,41 @@
-# Getting Started
+# Quick Start
 
-Get LibrisLog running in minutes with Docker Compose.
+Get LibrisLog running in minutes.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Node.js 20+ (for frontend development only)
+- [Docker](https://docs.docker.com/get-docker/) (includes Docker Compose)
+- `curl` or `wget` (to download files)
 
-## Quick Start
+## Setup
 
-1. Clone the repository:
+Download the files, create your environment, and generate a secure encryption key:
+
 ```bash
-git clone https://github.com/codebude/librislog.git
-cd librislog
+mkdir librislog && cd librislog \
+  && curl -O https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml \
+  && curl -O https://raw.githubusercontent.com/codebude/librislog/main/.env.example \
+  && cp .env.example .env \
+  && sed -i "s/CHANGE_ME_TO_32PLUS_CHARS/$(openssl rand -base64 32)/" .env
 ```
 
-2. Copy the environment file:
+> The `.env` file can be further customized — see [Configuration](/guide/configuration) for all available options.
+
+Start the application:
+
 ```bash
-cp .env.example .env
+docker compose up -d
 ```
 
-3. Start the application:
-```bash
-docker compose up --build -d
-```
-
-4. Access the application:
-- Frontend: http://localhost:8001
-- API: http://localhost:8000
-- API Docs (Swagger UI): http://localhost:8000/api/docs
+Open http://localhost:8001 in your browser.
 
 ## First-Time Setup
 
-On first launch, create a user account through the web interface. The application uses local authentication by default. OIDC integration is available via environment configuration.
+On first launch, create a user account through the web interface.
 
 ![Dashboard](/screenshots/dashboard.png)
 
 The dashboard shows your currently reading books, reading progress, and a random inspirational quote.
-
-## Development Mode
-
-For local development with hot reloading:
-
-```bash
-# Backend
-cd backend
-uv sync
-uv run uvicorn app.main:app --reload --port 8000
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend dev server runs on http://localhost:5173 and proxies API requests to localhost:8000.
 
 ## Verification
 

@@ -12,8 +12,8 @@ The most common way to add books is by searching external sources:
 2. Enter a title, author, or ISBN in the search box
 3. The app queries:
    - **Open Library** (always, no key required)
-   - **Google Books** (if `GOOGLE_BOOKS_API_KEY` is set)
-   - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set)
+   - **Google Books** (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
+   - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set — see [API Keys](/guide/api-keys))
 4. Select a result to import with full metadata and cover
 
 ### ISBN Barcode Scan
@@ -104,24 +104,7 @@ The import process shows progress with a count of imported and failed rows.
 
 ## Backup & Restore
 
-### Full Backup
-
-Create a complete backup of the database:
-1. Go to Admin → Backup
-2. Click "Create Backup"
-3. Download the `.db` file
-
-### Restore
-
-Restore from a backup:
-1. Go to Admin → Restore
-2. Upload a `.db` backup file
-3. The app validates the backup before restoring
-4. Current data is replaced with backup data
-
-::: warning
-Restore overwrites all current data. Create a backup first if you want to preserve your current library.
-:::
+Backup and restore are admin-only features. See [Administration](./administration) for details.
 
 ## API Access
 
