@@ -313,7 +313,7 @@
 		onkeydown={(e) => e.key === 'Escape' && (open = false)}
 	></div>
 
-	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
+	<div role="dialog" aria-label={book.title} class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
 			<div class="min-w-0 flex-1">
 				<h2 class="text-lg font-bold truncate">{book.title}</h2>

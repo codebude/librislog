@@ -1,0 +1,28 @@
+name: librislog-e2e
+
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    env_file: .env
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./data-e2e:/app/data
+    environment:
+      DATABASE_URL: sqlite:///./data/librislog.db
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        PUBLIC_DEFAULT_LOCALE: ${PUBLIC_DEFAULT_LOCALE:-en}
+        APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    ports:
+      - "8003:80"
+    depends_on:
+      - backend
