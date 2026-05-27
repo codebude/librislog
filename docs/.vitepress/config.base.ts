@@ -2,6 +2,13 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'LibrisLog',
+  vite: {
+    server: {
+      host: true,
+      port: 5174,
+      strictPort: true,
+    },
+  },
   description: 'Documentation for LibrisLog — a multi-user book tracking webapp',
   lang: 'en-US',
   lastUpdated: true,
