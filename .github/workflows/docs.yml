@@ -1,0 +1,109 @@
+name: Docs
+
+on:
+  push:
+    branches: [develop]
+  release:
+    types: [published]
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          path: release
+
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          path: develop
+
+      - name: Determine release ref
+        id: release-ref
+        working-directory: release
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            REF="${{ github.event.release.tag_name }}"
+          else
+            DEFAULT_BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+            REF=$(git tag --list 'v*' --sort=-version:refname | head -1)
+            REF="${REF:-$DEFAULT_BRANCH}"
+          fi
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release ref
+        working-directory: release
+        run: git checkout "${{ steps.release-ref.outputs.ref }}"
+
+      - name: Check if release ref has docs
+        id: check-release-docs
+        working-directory: release
+        run: |
+          if [ -f docs/package.json ] && [ -f docs/.vitepress/config.ts ]; then
+            echo "has_docs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_docs=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            release/docs/package-lock.json
+            develop/docs/package-lock.json
+
+      - name: Build release docs
+        if: steps.check-release-docs.outputs.has_docs == 'true'
+        working-directory: release/docs
+        run: |
+          npm ci
+          npx vitepress build
+          mv .vitepress/dist /tmp/dist-release
+
+      - name: Build nightly docs
+        working-directory: develop/docs
+        run: |
+          npm ci
+          cp .vitepress/config.ts .vitepress/config.original.ts
+          cp .vitepress/config.nightly.ts .vitepress/config.ts
+          npx vitepress build
+          mv .vitepress/dist /tmp/dist-nightly
+
+      - name: Prepare full deploy (release + nightly)
+        if: steps.check-release-docs.outputs.has_docs == 'true'
+        run: |
+          mv /tmp/dist-release ./dist
+          mkdir -p ./dist/next
+          cp -a /tmp/dist-nightly/. ./dist/next/
+
+      - name: Prepare nightly-only deploy
+        if: steps.check-release-docs.outputs.has_docs != 'true'
+        run: cp -a /tmp/dist-nightly/. ./dist/
+
+      - uses: peaceiris/actions-gh-pages@v4
+        if: steps.check-release-docs.outputs.has_docs == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: false
+
+      - uses: peaceiris/actions-gh-pages@v4
+        if: steps.check-release-docs.outputs.has_docs != 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: next
+          keep_files: false

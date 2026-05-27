@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro # only needed if you use custom certificates in you environment
+    environment:
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        PUBLIC_DEFAULT_LOCALE: ${PUBLIC_DEFAULT_LOCALE:-en}
+        APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    ports:
+      - "8001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

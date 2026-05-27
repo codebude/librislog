@@ -27,10 +27,16 @@ branch_app = typer.Typer(
     help="Manage branches (create, delete, sync)",
     rich_markup_mode="rich",
 )
+docs_app = typer.Typer(
+    name="docs",
+    help="Build and serve documentation",
+    rich_markup_mode="rich",
+)
 app.add_typer(pr_app)
 app.add_typer(tag_app)
 app.add_typer(test_app)
 app.add_typer(branch_app)
+app.add_typer(docs_app)
 
 
 @pr_app.command("list")
@@ -115,3 +121,24 @@ def branch_sync():
     """Sync current branch with an origin branch."""
     from llc.sync import cmd_sync
     cmd_sync()
+
+
+@docs_app.command("build")
+def docs_build():
+    """Build the VitePress documentation site."""
+    from llc.docs import cmd_build
+    cmd_build()
+
+
+@docs_app.command("serve")
+def docs_serve():
+    """Start the VitePress documentation dev server."""
+    from llc.docs import cmd_serve
+    cmd_serve()
+
+
+@docs_app.command("preview")
+def docs_preview():
+    """Preview the built VitePress documentation site."""
+    from llc.docs import cmd_preview
+    cmd_preview()

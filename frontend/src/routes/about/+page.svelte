@@ -20,7 +20,9 @@
 		{ name: 'animal-avatar-generator', url: 'https://github.com/roma-lukashik/animal-avatar-generator' },
 		{ name: 'dayjs', url: 'https://day.js.org/' },
 		{ name: 'svelte-i18n', url: 'https://github.com/kaisermann/svelte-i18n' },
+	{ name: 'VitePress', url: 'https://vitepress.dev/' },
 	];
+
 
 	const backendDeps: Array<{ name: string; url: string }> = [
 		{ name: 'FastAPI', url: 'https://fastapi.tiangolo.com/' },
@@ -43,6 +45,8 @@
 		{ name: 'itsdangerous', url: 'https://itsdangerous.palletsprojects.com/' },
 		{ name: 'browserforge', url: 'https://github.com/ultrafunkamsterdam/undetected-chromedriver' },
 		{ name: 'RestrictedPython', url: 'https://github.com/zopefoundation/RestrictedPython' },
+		{ name: 'Typer', url: 'https://typer.tiangolo.com/' },
+		{ name: 'Rich', url: 'https://rich.readthedocs.io/' },
 	];
 
 	const displayVersion = $derived(
