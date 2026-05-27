@@ -18,6 +18,21 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+LibrisLog is a modern alternative to cloud-based book tracking services. You run it on your own server, own your data entirely, and get rich reading analytics without giving up privacy.
+
+## Why LibrisLog?
+
+- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no tracking, no vendor lock-in. Your library is a single SQLite file you can back up anytime.
+- **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
+- **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all computed on your hardware.
+- **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
+- **Import any format you have.** Goodreads CSV with automatic field mapping, generic CSV with per-field Python transforms, JSON, ZIP with covers. Your data is never locked in.
+- **Point your phone at an ISBN barcode.** Real-time barcode scanning in the browser — no native app required.
+- **Cover art from multiple sources.** Automatic search across AbeBooks, Open Library, Amazon, and Hardcover — plus manual upload or URL paste if the first hit isn't right.
+- **Full REST API.** OpenAPI-documented backend you can script against — build your own frontend, connect home automation, or pipe data into your own tools.
+- **Lightweight.** Two Docker containers, one SQLite database, one command: `docker compose up -d`.
+- **Bilingual UI.** English and German with a localization framework ready for more languages.
+
 <div>
   <a href="docs/public/screenshots/dashboard.png"><img src="docs/public/screenshots/dashboard-thumb.png" width="400" alt="Dashboard"></a>
   <a href="docs/public/screenshots/library-read.png"><img src="docs/public/screenshots/library-read-thumb.png" width="400" alt="Library"></a>
