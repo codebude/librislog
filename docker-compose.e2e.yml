@@ -7,13 +7,13 @@ services:
       args:
         APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
         GIT_SHA: ${GIT_SHA:-unknown}
-    env_file: .env
     ports:
       - "8002:8000"
     volumes:
       - ./data-e2e:/app/data
     environment:
       DATABASE_URL: sqlite:///./data/librislog.db
+      API_KEY_ENCRYPTION_KEY: zK7qP9mX2vR5tW8yA4cF6hJ1lN3pS0uB # dummy key for testing purposes only
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
       interval: 3s
