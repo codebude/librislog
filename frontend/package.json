@@ -12,9 +12,11 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"test:e2e": "docker run --rm -v $(pwd)/../data-e2e:/data alpine sh -c 'rm -rf /data/*' 2>/dev/null; mkdir -p playwright-report test-results && docker compose -f ../docker-compose.e2e.yml up --build --abort-on-container-exit --attach test-runner --no-log-prefix"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.57.0",
@@ -23,7 +25,6 @@
 		"@testing-library/svelte": "^5.3.1",
 		"@types/hammerjs": "^2.0.46",
 		"@types/node": "^25.7.0",
-
 		"@vitest/coverage-v8": "^4.1.7",
 		"happy-dom": "^17.6.3",
 		"svelte": "^5.55.2",
@@ -44,7 +45,6 @@
 		"dayjs": "^1.11.20",
 		"hammerjs": "^2.0.8",
 		"html5-qrcode": "^2.3.8",
-
 		"svelte-chartjs": "^4.0.1",
 		"svelte-i18n": "^4.0.1",
 		"tailwindcss": "^4.3.0"

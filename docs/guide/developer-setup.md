@@ -76,16 +76,46 @@ The version appears in the UI footer and is used for cache-busting.
 
 ## Running Tests
 
+All test suites can also be run via the [developer CLI](cli.md).
+
 ### Backend
 
 ```bash
 cd backend
 uv run pytest
+# or:  uv run llc test backend
 ```
 
-### Frontend
+### CLI
+
+```bash
+cd cli
+uv run pytest
+# or:  uv run llc test cli
+```
+
+### Frontend (Unit)
 
 ```bash
 cd frontend
 npx vitest run
+# or:  uv run llc test frontend
 ```
+
+### E2E (Playwright)
+
+End-to-end tests run the full stack (backend + frontend) inside Docker containers using `docker-compose.e2e.yml`. A Playwright test-runner container drives the browser against the real services.
+
+```bash
+cd frontend
+npm run test:e2e
+# or:  uv run llc test e2e
+```
+
+### All Suites
+
+```bash
+uv run llc test all
+```
+
+This runs backend, CLI, frontend unit, and E2E tests sequentially and prints a summary.

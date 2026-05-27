@@ -21,7 +21,7 @@
 	});
 </script>
 
-<div class="alert alert-{type} relative overflow-hidden flex items-start justify-between gap-2">
+<div role="alert" class="alert alert-{type} relative overflow-hidden flex items-start justify-between gap-2">
 	{#if type === 'success' && onClose && duration}
 		<div class="progress-bar" style="animation-duration: {duration}ms"></div>
 	{/if}

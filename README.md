@@ -12,6 +12,7 @@
 
 [![Tests](https://github.com/codebude/librislog/actions/workflows/tests.yml/badge.svg)](https://github.com/codebude/librislog/actions/workflows/tests.yml)
 [![Docker Build](https://github.com/codebude/librislog/actions/workflows/docker.yml/badge.svg)](https://github.com/codebude/librislog/actions/workflows/docker.yml)
+[![Docs Build](https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg)](https://codebude.github.io/librislog/)
 ![Python](https://img.shields.io/badge/python-3.14-%233776AB?logo=python)
 ![Svelte](https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi)

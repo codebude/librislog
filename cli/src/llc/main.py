@@ -95,9 +95,16 @@ def test_frontend():
     cmd_frontend()
 
 
+@test_app.command("e2e")
+def test_e2e():
+    """Run frontend E2E tests (Docker)."""
+    from llc.test import cmd_e2e
+    cmd_e2e()
+
+
 @test_app.command("all")
 def test_all():
-    """Run all test suites and print coverage summary."""
+    """Run all test suites (backend, cli, frontend, e2e) and print summary."""
     from llc.test import cmd_all
     cmd_all()
 

@@ -44,7 +44,8 @@ Run test suites with a single command.
 | `llc test backend` | Run backend pytest with coverage |
 | `llc test cli` | Run CLI pytest |
 | `llc test frontend` | Run frontend vitest with coverage |
-| `llc test all` | Run all three suites |
+| `llc test e2e` | Run frontend Playwright E2E tests (Docker) |
+| `llc test all` | Run all four suites (backend, cli, frontend, e2e) |
 
 ### `llc pr`
 
