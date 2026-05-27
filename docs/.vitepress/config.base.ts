@@ -6,6 +6,9 @@ export default defineConfig({
   lang: 'en-US',
   lastUpdated: true,
   ignoreDeadLinks: [/^http:\/\/localhost/],
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.svg' }],
+  ],
   themeConfig: {
     logo: '/logo.png',
     nav: [
