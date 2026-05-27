@@ -52,6 +52,7 @@ export default defineConfig({
           text: 'API Documentation',
           items: [
             { text: 'Overview', link: '/api/' },
+            { text: 'Headless Setup & API Keys', link: '/api/setup' },
           ],
         },
       ],
