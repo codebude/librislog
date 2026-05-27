@@ -5,6 +5,7 @@ export default defineConfig({
   ...baseConfig,
   base: '/librislog/',
   head: [
+    ...(baseConfig.head || []),
     ['link', { rel: 'icon', href: '/librislog/favicon.svg', type: 'image/svg+xml' }],
     ['link', { rel: 'alternate icon', href: '/librislog/favicon.ico', sizes: 'any' }],
   ],

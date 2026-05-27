@@ -5,6 +5,7 @@ export default defineConfig({
   ...baseConfig,
   base: '/librislog/next/',
   head: [
+    ...(baseConfig.head || []),
     ['link', { rel: 'icon', href: '/librislog/next/favicon.svg', type: 'image/svg+xml' }],
     ['link', { rel: 'alternate icon', href: '/librislog/next/favicon.ico', sizes: 'any' }],
   ],
