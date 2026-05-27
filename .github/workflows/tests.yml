@@ -269,9 +269,13 @@ jobs:
             const totalSkipped = results.reduce((s, r) => s + r.skipped, 0);
             const total = totalPassed + totalFailed + totalSkipped;
 
+            const summary = totalFailed === 0 && totalSkipped === 0
+              ? `**Summary:** ✅ All ${total} tests passed`
+              : `**Summary:** ${totalPassed} ✅ passed` + (totalFailed > 0 ? `, ${totalFailed} ❌ failed` : '') + (totalSkipped > 0 ? `, ${totalSkipped} ⏭️ skipped` : '') + ` (${total} total)`;
+
             const body = `## 🧪 Test Results — ${shaLink}\n\n`
               + results.map(r => r.line).join('\n')
-              + `\n\n**Summary:** ${totalPassed} ✅ passed, ${totalFailed} ❌ failed, ${totalSkipped} ⏭️ skipped (${total} total)`;
+              + `\n\n${summary}`;
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
