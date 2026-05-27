@@ -339,7 +339,9 @@
 	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<!-- Header -->
 		<div class="flex items-center justify-between p-4 border-b border-base-200">
-			<h2 class="text-lg font-bold truncate">{book.title}</h2>
+			<div class="min-w-0 flex-1">
+				<h2 class="text-lg font-bold">{book.title}</h2>
+			</div>
 			<button
 				class="btn btn-ghost btn-sm btn-circle"
 				onclick={() => (open = false)}

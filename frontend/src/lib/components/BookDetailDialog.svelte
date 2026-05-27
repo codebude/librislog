@@ -316,9 +316,9 @@
 	<div role="dialog" aria-label={book.title} class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
 			<div class="min-w-0 flex-1">
-				<h2 class="text-lg font-bold truncate">{book.title}</h2>
+				<h2 class="text-lg font-bold">{book.title}</h2>
 				{#if book.subtitle}
-					<p class="text-sm text-base-content/50 italic truncate">{book.subtitle}</p>
+					<p class="text-sm text-base-content/50 italic">{book.subtitle}</p>
 				{/if}
 			</div>
 			<button
