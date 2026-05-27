@@ -14,6 +14,7 @@ from app.database import get_session
 from app.models import Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
+    BookListResponse,
     BookRead,
     BookUpdate,
     DashboardQuote,
@@ -127,7 +128,7 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     raise
 
 
-@router.get("", response_model=List[BookRead])
+@router.get("", response_model=BookListResponse)
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
     q: Optional[str] = Query(default=None),
@@ -140,7 +141,7 @@ def list_books(
     limit: Optional[int] = Query(default=None, ge=1, le=200),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> List[BookRead]:
+) -> BookListResponse:
     """List books for the authenticated user with filtering, sorting, and pagination.
 
     ``smart_sort`` overrides *sort*/*order* when a status filter is active:
@@ -151,10 +152,10 @@ def list_books(
         "list_books — status=%r q=%r sort=%s order=%s smart_sort=%s",
         status, q, sort, order, smart_sort,
     )
-    statement = select(Book).where(Book.user_id == current_user.id)
+    base_statement = select(Book).where(Book.user_id == current_user.id)
 
     if status is not None:
-        statement = statement.where(Book.reading_status == status)
+        base_statement = base_statement.where(Book.reading_status == status)
 
     if q:
         pattern = f"%{q}%"
@@ -162,7 +163,7 @@ def list_books(
             Tag.user_id == current_user.id,
             Tag.name.ilike(pattern),
         )
-        statement = statement.where(
+        base_statement = base_statement.where(
             or_(
                 Book.title.ilike(pattern),
                 Book.subtitle.ilike(pattern),
@@ -171,6 +172,10 @@ def list_books(
                 Book.id.in_(matching_tag_book_ids),
             )
         )
+
+    total = session.exec(
+        select(func.count()).select_from(base_statement.subquery())
+    ).one()
 
     if smart_sort and status is not None:
         sort_col = STATUS_DEFAULT_SORT_COLUMN[status]
@@ -195,13 +200,16 @@ def list_books(
     if sort_col in (Book.date_started, Book.date_finished):
         sort_expression = sort_expression.nullslast()
 
-    statement = statement.order_by(sort_expression).offset(offset)
+    statement = base_statement.order_by(sort_expression).offset(offset)
     if limit is not None:
         statement = statement.limit(limit)
 
     books = list(session.exec(statement).all())
-    logger.debug("list_books — returning %d book(s)", len(books))
-    return [build_book_read(session, book) for book in books]
+    logger.debug("list_books — returning %d/%d book(s)", len(books), total)
+    return BookListResponse(
+        books=[build_book_read(session, book) for book in books],
+        total=total,
+    )
 
 
 @router.get("/stats", response_model=LibraryStats)

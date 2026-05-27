@@ -272,7 +272,7 @@ def test_data_import_execute_rollback_all_rolls_back(client: TestClient, monkeyp
 
     books = client.get("/api/books")
     assert books.status_code == 200
-    assert books.json() == []
+    assert books.json() == {"books": [], "total": 0}
 
 
 def test_data_import_execute_rejects_invalid_target_mapping(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -372,9 +372,9 @@ def test_data_import_execute_progress_uses_date_finished_for_read_books(
 
     books_resp = client.get("/api/books")
     assert books_resp.status_code == 200
-    books = books_resp.json()
-    assert len(books) == 1
-    book = books[0]
+    books_body = books_resp.json()
+    assert books_body["total"] == 1
+    book = books_body["books"][0]
     assert book["date_finished"] == "2024-01-15T10:30:00Z"
 
     progress_resp = client.get(f"/api/books/{book['id']}/progress")
@@ -415,9 +415,9 @@ def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
 
     books_resp = client.get("/api/books")
     assert books_resp.status_code == 200
-    books = books_resp.json()
-    assert len(books) == 1
-    book = books[0]
+    books_body = books_resp.json()
+    assert books_body["total"] == 1
+    book = books_body["books"][0]
     assert book["date_finished"] is None
 
     progress_resp = client.get(f"/api/books/{book['id']}/progress")

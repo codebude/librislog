@@ -536,7 +536,7 @@ def test_profile_reset_data_deletes_books_tags_progress(client: TestClient) -> N
     assert data["deleted"]["tags"] == 2
     assert data["deleted"]["progress_entries"] == 2
 
-    assert client.get("/api/books").json() == []
+    assert client.get("/api/books").json() == {"books": [], "total": 0}
 
 
 def test_profile_delete_account_rejects_last_admin(client: TestClient) -> None:

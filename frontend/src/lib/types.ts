@@ -21,6 +21,11 @@ export interface Book {
 	date_finished: string | null;
 }
 
+export interface BookListResponse {
+	books: Book[];
+	total: number;
+}
+
 export interface BookImportCandidate {
 	title: string;
 	subtitle: string | null;

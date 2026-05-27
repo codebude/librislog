@@ -78,7 +78,7 @@ import { X } from '@lucide/svelte';
 	async function loadDashboard() {
 		loading = true;
 		try {
-			const [statsData, readingBooks, wantToReadBooks] = await Promise.all([
+			const [statsData, readingResponse, wantToReadResponse] = await Promise.all([
 				api.books.stats(),
 				api.books.list({
 					status: 'currently_reading',
@@ -95,8 +95,8 @@ import { X } from '@lucide/svelte';
 			]);
 
 			stats = statsData;
-			currentlyReading = readingBooks.slice(0, 5);
-			nextToRead = wantToReadBooks.slice(0, 5);
+			currentlyReading = readingResponse.books.slice(0, 5);
+			nextToRead = wantToReadResponse.books.slice(0, 5);
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -193,7 +193,7 @@ import { X } from '@lucide/svelte';
 				order: 'desc'
 			});
 			if (token !== searchToken) return;
-			searchResults = results;
+			searchResults = results.books;
 		} catch {
 			if (token !== searchToken) return;
 			searchResults = [];

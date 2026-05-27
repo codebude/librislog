@@ -31,9 +31,12 @@ def cmd_frontend() -> None:
         raise typer.Exit(code=code)
 
 
-def cmd_e2e() -> None:
+def cmd_e2e(*, grep: str | None = None) -> None:
     console.print("[bold]Running frontend E2E tests (Docker)...[/bold]")
-    code = subprocess.call(["npm", "run", "test:e2e"], cwd=str(_FRONTEND))
+    cmd = ["npm", "run", "test:e2e", "--"]
+    if grep:
+        cmd.extend(["--grep", grep])
+    code = subprocess.call(cmd, cwd=str(_FRONTEND))
     if code != 0:
         raise typer.Exit(code=code)
 

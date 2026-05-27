@@ -138,8 +138,8 @@
 
 	async function refreshImportedLookups() {
 		try {
-			const books = await api.books.list();
-			updateImportedLookups(books);
+			const response = await api.books.list();
+			updateImportedLookups(response.books);
 		} catch {
 			// Best-effort only; search and import still works without markers.
 		}

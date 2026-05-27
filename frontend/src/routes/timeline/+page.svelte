@@ -53,7 +53,7 @@
 	async function loadTimeline() {
 		loading = true;
 		try {
-			const page = await api.books.list({
+			const response = await api.books.list({
 				status: 'read',
 				sort: 'date_finished',
 				order: 'desc',
@@ -61,9 +61,9 @@
 				offset: 0,
 				limit: PAGE_SIZE
 			});
-			books = page.filter((b) => b.date_finished !== null);
-			nextOffset = page.length;
-			hasMore = page.length === PAGE_SIZE;
+			books = response.books.filter((b) => b.date_finished !== null);
+			nextOffset = response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
 			if (hasMore && books.length > 0) {
 				await maybePrefillViewport();
 			}
@@ -95,7 +95,7 @@
 		if (loadingMore || loading || !hasMore) return;
 		loadingMore = true;
 		try {
-			const page = await api.books.list({
+			const response = await api.books.list({
 				status: 'read',
 				sort: 'date_finished',
 				order: 'desc',
@@ -103,10 +103,10 @@
 				offset: nextOffset,
 				limit: PAGE_SIZE
 			});
-			const filtered = page.filter((b) => b.date_finished !== null);
+			const filtered = response.books.filter((b) => b.date_finished !== null);
 			books = [...books, ...filtered];
-			nextOffset += page.length;
-			hasMore = page.length === PAGE_SIZE;
+			nextOffset += response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {

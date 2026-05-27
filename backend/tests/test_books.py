@@ -76,7 +76,7 @@ def test_create_book_invalid_rating_returns_422(client: TestClient) -> None:
 def test_list_books_empty(client: TestClient) -> None:
     resp = client.get("/api/books")
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.json() == {"books": [], "total": 0}
 
 
 def test_list_books_returns_all(client: TestClient) -> None:
@@ -84,7 +84,9 @@ def test_list_books_returns_all(client: TestClient) -> None:
     _create_book(client, title="Book B")
     resp = client.get("/api/books")
     assert resp.status_code == 200
-    assert len(resp.json()) == 2
+    body = resp.json()
+    assert body["total"] == 2
+    assert len(body["books"]) == 2
 
 
 def test_list_books_filter_by_status(client: TestClient) -> None:
@@ -95,9 +97,9 @@ def test_list_books_filter_by_status(client: TestClient) -> None:
 
     resp = client.get("/api/books?status=currently_reading")
     assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "Reading"
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Reading"
 
 
 def test_list_books_search_by_title(client: TestClient) -> None:
@@ -105,9 +107,9 @@ def test_list_books_search_by_title(client: TestClient) -> None:
     _create_book(client, title="Foundation")
     resp = client.get("/api/books?q=dune")
     assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "Dune"
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Dune"
 
 
 def test_list_books_search_by_author(client: TestClient) -> None:
@@ -115,9 +117,9 @@ def test_list_books_search_by_author(client: TestClient) -> None:
     _create_book(client, title="Foundation", author="Isaac Asimov")
     resp = client.get("/api/books?q=asimov")
     assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "Foundation"
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Foundation"
 
 
 def test_list_books_sort_by_rating(client: TestClient) -> None:
@@ -125,9 +127,9 @@ def test_list_books_sort_by_rating(client: TestClient) -> None:
     _create_book(client, title="High", rating=5)
     resp = client.get("/api/books?sort=rating&order=desc")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data[0]["title"] == "High"
-    assert data[1]["title"] == "Low"
+    body = resp.json()
+    assert body["books"][0]["title"] == "High"
+    assert body["books"][1]["title"] == "Low"
 
 
 def test_list_books_sort_by_date_added_asc(client: TestClient) -> None:
@@ -135,8 +137,8 @@ def test_list_books_sort_by_date_added_asc(client: TestClient) -> None:
     _create_book(client, title="Second")
     resp = client.get("/api/books?sort=date_added&order=asc")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data[0]["title"] == "First"
+    body = resp.json()
+    assert body["books"][0]["title"] == "First"
 
 
 def test_list_books_smart_sort_currently_reading_by_date_started(client: TestClient) -> None:
@@ -156,8 +158,8 @@ def test_list_books_smart_sort_currently_reading_by_date_started(client: TestCli
 
     resp = client.get("/api/books?status=currently_reading")
     assert resp.status_code == 200
-    data = resp.json()
-    assert [item["title"] for item in data] == ["Newer", "Older", "No Start"]
+    body = resp.json()
+    assert [item["title"] for item in body["books"]] == ["Newer", "Older", "No Start"]
 
 
 def test_list_books_smart_sort_read_by_date_finished(client: TestClient) -> None:
@@ -167,8 +169,8 @@ def test_list_books_smart_sort_read_by_date_finished(client: TestClient) -> None
 
     resp = client.get("/api/books?status=read")
     assert resp.status_code == 200
-    data = resp.json()
-    assert [item["title"] for item in data] == ["Newer", "Older", "No Finish"]
+    body = resp.json()
+    assert [item["title"] for item in body["books"]] == ["Newer", "Older", "No Finish"]
 
 
 def test_list_books_manual_sort_still_available_with_smart_sort_off(client: TestClient) -> None:
@@ -177,8 +179,8 @@ def test_list_books_manual_sort_still_available_with_smart_sort_off(client: Test
 
     resp = client.get("/api/books?status=currently_reading&smart_sort=false&sort=rating&order=desc")
     assert resp.status_code == 200
-    data = resp.json()
-    assert [item["title"] for item in data] == ["High", "Low"]
+    body = resp.json()
+    assert [item["title"] for item in body["books"]] == ["High", "Low"]
 
 
 # ── get ───────────────────────────────────────────────────────────────────────
@@ -229,9 +231,9 @@ def test_list_books_filter_by_did_not_finish_status(client: TestClient) -> None:
 
     resp = client.get("/api/books?status=did_not_finish")
     assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "DNF"
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "DNF"
 
 
 def test_list_books_supports_limit_and_offset(client: TestClient) -> None:
@@ -241,11 +243,13 @@ def test_list_books_supports_limit_and_offset(client: TestClient) -> None:
 
     first_page = client.get("/api/books?sort=title&order=asc&limit=2&offset=0")
     assert first_page.status_code == 200
-    assert [item["title"] for item in first_page.json()] == ["First", "Second"]
+    first_body = first_page.json()
+    assert [item["title"] for item in first_body["books"]] == ["First", "Second"]
 
     second_page = client.get("/api/books?sort=title&order=asc&limit=2&offset=2")
     assert second_page.status_code == 200
-    assert [item["title"] for item in second_page.json()] == ["Third"]
+    second_body = second_page.json()
+    assert [item["title"] for item in second_body["books"]] == ["Third"]
 
 
 def test_update_book_to_did_not_finish_status(client: TestClient) -> None:
@@ -1078,8 +1082,8 @@ def test_list_books_sort_by_date_started(client: TestClient) -> None:
     _create_book(client, title="B", date_started="2024-02-01")
     resp = client.get("/api/books?sort=date_started&order=desc")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data[0]["title"] == "B"
+    body = resp.json()
+    assert body["books"][0]["title"] == "B"
 
 
 def test_list_books_sort_by_date_finished(client: TestClient) -> None:
@@ -1087,8 +1091,8 @@ def test_list_books_sort_by_date_finished(client: TestClient) -> None:
     _create_book(client, title="B", date_finished="2024-02-01")
     resp = client.get("/api/books?sort=date_finished&order=desc")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data[0]["title"] == "B"
+    body = resp.json()
+    assert body["books"][0]["title"] == "B"
 
 
 def test_get_library_stats(client: TestClient) -> None:

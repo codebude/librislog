@@ -30,7 +30,8 @@ export async function seedBooks(page: Page, books: SeedBook[]): Promise<void> {
 
 export async function deleteAllBooks(page: Page): Promise<void> {
 	const resp = await page.request.get(bookApiPath() + '?limit=200');
-	const books: { id: number }[] = await resp.json();
+	const body = await resp.json();
+	const books: { id: number }[] = body.books;
 	for (const book of books) {
 		const csrf = await getCsrfToken(page);
 		await page.request.delete(`${bookApiPath()}/${book.id}`, {

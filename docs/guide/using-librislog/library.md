@@ -90,7 +90,7 @@ Downloaded covers are cached locally in the `COVERS_DIR` directory to avoid repe
 
 ## Search and Sort
 
-- Search books by title or author using the search bar
+- Search books by title, author, or tags using the search bar — the result count updates as you type
 - Sort by title, date added, date started, date finished, or rating
 - Sort order: ascending or descending
 

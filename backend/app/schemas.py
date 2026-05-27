@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime
 from typing import Literal
 
-from pydantic import ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlmodel import Field, SQLModel
 
 from app.models import ReadingStatus, UserRole
@@ -139,6 +139,12 @@ class BookRead(SQLModel):
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
+
+
+class BookListResponse(BaseModel):
+    """Paginated book list with total count."""
+    books: list[BookRead]
+    total: int
 
 
 class TagCloudEntry(SQLModel):

@@ -96,10 +96,12 @@ def test_frontend():
 
 
 @test_app.command("e2e")
-def test_e2e():
+def test_e2e(
+    grep: str | None = typer.Option(None, "--grep", "-g", help="Filter tests by name")
+):
     """Run frontend E2E tests (Docker)."""
     from llc.test import cmd_e2e
-    cmd_e2e()
+    cmd_e2e(grep=grep)
 
 
 @test_app.command("all")

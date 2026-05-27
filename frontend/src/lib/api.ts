@@ -1,5 +1,6 @@
 import type {
 	ApiKeyMeta,
+	BookListResponse,
 	DataExportDataset,
 	DataExportFormat,
 	DataImportEvent,
@@ -279,7 +280,7 @@ export const api = {
 			smart_sort?: boolean;
 			offset?: number;
 			limit?: number;
-		}): Promise<Book[]> {
+		}): Promise<BookListResponse> {
 			const qs = new URLSearchParams();
 			if (params?.status) qs.set('status', params.status);
 			if (params?.q) qs.set('q', params.q);
@@ -289,7 +290,7 @@ export const api = {
 			if (params?.offset !== undefined) qs.set('offset', String(params.offset));
 			if (params?.limit !== undefined) qs.set('limit', String(params.limit));
 			const query = qs.toString() ? `?${qs}` : '';
-			return request<Book[]>(`/books${query}`);
+			return request<BookListResponse>(`/books${query}`);
 		},
 
 		get(id: number): Promise<Book> {

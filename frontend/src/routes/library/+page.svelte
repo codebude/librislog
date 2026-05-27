@@ -68,6 +68,7 @@
 			localStorage.setItem('libraryViewMode', mode);
 		}
 	}
+	let totalCount = $state(0);
 	let searchQuery = $state('');
 	let smartSort = $state(true);
 	let sort = $state<SortField>('date_added');
@@ -152,7 +153,7 @@
 		const version = ++requestVersion;
 		loading = true;
 		try {
-			const firstPage = await api.books.list({
+			const response = await api.books.list({
 				status: activeStatus,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
@@ -163,10 +164,11 @@
 			});
 			if (version !== requestVersion) return;
 
-			books = firstPage;
-			nextOffset = firstPage.length;
-			hasMore = firstPage.length === PAGE_SIZE;
-			await fetchProgressForBatch(firstPage, version, true);
+			totalCount = response.total;
+			books = response.books;
+			nextOffset = response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
+			await fetchProgressForBatch(response.books, version, true);
 			await maybePrefillViewport(version);
 		} catch (e: unknown) {
 			if (version !== requestVersion) return;
@@ -184,7 +186,7 @@
 		const version = requestVersion;
 		loadingMore = true;
 		try {
-			const pageData = await api.books.list({
+			const response = await api.books.list({
 				status: activeStatus,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
@@ -195,10 +197,10 @@
 			});
 			if (version !== requestVersion) return;
 
-			books = [...books, ...pageData];
-			nextOffset += pageData.length;
-			hasMore = pageData.length === PAGE_SIZE;
-			await fetchProgressForBatch(pageData, version);
+			books = [...books, ...response.books];
+			nextOffset += response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
+			await fetchProgressForBatch(response.books, version);
 		} catch (e: unknown) {
 			if (version !== requestVersion) return;
 			const message = e instanceof Error ? e.message : $_('import.searchFailed');
@@ -325,6 +327,11 @@
 				placeholder={$_('common.searchBooks')}
 				onSearch={(q) => (searchQuery = q)}
 			/>
+			{#if searchQuery}
+				<span class="text-sm text-base-content/50 whitespace-nowrap shrink-0">
+					{totalCount} {totalCount === 1 ? $_('common.result') : $_('common.results')}
+				</span>
+			{/if}
 		</div>
 		<div class="join" role="group" aria-label="View mode">
 			<button

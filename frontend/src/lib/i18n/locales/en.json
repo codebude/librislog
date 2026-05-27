@@ -74,6 +74,8 @@
   "common": {
     "search": "Search",
     "searchBooks": "Search books...",
+    "result": "result",
+    "results": "results",
     "save": "Save",
     "saved": "Saved",
     "saveFailed": "Save failed",
