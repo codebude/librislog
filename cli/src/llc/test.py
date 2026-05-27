@@ -31,6 +31,13 @@ def cmd_frontend() -> None:
         raise typer.Exit(code=code)
 
 
+def cmd_e2e() -> None:
+    console.print("[bold]Running frontend E2E tests (Docker)...[/bold]")
+    code = subprocess.call(["npm", "run", "test:e2e"], cwd=str(_FRONTEND))
+    if code != 0:
+        raise typer.Exit(code=code)
+
+
 def cmd_all() -> None:
     console.print("[bold]Running all test suites...[/bold]\n")
 
@@ -38,6 +45,7 @@ def cmd_all() -> None:
         ("Backend", ["uv", "run", "pytest"], _BACKEND),
         ("CLI", ["uv", "run", "pytest"], _CLI),
         ("Frontend", ["npm", "run", "test:coverage"], _FRONTEND),
+        ("E2E", ["npm", "run", "test:e2e"], _FRONTEND),
     ]
 
     results: dict[str, int] = {}
