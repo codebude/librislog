@@ -16,10 +16,10 @@ services:
       API_KEY_ENCRYPTION_KEY: zK7qP9mX2vR5tW8yA4cF6hJ1lN3pS0uB # dummy key for testing purposes only
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
-      interval: 3s
+      interval: 2s
       timeout: 5s
-      retries: 30
-      start_period: 30s
+      retries: 15
+      start_period: 10s
 
   frontend:
     build:
