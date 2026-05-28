@@ -20,7 +20,8 @@
 		{ name: 'animal-avatar-generator', url: 'https://github.com/roma-lukashik/animal-avatar-generator' },
 		{ name: 'dayjs', url: 'https://day.js.org/' },
 		{ name: 'svelte-i18n', url: 'https://github.com/kaisermann/svelte-i18n' },
-	{ name: 'VitePress', url: 'https://vitepress.dev/' },
+		{ name: 'VitePress', url: 'https://vitepress.dev/' },
+		{ name: 'viewerjs', url: 'https://github.com/fengyuanchen/viewerjs' },
 	];
 
 
@@ -43,7 +44,7 @@
 		{ name: 'pycountry', url: 'https://github.com/flyingcircusio/pycountry' },
 		{ name: 'pydantic-settings', url: 'https://docs.pydantic.dev/latest/concepts/pydantic_settings/' },
 		{ name: 'itsdangerous', url: 'https://itsdangerous.palletsprojects.com/' },
-		{ name: 'browserforge', url: 'https://github.com/ultrafunkamsterdam/undetected-chromedriver' },
+		{ name: 'browserforge', url: 'https://github.com/ultrafunkamsterdam/browserforge' },
 		{ name: 'RestrictedPython', url: 'https://github.com/zopefoundation/RestrictedPython' },
 		{ name: 'Typer', url: 'https://typer.tiangolo.com/' },
 		{ name: 'Rich', url: 'https://rich.readthedocs.io/' },

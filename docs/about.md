@@ -18,12 +18,19 @@ LibrisLog is a **multi-user book tracking web application** designed for readers
 
 | Component | Technology |
 |-----------|------------|
-| Frontend | SvelteKit + DaisyUI + Tailwind CSS |
-| Backend | FastAPI + SQLModel + Alembic |
+| Frontend | Svelte 5 + SvelteKit + Tailwind CSS 4 + DaisyUI 5 |
+| Backend | FastAPI + SQLModel + Alembic + Pydantic v2 |
 | Database | SQLite |
-| Search | Open Library, Google Books, Hardcover.app |
-| Charts | Chart.js |
-| Icons | Lucide |
+| Search Sources | Open Library, Google Books, Hardcover.app, AbeBooks, Amazon |
+| Charts | Chart.js + chartjs-chart-matrix + chartjs-plugin-zoom |
+| Icons | Lucide Svelte |
+| Scraping | curl-cffi + Scrapling + BrowserForge |
+| Auth | Session cookies, optional OIDC (Authlib) |
+| Barcode | html5-qrcode |
+| Dates | dayjs |
+| Misc | cachetools, cryptography, restrictedpython, pycountry, passlib, hammerjs |
+| Docs | VitePress + viewerjs |
+| CI/Tests | pytest (backend), Vitest (frontend), Playwright (E2E) |
 
 ## Author
 
