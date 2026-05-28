@@ -111,6 +111,14 @@
 			toasts.add($_('dataHygiene.noFieldSelected'), 'warning');
 			return;
 		}
+		if (batchField === 'author' && !batchValue.trim()) {
+			toasts.add($_('dataHygiene.authorRequired'), 'warning');
+			return;
+		}
+		if (batchField === 'page_count' && (isNaN(parseInt(batchValue)) || parseInt(batchValue) < 1)) {
+			toasts.add($_('dataHygiene.pageCountPositive'), 'warning');
+			return;
+		}
 		if (!batchValue.trim() && batchField !== 'page_count' && batchField !== 'published_year') {
 			toasts.add($_('dataHygiene.noValueEntered'), 'warning');
 			return;

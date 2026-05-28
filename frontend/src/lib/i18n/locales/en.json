@@ -537,8 +537,10 @@
       }
     }
   },
-  "dataHygiene": {
-    "title": "Data Hygiene",
+    "dataHygiene": {
+        "authorRequired": "Author cannot be empty.",
+        "pageCountPositive": "Page count must be greater than 0.",
+        "title": "Data Hygiene",
     "description": "Find and fix books with missing metadata in your library.",
     "attributes": {
       "author": "Author",

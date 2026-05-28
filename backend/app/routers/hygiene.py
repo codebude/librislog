@@ -154,7 +154,16 @@ async def batch_update(
             detail=f"At most {_MAX_BATCH_SIZE} books can be updated at once",
         )
 
-    if req.field == HygieneAttribute.published_year:
+    if req.field == HygieneAttribute.author:
+        if req.value is not None:
+            val = str(req.value).strip()
+            if not val:
+                raise HTTPException(
+                    status_code=422,
+                    detail="author must not be empty",
+                )
+            req.value = val
+    elif req.field == HygieneAttribute.published_year:
         if req.value is not None:
             try:
                 val = int(str(req.value))
@@ -170,12 +179,12 @@ async def batch_update(
         if req.value is not None:
             try:
                 val = int(str(req.value))
-                if val < 0:
+                if val < 1:
                     raise ValueError
             except (ValueError, TypeError):
                 raise HTTPException(
                     status_code=422,
-                    detail="page_count must be a non-negative integer",
+                    detail="page_count must be a positive integer",
                 )
             req.value = val
     elif req.field == HygieneAttribute.language:

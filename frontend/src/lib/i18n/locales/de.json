@@ -537,8 +537,10 @@
       }
     }
   },
-  "dataHygiene": {
-    "title": "Datenpflege",
+    "dataHygiene": {
+        "authorRequired": "Autor darf nicht leer sein.",
+        "pageCountPositive": "Seitenzahl muss größer als 0 sein.",
+        "title": "Datenpflege",
     "description": "Finde und korrigiere Bücher mit fehlenden Metadaten in deiner Bibliothek.",
     "attributes": {
       "author": "Autor",

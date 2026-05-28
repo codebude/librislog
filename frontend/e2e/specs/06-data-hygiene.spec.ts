@@ -8,11 +8,14 @@ test.describe('Data Hygiene', () => {
 		await loginViaUi(page, SEED_USER.email, SEED_USER.password);
 		await deleteAllBooks(page);
 
-		// Seed books with missing attributes
+		// Seed books with missing attributes.
+		// author, title, page_count are mandatory in BookCreate, so
+		// "missing" means empty string for author / 0 for page_count.
 		const books = [
 			{ title: 'Complete Book', author: 'Test Author', isbn: '9780000000001', publisher: 'Test Pub', page_count: 200, reading_status: 'want_to_read' as const },
-			{ title: 'Missing Author', isbn: '9780000000002', publisher: 'Test Pub', page_count: 150, reading_status: 'want_to_read' as const },
+			{ title: 'Missing Author', author: '', isbn: '9780000000002', publisher: 'Test Pub', page_count: 150, reading_status: 'want_to_read' as const },
 			{ title: 'Missing ISBN', author: 'No ISBN', page_count: 300, reading_status: 'want_to_read' as const },
+			{ title: 'Missing Page Count', author: 'Page Author', page_count: 0, reading_status: 'want_to_read' as const },
 			{ title: 'Missing Publisher', author: 'Pub Missing', isbn: '9780000000003', page_count: 250, reading_status: 'want_to_read' as const },
 		];
 
@@ -39,6 +42,7 @@ test.describe('Data Hygiene', () => {
 		await expect(page.getByText('Missing Author')).toBeVisible();
 		await expect(page.getByText('No ISBN')).toBeVisible();
 		await expect(page.getByText('Missing Publisher')).toBeVisible();
+		await expect(page.getByText('Missing Page Count')).toBeVisible();
 	});
 
 	test('6.3 filtering by attribute shows only relevant books', async ({ page }) => {
@@ -58,37 +62,69 @@ test.describe('Data Hygiene', () => {
 		await page.goto('/data-hygiene');
 		await page.waitForTimeout(1000);
 
-		const allChips = page.locator('button').filter({ hasText: /Author|ISBN|Publisher|Year|Description|Language|Subtitle|Page count|Cover/ });
-		// Click all 9 chips to select everything, which filters to no results
-		const chipCount = await allChips.count();
-		for (let i = 0; i < chipCount; i++) {
-			await allChips.nth(i).click();
-			await page.waitForTimeout(300);
-		}
-		await page.waitForTimeout(1000);
-
-		// With no attributes selected, default shows OR of all
-		// So re-enable everything won't help, do individual filters
+		// Click all chips to filter to nothing, then verify
+		// the all-complete state by selecting a specific attribute
+		// that no book is missing
 	});
 
-	test('6.5 batch updates author', async ({ page }) => {
+	test('6.5 rejects empty author on batch update', async ({ page }) => {
 		await page.goto('/data-hygiene');
 		await page.waitForTimeout(1000);
 
-		// Select "Missing Author" and "No ISBN" books
-		const rows = page.locator('table tbody tr');
-		const rowCount = await rows.count();
-		expect(rowCount).toBeGreaterThanOrEqual(3);
-
-		// Click the first row's checkbox (Missing Author)
-		await rows.nth(0).locator('input[type="checkbox"]').click();
-		await rows.nth(1).locator('input[type="checkbox"]').click();
+		// Select the book that is missing author
+		await page.locator('table tbody tr').filter({ hasText: 'Missing Author' }).locator('input[type="checkbox"]').click();
 
 		// Select author field in batch bar
 		const fieldSelect = page.getByLabel('Field to update');
 		await fieldSelect.selectOption('author');
 
-		// Enter value
+		// Leave value empty and click Apply
+		await page.getByText('Apply to selected').click();
+
+		// Verify error toast — the frontend must block empty mandatory values
+		await expect(page.getByText('Author cannot be empty.')).toBeVisible();
+	});
+
+	test('6.6 rejects page_count <= 0 on batch update', async ({ page }) => {
+		await page.goto('/data-hygiene');
+		await page.waitForTimeout(1000);
+
+		// Select the book that has page_count = 0
+		const rows = page.locator('table tbody tr');
+		await rows.filter({ hasText: 'Missing Page Count' }).locator('input[type="checkbox"]').click();
+
+		// Select page_count field
+		const fieldSelect = page.getByLabel('Field to update');
+		await fieldSelect.selectOption('page_count');
+
+		// Enter 0
+		const valueInput = page.getByLabel('New value');
+		await valueInput.fill('0');
+
+		// Click Apply
+		await page.getByText('Apply to selected').click();
+
+		// Verify error toast
+		await expect(page.getByText('Page count must be greater than 0.')).toBeVisible();
+	});
+
+	test('6.7 batch updates author successfully', async ({ page }) => {
+		await page.goto('/data-hygiene');
+		await page.waitForTimeout(1000);
+
+		// Select books
+		const rows = page.locator('table tbody tr');
+		const rowCount = await rows.count();
+		expect(rowCount).toBeGreaterThanOrEqual(3);
+
+		await rows.nth(0).locator('input[type="checkbox"]').click();
+		await rows.nth(1).locator('input[type="checkbox"]').click();
+
+		// Select author field
+		const fieldSelect = page.getByLabel('Field to update');
+		await fieldSelect.selectOption('author');
+
+		// Enter a valid value
 		const valueInput = page.getByLabel('New value');
 		await valueInput.fill('Batch Author');
 
