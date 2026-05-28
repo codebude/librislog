@@ -48,9 +48,9 @@ LibrisLog is a modern alternative to cloud-based book tracking services. You run
 - **Administration** — Full backup/restore of the SQLite database, user management, API key management.
 
 <div>
-  <a href="docs/public/screenshots/dashboard.png"><img src="docs/public/screenshots/dashboard-thumb.png" width="280" alt="Dashboard"></a>
-  <a href="docs/public/screenshots/library-read.png"><img src="docs/public/screenshots/library-read-thumb.png" width="280" alt="Library"></a>
-  <a href="docs/public/screenshots/statistics.png"><img src="docs/public/screenshots/statistics-thumb.png" width="280" alt="Statistics"></a>
+  <a href="docs/public/screenshots/dashboard.png"><img src="docs/public/screenshots/dashboard-thumb.png" width="270" alt="Dashboard"></a>
+  <a href="docs/public/screenshots/library-read.png"><img src="docs/public/screenshots/library-read-thumb.png" width="270" alt="Library"></a>
+  <a href="docs/public/screenshots/statistics.png"><img src="docs/public/screenshots/statistics-thumb.png" width="270" alt="Statistics"></a>
 </div>
 
 ## Quick Start
