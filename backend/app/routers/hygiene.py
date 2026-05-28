@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_
 from sqlmodel import Session, func, select, update as sqlmodel_update
 
 from app.auth import require_user
+from app.config import settings
 from app.database import get_session
 from app.models import Book, User
 from app.schemas import (
@@ -17,6 +18,7 @@ from app.schemas import (
     HygieneMissingBook,
     HygieneMissingResponse,
 )
+from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.tags import build_book_read
 
 logger = logging.getLogger(__name__)
@@ -137,7 +139,7 @@ def list_missing(
 
 
 @router.post("/batch-update", response_model=HygieneBatchUpdateResponse)
-def batch_update(
+async def batch_update(
     req: HygieneBatchUpdateRequest,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
@@ -185,6 +187,25 @@ def batch_update(
                     detail="Language must be a 2-letter ISO code (for example: EN, DE, FR)",
                 )
             req.value = val
+    elif req.field == HygieneAttribute.cover_url:
+        if req.value is not None:
+            url = str(req.value).strip()
+            if not is_external_cover_url(url):
+                raise HTTPException(
+                    status_code=422,
+                    detail="cover_url must be an external http:// or https:// URL",
+                )
+            filename = await import_cover_from_url(
+                url,
+                settings.covers_dir,
+                current_user.id,  # type: ignore[arg-type]
+                settings.cover_import_timeout_seconds,
+            )
+            if filename:
+                req.value = f"/api/covers/{filename}"
+            else:
+                logger.warning("Cover download failed for %s — setting cover_url to None", url)
+                req.value = None
 
     books = session.exec(
         select(Book).where(
