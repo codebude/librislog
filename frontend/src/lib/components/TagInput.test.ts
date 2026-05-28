@@ -344,4 +344,42 @@ describe('TagInput', () => {
 		const input = screen.getByRole('textbox');
 		expect(input).toBeDisabled();
 	});
+
+	it('uses fixed positioning to avoid overflow clipping', async () => {
+		const fetchSuggestions = vi.fn(async () => ['fantasy', 'fiction']);
+		render(TagInput, { props: { value: '', fetchSuggestions } });
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: 'f' } });
+		await vi.advanceTimersByTimeAsync(300);
+
+		await waitFor(() => {
+			const lb = screen.getByRole('listbox');
+			expect(lb.getAttribute('style')).toContain('position: fixed');
+		});
+		const listbox = screen.getByRole('listbox');
+		const style = listbox.getAttribute('style') || '';
+		expect(style).toContain('top:');
+		expect(style).toContain('left:');
+		expect(style).toContain('width:');
+	});
+
+	it('uses position fixed to avoid overflow clipping', async () => {
+		const fetchSuggestions = vi.fn(async () => ['fantasy', 'fiction']);
+		render(TagInput, { props: { value: '', fetchSuggestions } });
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: 'f' } });
+		await vi.advanceTimersByTimeAsync(300);
+
+		await waitFor(() => {
+			const lb = screen.getByRole('listbox');
+			expect(lb.getAttribute('style')).toContain('position: fixed');
+		});
+		const listbox = screen.getByRole('listbox');
+		const style = listbox.getAttribute('style') || '';
+		expect(style).toContain('top:');
+		expect(style).toContain('left:');
+		expect(style).toContain('width:');
+	});
 });

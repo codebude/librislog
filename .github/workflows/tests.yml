@@ -1,0 +1,279 @@
+name: Tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "24"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest --junitxml=report.xml --cov=app --cov-report=term-missing
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report-backend
+          path: backend/report.xml
+
+  cli:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest --junitxml=report.xml
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report-cli
+          path: cli/report.xml
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npx vitest run --reporter=junit --reporter=default --outputFile=report.xml
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report-frontend
+          path: frontend/report.xml
+
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Prepare E2E directories
+        run: |
+          docker run --rm -v ${{ github.workspace }}/data-e2e:/data alpine sh -c 'rm -rf /data/*' 2>/dev/null || true
+          mkdir -p playwright-report test-results
+
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          tags: librislog-e2e-backend
+          load: true
+          build-args: |
+            APP_VERSION=v0.0.0-dev
+            GIT_SHA=unknown
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          tags: librislog-e2e-frontend
+          load: true
+          build-args: |
+            APP_VERSION=v0.0.0-dev
+            GIT_SHA=unknown
+            PUBLIC_DEFAULT_LOCALE=en
+
+      - name: Build test-runner image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile.e2e
+          tags: librislog-e2e-test-runner
+          load: true
+
+      - name: Run E2E tests
+        run: docker compose -f ../docker-compose.e2e.yml up --abort-on-container-exit --attach test-runner --no-log-prefix
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: frontend/test-results/
+          include-hidden-files: true
+
+  report:
+    needs: [backend, cli, frontend, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          pattern: "*report*"
+
+      - name: Initialize git for test reporter
+        run: |
+          git init
+          git config user.email "ci@github.com"
+          git config user.name "CI"
+          git add -A
+          git commit --allow-empty -m "ci"
+
+      - name: Publish backend results
+        id: backend
+        uses: dorny/test-reporter@v3
+        continue-on-error: true
+        with:
+          name: Backend Tests (pytest)
+          path: artifacts/test-report-backend/report.xml
+          reporter: java-junit
+          fail-on-error: "false"
+
+      - name: Publish CLI results
+        id: cli
+        uses: dorny/test-reporter@v3
+        continue-on-error: true
+        with:
+          name: CLI Tests (pytest)
+          path: artifacts/test-report-cli/report.xml
+          reporter: java-junit
+          fail-on-error: "false"
+
+      - name: Publish frontend results
+        id: frontend
+        uses: dorny/test-reporter@v3
+        continue-on-error: true
+        with:
+          name: Frontend Tests (vitest)
+          path: artifacts/test-report-frontend/report.xml
+          reporter: java-junit
+          fail-on-error: "false"
+
+      - name: Publish E2E results
+        id: e2e
+        uses: dorny/test-reporter@v3
+        continue-on-error: true
+        with:
+          name: E2E Tests (Playwright)
+          path: artifacts/playwright-report/report.xml
+          reporter: java-junit
+          fail-on-error: "false"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        env:
+          backend_passed:     ${{ steps.backend.outputs.passed }}
+          backend_failed:     ${{ steps.backend.outputs.failed }}
+          backend_skipped:    ${{ steps.backend.outputs.skipped }}
+          backend_conclusion: ${{ steps.backend.outputs.conclusion }}
+          cli_passed:         ${{ steps.cli.outputs.passed }}
+          cli_failed:         ${{ steps.cli.outputs.failed }}
+          cli_skipped:        ${{ steps.cli.outputs.skipped }}
+          cli_conclusion:     ${{ steps.cli.outputs.conclusion }}
+          frontend_passed:    ${{ steps.frontend.outputs.passed }}
+          frontend_failed:    ${{ steps.frontend.outputs.failed }}
+          frontend_skipped:   ${{ steps.frontend.outputs.skipped }}
+          frontend_conclusion: ${{ steps.frontend.outputs.conclusion }}
+          e2e_passed:         ${{ steps.e2e.outputs.passed }}
+          e2e_failed:         ${{ steps.e2e.outputs.failed }}
+          e2e_skipped:        ${{ steps.e2e.outputs.skipped }}
+          e2e_conclusion:     ${{ steps.e2e.outputs.conclusion }}
+        with:
+          script: |
+            function suite(label, prefix) {
+              const passed     = parseInt(process.env[`${prefix}_passed`]     || '0');
+              const failed     = parseInt(process.env[`${prefix}_failed`]     || '0');
+              const skipped    = parseInt(process.env[`${prefix}_skipped`]    || '0');
+              const conclusion =                     process.env[`${prefix}_conclusion`] || 'skipped';
+              const total      = passed + failed + skipped;
+              const emoji = conclusion === 'success' ? '✅' : conclusion === 'failure' ? '❌' : '⏭️';
+              return { passed, failed, skipped, total, line: `${emoji} **${label}** — ${passed} passed, ${failed} failed, ${skipped} skipped (${total} total)` };
+            }
+
+            const results = [
+              suite('Backend (pytest)',     'backend'),
+              suite('CLI (pytest)',         'cli'),
+              suite('Frontend (vitest)',    'frontend'),
+              suite('E2E (Playwright)',     'e2e'),
+            ];
+
+            const sha = context.sha;
+            const shaLink = `[\`${sha.slice(0, 7)}\`](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${sha})`;
+            const totalPassed  = results.reduce((s, r) => s + r.passed,  0);
+            const totalFailed  = results.reduce((s, r) => s + r.failed,  0);
+            const totalSkipped = results.reduce((s, r) => s + r.skipped, 0);
+            const total = totalPassed + totalFailed + totalSkipped;
+
+            const summary = totalFailed === 0 && totalSkipped === 0
+              ? `**Summary:** ✅ All ${total} tests passed`
+              : `**Summary:** ${totalPassed} ✅ passed` + (totalFailed > 0 ? `, ${totalFailed} ❌ failed` : '') + (totalSkipped > 0 ? `, ${totalSkipped} ⏭️ skipped` : '') + ` (${total} total)`;
+
+            const body = `## 🧪 Test Results — ${shaLink}\n\n`
+              + results.map(r => r.line).join('\n')
+              + `\n\n${summary}`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

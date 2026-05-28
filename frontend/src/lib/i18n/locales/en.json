@@ -42,9 +42,12 @@
 	"noCalendarData": "No reading data available for the past year",
 	"pagesOver": "pages over",
 	"daysLabel": "days",
-	"avgPerDay": "Avg:",
+	"avgPerDay": "Avg per active day:",
+	"avgPerDayAll": "Avg per day (365 days):",
+	"pagesPerDay": "pages/day",
 	"loading": "Loading statistics...",
-	"noData": "No data available yet. Start reading and tracking books to see statistics!"
+	"noData": "No data available yet. Start reading and tracking books to see statistics!",
+    "resetZoom": "Reset zoom"
   },
   "dashboard": {
     "title": "Reading Dashboard",
@@ -72,12 +75,18 @@
   "common": {
     "search": "Search",
     "searchBooks": "Search books...",
+    "result": "result",
+    "results": "results",
     "save": "Save",
+    "saved": "Saved",
+    "saveFailed": "Save failed",
     "edit": "Edit",
     "cancel": "Cancel",
     "confirm": "Confirm?",
     "delete": "Delete",
     "deleting": "Deleting...",
+    "back": "Back",
+    "loadMore": "Load more",
     "syncing": "Syncing...",
     "noBooksYet": "No books here yet.",
     "addFirstBook": "Add your first book",
@@ -140,6 +149,8 @@
     "logPage": "Page",
     "deleteEntry": "Delete",
     "deleteEntryConfirm": "Delete this entry?",
+    "editEntry": "Edit",
+    "saveEntry": "Save",
     "progressGraph": "Progress Over Time",
     "progressPromptTitle": "Set Reading Progress?",
     "progressPromptMessage": "Set the reading progress for \"{title}\" to 100%?",
@@ -168,6 +179,7 @@
     "importFailed": "Import failed",
     "searchFailed": "Search failed",
     "scannedIsbn": "Scanned ISBN: {isbn}",
+    "or": "or",
     "sourceHardcoverSearching": "Searching Hardcover...",
     "sourceHardcoverSkipped": "Hardcover skipped (no API token configured)",
     "sourceSkipped": "Google Books skipped (no API key configured)",
@@ -194,7 +206,9 @@
     "previewAlt": "Cover preview"
   },
   "toasts": {
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "newVersion": "A new version ({version}) is available.",
+    "reload": "Reload"
   },
   "settings": {
     "title": "Settings",
@@ -204,6 +218,11 @@
     "timezoneDetected": "Detected: {tz}",
     "timezoneSelected": "Selected: {tz}",
     "timezoneInvalid": "Please select a valid timezone from the list.",
+    "themeTitle": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeCustom": "Customize",
+    "themeSelect": "Select a custom theme",
     "timezonePlaceholder": "Search timezone...",
     "apiDocsTitle": "API Documentation",
     "apiDocsHelp": "Explore and test backend endpoints directly from the app.",
@@ -237,6 +256,12 @@
       "clearDesc": "Removes the finish date and sets today ({newStartDate}) as the start date."
     }
   },
+  "search": {
+    "resultsCount": "{count, plural, one {result} other {results}} found",
+    "noResults": "No results found",
+    "noResultsFor": "No results found for \"{query}\"",
+    "tryDifferentQuery": "Try a different search term"
+  },
   "languages": {
     "en": "English",
     "de": "German"
@@ -257,6 +282,8 @@
   "user": {
     "menu": "User menu",
     "profile": "Profile",
+    "about": "About",
+    "theme": "Theme",
     "logout": "Logout",
     "apiKeys": "API Keys",
     "keyDescription": "Description (optional)",
@@ -332,8 +359,18 @@
     "cannotDeleteOwnAccountHere": "You cannot delete your own account here. Use Profile > Danger Zone.",
     "importMalformedEvent": "Received malformed server event during import.",
     "importUnsupportedContentType": "Unsupported upload content type. Use CSV or JSON files.",
+    "emailAlreadyRegistered": "This email address is already registered.",
+    "userNotFound": "User not found.",
+    "cannotChangeOwnRole": "You cannot change your own admin role.",
+    "authorRequired": "Author is required.",
+    "pageCountRequired": "Page count is required.",
     "importTempFileCreateFailed": "Could not create a temporary import file. Please try again.",
-    "fileTooLarge": "The file is too large. Please try a smaller file or check server limits."
+    "fileTooLarge": "The file is too large. Please try a smaller file or check server limits.",
+    "exportNoDatasets": "Select at least one dataset to export.",
+    "batchUpdateFailed": "Batch update failed due to an unexpected error. No changes were saved.",
+    "tooManyBooksSelected": "Too many books selected. Please select at most {max} at a time.",
+    "importMappingNameConflict": "A mapping with this name already exists.",
+    "importMappingNotFound": "Import mapping not found."
   },
   "oidc": {
     "orContinueWith": "or continue with",
@@ -359,7 +396,7 @@
     "dataManagement": {
       "title": "Manage my data",
       "description": "Export your library or import books from a CSV/JSON file.",
-      "link": "Open data page"
+      "link": "Import / Export"
     },
     "dangerZone": {
       "title": "Danger Zone",
@@ -431,14 +468,38 @@
       "mappingName": "Mapping name",
       "loadSavedMapping": "Saved mappings",
       "noSavedMappings": "No saved mappings yet. Save your current mapping to reuse it later.",
+      "missingFieldsTitle": "Some source fields from the saved mapping are not present in this file:",
+      "missingFieldEntry": "{target} ← {source}",
       "selectMapping": "Select a saved mapping",
       "loadMapping": "Load mapping",
+      "readonlyMapping": "read-only",
       "deleteMapping": "Delete mapping",
       "deleteMappingTitle": "Delete saved mapping",
       "showPreview": "Show mapping preview",
       "createProgressForRead": "Create 100% progress entry for books imported as 'Read'",
       "hidePreview": "Hide mapping preview",
       "previewNoMappedFields": "No mapped fields yet. Assign source fields to target fields to preview values.",
+      "transformLabel": "Transform (Python)",
+      "transformPlaceholder": "e.g. value.upper()",
+      "previewTitle": "Preview",
+      "previewButton": "Generate",
+      "previewLoading": "Generating...",
+      "previewStale": "Preview is outdated",
+      "previewRow": "Row {row}",
+      "errorRow": "Row {row}",
+      "previewSource": "Source",
+      "previewTransformed": "Transformed",
+      "none": "(none)",
+      "requiredField": "= required field",
+      "changeFile": "Change file",
+      "coverUrlHint": "Expects an HTTP(S) URL to an image. Local file paths and base64 data are not supported.",
+      "transformHelp": "Available parameters and examples",
+      "transformHelpValue": "The raw value of the mapped source field",
+      "transformHelpRow": "All source fields as a dict, e.g. row['title']",
+      "transformHelpContext": "Context dict with row number and total rows (context['row_num'], context['total_rows'])",
+      "transformHelpReturn": "Single expressions are auto-returned; use an explicit return statement for multi-line code",
+      "transformHelpImports": "Available Python imports: datetime, re, json, math",
+      "transformError": "Transform rule for {field} is invalid: {error}",
       "saveMapping": "Save mapping",
       "refreshMappings": "Refresh mappings",
       "mappingSaved": "Mapping saved",
@@ -471,8 +532,69 @@
         "loadMappingsFailed": "Failed to load mappings.",
         "loadMappingFailed": "Failed to load mapping.",
         "validateFailed": "Validation failed.",
+        "previewFailed": "Failed to load preview.",
         "executeFailed": "Import failed."
       }
     }
+  },
+    "dataHygiene": {
+        "authorRequired": "Author cannot be empty.",
+        "pageCountPositive": "Page count must be greater than 0.",
+        "title": "Data Hygiene",
+    "description": "Find and fix books with missing metadata in your library.",
+    "attributes": {
+      "author": "Author",
+      "isbn": "ISBN",
+      "publisher": "Publisher",
+      "published_year": "Year",
+      "blurb": "Description",
+      "language": "Language",
+      "subtitle": "Subtitle",
+      "page_count": "Page count",
+      "cover_url": "Cover"
+    },
+    "matchAny": "Match any",
+    "matchAll": "Match all",
+    "noMissingBooks": "No books found with missing attributes matching your filters.",
+    "total": "{count} book(s) found",
+    "loadMore": "Load more",
+    "loading": "Checking your library...",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "nSelected": "{count} book(s) selected",
+    "batchEditTitle": "Batch edit",
+    "batchFieldLabel": "Field to update",
+    "batchFieldPlaceholder": "Select a field...",
+    "batchValueLabel": "New value",
+    "batchValuePlaceholder": "Enter new value",
+    "applyBatch": "Apply to selected",
+    "confirmTitle": "Update {count} book(s)?",
+    "confirmBody": "This will set \"{field}\" to \"{value}\" for the following books:",
+    "confirmApply": "Apply update",
+    "confirmCancel": "Cancel",
+    "success": "Updated {updated} book(s). {skipped} already had this value.",
+    "updateFailed": "Batch update failed.",
+    "loadFailed": "Failed to load data.",
+    "tooManySelected": "Please select at most 500 books at a time.",
+    "noAttributeSelected": "Select at least one attribute to search for.",
+    "noFieldSelected": "Select a field to update.",
+    "noValueEntered": "Enter a value to set.",
+    "allSet": "Your library is in great shape! All books have complete metadata.",
+    "allSetFiltered": "Your library is in great shape! All books have complete metadata for the selected attributes.",
+    "tableHeaderMissing": "Missing",
+    "remaining": "remaining",
+    "andXMore": "...and {count} more"
+  },
+  "about": {
+    "title": "About LibrisLog",
+    "description": "A book tracking webapp to manage your reading lists, import books from online sources, and track your reading progress — all through a modern dashboard.",
+    "author": "Author",
+    "version": "Version",
+    "technologies": "Technologies Used",
+    "thankYou": "Thank You",
+    "thankYouText": "LibrisLog would not exist without the amazing open-source libraries and frameworks it builds upon. Our thanks go to all developers who contribute to these projects.",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "devTools": "Dev Tools"
   }
 }

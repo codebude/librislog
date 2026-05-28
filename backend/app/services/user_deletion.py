@@ -29,7 +29,7 @@ def assert_not_last_admin(session: Session, target_user: User) -> None:
     if admin_count <= 1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="error.cannotDeleteLastAdmin",
+            detail="Cannot delete the last administrator account.",
         )
 
 

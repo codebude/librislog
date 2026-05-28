@@ -1,0 +1,3 @@
+title,author,isbn,pages,status
+"The Imported Book","Import Author","1234567890",300,want_to_read
+"Second Imported","Another Author","9876543210",250,read

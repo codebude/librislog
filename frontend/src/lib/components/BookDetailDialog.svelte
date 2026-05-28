@@ -1,4 +1,4 @@
-<script lang="ts">
+	<script lang="ts">
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import { locale } from '$lib/i18n';
@@ -8,7 +8,13 @@
 	import { toasts } from '$lib/toasts';
 	import { formatLanguageCode } from '$lib/utils/language';
 	import StarRating from './StarRating.svelte';
-	import { LineChart as LayerLineChart } from 'layerchart';
+	import { Line } from 'svelte-chartjs';
+	import { X } from '@lucide/svelte';
+	import '$lib/chartjs/register';
+	import { getDaisyColorRgb } from '$lib/chartjs/theme';
+	import { themeApplyCount } from '$lib/stores/theme';
+	import { onMount } from 'svelte';
+	import type { ChartData, ChartOptions } from 'chart.js';
 
 	const tz = getTimezone();
 
@@ -34,6 +40,12 @@
 	let logModalOpen = $state(false);
 	let deletingEntry = $state<number | null>(null);
 	let pendingDeleteEntry = $state<number | null>(null);
+	let editingEntryId = $state<number | null>(null);
+	let editingDate = $state('');
+
+	const progressPercent = $derived(
+		book?.page_count && currentPage > 0 ? Math.round((currentPage / book.page_count) * 100) : 0
+	);
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
@@ -107,9 +119,11 @@
 		try {
 			await api.books.progress.delete(book.id, entryId);
 			progressEntries = progressEntries.filter((e) => e.id !== entryId);
-			if (progressEntries.length > 0 && latestDbPage === entryId) {
+			if (progressEntries.length > 0) {
+				currentPage = progressEntries[0].page;
 				latestDbPage = progressEntries[0].page;
-			} else if (progressEntries.length === 0) {
+			} else {
+				currentPage = 0;
 				latestDbPage = 0;
 			}
 		} catch (e: unknown) {
@@ -128,6 +142,36 @@
 
 	function cancelDeleteEntry() {
 		pendingDeleteEntry = null;
+	}
+
+	function startEditEntry(entry: ReadingProgressEntry) {
+		editingEntryId = entry.id;
+		const d = new Date(entry.created_at);
+		const pad = (n: number) => n.toString().padStart(2, '0');
+		editingDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+	}
+
+	function cancelEditEntry() {
+		editingEntryId = null;
+		editingDate = '';
+	}
+
+	async function saveEditEntry(entry: ReadingProgressEntry) {
+		if (!editingDate) return;
+		const d = new Date(editingDate);
+		const created_at = d.toISOString();
+		try {
+			const updated = await api.books.progress.update(entry.book_id, entry.id, { created_at });
+			progressEntries = progressEntries.map((e) => (e.id === entry.id ? { ...e, created_at: updated.created_at } : e));
+		} catch (e: unknown) {
+			toasts.add(
+				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.save') } }),
+				'error'
+			);
+		} finally {
+			editingEntryId = null;
+			editingDate = '';
+		}
 	}
 
 	function openEdit() {
@@ -166,11 +210,11 @@
 	});
 
 	const lineChartData = $derived.by(() => {
-		if (uniqueDays.length < 1) return [];
+		if (uniqueDays.length < 1) return { labels: [] as string[], data: [] as number[] };
 		const oldestEntry = uniqueDays[0];
 		const useStartDate = !!book?.date_started && formatDate(book.date_started, tz) < formatDate(oldestEntry.created_at, tz);
 		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
-		if (!rawStart) return [];
+		if (!rawStart) return { labels: [] as string[], data: [] as number[] };
 		const virtualEntry: ReadingProgressEntry = {
 			id: 0,
 			book_id: book?.id ?? 0,
@@ -179,10 +223,74 @@
 			updated_at: rawStart
 		};
 		const entries = [virtualEntry, ...uniqueDays];
-		return entries.map((e) => ({
-			date: formatDate(e.created_at, tz),
-			page: e.page
-		}));
+		return {
+			labels: entries.map((e) => formatDate(e.created_at, tz)),
+			data: entries.map((e) => e.page),
+		};
+	});
+
+	let lineChart = $state<import('chart.js').Chart<'line'> | null>(null);
+	let _themeSignal = $state(0);
+
+	onMount(() => {
+		return themeApplyCount.subscribe((n: number) => {
+			_themeSignal = n;
+		});
+	});
+
+	const lineChartConfig = $derived.by<ChartData<'line'>>(() => {
+		void _themeSignal;
+		return {
+			labels: lineChartData.labels,
+			datasets: [
+				{
+					label: $_('book.currentPage'),
+					data: lineChartData.data,
+					borderColor: getDaisyColorRgb('primary'),
+					backgroundColor: getDaisyColorRgb('primary'),
+					tension: 0.4,
+					pointRadius: 4,
+					pointHoverRadius: 6,
+					fill: false,
+				},
+			],
+		};
+	});
+
+	const lineChartOptions = $derived.by<ChartOptions<'line'>>(() => {
+		void _themeSignal;
+		return {
+			responsive: true,
+			maintainAspectRatio: false,
+			animation: { duration: 0 },
+			plugins: {
+				legend: { display: false },
+				tooltip: {
+					mode: 'index' as const,
+					intersect: false,
+				},
+			},
+			scales: {
+				x: {
+					grid: { display: false },
+					ticks: {
+						maxTicksLimit: 6,
+						color: getDaisyColorRgb('base-content'),
+					},
+				},
+				y: {
+					beginAtZero: true,
+					suggestedMax: book?.page_count ?? 1,
+					grace: '5%',
+					grid: {
+						color: getDaisyColorRgb('base-200'),
+					},
+					ticks: {
+						color: getDaisyColorRgb('base-content'),
+					},
+				},
+			},
+		};
 	});
 
 	$effect(() => {
@@ -205,32 +313,34 @@
 		onkeydown={(e) => e.key === 'Escape' && (open = false)}
 	></div>
 
-	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
-		<div class="flex items-center justify-between p-4 border-b border-base-200">
+	<div role="dialog" aria-label={book.title} class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
+		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
 			<div class="min-w-0 flex-1">
-				<h2 class="text-lg font-bold truncate">{book.title}</h2>
+				<h2 class="text-lg font-bold">{book.title}</h2>
 				{#if book.subtitle}
-					<p class="text-sm text-base-content/50 italic truncate">{book.subtitle}</p>
+					<p class="text-sm text-base-content/50 italic">{book.subtitle}</p>
 				{/if}
 			</div>
 			<button
 				class="btn btn-ghost btn-sm btn-circle shrink-0"
 				onclick={() => (open = false)}
 				aria-label={$_('common.close')}
-			>✕</button>
+			><X class="w-4 h-4" /></button>
 		</div>
 
-		<div class="p-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-			<div class="rounded-lg bg-base-200 overflow-hidden aspect-[2/3] w-40 self-center">
-				{#if book.cover_url}
+		{#if book.cover_url}
+			<div class="shrink-0 px-4 pt-4 pb-2">
+				<div class="rounded-lg bg-base-200 overflow-hidden aspect-[2/3] w-40 mx-auto">
 					<img
 						src={book.cover_url}
 						alt={$_('book.coverOf', { values: { title: book.title } })}
 						class="w-full h-full object-cover"
 					/>
-				{/if}
+				</div>
 			</div>
+		{/if}
 
+		<div class="px-4 pb-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
 			<div class="flex items-center justify-between gap-2">
 				<div class="text-sm text-base-content/70">{book.author ?? '-'}</div>
 				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]}">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
@@ -286,7 +396,7 @@
 			</div>
 
 			<!-- Reading Progress Block -->
-			<div class="border-t border-base-200 pt-3 {!book.page_count ? 'opacity-50 pointer-events-none' : ''}">
+			<div class="border-t border-base-200 pt-4 {!book.page_count ? 'opacity-50 pointer-events-none' : ''}">
 				<div class="text-xs text-base-content/60 mb-2">{$_('book.readingProgress')}</div>
 
 				{#if !book.page_count}
@@ -297,59 +407,56 @@
 						{$_('common.loadingEllipsis')}
 					</div>
 				{:else}
-					<div class="flex items-center gap-2">
-						<span class="text-sm font-mono">
+					<div class="text-center mb-3">
+						<span class="text-2xl font-bold text-primary">{progressPercent}%</span>
+						<span class="text-sm text-base-content/50 ml-2">{currentPage} / {book.page_count} {$_('book.pages')}</span>
+					</div>
+
+					<input
+						type="range"
+						name="progress-range"
+						min="0"
+						max={book.page_count}
+						class="range range-primary"
+						value={currentPage}
+						oninput={handleSliderInput}
+						onchange={handlePageBlur}
+					/>
+
+					<div class="flex items-center justify-between mt-2">
+						<div class="flex items-center gap-2">
 							<input
 								type="number"
+								name="current-page"
 								class="input input-bordered input-sm w-20 text-center"
 								bind:value={currentPage}
 								min="0"
 								max={book.page_count}
 								onblur={handlePageBlur}
 							/>
-							<span class="mx-1">/</span>
-							{book.page_count}
-						</span>
+							<span class="text-sm text-base-content/50">/ {book.page_count}</span>
+						</div>
 						<button
 							type="button"
 							class="btn btn-ghost btn-xs"
 							onclick={() => (logModalOpen = true)}
 						>{$_('book.progressLog')}</button>
 					</div>
-
-					<input
-						type="range"
-						min="0"
-						max={book.page_count}
-						class="range range-primary range-xs mt-2"
-						value={currentPage}
-						oninput={handleSliderInput}
-						onchange={handlePageBlur}
-					/>
 				{/if}
 			</div>
 
-			{#if lineChartData.length >= 2}
-				<div class="border-t border-base-200 pt-3">
-					<div class="text-xs text-base-content/60 mb-2">{$_('book.progressGraph')}</div>
-					<div class="border border-base-300 rounded-xl bg-base-100">
-						<LayerLineChart
-							data={lineChartData}
-							x="date"
-							y="page"
-							height={200}
-							points
-							series={[{ key: 'default', value: 'page', color: 'var(--color-primary)', label: $_('book.currentPage') }]}
-							yDomain={[0, Math.max(...lineChartData.map((d) => d.page), book?.page_count ?? 1)]}
-							props={{ xAxis: { tickSpacing: 80 } }}
-						/>
-					</div>
-				</div>
-			{/if}
+	{#if lineChartData.data.length >= 2}
+		<div class="border-t border-base-200 pt-3">
+			<div class="text-xs text-base-content/60 mb-2">{$_('book.progressGraph')}</div>
+			<div class="border border-base-300 rounded-xl bg-base-100 p-2" style="height: 200px;">
+				<Line bind:chart={lineChart} data={lineChartConfig} options={lineChartOptions} />
+			</div>
+		</div>
+	{/if}
 
 			<div>
 				<div class="text-xs text-base-content/60 mb-1">{$_('book.notes')}</div>
-				<div class="text-sm whitespace-pre-wrap break-words rounded border border-base-200 p-2 min-h-12">
+				<div class="text-sm whitespace-pre-wrap break-words bg-base-200/50 rounded-xl p-3 min-h-12">
 					{book.notes ?? '-'}
 				</div>
 			</div>
@@ -362,7 +469,7 @@
 				{@const displayBlurb = blurbExpanded || !isTruncated
 					? book.blurb
 					: book.blurb.slice(0, MAX_BLURB_LENGTH) + '...'}
-				<div class="text-sm whitespace-pre-wrap break-words rounded border border-base-200 p-3">
+				<div class="text-sm whitespace-pre-wrap break-words bg-base-200/50 rounded-xl p-3">
 					{displayBlurb}
 					{#if isTruncated}
 						<button
@@ -414,7 +521,7 @@
 						class="btn btn-ghost btn-xs btn-circle"
 						onclick={() => (logModalOpen = false)}
 						aria-label={$_('common.close')}
-					>✕</button>
+					><X class="w-4 h-4" /></button>
 				</div>
 				<div class="p-4">
 					{#if progressEntries.length === 0}
@@ -431,30 +538,59 @@
 							<tbody>
 								{#each progressEntries as entry (entry.id)}
 									<tr>
-										<td class="text-xs">{formatDateTime(entry.created_at, tz)}</td>
+										<td class="text-xs">
+											{#if editingEntryId === entry.id}
+												<input type="datetime-local" class="input input-bordered input-xs w-full" bind:value={editingDate} />
+											{:else}
+												{formatDateTime(entry.created_at, tz)}
+											{/if}
+										</td>
 										<td class="font-mono text-sm">{entry.page}</td>
 										<td class="text-right">
 											{#if pendingDeleteEntry === entry.id}
-												<span class="text-xs text-base-content/60 mr-2">{$_('book.deleteEntryConfirm')}</span>
+												<div class="flex flex-col items-end gap-1">
+													<span class="text-xs text-base-content/60">{$_('book.deleteEntryConfirm')}</span>
+													<div class="flex gap-1">
+														<button
+															type="button"
+															class="btn btn-error btn-xs"
+															disabled={deletingEntry === entry.id}
+															onclick={() => { pendingDeleteEntry = null; void deleteLogEntry(entry.id); }}
+														>
+															{deletingEntry === entry.id ? '...' : $_('common.confirm')}
+														</button>
+														<button
+															type="button"
+															class="btn btn-ghost btn-xs"
+															disabled={deletingEntry === entry.id}
+															onclick={cancelDeleteEntry}
+														>{$_('common.cancel')}</button>
+													</div>
+												</div>
+											{:else if editingEntryId === entry.id}
 												<button
 													type="button"
-													class="btn btn-error btn-xs"
-													disabled={deletingEntry === entry.id}
-													onclick={() => { pendingDeleteEntry = null; void deleteLogEntry(entry.id); }}
-												>
-													{deletingEntry === entry.id ? '...' : $_('common.confirm')}
-												</button>
+													class="btn btn-primary btn-xs"
+													disabled={deletingEntry !== null}
+													onclick={() => void saveEditEntry(entry)}
+												>{$_('book.saveEntry')}</button>
 												<button
 													type="button"
 													class="btn btn-ghost btn-xs"
-													disabled={deletingEntry === entry.id}
-													onclick={cancelDeleteEntry}
+													disabled={deletingEntry !== null}
+													onclick={cancelEditEntry}
 												>{$_('common.cancel')}</button>
 											{:else}
 												<button
 													type="button"
+													class="btn btn-ghost btn-xs"
+													disabled={deletingEntry !== null || editingEntryId !== null}
+													onclick={() => startEditEntry(entry)}
+												>{$_('book.editEntry')}</button>
+												<button
+													type="button"
 													class="btn btn-ghost btn-xs text-error"
-													disabled={deletingEntry !== null}
+													disabled={deletingEntry !== null || editingEntryId !== null}
 													onclick={() => handleProgressLogDelete(entry.id)}
 												>
 													{$_('book.deleteEntry')}

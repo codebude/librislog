@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
+from app._build_info import __git_sha__, __version__
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import admin, auth, books, cover_candidates, covers, data, docs, health, import_, oidc, profile, progress, statistics, users
+from app.routers import admin, auth, books, cover_candidates, covers, data, docs, health, hygiene, import_, oidc, profile, progress, statistics, users
+from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
 
 logger = logging.getLogger(__name__)
@@ -20,15 +22,21 @@ logger = logging.getLogger(__name__)
 configure_logging(settings.log_level)
 
 
-async def _periodic_temp_cleanup(interval_hours: int = 1) -> None:
-    """Periodically clean up stale temporary import files.
+async def _periodic_maintenance(interval_hours: int = 1) -> None:
+    """Periodically run background maintenance tasks.
 
     Runs every *interval_hours* hours. After three consecutive failures the
     log level escalates from warning to error.
 
+    Tasks:
+    - Clean up stale temporary import files.
+    - Delete orphaned cover files no longer referenced by any book.
+
     Args:
         interval_hours: Hours between cleanup cycles. Defaults to 1.
     """
+    from app.database import get_session
+
     loop = asyncio.get_running_loop()
     failures = 0
     while True:
@@ -36,13 +44,19 @@ async def _periodic_temp_cleanup(interval_hours: int = 1) -> None:
         try:
             await loop.run_in_executor(None, cleanup_temp_files)
             logger.info("Periodic temp file cleanup completed")
+
+            with next(get_session()) as session:
+                deleted = await loop.run_in_executor(None, cleanup_orphan_covers, session)
+                if deleted:
+                    logger.info("Orphaned cover cleanup: deleted %d file(s)", deleted)
+
             failures = 0
         except Exception as exc:
             failures += 1
             if failures >= 3:
-                logger.error("Temp file cleanup failed %d times consecutively: %s", failures, exc)
+                logger.error("Periodic maintenance failed %d times consecutively: %s", failures, exc)
             else:
-                logger.warning("Temp file cleanup failed (%d): %s", failures, exc)
+                logger.warning("Periodic maintenance failed (%d): %s", failures, exc)
 
 
 @asynccontextmanager
@@ -52,18 +66,24 @@ async def lifespan(app: FastAPI):
     Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
     cleanup_temp_files()
 
-    cleanup_task = asyncio.create_task(_periodic_temp_cleanup())
+    maintenance_task = asyncio.create_task(_periodic_maintenance())
     yield
-    cleanup_task.cancel()
+    maintenance_task.cancel()
     try:
-        await cleanup_task
+        await maintenance_task
     except asyncio.CancelledError:
         pass
 
 
+if __git_sha__ != "unknown" and __version__.find(__git_sha__[:7]) == -1:
+    _display_version = f"{__version__} ({__git_sha__[:7]})"
+else:
+    _display_version = __version__
+
 app = FastAPI(
     title="LibrisLog API",
     description="Backend API for LibrisLog.",
+    version=_display_version,
     lifespan=lifespan,
     openapi_url="/api/openapi.json",
     docs_url=None,
@@ -121,7 +141,12 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     if "*" in _TRUSTED_PROXY_IPS or (request.client and request.client.host in _TRUSTED_PROXY_IPS):
         forwarded_proto = request.headers.get("x-forwarded-proto")
         if forwarded_proto:
+            logger.debug("X-Forwarded-Proto=%s — patching scheme to %s", forwarded_proto, forwarded_proto)
             request.scope["scheme"] = forwarded_proto
+        else:
+            logger.debug("No X-Forwarded-Proto header received — keeping scheme=%s", request.scope.get("scheme", "unknown"))
+    else:
+        logger.debug("Request not from trusted proxy (client=%s) — skipping X-Forwarded-Proto check", request.client)
     return await call_next(request)
 
 
@@ -136,6 +161,7 @@ app.include_router(oidc.router)
 app.include_router(progress.router)
 app.include_router(docs.router)
 app.include_router(health.router)
+app.include_router(hygiene.router)
 app.include_router(statistics.router)
 app.include_router(data.router)
 app.include_router(admin.router)

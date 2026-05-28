@@ -1,7 +1,10 @@
-<script lang="ts">
-	import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+	<script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
+	import { Html5QrcodeSupportedFormats, BaseLoggger } from 'html5-qrcode/esm/core';
+	import { Html5QrcodeShim } from 'html5-qrcode/esm/code-decoder';
 	import { _ } from '$lib/i18n';
-	import { onDestroy, tick } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import { X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -11,13 +14,23 @@
 		onDetected?: (isbn: string) => void;
 	} = $props();
 
-	const readerId = `barcode-scanner-reader-${Math.random().toString(36).slice(2, 10)}`;
-
-	let scanner = $state<Html5Qrcode | null>(null);
+	let stream = $state<MediaStream | null>(null);
 	let scannerError = $state<string | null>(null);
 	let starting = $state(false);
-	let stopping = $state(false);
 	let detectionLocked = $state(false);
+	let videoEl = $state<HTMLVideoElement | null>(null);
+
+	let decoder: Html5QrcodeShim | null = null;
+	let scanTimer: ReturnType<typeof setInterval> | null = null;
+	let scanCanvas: HTMLCanvasElement | null = null;
+
+	const SUPPORTED_FORMATS = [
+		Html5QrcodeSupportedFormats.EAN_13,
+		Html5QrcodeSupportedFormats.EAN_8,
+		Html5QrcodeSupportedFormats.UPC_A,
+		Html5QrcodeSupportedFormats.UPC_E,
+		Html5QrcodeSupportedFormats.CODE_128
+	];
 
 	function normalizeIsbn(raw: string): string | null {
 		const normalized = raw.trim().replaceAll('-', '').replaceAll(' ', '');
@@ -27,23 +40,17 @@
 	}
 
 	async function stopScanner() {
-		if (!scanner || stopping) return;
-		stopping = true;
-		try {
-			const current = scanner;
-			scanner = null;
-			try {
-				await current.stop();
-			} catch {
-				// Ignore stop errors during teardown.
+		if (scanTimer) {
+			clearInterval(scanTimer);
+			scanTimer = null;
+		}
+		decoder = null;
+		scanCanvas = null;
+		if (stream) {
+			for (const track of stream.getTracks()) {
+				track.stop();
 			}
-			try {
-				current.clear();
-			} catch {
-				// Ignore clear errors during teardown.
-			}
-		} finally {
-			stopping = false;
+			stream = null;
 		}
 	}
 
@@ -52,57 +59,69 @@
 		await stopScanner();
 	}
 
+	function scanFrame() {
+		if (!videoEl || !decoder || !scanCanvas || detectionLocked) return;
+		if (!videoEl.videoWidth || !videoEl.videoHeight) return;
+
+		scanCanvas.width = videoEl.videoWidth;
+		scanCanvas.height = videoEl.videoHeight;
+		const ctx = scanCanvas.getContext('2d');
+		if (!ctx) return;
+
+		ctx.drawImage(videoEl, 0, 0);
+
+		decoder.decodeAsync(scanCanvas).then((result) => {
+			if (detectionLocked) return;
+			const isbn = normalizeIsbn(result.text);
+			if (!isbn) return;
+			detectionLocked = true;
+			onDetected?.(isbn);
+			void closeScanner();
+		}).catch(() => {});
+	}
+
 	async function startScanner() {
-		if (scanner || starting) return;
+		if (starting || stream) return;
 		starting = true;
-		detectionLocked = false;
 		scannerError = null;
+		detectionLocked = false;
 
 		try {
-			await tick();
-
-			const nextScanner = new Html5Qrcode(readerId, {
-				formatsToSupport: [
-					Html5QrcodeSupportedFormats.EAN_13,
-					Html5QrcodeSupportedFormats.EAN_8,
-					Html5QrcodeSupportedFormats.UPC_A,
-					Html5QrcodeSupportedFormats.UPC_E,
-					Html5QrcodeSupportedFormats.CODE_128
-				],
-				verbose: false
-			});
-
-			const scanConfig = {
-				fps: 10,
-				aspectRatio: 16 / 9,
-				qrbox: { width: 300, height: 140 },
-				disableFlip: false
-			};
-
-			const onSuccess = (decodedText: string) => {
-				if (detectionLocked) return;
-				const isbn = normalizeIsbn(decodedText);
-				if (!isbn) return;
-				detectionLocked = true;
-				onDetected?.(isbn);
-				void closeScanner();
-			};
-
-			const onError = () => {
-				// Ignore per-frame decode failures while scanning.
-			};
-
+			let mediaStream: MediaStream;
 			try {
-				await nextScanner.start({ facingMode: { ideal: 'environment' } }, scanConfig, onSuccess, onError);
+				mediaStream = await navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: {
+						facingMode: { ideal: 'environment' },
+						width: { min: 640 },
+						height: { min: 480 }
+					}
+				});
 			} catch {
-				const cameras = await Html5Qrcode.getCameras();
-				if (!cameras.length) {
-					throw new Error($_('scanner.noCamera'));
-				}
-				await nextScanner.start(cameras[0].id, scanConfig, onSuccess, onError);
+				if (!navigator.mediaDevices) throw new Error($_('scanner.noCamera'));
+				const devices = await navigator.mediaDevices.enumerateDevices();
+				const cameras = devices.filter((d) => d.kind === 'videoinput');
+				if (!cameras.length) throw new Error($_('scanner.noCamera'));
+				const backCamera = cameras.find((c) =>
+					c.label.toLowerCase().includes('back')
+					|| c.label.toLowerCase().includes('environment')
+				);
+				mediaStream = await navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: { deviceId: { exact: (backCamera ?? cameras[0]).deviceId } }
+				});
 			}
 
-			scanner = nextScanner;
+			stream = mediaStream;
+			decoder = new Html5QrcodeShim(SUPPORTED_FORMATS, true, false, new BaseLoggger(false));
+			scanCanvas = document.createElement('canvas');
+
+			await waitForVideoEl();
+
+			videoEl!.srcObject = mediaStream;
+			await videoEl!.play();
+
+			scanTimer = setInterval(scanFrame, 100);
 		} catch (err: unknown) {
 			scannerError =
 				err instanceof Error ? err.message : $_('scanner.startError');
@@ -112,14 +131,24 @@
 		}
 	}
 
+	async function waitForVideoEl(): Promise<void> {
+		const timeout = Date.now() + 5000;
+		while (!videoEl && Date.now() < timeout) {
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		if (!videoEl) throw new Error($_('scanner.startError'));
+	}
+
 	$effect(() => {
-		if (open && !scanner && !starting) {
+		if (open && !stream && !starting && !scannerError) {
 			void startScanner();
 			return;
 		}
-
-		if (!open && scanner && !stopping) {
-			void stopScanner();
+		if (!open) {
+			scannerError = null;
+			if (stream) {
+				void stopScanner();
+			}
 		}
 	});
 
@@ -143,7 +172,7 @@
 			<div class="w-full max-w-4xl h-[88dvh] bg-base-100 rounded-xl shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label={$_('scanner.title')}>
 				<div class="flex items-center justify-between px-4 py-3 border-b border-base-200">
 					<h3 class="text-lg font-semibold">{$_('scanner.title')}</h3>
-					<button class="btn btn-ghost btn-sm btn-circle" onclick={closeScanner} aria-label={$_('scanner.close')}>✕</button>
+					<button class="btn btn-ghost btn-sm btn-circle" onclick={closeScanner} aria-label={$_('scanner.close')}><X class="w-4 h-4" /></button>
 				</div>
 
 				<div class="flex-1 min-h-0 p-4 flex flex-col gap-3 overflow-y-auto">
@@ -157,9 +186,17 @@
 						</div>
 					{/if}
 
-					<div class="flex-1 min-h-72 rounded-lg bg-base-200 overflow-hidden">
-						<div id={readerId} class="w-full h-full"></div>
-					</div>
+					{#if !scannerError}
+						<div class="flex-1 min-h-72 rounded-lg bg-black overflow-hidden relative">
+							<video
+								bind:this={videoEl}
+								class="absolute inset-0 w-full h-full object-cover"
+								autoplay
+								playsinline
+								muted
+							></video>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>

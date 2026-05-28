@@ -6,7 +6,10 @@
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
+	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '$lib/stores/theme';
+	import Alert from '$lib/components/Alert.svelte';
 	import { toasts } from '$lib/toasts';
+	import { localizeError } from '$lib/errors';
 	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
 	let firstname = $state('');
@@ -15,6 +18,7 @@
 	let showPassword = $state(false);
 	let profileMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let language = $state('en');
+	let languageMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let timezone = $state(getTimezone());
 	let timezoneMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let description = $state('');
@@ -26,12 +30,17 @@
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);
 	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let themeMode = $state(getThemeMode());
+	let customTheme = $state<string>(getCustomTheme() ?? 'dracula');
+	let themeMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let resetDataConfirmation = $state('');
 	let resetDataMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let deleteAccountConfirmation = $state('');
 	let deleteAccountMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let dangerLoading = $state(false);
 	let activeSection = $state('');
+	let navTop = $state(32);
+	let navLeft = $state(0);
 
 	$effect(() => {
 		if ($currentUser) {
@@ -44,11 +53,15 @@
 		if (window.innerWidth < 1280) return;
 		const nav = document.querySelector('nav[aria-label]') as HTMLElement | null;
 		const content = document.querySelector('#profile-content') as HTMLElement | null;
+		const firstSection = document.querySelector('#section-profile') as HTMLElement | null;
 		if (!nav || !content) return;
 		const cr = content.getBoundingClientRect();
 		const desiredLeft = cr.right + 32;
 		const maxLeft = window.innerWidth - nav.offsetWidth - 16;
-		nav.style.left = Math.min(desiredLeft, maxLeft) + 'px';
+		navLeft = Math.min(desiredLeft, maxLeft);
+		if (firstSection) {
+			navTop = Math.max(16, firstSection.getBoundingClientRect().top);
+		}
 	}
 
 	function updateActiveSection() {
@@ -94,11 +107,22 @@
 		};
 	});
 
+
+
 	async function load() {
 		const settings = await api.profile.getSettings();
 		language = settings.language;
 		timezone = settings.timezone;
 		setTimezone(settings.timezone);
+		themeMode = sanitizeThemeMode(settings.theme);
+		setThemeMode(themeMode);
+		if (themeMode === 'custom' && settings.custom_theme) {
+			customTheme = settings.custom_theme;
+			setCustomTheme(customTheme);
+		}
+		applyThemeToDocument();
+		saveThemeToStorage();
+		saveRestorePoint();
 		keys = await api.profile.listApiKeys();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
@@ -108,6 +132,15 @@
 
 	onMount(() => {
 		void load();
+	});
+
+	$effect(() => {
+		return () => {
+			if (restoreFromPoint()) {
+				applyThemeToDocument();
+				saveThemeToStorage();
+			}
+		};
 	});
 
 	async function saveProfile() {
@@ -140,6 +173,7 @@
 		if (SUPPORTED_LOCALES.includes(updated.language as (typeof SUPPORTED_LOCALES)[number])) {
 			setLocale(updated.language as (typeof SUPPORTED_LOCALES)[number]);
 		}
+		languageMessage = { type: 'success', text: $_('common.saved') };
 	}
 
 	const allTimezones: string[] = typeof Intl.supportedValuesOf === 'function'
@@ -156,6 +190,35 @@
 		timezoneMessage = null;
 		await api.profile.updateSettings({ timezone });
 		setTimezone(timezone);
+		timezoneMessage = { type: 'success', text: $_('common.saved') };
+	}
+
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			setCustomTheme(customTheme);
+			if (getThemeMode() === 'custom') {
+				applyThemeToDocument();
+			}
+		}
+	});
+
+	async function saveTheme() {
+		themeMessage = null;
+		setThemeMode('custom');
+		setCustomTheme(customTheme);
+		themeMode = 'custom';
+		applyThemeToDocument();
+		saveThemeToStorage();
+		clearRestorePoint();
+		try {
+			await api.profile.updateSettings({
+				theme: 'custom',
+				custom_theme: customTheme,
+			});
+			themeMessage = { type: 'success', text: $_('common.saved') };
+		} catch (e: unknown) {
+			themeMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		}
 	}
 
 	async function createKey() {
@@ -212,16 +275,6 @@
 		}
 	}
 
-	function localizeError(err: unknown, fallback: string): string {
-		if (err instanceof Error) {
-			if (err.message.startsWith('error.')) {
-				return $_(err.message);
-			}
-			return err.message;
-		}
-		return fallback;
-	}
-
 	async function confirmResetData() {
 		if (resetDataConfirmation.trim() !== $_('profile.dangerZone.resetData.confirmationPhrase')) {
 			return;
@@ -252,7 +305,7 @@
 				window.location.href = '/dashboard';
 			}, 1500);
 		} catch (e: unknown) {
-			const message = localizeError(e, $_('profile.dangerZone.resetData.failed'));
+			const message = localizeError(e, $_, $_('profile.dangerZone.resetData.failed'));
 			resetDataMessage = { type: 'error', text: message };
 			toasts.add(message, 'error');
 		} finally {
@@ -274,7 +327,7 @@
 				window.location.href = '/login';
 			}, 1000);
 		} catch (e: unknown) {
-			const message = localizeError(e, $_('profile.dangerZone.deleteAccount.failed'));
+			const message = localizeError(e, $_, $_('profile.dangerZone.deleteAccount.failed'));
 			deleteAccountMessage = { type: 'error', text: message };
 			toasts.add(message, 'error');
 		} finally {
@@ -294,28 +347,31 @@
 <div id="profile-content" class="max-w-3xl mx-auto flex flex-col gap-6">
 	<h1 class="text-2xl font-bold">{$_('user.profile')}</h1>
 
-	<div id="section-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<form class="card-body gap-3" onsubmit={(e) => { e.preventDefault(); saveProfile(); }}>
 			<h2 class="text-lg font-semibold">{$_('user.profile')}</h2>
 			{#if profileMessage}
-				<div class={`alert ${profileMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-					<span>{profileMessage.text}</span>
-				</div>
+				<Alert type={profileMessage.type === 'success' ? 'success' : 'error'} onClose={() => (profileMessage = null)}>
+					{profileMessage.text}
+				</Alert>
 			{/if}
 			<input
 				class="input input-bordered"
+				name="firstname"
 				bind:value={firstname}
 				placeholder={$_('auth.firstname')}
 				autocomplete="given-name"
 			/>
 			<input
 				class="input input-bordered"
+				name="lastname"
 				bind:value={lastname}
 				placeholder={$_('auth.lastname')}
 				autocomplete="family-name"
 			/>
 			<input
 				class="input input-bordered validator"
+				name="password"
 				type={showPassword ? 'text' : 'password'}
 				bind:value={password}
 				placeholder={$_('user.newPassword')}
@@ -325,7 +381,7 @@
 				title={$_('password.requirementsTitle')}
 			/>
 			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" class="checkbox checkbox-xs" bind:checked={showPassword} />
+				<input type="checkbox" class="checkbox checkbox-xs" name="show-password" bind:checked={showPassword} />
 				<span class="label-text text-xs">{$_('common.showPassword')}</span>
 			</label>
 			<PasswordRequirements {password} />
@@ -333,10 +389,15 @@
 		</form>
 	</div>
 
-	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.languageTitle')}</h2>
-			<select class="select select-bordered max-w-xs" bind:value={language}>
+			{#if languageMessage}
+				<Alert type={languageMessage.type === 'success' ? 'success' : 'error'} onClose={() => (languageMessage = null)}>
+					{languageMessage.text}
+				</Alert>
+			{/if}
+			<select class="select select-bordered max-w-xs" name="language" bind:value={language}>
 				{#each SUPPORTED_LOCALES as code}
 					<option value={code}>{$_(`languages.${code}`)}</option>
 				{/each}
@@ -345,17 +406,18 @@
 		</div>
 	</div>
 
-	<div id="section-timezone" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-timezone" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.timezone')}</h2>
 			<p class="text-sm text-base-content/70">{$_('settings.timezoneHelp')}</p>
 			{#if timezoneMessage}
-				<div class={`alert ${timezoneMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm max-w-xs`}>
-					<span>{timezoneMessage.text}</span>
-				</div>
+				<Alert type={timezoneMessage.type === 'success' ? 'success' : 'error'} onClose={() => (timezoneMessage = null)}>
+					{timezoneMessage.text}
+				</Alert>
 			{/if}
 			<input
 				list="timezone-list"
+				name="timezone"
 				class="input input-bordered max-w-xs"
 				bind:value={timezone}
 				placeholder={$_('settings.timezonePlaceholder')}
@@ -371,26 +433,48 @@
 		</div>
 	</div>
 
-	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-theme" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('settings.themeTitle')}</h2>
+			{#if themeMessage}
+				<Alert type={themeMessage.type === 'success' ? 'success' : 'error'} onClose={() => (themeMessage = null)}>
+					{themeMessage.text}
+				</Alert>
+			{/if}
+			<span class="label">
+				<span class="label-text">{$_('settings.themeSelect')}</span>
+			</span>
+			<select class="select select-bordered max-w-xs" name="custom-theme" bind:value={customTheme}>
+				{#each [...DAISYUI_THEMES].sort() as t}
+					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+				{/each}
+			</select>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveTheme}>{$_('common.save')}</button>
+		</div>
+	</div>
+
+	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
 			<p class="text-sm text-base-content/70">
 				<a href="/api-docs" class="link link-primary">{$_('settings.apiDocsTitle')}</a>
 			</p>
 			<div class="flex gap-2">
-				<input class="input input-bordered flex-1" bind:value={description} placeholder={$_('user.keyDescription')} />
+				<input class="input input-bordered flex-1" name="key-description" bind:value={description} placeholder={$_('user.keyDescription')} />
 				<button class="btn btn-primary btn-sm" onclick={createKey}>{$_('user.addKey')}</button>
 			</div>
 			{#if createdKey}
-				<div class="alert alert-success flex flex-col items-start gap-2 text-xs">
-					<span>{$_('user.newKeyShownOnce')}</span>
-					<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
-						{createdKey}
+				<Alert type="success" onClose={() => (createdKey = null)} duration={0}>
+					<div class="flex flex-col items-start gap-2 text-xs">
+						<span>{$_('user.newKeyShownOnce')}</span>
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+							{createdKey}
+						</div>
+						<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedKey}>
+							{keyCopied ? $_('common.copied') : $_('common.copy')}
+						</button>
 					</div>
-					<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedKey}>
-						{keyCopied ? $_('common.copied') : $_('common.copy')}
-					</button>
-				</div>
+				</Alert>
 			{/if}
 			<ul class="flex flex-col gap-2">
 				{#each keys as key}
@@ -406,24 +490,25 @@
 		</div>
 	</div>
 
-	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('profile.dataManagement.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.dataManagement.description')}</p>
-			<div>
-				<a class="btn btn-outline btn-sm" href="/data?tab=export">{$_('profile.dataManagement.link')}</a>
-			</div>
+			<a class="btn btn-outline btn-sm w-fit" href="/data?tab=export">{$_('profile.dataManagement.link')}</a>
+			<div class="divider my-1"></div>
+			<p class="text-sm text-base-content/70">{$_('dataHygiene.description')}</p>
+			<a class="btn btn-outline btn-sm w-fit" href="/data-hygiene">{$_('dataHygiene.title')}</a>
 		</div>
 	</div>
 
 	{#if oidcConfig.enabled}
-		<div id="section-oidc" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm">
+		<div id="section-oidc" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 			<div class="card-body gap-3">
 				<h2 class="text-lg font-semibold">{$_('oidc.profileTitle')}</h2>
 				{#if oidcMessage}
-					<div class={`alert ${oidcMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{oidcMessage.text}</span>
-					</div>
+					<Alert type={oidcMessage.type === 'success' ? 'success' : 'error'} onClose={() => (oidcMessage = null)}>
+						{oidcMessage.text}
+					</Alert>
 				{/if}
 				{#if oidcLink.linked}
 					<p class="text-sm text-base-content/70">
@@ -448,20 +533,21 @@
 			<h2 class="text-lg font-semibold text-error">{$_('profile.dangerZone.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.dangerZone.subtitle')}</p>
 
-			<div class="border border-error/20 rounded-lg p-4 flex flex-col gap-3">
+			<div class="border border-error/20 rounded-xl p-4 flex flex-col gap-3">
 				<h3 class="font-medium">{$_('profile.dangerZone.resetData.title')}</h3>
 				<p class="text-sm text-base-content/70">{$_('profile.dangerZone.resetData.description')}</p>
 				<p class="text-xs font-semibold text-warning">{$_('profile.dangerZone.resetData.warning')}</p>
 				<input
 					class="input input-bordered max-w-md"
+					name="reset-data-confirmation"
 					bind:value={resetDataConfirmation}
 					placeholder={$_('profile.dangerZone.resetData.placeholder')}
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.resetData.hint')}</p>
 				{#if resetDataMessage}
-					<div class={`alert ${resetDataMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{resetDataMessage.text}</span>
-					</div>
+					<Alert type={resetDataMessage.type === 'success' ? 'success' : 'error'} onClose={() => (resetDataMessage = null)}>
+						{resetDataMessage.text}
+					</Alert>
 				{/if}
 				<button
 					type="button"
@@ -476,20 +562,21 @@
 				</button>
 			</div>
 
-			<div class="border border-error/20 rounded-lg p-4 flex flex-col gap-3">
+			<div class="border border-error/20 rounded-xl p-4 flex flex-col gap-3">
 				<h3 class="font-medium">{$_('profile.dangerZone.deleteAccount.title')}</h3>
 				<p class="text-sm text-base-content/70">{$_('profile.dangerZone.deleteAccount.description')}</p>
 				<p class="text-xs font-semibold text-error">{$_('profile.dangerZone.deleteAccount.warning')}</p>
 				<input
 					class="input input-bordered max-w-md"
+					name="delete-account-confirmation"
 					bind:value={deleteAccountConfirmation}
 					placeholder={$_('profile.dangerZone.deleteAccount.placeholder')}
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.deleteAccount.hint')}</p>
 				{#if deleteAccountMessage}
-					<div class={`alert ${deleteAccountMessage.type === 'success' ? 'alert-success' : 'alert-error'} text-sm`}>
-						<span>{deleteAccountMessage.text}</span>
-					</div>
+					<Alert type={deleteAccountMessage.type === 'success' ? 'success' : 'error'} onClose={() => (deleteAccountMessage = null)}>
+						{deleteAccountMessage.text}
+					</Alert>
 				{/if}
 				<button
 					type="button"
@@ -512,76 +599,24 @@
 	(max-w-3xl, 768px) + nav (208px) doesn't fit without horizontal overflow.
 -->
 <nav
-	class="hidden xl:block fixed top-8 w-52"
+	class="hidden xl:block fixed w-52"
+	style:top="{navTop}px"
+	style:left="{navLeft}px"
 	aria-label={$_('profile.sectionNav')}
 >
-	<div class="card bg-base-100 border border-base-200 shadow-sm">
-		<div class="card-body p-4 gap-2">
-			<h3 class="text-sm font-semibold text-base-content/70 uppercase tracking-wider">
-				{$_('profile.sectionNav')}
-			</h3>
-			<ul class="flex flex-col gap-1">
-				<li>
-					<a
-						href="#section-profile"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-profile'}
-						data-section="section-profile"
-					>{$_('user.profile')}</a>
-				</li>
-				<li>
-					<a
-						href="#section-language"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-language'}
-						data-section="section-language"
-					>{$_('settings.languageTitle')}</a>
-				</li>
-				<li>
-					<a
-						href="#section-timezone"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-timezone'}
-						data-section="section-timezone"
-					>{$_('settings.timezone')}</a>
-				</li>
-				<li>
-					<a
-						href="#section-api-keys"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-api-keys'}
-						data-section="section-api-keys"
-					>{$_('user.apiKeys')}</a>
-				</li>
-				{#if oidcConfig.enabled}
-					<li>
-						<a
-							href="#section-oidc"
-							class="link link-hover text-sm"
-							class:text-primary={activeSection === 'section-oidc'}
-							data-section="section-oidc"
-						>{$_('oidc.profileTitle')}</a>
-					</li>
-				{/if}
-				<li>
-					<a
-						href="#section-data"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-data'}
-						data-section="section-data"
-					>{$_('profile.dataManagement.title')}</a>
-				</li>
-				<li>
-					<a
-						href="#section-danger-zone"
-						class="link link-hover text-sm"
-						class:text-primary={activeSection === 'section-danger-zone'}
-						data-section="section-danger-zone"
-					>{$_('profile.dangerZone.title')}</a>
-				</li>
-			</ul>
-		</div>
-	</div>
+	<ul class="menu menu-sm bg-base-200 rounded-xl border border-base-300">
+		<li class="menu-title"><span>{$_('profile.sectionNav')}</span></li>
+		<li><a href="#section-profile" class:menu-active={activeSection === 'section-profile'}>{$_('user.profile')}</a></li>
+		<li><a href="#section-language" class:menu-active={activeSection === 'section-language'}>{$_('settings.languageTitle')}</a></li>
+		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
+		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
+		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
+		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>
+		{#if oidcConfig.enabled}
+			<li><a href="#section-oidc" class:menu-active={activeSection === 'section-oidc'}>{$_('oidc.profileTitle')}</a></li>
+		{/if}
+		<li><a href="#section-danger-zone" class:menu-active={activeSection === 'section-danger-zone'}>{$_('profile.dangerZone.title')}</a></li>
+	</ul>
 </nav>
 
 <dialog class="modal" class:modal-open={pendingDeleteKeyId !== null}>

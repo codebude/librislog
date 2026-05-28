@@ -6,13 +6,13 @@ import DataImport from './DataImport.svelte';
 const mockParseImportFile = vi.fn(async () => ({
 	file_id: 'test-file-123',
 	format: 'csv' as const,
-	source_fields: ['title', 'author'],
-	sample_rows: [{ title: 'Book 1', author: 'Author 1' }],
+	source_fields: ['Book Title', 'Author Name', 'ISBN'],
+	sample_rows: [{ 'Book Title': 'Dune', 'Author Name': 'Frank Herbert', 'ISBN': '978-3-16-148410-0' }],
 	row_count: 1
 }));
 const mockSuggestMapping = vi.fn(async () => ({
-	suggested_mapping: { title: 'title', author: 'author' },
-	db_fields: ['title', 'author', 'isbn']
+	suggested_mapping: { title: 'Book Title', author: 'Author Name', isbn: 'ISBN' },
+	db_fields: ['title', 'author', 'isbn', 'publisher', 'page_count']
 }));
 const mockValidateImport = vi.fn(async () => ({
 	valid: true,
@@ -120,7 +120,7 @@ describe('DataImport', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Parse file' }));
 
 		await waitFor(() => {
-			expect(screen.getByText(/Rows: 1, fields: 2/)).toBeInTheDocument();
+			expect(screen.getByText(/Rows: 1, fields: 3/)).toBeInTheDocument();
 		});
 	});
 

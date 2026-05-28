@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import type { Book, DashboardQuote, LibraryStats } from '$lib/types';
 	import { api } from '$lib/api';
@@ -11,6 +11,7 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+import { Search, X } from '@lucide/svelte';
 
 	let loading = $state(true);
 	let stats = $state<LibraryStats>({
@@ -33,6 +34,7 @@
 	let searchToken = 0;
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 	let highlightedIndex = $state(-1);
+	let userNavigatedDropdown = $state(false);
 	const searchListboxId = 'dashboard-search-results';
 	const showSearchDropdown = $derived(searchQuery.trim().length > 0);
 
@@ -78,7 +80,7 @@
 	async function loadDashboard() {
 		loading = true;
 		try {
-			const [statsData, readingBooks, wantToReadBooks] = await Promise.all([
+			const [statsData, readingResponse, wantToReadResponse] = await Promise.all([
 				api.books.stats(),
 				api.books.list({
 					status: 'currently_reading',
@@ -95,8 +97,8 @@
 			]);
 
 			stats = statsData;
-			currentlyReading = readingBooks.slice(0, 5);
-			nextToRead = wantToReadBooks.slice(0, 5);
+			currentlyReading = readingResponse.books.slice(0, 5);
+			nextToRead = wantToReadResponse.books.slice(0, 5);
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -119,10 +121,6 @@
 		} catch {
 			tagCloud = [];
 		}
-	}
-
-	function tagCloudSize(count: number): number {
-		return Math.min(1.2, 0.8 + count * 0.08);
 	}
 
 	function applyTagCloudSearch(tag: string) {
@@ -197,7 +195,7 @@
 				order: 'desc'
 			});
 			if (token !== searchToken) return;
-			searchResults = results;
+			searchResults = results.books;
 		} catch {
 			if (token !== searchToken) return;
 			searchResults = [];
@@ -235,26 +233,40 @@
 		};
 	});
 
-	async function openFromSearch(book: Book) {
+	function openFromSearch(book: Book) {
 		searchQuery = '';
 		searchResults = [];
 		searchLoading = false;
 		highlightedIndex = -1;
-		await goto(`/library?status=${book.reading_status}&bookId=${book.id}`);
+		selectedBook = book;
+		detailOpen = true;
 	}
 
 	$effect(() => {
-		if (!searchQuery.trim() || searchLoading || searchResults.length === 0) {
-			highlightedIndex = -1;
-			return;
-		}
-		if (highlightedIndex < 0 || highlightedIndex >= searchResults.length) {
-			highlightedIndex = 0;
-		}
+		void searchQuery;
+		userNavigatedDropdown = false;
+		highlightedIndex = -1;
 	});
 
 	function onSearchKeydown(event: KeyboardEvent) {
-		if (!searchQuery.trim() || searchLoading || searchResults.length === 0) {
+		const trimmed = searchQuery.trim();
+
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			// If user explicitly navigated to a dropdown item with arrow keys, open that book
+			if (userNavigatedDropdown && highlightedIndex >= 0 && searchResults.length > 0) {
+				const selected = searchResults[highlightedIndex];
+				if (selected) {
+					void openFromSearch(selected);
+				}
+			} else if (trimmed) {
+				// Otherwise navigate to full search results page
+				void goto(`/search?q=${encodeURIComponent(trimmed)}`);
+			}
+			return;
+		}
+
+		if (!trimmed || searchLoading || searchResults.length === 0) {
 			if (event.key === 'Escape') {
 				searchQuery = '';
 			}
@@ -263,22 +275,15 @@
 
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
+			userNavigatedDropdown = true;
 			highlightedIndex = (highlightedIndex + 1 + searchResults.length) % searchResults.length;
 			return;
 		}
 
 		if (event.key === 'ArrowUp') {
 			event.preventDefault();
+			userNavigatedDropdown = true;
 			highlightedIndex = (highlightedIndex - 1 + searchResults.length) % searchResults.length;
-			return;
-		}
-
-		if (event.key === 'Enter') {
-			event.preventDefault();
-			const selected = searchResults[Math.max(0, highlightedIndex)];
-			if (selected) {
-				void openFromSearch(selected);
-			}
 			return;
 		}
 
@@ -291,9 +296,9 @@
 
 <div class="flex flex-col gap-6">
 	<div class="hero rounded-2xl bg-base-100 shadow-sm border border-base-200">
-		<div class="hero-content text-center py-10">
+		<div class="hero-content text-center py-12">
 			<div class="max-w-2xl">
-				<h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">{$_('dashboard.title')}</h1>
+				<h1 class="text-2xl sm:text-3xl font-bold tracking-tight">{$_('dashboard.title')}</h1>
 				<p class="text-base-content/70 mt-2">{$_('dashboard.subtitle')}</p>
 			</div>
 		</div>
@@ -303,12 +308,16 @@
 		<div class="card-body gap-3">
 			<h2 class="card-title text-base">{$_('dashboard.searchAllBooks')}</h2>
 			<div class="relative w-full">
+				<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50 pointer-events-none z-10" />
 				<input
 					type="text"
-					class="input input-bordered w-full pr-10"
+					class="input input-bordered w-full pl-10 pr-10 scroll-mt-20"
 					placeholder={$_('common.searchBooks')}
 					bind:value={searchQuery}
 					onkeydown={onSearchKeydown}
+					onfocus={(e) => {
+						e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					}}
 					role="combobox"
 					aria-autocomplete="list"
 					aria-expanded={showSearchDropdown ? 'true' : 'false'}
@@ -321,13 +330,13 @@
 				{#if searchQuery.trim().length > 0}
 					<button
 						type="button"
-						class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2"
+						class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2 z-10"
 						onclick={() => {
 							searchQuery = '';
 						}}
 						aria-label={$_('common.clearForm')}
 					>
-						x
+						<X class="w-4 h-4" />
 					</button>
 				{/if}
 
@@ -381,7 +390,7 @@
 	</div>
 
 	{#if quoteEnabled}
-		<div class="card bg-gradient-to-r from-teal-600 to-cyan-700 text-white shadow-sm">
+		<div class="card bg-base-100 border border-base-200 border-l-4 border-l-primary shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title">{$_('dashboard.quoteTitle')}</h2>
 				{#if quoteLoading}
@@ -389,16 +398,16 @@
 				{:else if quote}
 					<p class="text-lg leading-relaxed">"{quote.quote}"</p>
 					{#if quote.author}
-						<p class="text-white/80">- {quote.author}</p>
+						<p class="text-base-content/60">- {quote.author}</p>
 					{/if}
 				{:else}
-					<p class="text-white/90">{$_('dashboard.quoteUnavailable')}</p>
+					<p class="text-base-content/70">{$_('dashboard.quoteUnavailable')}</p>
 				{/if}
 			</div>
 		</div>
 	{/if}
 
-	<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+	<div class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 		<a href="/library" class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200 hover:shadow-md transition-shadow">
 			<div class="stat-title">{$_('dashboard.totalBooks')}</div>
 			<div class="stat-value text-primary">{stats.total_books}</div>
@@ -429,7 +438,7 @@
 			{:else if currentlyReading.length === 0}
 				<p class="text-base-content/60">{$_('dashboard.noCurrentlyReading')}</p>
 			{:else}
-				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 					{#each currentlyReading as book (book.id)}
 						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
 					{/each}
@@ -450,7 +459,7 @@
 			{:else if nextToRead.length === 0}
 				<p class="text-base-content/60">{$_('dashboard.noNextToRead')}</p>
 			{:else}
-				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 					{#each nextToRead as book (book.id)}
 						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
 					{/each}
@@ -460,21 +469,20 @@
 	</div>
 
 	{#if tagCloud.length > 0}
-		<div class="card bg-base-100 border border-base-200 shadow-sm">
+		<div class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 			<div class="card-body gap-4">
 				<div class="flex items-center justify-between">
-					<h2 class="card-title">{$_('dashboard.popularTags')}</h2>
+					<h2 class="card-title text-base">{$_('dashboard.popularTags')}</h2>
 				</div>
 				<div class="flex flex-wrap gap-2">
 					{#each tagCloud as entry (entry.tag)}
 						<button
 							type="button"
-							class="badge badge-outline hover:badge-primary transition-colors cursor-pointer"
-							style={`font-size: ${tagCloudSize(entry.count)}rem;`}
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-base-200/50 hover:bg-primary/10 hover:text-primary rounded-xl text-sm transition-colors cursor-pointer"
 							onclick={() => applyTagCloudSearch(entry.tag)}
 						>
-							{entry.tag}
-							<span class="ml-1 text-xs opacity-70">{entry.count}</span>
+							<span>{entry.tag}</span>
+							<span class="text-xs text-base-content/40">{entry.count}</span>
 						</button>
 					{/each}
 				</div>

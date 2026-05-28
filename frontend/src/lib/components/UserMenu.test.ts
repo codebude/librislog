@@ -48,10 +48,10 @@ describe('UserMenu', () => {
 		expect(screen.getByRole('button', { name: 'User menu' })).toBeInTheDocument();
 	});
 
-	it('shows user initials', () => {
+	it('shows user avatar', () => {
 		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
 		render(UserMenu);
-		expect(screen.getByText('JD')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'User menu' }).querySelector('svg')).toBeInTheDocument();
 	});
 
 	it('shows ?? when no user', () => {

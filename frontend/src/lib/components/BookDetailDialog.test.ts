@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/sv
 import { writable } from 'svelte/store';
 import BookDetailDialog from './BookDetailDialog.svelte';
 
+vi.mock('svelte-chartjs', () => ({
+	Line: vi.fn().mockImplementation(() => ({ default: {} })),
+}));
+
 const mockProgressList = vi.fn(async () => []);
 const mockProgressCreate = vi.fn(async (_bookId: number, _page: number) => ({ id: 1, book_id: _bookId, page: _page, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }));
 const mockProgressDelete = vi.fn(async () => {});

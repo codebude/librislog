@@ -24,6 +24,22 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
+vi.mock('html5-qrcode/esm/core', () => ({
+	Html5QrcodeSupportedFormats: {
+		EAN_13: 9, EAN_8: 10, UPC_A: 14, UPC_E: 15, CODE_128: 5, QR_CODE: 0
+	},
+	BaseLoggger: class { log() {} warn() {} logError() {} logErrors() {} }
+}));
+
+vi.mock('html5-qrcode/esm/code-decoder', () => {
+	const Html5QrcodeShim = class {
+		constructor() {
+			this.decodeAsync = function () { return Promise.resolve({ text: '' }); };
+		}
+	};
+	return { Html5QrcodeShim };
+});
+
 vi.mock('$lib/toasts', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
@@ -75,7 +91,7 @@ describe('BookDrawer', () => {
 	it('renders form fields', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/ISBN/)).toBeInTheDocument();
+		expect(screen.getByRole('textbox', { name: /ISBN/ })).toBeInTheDocument();
 		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Language/)).toBeInTheDocument();

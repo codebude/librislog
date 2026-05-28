@@ -12,7 +12,7 @@ from app.routers.statistics import _extract_book_level_daily_pages
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
     """Helper to create a book via the API and return the JSON response."""
-    payload = {"title": "Book", **overrides}
+    payload = {"title": "Book", "author": "Test Author", "page_count": 100, **overrides}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()
@@ -49,19 +49,22 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     _create_book(
         client, title="Read Jan 1", author="Author A", cover_url="/api/covers/a1.jpg",
         page_count=100, language="EN", reading_status="read",
+        date_started="2026-01-10T10:00:00Z",
         date_finished="2026-01-10T10:00:00Z",
     )
     _create_book(
         client, title="Read Jan 2", author="Author A", cover_url="/api/covers/a2.jpg",
         page_count=200, language="EN", reading_status="read",
+        date_started="2026-01-15T10:00:00Z",
         date_finished="2026-01-15T10:00:00Z",
     )
     _create_book(
         client, title="Read Mar", author="Author B",
         page_count=300, language="DE", reading_status="read",
+        date_started="2026-03-01T10:00:00Z",
         date_finished="2026-03-01T10:00:00Z",
     )
-    _create_book(client, title="Want", page_count=120, language="EN", reading_status="want_to_read")
+    _create_book(client, title="Want", author="Author B", page_count=120, language="EN", reading_status="want_to_read")
     dnf = _create_book(client, title="DNF", author="Author A", language="FR", reading_status="did_not_finish")
 
     client.post(f"/api/books/{dnf['id']}/progress", json={"page": 40})
@@ -73,24 +76,35 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert data["avg_books_per_month"] == 1.5
     assert data["busiest_month"] == "2026-01"
     assert data["busiest_month_count"] == 2
-    assert data["avg_page_count"] == 180
+    assert data["avg_page_count"] == 164.0
     assert data["most_popular_language"] == "EN"
     assert data["most_popular_language_count"] == 3
     assert data["status_distribution"] == {
         "want_to_read": 1, "currently_reading": 0, "read": 3, "did_not_finish": 1,
     }
     assert data["page_buckets"] == {"pages_to_read": 120, "pages_read": 600, "pages_wasted": 60}
+    now = datetime.now(timezone.utc)
+    expected_months = []
+    year, month = 2026, 1
+    while (year < now.year) or (year == now.year and month <= now.month):
+        expected_months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    current_month = f"{now.year:04d}-{now.month:02d}"
     assert data["books_finished_per_month"] == [
-        {"month": "2026-01", "count": 2},
-        {"month": "2026-02", "count": 0},
-        {"month": "2026-03", "count": 1},
+        {"month": m, "count": 2 if m == "2026-01" else 1 if m == "2026-03" else 0}
+        for m in expected_months
     ]
     assert data["pages_read_per_month"] == [
-        {"month": "2026-01", "pages": 300},
-        {"month": "2026-02", "pages": 0},
-        {"month": "2026-03", "pages": 300},
+        {"month": m, "pages": 300 if m == "2026-01" else 300 if m == "2026-03" else 20 if m == current_month else 0}
+        for m in expected_months
     ]
-    assert data["books_finished_per_year"] == [{"year": 2026, "count": 3}]
+    expected_years = list(range(2026, now.year + 1))
+    assert data["books_finished_per_year"] == [
+        {"year": y, "count": 3 if y == 2026 else 0} for y in expected_years
+    ]
     assert len(data["top_authors"]) == 2
     assert data["top_authors"][0]["author"] == "Author A"
     assert data["top_authors"][0]["book_count"] == 3
@@ -98,7 +112,7 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert "/api/covers/a1.jpg" in top_a_cover_urls
     assert "/api/covers/a2.jpg" in top_a_cover_urls
     assert data["top_authors"][1]["author"] == "Author B"
-    assert data["top_authors"][1]["book_count"] == 1
+    assert data["top_authors"][1]["book_count"] == 2
 
 
 def test_statistics_top_authors_limit_and_tiebreaker(client: Any) -> None:
@@ -147,13 +161,26 @@ def test_statistics_timezone_month_bucketing(client: Any, session: Session) -> N
     session.commit()
 
     _create_book(client, title="Boundary", reading_status="read",
-                 page_count=222, date_finished="2026-05-01T03:00:00Z")
+                 page_count=222, date_started="2026-05-01T03:00:00Z", date_finished="2026-05-01T03:00:00Z")
 
     resp = client.get("/api/statistics")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["books_finished_per_month"] == [{"month": "2026-04", "count": 1}]
-    assert data["pages_read_per_month"] == [{"month": "2026-04", "pages": 222}]
+    now = datetime.now(timezone.utc)
+    expected_months = []
+    year, month = 2026, 4
+    while (year < now.year) or (year == now.year and month <= now.month):
+        expected_months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    assert data["books_finished_per_month"] == [
+        {"month": m, "count": 1 if m == "2026-04" else 0} for m in expected_months
+    ]
+    assert data["pages_read_per_month"] == [
+        {"month": m, "pages": 222 if m == "2026-04" else 0} for m in expected_months
+    ]
 
 
 def test_statistics_pages_wasted_ignores_non_dnf(client: Any) -> None:
@@ -200,6 +227,7 @@ def test_pages_per_day_skips_books_missing_dates_or_pages(client: Any) -> None:
     """Books without date_started, date_finished, or page_count should be skipped in fallback."""
     _create_book(client, title="No Dates", reading_status="read", page_count=100)
     _create_book(client, title="No Pages", reading_status="read",
+                 page_count=0,
                  date_started="2026-05-01T10:00:00Z", date_finished="2026-05-02T10:00:00Z")
 
     resp = client.get("/api/statistics/pages-per-day?days=730")
@@ -235,13 +263,21 @@ def test_statistics_books_spanning_multiple_years(client: Any) -> None:
     resp = client.get("/api/statistics")
     assert resp.status_code == 200
     data = resp.json()
+    now = datetime.now(timezone.utc)
+    expected_months = []
+    year, month = 2025, 12
+    while (year < now.year) or (year == now.year and month <= now.month):
+        expected_months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
     assert data["books_finished_per_month"] == [
-        {"month": "2025-12", "count": 1},
-        {"month": "2026-01", "count": 1},
+        {"month": m, "count": 1 if m in ("2025-12", "2026-01") else 0} for m in expected_months
     ]
+    expected_years = list(range(2025, now.year + 1))
     assert data["books_finished_per_year"] == [
-        {"year": 2025, "count": 1},
-        {"year": 2026, "count": 1},
+        {"year": y, "count": 1 if y == 2025 else 1 if y == 2026 else 0} for y in expected_years
     ]
 
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
@@ -36,7 +37,9 @@
 		<div class="card-body gap-4">
 			<h1 class="text-xl font-semibold">{$_('oidc.linkingAccount')}</h1>
 			{#if error}
-				<div class="alert alert-error text-sm"><span>{error}</span></div>
+				<Alert type="error" onClose={() => (error = '')}>
+					{error}
+				</Alert>
 				<a href="/profile" class="btn btn-outline btn-sm self-start">{$_('user.profile')}</a>
 			{:else}
 				<div class="flex justify-center py-2"><span class="loading loading-spinner loading-md"></span></div>

@@ -2,6 +2,7 @@
 	import { _ } from '$lib/i18n';
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
+	import { localizeError } from '$lib/errors';
 
 	let backupInProgress = $state(false);
 	let restoreFile = $state<File | null>(null);
@@ -29,16 +30,6 @@
 		}
 	}
 
-	function localizeError(err: unknown, fallback: string): string {
-		if (err instanceof Error) {
-			if (err.message.startsWith('error.')) {
-				return $_(err.message);
-			}
-			return err.message;
-		}
-		return fallback;
-	}
-
 	async function validateAndConfirmRestore() {
 		if (!restoreFile) return;
 		try {
@@ -50,7 +41,7 @@
 				toasts.add(validation.error || $_('admin.restore.invalidBackup'), 'error');
 			}
 		} catch (err: unknown) {
-			toasts.add(localizeError(err, $_('admin.restore.validationFailed')), 'error');
+			toasts.add(localizeError(err, $_, $_('admin.restore.validationFailed')), 'error');
 		}
 	}
 
@@ -63,7 +54,7 @@
 			toasts.add($_('admin.restore.success', { values: { books: String(result.restored_books) } }), 'success');
 			setTimeout(() => window.location.reload(), 2000);
 		} catch (err: unknown) {
-			toasts.add(localizeError(err, $_('admin.restore.failed')), 'error');
+			toasts.add(localizeError(err, $_, $_('admin.restore.failed')), 'error');
 		} finally {
 			restoreInProgress = false;
 			restoreFile = null;
@@ -110,6 +101,7 @@
 			{:else}
 				<input
 					type="file"
+					name="restore-file"
 					class="file-input file-input-bordered file-input-sm"
 					accept=".zip"
 					onchange={(e) => {

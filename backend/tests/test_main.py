@@ -10,18 +10,20 @@ from fastapi.testclient import TestClient
 from starlette.responses import JSONResponse, Response
 
 
-def test_periodic_temp_cleanup_logs_success() -> None:
+def test_periodic_maintenance_logs_success() -> None:
     """Successful cleanup should log info and reset failures."""
-    from app.main import _periodic_temp_cleanup
+    from app.main import _periodic_maintenance
 
     async def _run() -> MagicMock:
         with patch("app.main.cleanup_temp_files"):
-            with patch("app.main.asyncio.sleep", side_effect=[None, asyncio.CancelledError()]):
-                with patch("app.main.logger") as mock_logger:
-                    try:
-                        await _periodic_temp_cleanup()
-                    except asyncio.CancelledError:
-                        pass
+            with patch("app.main.cleanup_orphan_covers", return_value=0):
+                with patch("app.database.get_session"):
+                    with patch("app.main.asyncio.sleep", side_effect=[None, asyncio.CancelledError()]):
+                        with patch("app.main.logger") as mock_logger:
+                            try:
+                                await _periodic_maintenance()
+                            except asyncio.CancelledError:
+                                pass
         return mock_logger
 
     mock_logger = asyncio.run(_run())
@@ -29,35 +31,56 @@ def test_periodic_temp_cleanup_logs_success() -> None:
     assert "cleanup completed" in str(mock_logger.info.call_args_list[0])
 
 
-def test_periodic_temp_cleanup_logs_warning_on_first_failure() -> None:
+def test_periodic_maintenance_logs_success_with_orphan_covers() -> None:
+    """Orphaned cover cleanup should log when files are deleted."""
+    from app.main import _periodic_maintenance
+
+    async def _run() -> MagicMock:
+        with patch("app.main.cleanup_temp_files"):
+            with patch("app.main.cleanup_orphan_covers", return_value=3):
+                with patch("app.database.get_session"):
+                    with patch("app.main.asyncio.sleep", side_effect=[None, asyncio.CancelledError()]):
+                        with patch("app.main.logger") as mock_logger:
+                            try:
+                                await _periodic_maintenance()
+                            except asyncio.CancelledError:
+                                pass
+        return mock_logger
+
+    mock_logger = asyncio.run(_run())
+    assert mock_logger.info.call_count == 2
+    assert "orphaned cover cleanup" in str(mock_logger.info.call_args_list[1]).lower()
+
+
+def test_periodic_maintenance_logs_warning_on_first_failure() -> None:
     """First failure should log a warning."""
-    from app.main import _periodic_temp_cleanup
+    from app.main import _periodic_maintenance
 
     async def _run() -> MagicMock:
         with patch("app.main.cleanup_temp_files", side_effect=RuntimeError("boom")):
             with patch("app.main.asyncio.sleep", side_effect=[None, asyncio.CancelledError()]):
                 with patch("app.main.logger") as mock_logger:
                     try:
-                        await _periodic_temp_cleanup()
+                        await _periodic_maintenance()
                     except asyncio.CancelledError:
                         pass
         return mock_logger
 
     mock_logger = asyncio.run(_run())
     assert mock_logger.warning.call_count == 1
-    assert "cleanup failed" in str(mock_logger.warning.call_args_list[0]).lower()
+    assert "maintenance failed" in str(mock_logger.warning.call_args_list[0]).lower()
 
 
-def test_periodic_temp_cleanup_logs_error_after_three_failures() -> None:
+def test_periodic_maintenance_logs_error_after_three_failures() -> None:
     """Three consecutive failures should log an error."""
-    from app.main import _periodic_temp_cleanup
+    from app.main import _periodic_maintenance
 
     async def _run() -> MagicMock:
         with patch("app.main.cleanup_temp_files", side_effect=RuntimeError("boom")):
             with patch("app.main.asyncio.sleep", side_effect=[None, None, None, asyncio.CancelledError()]):
                 with patch("app.main.logger") as mock_logger:
                     try:
-                        await _periodic_temp_cleanup()
+                        await _periodic_maintenance()
                     except asyncio.CancelledError:
                         pass
         return mock_logger

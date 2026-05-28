@@ -187,7 +187,7 @@ def get_pages_per_day(
         data=data,
         total_days=days,
         days_with_activity=len(data),
-        total_pages=sum(d.pages for d in data),
+        total_pages=int(round(sum(pages for _, pages in sorted(combined.items()) if start_date_str <= _ <= end_date_str))),
     )
 
 
@@ -198,6 +198,9 @@ def get_statistics(
 ) -> StatisticsResponse:
     """Return the full statistics dashboard for the authenticated user."""
     tz = _user_timezone(session, current_user.id)
+    now = datetime.now(tz)
+    current_month_key = f"{now.year:04d}-{now.month:02d}"
+    current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == current_user.id)).all())
 
     status_counts = Counter(book.reading_status for book in books)
@@ -261,12 +264,55 @@ def get_statistics(
     ]
 
     finished_books_per_month: Counter[str] = Counter()
-    pages_read_per_month_counter: Counter[str] = Counter()
     for book in finished_books:
         month = _month_key(book.date_finished, tz)
         finished_books_per_month[month] += 1
-        if book.page_count is not None:
-            pages_read_per_month_counter[month] += int(book.page_count)
+
+    progress_entries = list(
+        session.exec(
+            select(ReadingProgress)
+            .where(ReadingProgress.user_id == current_user.id)
+            .order_by(ReadingProgress.book_id, ReadingProgress.created_at)
+        ).all()
+    )
+
+    books_with_progress = {e.book_id for e in progress_entries}
+
+    virtual_entries = []
+    for book in books:
+        if book.id in books_with_progress and book.date_started:
+            virtual_entries.append(
+                SimpleNamespace(
+                    book_id=book.id,
+                    page=0,
+                    created_at=book.date_started,
+                )
+            )
+
+    all_progress_entries = list(progress_entries) + virtual_entries
+    progress_daily = _extract_progress_daily_pages(all_progress_entries, tz)
+
+    fallback_books = [
+        b
+        for b in books
+        if b.id not in books_with_progress
+        and b.reading_status == ReadingStatus.read
+        and b.date_started
+        and b.date_finished
+        and b.page_count
+    ]
+    fallback_daily = _extract_book_level_daily_pages(fallback_books, tz)
+
+    combined_daily: Counter[str] = Counter()
+    for k, v in progress_daily.items():
+        combined_daily[k] += v
+    for k, v in fallback_daily.items():
+        combined_daily[k] += v
+
+    pages_read_per_month_counter: Counter[str] = Counter()
+    for date_str, pages in combined_daily.items():
+        month_key = date_str[:7]
+        pages_read_per_month_counter[month_key] += pages
 
     if finished_books_per_month:
         avg_books_per_month = round(
@@ -280,7 +326,7 @@ def get_statistics(
             ),
             key=lambda item: (-item[1], item[0]),
         )
-        month_keys = _month_range(min(finished_books_per_month), max(finished_books_per_month))
+        month_keys = _month_range(min(finished_books_per_month), max(max(finished_books_per_month), current_month_key))
         books_finished_per_month = [
             MonthlyBooks(month=month, count=finished_books_per_month.get(month, 0)) for month in month_keys
         ]
@@ -291,9 +337,12 @@ def get_statistics(
         books_finished_per_month = []
 
     if pages_read_per_month_counter:
-        month_keys = _month_range(min(pages_read_per_month_counter), max(pages_read_per_month_counter))
+        all_months = set(pages_read_per_month_counter) | {current_month_key}
+        if finished_books_per_month:
+            all_months |= set(finished_books_per_month)
+        month_keys = _month_range(min(all_months), max(all_months))
         pages_read_per_month = [
-            MonthlyPages(month=month, pages=pages_read_per_month_counter.get(month, 0)) for month in month_keys
+            MonthlyPages(month=month, pages=int(round(pages_read_per_month_counter.get(month, 0)))) for month in month_keys
         ]
     else:
         pages_read_per_month = []
@@ -303,7 +352,7 @@ def get_statistics(
         for month_key, count in finished_books_per_month.items():
             yearly_counts[int(month_key.split("-")[0])] += count
         year_start = min(yearly_counts)
-        year_end = max(yearly_counts)
+        year_end = max(max(yearly_counts), current_year)
         books_finished_per_year = [
             YearlyBooks(year=year, count=yearly_counts.get(year, 0))
             for year in range(year_start, year_end + 1)

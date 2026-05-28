@@ -1,74 +1,200 @@
 <script lang="ts">
-  import { BarChart as LayerBarChart } from 'layerchart';
+	import '$lib/chartjs/register';
+	import { Bar } from 'svelte-chartjs';
+	import { getDaisyColorRgb } from '$lib/chartjs/theme';
+	import { themeApplyCount } from '$lib/stores/theme';
+	import { onMount } from 'svelte';
+	import type { Chart as ChartJS, ChartData, ChartOptions } from 'chart.js';
 
-  let {
-    labels = [],
-    data = [],
-    label = '',
-    color = 'primary',
-    emptyText = 'No data',
-    height = 200,
-  }: {
-    labels: string[];
-    data: number[];
-    label: string;
-    color: string;
-    emptyText?: string;
-    height?: number;
-  } = $props();
+	let {
+		labels = [],
+		data = [],
+		label = '',
+		color = 'primary',
+		emptyText = 'No data',
+		height = 200,
+		onChart = (_chart: ChartJS<'bar'>) => {},
+	}: {
+		labels: string[];
+		data: number[];
+		label: string;
+		color: string;
+		emptyText?: string;
+		height?: number;
+		onChart?: (chart: ChartJS<'bar'>) => void;
+	} = $props();
 
-  $effect(() => {
-    if (labels.length !== data.length) {
-      console.warn('BarChart: labels and data length mismatch', labels.length, data.length);
-    }
-  });
+	/**
+	 * Custom pinch-zoom sensitivity. 0 = no pinch zoom, 1 = full native
+	 * sensitivity. 0.25–0.4 is a comfortable range for mobile.
+	 */
+	const PINCH_SENSITIVITY = 0.35;
 
-  const varMap: Record<string, string> = {
-	primary: '--color-primary',
-	secondary: '--color-secondary',
-	accent: '--color-accent',
-	info: '--color-info',
-	success: '--color-success',
-	warning: '--color-warning',
-	error: '--color-error',
-  };
+	let chart = $state<ChartJS<'bar'> | null>(null);
+	let _themeSignal = $state(0);
+	let chartContainer = $state<HTMLDivElement | null>(null);
 
-  function resolveColor(name: string): string {
-    const varName = varMap[name];
-    if (!varName) {
-      console.warn(`BarChart: unknown color "${name}", falling back to primary`);
-	  return 'var(--color-primary)';
-    }
-	return `var(${varName})`;
-  }
+	/** Native pinch tracking (plugin pinch is disabled). */
+	let pinchState = $state<{
+		initialDistance: number;
+		initialRange: number;
+		initialCenter: number;
+		focalIndex: number;
+	} | null>(null);
 
-  const len = $derived(Math.min(labels.length, data.length));
-  const chartData = $derived(
-    Array.from({ length: len }, (_, i) => ({ label: labels[i], value: data[i] ?? 0 }))
-  );
+	$effect(() => {
+		if (chart) {
+			onChart(chart);
+		}
+	});
 
-  const series = $derived([
-    { key: 'default', value: 'value' as const, color: resolveColor(color), label },
-  ]);
+	onMount(() => {
+		const unsub = themeApplyCount.subscribe((n: number) => {
+			_themeSignal = n;
+		});
+
+		const container = chartContainer;
+		if (!container) return unsub;
+
+		const canvas = container.querySelector('canvas');
+		if (!canvas) return unsub;
+
+		const getDistance = (touches: TouchList) => {
+			const dx = touches[0].clientX - touches[1].clientX;
+			const dy = touches[0].clientY - touches[1].clientY;
+			return Math.hypot(dx, dy);
+		};
+
+		const getFocalIndex = (touches: TouchList, chartWidth: number, left: number) => {
+			const midX = (touches[0].clientX + touches[1].clientX) / 2 - left;
+			return midX / chartWidth;
+		};
+
+		const onTouchStart = (e: TouchEvent) => {
+			if (e.touches.length !== 2 || !chart) return;
+			const scale = chart.scales.x;
+			if (!scale) return;
+
+			const rect = canvas.getBoundingClientRect();
+			pinchState = {
+				initialDistance: getDistance(e.touches),
+				initialRange: scale.max - scale.min,
+				initialCenter: (scale.min + scale.max) / 2,
+				focalIndex: getFocalIndex(e.touches, rect.width, rect.left),
+			};
+		};
+
+		const onTouchMove = (e: TouchEvent) => {
+			if (e.touches.length !== 2 || !pinchState || !chart) return;
+			e.preventDefault();
+
+			const currentDistance = getDistance(e.touches);
+			if (currentDistance === 0) return;
+
+			const rawRatio = currentDistance / pinchState.initialDistance;
+			// Apply dampening: small finger movements create smaller zoom changes
+			const dampenedRatio = 1 + (rawRatio - 1) * PINCH_SENSITIVITY;
+
+			const newRange = pinchState.initialRange / dampenedRatio;
+			const focalOffset = (pinchState.focalIndex - 0.5) * newRange;
+			const newMin = pinchState.initialCenter - newRange / 2 - focalOffset;
+			const newMax = newMin + newRange;
+
+			chart.zoomScale('x', { min: newMin, max: newMax }, 'none');
+		};
+
+		const onTouchEnd = () => {
+			pinchState = null;
+		};
+
+		canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+		canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+		canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+		canvas.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+		return () => {
+			unsub();
+			canvas.removeEventListener('touchstart', onTouchStart);
+			canvas.removeEventListener('touchmove', onTouchMove);
+			canvas.removeEventListener('touchend', onTouchEnd);
+			canvas.removeEventListener('touchcancel', onTouchEnd);
+		};
+	});
+
+	const chartData = $derived.by<ChartData<'bar'>>(() => {
+		void _themeSignal;
+		return {
+			labels,
+			datasets: [
+				{
+					label,
+					data,
+					backgroundColor: getDaisyColorRgb(color),
+					borderColor: 'transparent',
+					borderWidth: 0,
+					borderRadius: 4,
+					barPercentage: 0.7,
+				},
+			],
+		};
+	});
+
+	const options = $derived.by<ChartOptions<'bar'>>(() => {
+		void _themeSignal;
+		return {
+			responsive: true,
+			maintainAspectRatio: false,
+			animation: { duration: 0 },
+			plugins: {
+				legend: { display: false },
+				tooltip: {
+					enabled: true,
+					mode: 'index' as const,
+					intersect: false,
+				},
+				zoom: {
+					pan: {
+						enabled: true,
+						mode: 'x' as const,
+					},
+					zoom: {
+						wheel: { enabled: true },
+						pinch: { enabled: false }, // handled manually above
+						mode: 'x' as const,
+					},
+				},
+			},
+			scales: {
+				x: {
+					grid: { display: false },
+					ticks: {
+						maxRotation: 45,
+						minRotation: 45,
+						autoSkip: true,
+						color: getDaisyColorRgb('base-content'),
+					},
+				},
+				y: {
+					beginAtZero: true,
+					grid: {
+						color: getDaisyColorRgb('base-200'),
+					},
+					ticks: {
+						color: getDaisyColorRgb('base-content'),
+					},
+				},
+			},
+		};
+	});
+
 </script>
 
 {#if data.length === 0}
-  <div class="flex items-center justify-center h-40 text-base-content/50">
-    <p>{emptyText}</p>
-  </div>
+	<div class="flex items-center justify-center h-40 text-base-content/50">
+		<p>{emptyText}</p>
+	</div>
 {:else}
-  <div role="img" aria-label={label}>
-    <LayerBarChart
-      data={chartData}
-      x="label"
-      y="value"
-      {series}
-      {height}
-      bandPadding={0.3}
-      props={{
-        xAxis: { tickSpacing: 80 },
-        bars: { strokeWidth: 0, stroke: 'none' }
-      }}
-    />
-  </div>
+	<div bind:this={chartContainer} role="img" aria-label={label} class="relative select-none" style="height: {height}px">
+		<Bar bind:chart={chart} data={chartData} {options} />
+	</div>
 {/if}

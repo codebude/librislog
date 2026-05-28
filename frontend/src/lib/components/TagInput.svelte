@@ -3,11 +3,13 @@
 
 	let {
 		value = $bindable(''),
+		name = '',
 		disabled = false,
 		maxTagsCount,
 		fetchSuggestions
 	}: {
 		value?: string;
+		name?: string;
 		disabled?: boolean;
 		maxTagsCount?: number;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
@@ -20,6 +22,7 @@
 	let isOpen = $state(false);
 	let isLoading = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined = $state();
+	let dropdownStyle = $state('');
 
 	const tags = $derived.by(() =>
 		value
@@ -57,6 +60,21 @@
 	}
 
 	function handleInput() {
+		const commaIdx = inputValue.lastIndexOf(',');
+		if (commaIdx >= 0) {
+			const before = inputValue.slice(0, commaIdx).trim();
+			if (before && !tags.some((t) => t.toLowerCase() === before.toLowerCase())) {
+				if (!(typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount)) {
+					setTags([...tags, before]);
+				}
+			}
+			inputValue = inputValue.slice(commaIdx + 1).trimStart();
+			suggestions = [];
+			isOpen = false;
+			highlightedIndex = -1;
+			return;
+		}
+
 		if (!fetchSuggestions) return;
 		clearTimeout(debounceTimer);
 		const trimmed = inputValue.trim();
@@ -157,9 +175,21 @@
 		const after = text.slice(idx + query.length);
 		return `${before}<mark class="bg-primary/20 text-primary font-medium rounded">${match}</mark>${after}`;
 	}
+
+	$effect(() => {
+		if (!isOpen || !inputEl) return;
+		const rect = inputEl.getBoundingClientRect();
+		const spaceBelow = window.innerHeight - rect.bottom;
+		const dropdownHeight = Math.min(192, suggestions.length * 36 + 16);
+		if (spaceBelow >= dropdownHeight + 8) {
+			dropdownStyle = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		} else {
+			dropdownStyle = `position:fixed;bottom:${window.innerHeight - rect.top + 4}px;left:${rect.left}px;width:${rect.width}px`;
+		}
+	});
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-1" role="combobox" aria-expanded={isOpen} aria-controls="suggestion-list">
 	<span class="label label-text">{$_('book.tags')}</span>
 
 	<div class="relative">
@@ -185,6 +215,7 @@
 			<input
 				bind:this={inputEl}
 				type="text"
+				name={name || 'tags'}
 				class="flex-1 min-w-28 bg-transparent border-0 outline-none text-sm px-1 py-0.5"
 				placeholder={tags.length === 0 ? $_('book.tagsPlaceholder') : ''}
 				bind:value={inputValue}
@@ -193,6 +224,7 @@
 				onkeydown={handleKeydown}
 				onblur={handleBlur}
 				autocomplete="off"
+				enterkeyhint="done"
 			/>
 			{#if isLoading}
 				<div class="absolute right-2 top-1/2 -translate-y-1/2">
@@ -204,7 +236,8 @@
 		{#if isOpen}
 			<ul
 				role="listbox"
-				class="absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				class="z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+				style={dropdownStyle || 'position:absolute;left:0;right:0;margin-top:0.25rem'}
 			>
 				{#each suggestions as suggestion, i}
 					<li

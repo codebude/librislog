@@ -15,7 +15,7 @@ from app.services.quote_cache import (
 
 def _create_book(client: TestClient, **kwargs: Any) -> dict[str, Any]:
     """Helper to create a book via the API and return the JSON response."""
-    payload = {"title": "Test Book", **kwargs}
+    payload = {"title": "Test Book", "author": "Test Author", "page_count": 100, **kwargs}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()

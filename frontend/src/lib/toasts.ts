@@ -6,14 +6,15 @@ export interface Toast {
 	id: number;
 	message: string;
 	level: ToastLevel;
+	action?: { label: string; onClick: () => void };
 }
 
 let _id = 0;
 const { subscribe, update } = writable<Toast[]>([]);
 
-function add(message: string, level: ToastLevel = 'error', duration = 4000) {
+function add(message: string, level: ToastLevel = 'error', duration = 4000, action?: { label: string; onClick: () => void }) {
 	const id = ++_id;
-	update((toasts) => [...toasts, { id, message, level }]);
+	update((toasts) => [...toasts, { id, message, level, action }]);
 	setTimeout(() => remove(id), duration);
 }
 

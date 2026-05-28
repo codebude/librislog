@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/svelte';
 import SuggestionInput from './SuggestionInput.svelte';
 
 describe('SuggestionInput', () => {
@@ -179,5 +179,53 @@ describe('SuggestionInput', () => {
 
 		// No suggestions should appear
 		expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+	});
+
+	it('uses fixed positioning to avoid overflow clipping', async () => {
+		const fetchSuggestions = vi.fn(async () => ['Option 1', 'Option 2']);
+		render(SuggestionInput, { props: { value: '', fetchSuggestions } });
+
+		const input = screen.getByRole('searchbox');
+		await fireEvent.input(input, { target: { value: 'O' } });
+		await vi.advanceTimersByTimeAsync(300);
+
+		await vi.waitFor(() => {
+			const lb = screen.getByRole('listbox');
+			expect(lb.getAttribute('style')).toContain('position: fixed');
+		});
+		const listbox = screen.getByRole('listbox');
+		const style = listbox.getAttribute('style') || '';
+		expect(style).toContain('top:');
+		expect(style).toContain('left:');
+		expect(style).toContain('width:');
+	});
+
+	it('positions dropdown above when space below is insufficient', async () => {
+		const fetchSuggestions = vi.fn(async () => ['Option 1', 'Option 2']);
+
+		const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect');
+		spy.mockImplementation(function (this: Element) {
+			return {
+				top: window.innerHeight - 30, bottom: window.innerHeight - 10,
+				left: 0, right: 100, width: 100, height: 20,
+				x: 0, y: 0, toJSON: () => ({}),
+			} as DOMRect;
+		});
+
+		render(SuggestionInput, { props: { value: '', fetchSuggestions } });
+
+		const input = screen.getByRole('searchbox');
+		await fireEvent.input(input, { target: { value: 'O' } });
+		await vi.advanceTimersByTimeAsync(300);
+
+		await vi.waitFor(() => {
+			const lb = screen.getByRole('listbox');
+			expect(lb.getAttribute('style')).toContain('position: fixed');
+		});
+		const listbox = screen.getByRole('listbox');
+		const style = listbox.getAttribute('style') || '';
+		expect(style).toContain('bottom:');
+
+		spy.mockRestore();
 	});
 });

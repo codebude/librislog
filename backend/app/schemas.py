@@ -2,9 +2,10 @@
 
 from typing import Optional
 from datetime import datetime
+from enum import Enum
 from typing import Literal
 
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlmodel import Field, SQLModel
 
 from app.models import ReadingStatus, UserRole
@@ -24,6 +25,11 @@ class ReadingProgressRead(SQLModel):
     updated_at: datetime
 
 
+class ReadingProgressUpdate(SQLModel):
+    """Request body to update a reading progress entry's date."""
+    created_at: datetime
+
+
 class ReadingProgressLatest(SQLModel):
     """Latest reading progress for a single book."""
     book_id: int
@@ -34,12 +40,12 @@ class BookCreate(SQLModel):
     """Request body to create a new book."""
     title: str
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: str
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
     published_year: Optional[int] = None
-    page_count: Optional[int] = None
+    page_count: int
     language: Optional[str] = None
     tags: Optional[str] = None
     notes: Optional[str] = None
@@ -134,6 +140,12 @@ class BookRead(SQLModel):
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
+
+
+class BookListResponse(BaseModel):
+    """Paginated book list with total count."""
+    books: list[BookRead]
+    total: int
 
 
 class TagCloudEntry(SQLModel):
@@ -297,12 +309,30 @@ class UserSettingsRead(SQLModel):
     language: str
     timezone: str
     quote_service_enabled: bool
+    theme: str
+    custom_theme: Optional[str] = None
 
 
 class UserSettingsUpdate(SQLModel):
     """User settings update request."""
     language: Optional[str] = None
     timezone: Optional[str] = None
+    theme: Optional[str] = None
+    custom_theme: Optional[str] = None
+
+    @field_validator('theme')
+    @classmethod
+    def validate_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ('light', 'dark', 'custom'):
+            raise ValueError('theme must be one of: light, dark, custom')
+        return v
+
+    @field_validator('custom_theme')
+    @classmethod
+    def validate_custom_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip() == '':
+            return None
+        return v
 
 
 class ConfirmationPhrase(SQLModel):
@@ -386,6 +416,56 @@ class OidcLoginResponse(SQLModel):
     user: UserRead
 
 
+class HygieneAttribute(str, Enum):
+    """Book attributes that can be checked for missing values."""
+    author = "author"
+    isbn = "isbn"
+    publisher = "publisher"
+    published_year = "published_year"
+    blurb = "blurb"
+    language = "language"
+    subtitle = "subtitle"
+    page_count = "page_count"
+    cover_url = "cover_url"
+
+
+class HygieneMissingBook(SQLModel):
+    """A single book in the data-hygiene listing with its missing fields annotated."""
+    id: int
+    title: str
+    author: str | None
+    isbn: str | None
+    publisher: str | None
+    published_year: int | None
+    blurb: str | None
+    language: str | None
+    subtitle: str | None
+    page_count: int
+    cover_url: str | None
+    missing_attributes: list[HygieneAttribute]
+
+
+class HygieneMissingResponse(SQLModel):
+    """Paginated list of books with missing attributes."""
+    books: list[HygieneMissingBook]
+    total: int
+    total_missing_per_attribute: dict[str, int]
+
+
+class HygieneBatchUpdateRequest(SQLModel):
+    """Batch-update a single field on multiple books."""
+    book_ids: list[int]
+    field: HygieneAttribute
+    value: str | int | None
+
+
+class HygieneBatchUpdateResponse(SQLModel):
+    """Result of a batch update operation."""
+    updated: int
+    skipped: int
+    skipped_ids: list[int]
+
+
 class DailyPages(SQLModel):
     """Pages read on a single day."""
     date: str
@@ -415,11 +495,17 @@ class DataImportParseResponse(SQLModel):
     row_count: int
 
 
+class ImportFieldConfig(SQLModel):
+    """Per-target field mapping configuration."""
+    source: Optional[str] = None
+    transform: Optional[str] = None
+
+
 class DataImportMappingSave(SQLModel):
     """Request body to save an import column mapping."""
     name: str
     source_fields: list[str]
-    mapping: dict[str, str]
+    mapping: dict[str, ImportFieldConfig]
 
 
 class DataImportMappingRead(SQLModel):
@@ -427,9 +513,10 @@ class DataImportMappingRead(SQLModel):
     id: int
     name: str
     source_fields: list[str]
-    mapping: dict[str, str]
+    mapping: dict[str, ImportFieldConfig]
     created_at: datetime
     updated_at: datetime
+    is_predefined: bool = False
 
 
 class DataImportMappingListItem(SQLModel):
@@ -438,12 +525,13 @@ class DataImportMappingListItem(SQLModel):
     name: str
     created_at: datetime
     updated_at: datetime
+    is_predefined: bool = False
 
 
 class DataImportRunRequest(SQLModel):
     """Request body to execute an import."""
     file_id: str
-    mapping: dict[str, str]
+    mapping: dict[str, ImportFieldConfig]
     import_mode: Literal["rollback_all", "continue_on_error"] = "rollback_all"
     create_progress_for_read: bool = False
 
@@ -455,14 +543,14 @@ class DataImportSuggestRequest(SQLModel):
 
 class DataImportSuggestResponse(SQLModel):
     """Suggested column mapping response."""
-    suggested_mapping: dict[str, str]
+    suggested_mapping: dict[str, ImportFieldConfig]
     db_fields: list[str]
 
 
 class DataImportValidateRequest(SQLModel):
     """Request body to validate an import."""
     file_id: str
-    mapping: dict[str, str]
+    mapping: dict[str, ImportFieldConfig]
     create_progress_for_read: bool = False
 
 
@@ -472,6 +560,27 @@ class DataImportValidateResponse(SQLModel):
     row_count: int
     warnings: list[str]
     errors: list[str]
+
+
+class DataImportPreviewRow(SQLModel):
+    """A single row in the import preview."""
+    row_number: int
+    source: dict[str, str]
+    transformed: dict[str, Optional[str]]
+    errors: list[str]
+
+
+class DataImportPreviewRequest(SQLModel):
+    """Request body to preview an import with transforms."""
+    file_id: str
+    mapping: dict[str, ImportFieldConfig]
+
+
+class DataImportPreviewResponse(SQLModel):
+    """Import preview response."""
+    preview_rows: list[DataImportPreviewRow]
+    row_count: int
+    errors: list[str] = []
 
 
 class DataImportExecuteResult(SQLModel):

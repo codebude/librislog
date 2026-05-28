@@ -7,6 +7,7 @@ import { svelteTesting } from '@testing-library/svelte/vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), svelteTesting()],
 	server: {
+		host: '0.0.0.0',
 		proxy: {
 			'/api': 'http://localhost:8000'
 		}

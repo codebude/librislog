@@ -35,7 +35,7 @@ describe('formatLanguageCode', () => {
 	it('returns uppercase code when Intl.DisplayNames throws', () => {
 		const OriginalDisplayNames = Intl.DisplayNames;
 		// @ts-expect-error mock
-		Intl.DisplayNames = vi.fn(() => {
+		Intl.DisplayNames = vi.fn(function () {
 			throw new TypeError('Intl not available');
 		});
 		try {

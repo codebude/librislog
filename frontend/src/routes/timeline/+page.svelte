@@ -10,29 +10,63 @@
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 
+	const PAGE_SIZE = 40;
+
 	let loading = $state(true);
+	let loadingMore = $state(false);
+	let hasMore = $state(true);
+	let nextOffset = $state(0);
 	let books = $state<Book[]>([]);
 	let selectedBook = $state<Book | null>(null);
 	let detailOpen = $state(false);
 	let drawerOpen = $state(false);
 	let tz = $state('UTC');
+	let loadMoreAnchor = $state<HTMLDivElement | null>(null);
+	let observer: IntersectionObserver | null = null;
 	const appLocale: string = $derived($locale ?? 'en');
 
 	onMount(() => {
 		tz = getTimezone();
 		void loadTimeline();
+		if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
+		observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) {
+					void loadMoreTimeline();
+				}
+			},
+			{ root: null, rootMargin: '300px 0px', threshold: 0 }
+		);
+		return () => {
+			observer?.disconnect();
+			observer = null;
+		};
+	});
+
+	$effect(() => {
+		const anchor = loadMoreAnchor;
+		if (!anchor || !observer) return;
+		observer.observe(anchor);
+		return () => observer?.unobserve(anchor);
 	});
 
 	async function loadTimeline() {
 		loading = true;
 		try {
-			const allRead = await api.books.list({
+			const response = await api.books.list({
 				status: 'read',
 				sort: 'date_finished',
 				order: 'desc',
-				smart_sort: false
+				smart_sort: false,
+				offset: 0,
+				limit: PAGE_SIZE
 			});
-			books = allRead.filter((b) => b.date_finished !== null);
+			books = response.books.filter((b) => b.date_finished !== null);
+			nextOffset = response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
+			if (hasMore && books.length > 0) {
+				await maybePrefillViewport();
+			}
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
@@ -41,6 +75,45 @@
 			books = [];
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function maybePrefillViewport() {
+		let safety = 0;
+		while (
+			hasMore &&
+			!loadingMore &&
+			document.documentElement.scrollHeight <= window.innerHeight + 240 &&
+			safety < 4
+		) {
+			safety += 1;
+			await loadMoreTimeline();
+		}
+	}
+
+	async function loadMoreTimeline() {
+		if (loadingMore || loading || !hasMore) return;
+		loadingMore = true;
+		try {
+			const response = await api.books.list({
+				status: 'read',
+				sort: 'date_finished',
+				order: 'desc',
+				smart_sort: false,
+				offset: nextOffset,
+				limit: PAGE_SIZE
+			});
+			const filtered = response.books.filter((b) => b.date_finished !== null);
+			books = [...books, ...filtered];
+			nextOffset += response.books.length;
+			hasMore = response.books.length === PAGE_SIZE;
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
+			if (shouldShowActionToast(msg)) {
+				toasts.add(msg, 'error');
+			}
+		} finally {
+			loadingMore = false;
 		}
 	}
 
@@ -141,7 +214,7 @@
 			</div>
 		</div>
 	{:else}
-		<ul class="timeline timeline-vertical timeline-snap-icon">
+		<ul class="timeline timeline-vertical timeline-snap-icon overflow-x-auto max-w-full">
 			{#each flatItems as item, i (item.type === 'header' ? item.key : item.book.id)}
 				<li>
 					{#if i > 0}<hr />{/if}
@@ -164,7 +237,7 @@
 							</svg>
 						</div>
 						<div
-							class="timeline-end timeline-box cursor-pointer hover:bg-base-200 transition-colors"
+							class="timeline-end timeline-box min-w-0 cursor-pointer hover:bg-base-200 transition-colors"
 							onclick={() => openDetailView(item.book)}
 							role="button"
 							tabindex="0"
@@ -184,9 +257,9 @@
 									/>
 								{/if}
 								<div class="min-w-0">
-									<p class="font-medium truncate">{item.book.title}</p>
+									<p class="font-medium break-words">{item.book.title}</p>
 									{#if item.book.author}
-										<p class="text-sm text-base-content/70 truncate">{item.book.author}</p>
+										<p class="text-sm text-base-content/70 break-words">{item.book.author}</p>
 									{/if}
 									{#if item.book.rating}
 										<p class="text-warning text-sm">{stars(item.book.rating)}</p>
@@ -199,9 +272,55 @@
 				</li>
 			{/each}
 		</ul>
+		{#if hasMore}
+			<div bind:this={loadMoreAnchor} class="h-1"></div>
+		{/if}
+		{#if loadingMore}
+			<div class="flex justify-center py-4">
+				<span class="loading loading-spinner loading-md"></span>
+			</div>
+		{/if}
 	{/if}
 </div>
 
 <BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
 
 <BookDrawer bind:book={selectedBook} bind:open={drawerOpen} onSave={handleSave} />
+
+<style>
+	@media (max-width: 640px) {
+		ul.timeline > li {
+			grid-template-columns: 1.5rem 1fr !important;
+			grid-template-rows: auto auto auto !important;
+		}
+		ul.timeline > li > .timeline-start {
+			grid-column: 2 !important;
+			grid-row: 1 !important;
+			justify-self: start !important;
+			text-align: left !important;
+			padding: 0 0 0.75rem 0 !important;
+		}
+		ul.timeline > li > .timeline-middle {
+			grid-column: 1 !important;
+			grid-row: 1 / -1 !important;
+			align-self: center !important;
+			z-index: 2 !important;
+		}
+		ul.timeline > li > .timeline-end {
+			grid-column: 2 !important;
+			grid-row: 2 !important;
+			justify-self: stretch !important;
+			align-self: start !important;
+			padding-top: 0.75rem !important;
+		}
+		ul.timeline {
+			background-image: linear-gradient(to bottom, var(--color-base-300), var(--color-base-300));
+			background-repeat: no-repeat;
+			background-position: 12px 0;
+			background-size: 4px 100%;
+		}
+		ul.timeline > li > hr {
+			display: none !important;
+		}
+	}
+</style>

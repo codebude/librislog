@@ -15,6 +15,7 @@ from sqlmodel import Session
 
 from app.config import settings
 from app.models import Book, ReadingStatus, User, UserRole
+from app.schemas import ImportFieldConfig
 from app.services import data_import as di
 
 
@@ -138,18 +139,18 @@ def test_delete_parsed_upload_missing_ok(tmp_path: Path, monkeypatch: MonkeyPatc
 def test_suggest_mapping_direct_alias() -> None:
     # "book title" should directly match via _ALIASES
     result = di.suggest_mapping(["book title"])
-    assert result["book title"] == "title"
+    assert result["title"].source == "book title"
 
 
 def test_suggest_mapping_compact_match() -> None:
     # "booktitle" should match "book title" -> "title"
     result = di.suggest_mapping(["booktitle"])
-    assert result["booktitle"] == "title"
+    assert result["title"].source == "booktitle"
 
 
 def test_suggest_mapping_no_match() -> None:
     result = di.suggest_mapping(["unknown_field"])
-    assert "unknown_field" not in result
+    assert "unknown_field" not in {cfg.source for cfg in result.values()}
 
 
 # ── _parse_int ────────────────────────────────────────────────────────────────
@@ -230,23 +231,107 @@ def test_parse_reading_status_invalid() -> None:
 
 # ── _mapped_row ───────────────────────────────────────────────────────────────
 
-def test_mapped_row_skips_empty_target() -> None:
-    result = di._mapped_row({"A": "1"}, {"A": "", "B": "title"})
-    assert result == {"title": None}  # row.get("B") returns None
+def test_mapped_row_skips_empty_source() -> None:
+    result = di._mapped_row(
+        {"A": "1"},
+        {"title": ImportFieldConfig(source=""), "author": ImportFieldConfig(source="B")},
+        {},
+        {},
+    )
+    assert result == {"author": ""}  # row.get("B") returns None -> ""
 
 
-# ── _validate_mapping ─────────────────────────────────────────────────────────
+# ── _validate_mapping ─────────────────────────────────────────────
 
-def test_validate_mapping_duplicate_targets() -> None:
-    mapping = {"A": "title", "B": "title"}
+def test_validate_mapping_empty_mapping() -> None:
+    warnings, errors = di._validate_mapping({}, {"A"})
+    assert any("title" in e for e in errors)
+
+
+def test_validate_mapping_invalid_targets() -> None:
+    mapping = {"title": ImportFieldConfig(source="A"), "invalid_field": ImportFieldConfig(source="B")}
     warnings, errors = di._validate_mapping(mapping, {"A", "B"})
-    assert any("Multiple source fields map to 'title'" in w for w in warnings)
+    assert any("Invalid mapping target" in e for e in errors)
 
 
 def test_validate_mapping_source_missing() -> None:
-    mapping = {"A": "title", "C": "author"}
+    mapping = {"title": ImportFieldConfig(source="A"), "author": ImportFieldConfig(source="C")}
     warnings, errors = di._validate_mapping(mapping, {"A"})
     assert any("Mapped source field missing in file: C" in w for w in warnings)
+
+
+def test_validate_mapping_transform_invalid() -> None:
+    mapping = {"title": ImportFieldConfig(source="A", transform="bad syntax {{")}
+    warnings, errors = di._validate_mapping(mapping, {"A"})
+    assert any(e.startswith("\x1ftitle\x1f") for e in errors)
+
+
+def test_validate_mapping_transform_valid() -> None:
+    mapping = {"title": ImportFieldConfig(source="A", transform="value.upper()")}
+    warnings, errors = di._validate_mapping(mapping, {"A"})
+    assert len(errors) == 0
+
+
+# ── preview_import ────────────────────────────────────────────────────────────
+
+def test_preview_import_basic(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "author": "Author"}],
+        "source_fields": ["title", "author"],
+    }
+    file_id = "test_preview"
+    path = di._temp_file_path(user.id, file_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "author": ImportFieldConfig(source="author")}
+    )
+    assert len(result["preview_rows"]) == 1
+    assert result["preview_rows"][0]["transformed"]["title"] == "Book"
+    assert result["row_count"] == 1
+
+
+def test_preview_import_with_transform(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "book", "author": "author"}],
+        "source_fields": ["title", "author"],
+    }
+    file_id = "test_preview_transform"
+    path = di._temp_file_path(user.id, file_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id,
+        user,
+        {
+            "title": ImportFieldConfig(source="title", transform="value.upper()"),
+            "author": ImportFieldConfig(source="author"),
+        },
+    )
+    assert result["preview_rows"][0]["transformed"]["title"] == "BOOK"
+
+
+def test_preview_import_mapping_errors(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book"}],
+        "source_fields": ["title"],
+    }
+    file_id = "test_preview_errors"
+    path = di._temp_file_path(user.id, file_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(file_id, user, {"invalid_target": ImportFieldConfig(source="title")})
+    assert len(result["preview_rows"]) == 0
+    assert len(result["errors"]) > 0
 
 
 # ── validate_import ───────────────────────────────────────────────────────────
@@ -279,7 +364,7 @@ def test_validate_import_rating_out_of_range(session: Session, tmp_path: Path, m
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title", "rating": "rating"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title"), "rating": ImportFieldConfig(source="rating")}, session)
     assert any("rating out of range" in w for w in result["warnings"])
 
 
@@ -295,7 +380,7 @@ def test_validate_import_date_started_after_finished(session: Session, tmp_path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title", "started": "date_started", "finished": "date_finished"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title"), "date_started": ImportFieldConfig(source="started"), "date_finished": ImportFieldConfig(source="finished")}, session)
     assert any("date_started is after date_finished" in e for e in result["errors"])
 
 
@@ -312,7 +397,7 @@ def test_validate_import_progress_warning_no_pages(session: Session, tmp_path: P
     path.write_text(json.dumps(payload))
 
     result = di.validate_import(
-        file_id, user, {"title": "title", "status": "reading_status"}, session, create_progress_for_read=True
+        file_id, user, {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status")}, session, create_progress_for_read=True
     )
     assert any("marked as 'read' but has no page count" in w for w in result["warnings"])
 
@@ -334,7 +419,7 @@ def test_validate_import_isbn_already_exists(session: Session, tmp_path: Path, m
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title", "isbn": "isbn"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title"), "isbn": ImportFieldConfig(source="isbn")}, session)
     assert any("ISBN already exists" in w for w in result["warnings"])
 
 
@@ -351,7 +436,7 @@ def test_validate_import_no_isbns(session: Session, tmp_path: Path, monkeypatch:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title")}, session)
     assert result["valid"] is True
 
 
@@ -367,7 +452,7 @@ def test_validate_import_missing_title(session: Session, tmp_path: Path, monkeyp
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title")}, session)
     assert any("missing required field 'title'" in e for e in result["errors"])
 
 
@@ -383,8 +468,44 @@ def test_validate_import_value_error_caught(session: Session, tmp_path: Path, mo
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
-    result = di.validate_import(file_id, user, {"title": "title", "pages": "page_count"}, session)
+    result = di.validate_import(file_id, user, {"title": ImportFieldConfig(source="title"), "page_count": ImportFieldConfig(source="pages")}, session)
     assert any("Row 1:" in e for e in result["errors"])
+
+
+def test_validate_import_cover_url_warns_on_non_url(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "cover": "/local/path/image.jpg"}],
+        "source_fields": ["title", "cover"],
+    }
+    file_id = "test_cover_nonurl"
+    path = di._temp_file_path(user.id, file_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "cover_url": ImportFieldConfig(source="cover")}, session
+    )
+    assert any("cover_url must be an HTTP(S) URL" in w for w in result["warnings"])
+
+
+def test_validate_import_cover_url_accepts_valid_url(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "cover": "https://example.com/cover.jpg"}],
+        "source_fields": ["title", "cover"],
+    }
+    file_id = "test_cover_valid"
+    path = di._temp_file_path(user.id, file_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "cover_url": ImportFieldConfig(source="cover")}, session
+    )
+    assert not any("cover_url" in w for w in result["warnings"])
 
 
 # ── execute_import ────────────────────────────────────────────────────────────
@@ -404,7 +525,7 @@ async def test_execute_import_mapping_errors(session: Session, tmp_path: Path, m
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "invalid_target"}, session, "continue_on_error"
+        file_id, user, {"invalid_target": ImportFieldConfig(source="title")}, session, "continue_on_error"
     ):
         events.append(event)
     assert any("Invalid mapping target" in e.get("message", "") for e in events)
@@ -425,7 +546,7 @@ async def test_execute_import_rating_out_of_range_set_to_none(session: Session, 
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title", "rating": "rating"}, session, "continue_on_error"
+        file_id, user, {"title": ImportFieldConfig(source="title"), "rating": ImportFieldConfig(source="rating")}, session, "continue_on_error"
     ):
         events.append(event)
     complete = [e for e in events if e["event"] == "complete"][0]
@@ -447,7 +568,7 @@ async def test_execute_import_date_started_after_finished(session: Session, tmp_
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title", "started": "date_started", "finished": "date_finished"}, session, "continue_on_error"
+        file_id, user, {"title": ImportFieldConfig(source="title"), "date_started": ImportFieldConfig(source="started"), "date_finished": ImportFieldConfig(source="finished")}, session, "continue_on_error"
     ):
         events.append(event)
     complete = [e for e in events if e["event"] == "complete"][0]
@@ -475,7 +596,7 @@ async def test_execute_import_cover_download(session: Session, tmp_path: Path, m
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title", "cover": "cover_url"}, session, "continue_on_error"
+        file_id, user, {"title": ImportFieldConfig(source="title"), "cover_url": ImportFieldConfig(source="cover")}, session, "continue_on_error"
     ):
         events.append(event)
     complete = [e for e in events if e["event"] == "complete"][0]
@@ -500,9 +621,8 @@ async def test_execute_import_progress_date_naive_tz_fix(session: Session, tmp_p
     async for event in di.execute_import(
         file_id,
         user,
-        {"title": "title", "status": "reading_status", "pages": "page_count", "finished": "date_finished"},
-        session,
-        "continue_on_error",
+        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status"), "page_count": ImportFieldConfig(source="pages"), "date_finished": ImportFieldConfig(source="finished")},
+        session, "continue_on_error",
         create_progress_for_read=True,
     ):
         events.append(event)
@@ -525,7 +645,7 @@ async def test_execute_import_rollback_all_commit(session: Session, tmp_path: Pa
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title"}, session, "rollback_all"
+        file_id, user, {"title": ImportFieldConfig(source="title")}, session, "rollback_all"
     ):
         events.append(event)
     complete = [e for e in events if e["event"] == "complete"][0]
@@ -547,7 +667,7 @@ async def test_execute_import_missing_title_row(session: Session, tmp_path: Path
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title"}, session, "continue_on_error"
+        file_id, user, {"title": ImportFieldConfig(source="title")}, session, "continue_on_error"
     ):
         events.append(event)
     complete = [e for e in events if e["event"] == "complete"][0]
@@ -569,7 +689,7 @@ async def test_execute_import_rollback_all_error(session: Session, tmp_path: Pat
 
     events = []
     async for event in di.execute_import(
-        file_id, user, {"title": "title"}, session, "rollback_all"
+        file_id, user, {"title": ImportFieldConfig(source="title")}, session, "rollback_all"
     ):
         events.append(event)
     assert any(e["event"] == "error" and "All changes rolled back" in e.get("message", "") for e in events)
@@ -603,9 +723,8 @@ async def test_execute_import_progress_naive_date_finished(session: Session, tmp
     async for event in di.execute_import(
         file_id,
         user,
-        {"title": "title", "status": "reading_status", "pages": "page_count", "finished": "date_finished"},
-        session,
-        "continue_on_error",
+        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status"), "page_count": ImportFieldConfig(source="pages"), "date_finished": ImportFieldConfig(source="finished")},
+        session, "continue_on_error",
         create_progress_for_read=True,
     ):
         events.append(event)
@@ -634,9 +753,8 @@ async def test_execute_import_progress_naive_utcnow_fallback(session: Session, t
     async for event in di.execute_import(
         file_id,
         user,
-        {"title": "title", "status": "reading_status", "pages": "page_count"},
-        session,
-        "continue_on_error",
+        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status"), "page_count": ImportFieldConfig(source="pages")},
+        session, "continue_on_error",
         create_progress_for_read=True,
     ):
         events.append(event)

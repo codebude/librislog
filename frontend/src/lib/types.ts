@@ -21,6 +21,11 @@ export interface Book {
 	date_finished: string | null;
 }
 
+export interface BookListResponse {
+	books: Book[];
+	total: number;
+}
+
 export interface BookImportCandidate {
 	title: string;
 	subtitle: string | null;
@@ -183,6 +188,8 @@ export interface UserSettings {
 	language: string;
 	timezone: string;
 	quote_service_enabled: boolean;
+	theme: string;
+	custom_theme: string | null;
 }
 
 export interface ApiKeyMeta {
@@ -271,15 +278,35 @@ export interface DataImportMappingListItem {
 	name: string;
 	created_at: string;
 	updated_at: string;
+	is_predefined: boolean;
 }
 
 export interface DataImportMappingRead {
 	id: number;
 	name: string;
 	source_fields: string[];
-	mapping: Record<string, string>;
+	mapping: Record<string, ImportFieldConfig>;
 	created_at: string;
 	updated_at: string;
+	is_predefined: boolean;
+}
+
+export interface ImportFieldConfig {
+	source: string;
+	transform: string | null;
+}
+
+export interface DataImportPreviewRow {
+	row_number: number;
+	source: Record<string, string>;
+	transformed: Record<string, string | null>;
+	errors: string[];
+}
+
+export interface DataImportPreviewResponse {
+	preview_rows: DataImportPreviewRow[];
+	row_count: number;
+	errors: string[];
 }
 
 export interface DataImportValidateResponse {
@@ -287,6 +314,50 @@ export interface DataImportValidateResponse {
 	row_count: number;
 	warnings: string[];
 	errors: string[];
+}
+
+export type HygieneAttribute =
+	| 'author'
+	| 'isbn'
+	| 'publisher'
+	| 'published_year'
+	| 'blurb'
+	| 'language'
+	| 'subtitle'
+	| 'page_count'
+	| 'cover_url';
+
+export interface HygieneMissingBook {
+	id: number;
+	title: string;
+	author: string | null;
+	isbn: string | null;
+	publisher: string | null;
+	published_year: number | null;
+	blurb: string | null;
+	language: string | null;
+	subtitle: string | null;
+	page_count: number;
+	cover_url: string | null;
+	missing_attributes: HygieneAttribute[];
+}
+
+export interface HygieneMissingResponse {
+	books: HygieneMissingBook[];
+	total: number;
+	total_missing_per_attribute: Record<string, number>;
+}
+
+export interface HygieneBatchUpdateRequest {
+	book_ids: number[];
+	field: HygieneAttribute;
+	value: string | number | null;
+}
+
+export interface HygieneBatchUpdateResponse {
+	updated: number;
+	skipped: number;
+	skipped_ids: number[];
 }
 
 export type DataImportEvent =

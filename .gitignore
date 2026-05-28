@@ -222,8 +222,12 @@ __marimo__/
 /ideas.txt
 /backend/data/
 /data/
+/data-e2e/
 /backend/data/
 !frontend/src/lib
 cookies.txt
 profile-snapshot
 .plan/
+node_modules/
+/*.png
+*-snapshot.md

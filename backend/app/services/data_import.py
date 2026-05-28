@@ -7,7 +7,7 @@ import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import httpx
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +15,7 @@ from sqlmodel import Session, select
 
 from app.config import settings
 from app.models import Book, ReadingProgress, ReadingStatus, User
+from app.schemas import ImportFieldConfig
 from app.time_utils import utcnow
 from app.services.cover_storage import download_cover
 from app.services.tags import sync_book_tags
@@ -216,25 +217,27 @@ def load_parsed_upload(file_id: str, user_id: int) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def suggest_mapping(source_fields: list[str]) -> dict[str, str]:
+def suggest_mapping(source_fields: list[str]) -> dict[str, "ImportFieldConfig"]:
     """Suggest a column mapping based on known field name aliases.
 
     Args:
         source_fields: List of field names from the import file.
 
     Returns:
-        Dict mapping each recognised source field to its target field.
+        Dict mapping each recognised DB target field to its source field config.
     """
-    suggested: dict[str, str] = {}
+    from app.schemas import ImportFieldConfig
+
+    suggested: dict[str, ImportFieldConfig] = {}
     for field in source_fields:
         key = " ".join(field.strip().lower().replace("_", " ").split())
         if key in _ALIASES:
-            suggested[field] = _ALIASES[key]
+            suggested[_ALIASES[key]] = ImportFieldConfig(source=field)
             continue
         compact = key.replace(" ", "")
         for alias, target in _ALIASES.items():
             if alias.replace(" ", "") == compact:
-                suggested[field] = target
+                suggested[target] = ImportFieldConfig(source=field)
                 break
     return suggested
 
@@ -360,21 +363,56 @@ def _parse_reading_status(value: object) -> ReadingStatus:
     return ReadingStatus(raw)
 
 
-def _mapped_row(row: dict, mapping: dict[str, str]) -> dict:
-    """Apply a field mapping to a single row."""
+def _build_transform_cache(
+    mapping: dict[str, "ImportFieldConfig"],
+) -> dict[str, Callable[..., str]]:
+    """Compile all transform expressions into a cache of callables."""
+    from app.services.transform_engine import compile_transform
+
+    cache: dict[str, Callable[..., str]] = {}
+    for target, config in mapping.items():
+        if config.transform:
+            cache[target] = compile_transform(config.transform)
+    return cache
+
+
+def _mapped_row(
+    row: dict,
+    mapping: dict[str, "ImportFieldConfig"],
+    transform_cache: dict[str, Callable[..., str]],
+    context: dict[str, Any],
+    errors: list[str] | None = None,
+) -> dict:
+    """Apply a field mapping and optional transforms to a single row."""
     mapped: dict[str, object] = {}
-    for source, target in mapping.items():
-        if not target:
+    for target, config in mapping.items():
+        source = config.source
+        if not source:
             continue
-        mapped[target] = row.get(source)
+        value = row.get(source, "")
+        value_str = "" if value is None else str(value)
+        if target in transform_cache:
+            from app.services.transform_engine import TransformExecutionError, execute_transform
+
+            try:
+                value_str = execute_transform(
+                    transform_cache[target], value_str, row, context
+                )
+            except TransformExecutionError as exc:
+                if errors is not None:
+                    errors.append(f"\x1f{target}\x1f{exc}")
+                continue
+        mapped[target] = value_str
     return mapped
 
 
-def _validate_mapping(mapping: dict[str, str], source_fields: set[str]) -> tuple[list[str], list[str]]:
+def _validate_mapping(
+    mapping: dict[str, ImportFieldConfig], source_fields: set[str]
+) -> tuple[list[str], list[str]]:
     """Validate an import mapping, returning (warnings, errors)."""
     warnings: list[str] = []
     errors: list[str] = []
-    mapped_targets = [target for target in mapping.values() if target]
+    mapped_targets = [target for target in mapping.keys() if target]
 
     if "title" not in mapped_targets:
         errors.append("Mapping missing required field: title")
@@ -383,16 +421,19 @@ def _validate_mapping(mapping: dict[str, str], source_fields: set[str]) -> tuple
     for target in invalid_targets:
         errors.append(f"Invalid mapping target: {target}")
 
-    target_counts: dict[str, int] = {}
-    for target in mapped_targets:
-        target_counts[target] = target_counts.get(target, 0) + 1
-    for target, count in sorted(target_counts.items()):
-        if count > 1:
-            warnings.append(f"Multiple source fields map to '{target}'; last value wins")
-
-    for source in mapping.keys():
+    for target, config in mapping.items():
+        source = config.source
+        if not source:
+            continue
         if source not in source_fields:
             warnings.append(f"Mapped source field missing in file: {source}")
+        if config.transform:
+            try:
+                from app.services.transform_engine import compile_transform
+
+                compile_transform(config.transform)
+            except ValueError as exc:
+                errors.append(f"\x1f{target}\x1f{exc}")
 
     return warnings, errors
 
@@ -400,7 +441,7 @@ def _validate_mapping(mapping: dict[str, str], source_fields: set[str]) -> tuple
 def validate_import(
     file_id: str,
     user: User,
-    mapping: dict[str, str],
+    mapping: dict[str, ImportFieldConfig],
     session: Session,
     create_progress_for_read: bool = False,
 ) -> dict:
@@ -422,13 +463,26 @@ def validate_import(
 
     warnings, errors = _validate_mapping(mapping, source_fields)
 
+    if errors:
+        return {"valid": False, "row_count": len(rows), "warnings": warnings, "errors": errors}
+
+    transform_cache = _build_transform_cache(mapping)
+
     for idx, row in enumerate(rows, start=1):
-        row_data = _mapped_row(row, mapping)
+        row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)}, errors)
         title_value = row_data.get("title")
         title = str(title_value).strip() if title_value is not None else ""
         if not title:
             errors.append(f"Row {idx}: missing required field 'title'")
             continue
+
+        cover_raw = row_data.get("cover_url")
+        if cover_raw:
+            cover_val = str(cover_raw).strip()
+            if not (cover_val.startswith("http://") or cover_val.startswith("https://")):
+                warnings.append(
+                    f"Row {idx}: cover_url must be an HTTP(S) URL to an image; non-URL values will be ignored"
+                )
 
         try:
             rating = _parse_int(row_data.get("rating"), "rating")
@@ -455,7 +509,7 @@ def validate_import(
     # Batch-check ISBNs to avoid N+1 queries
     isbns_in_file: set[str] = set()
     for idx, row in enumerate(rows, start=1):
-        row_data = _mapped_row(row, mapping)
+        row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)})
         isbn = row_data.get("isbn")
         if isbn:
             isbns_in_file.add(str(isbn))
@@ -468,7 +522,7 @@ def validate_import(
         existing_isbns = set(results)
 
     for idx, row in enumerate(rows, start=1):
-        row_data = _mapped_row(row, mapping)
+        row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)})
         isbn = row_data.get("isbn")
         if isbn and str(isbn) in existing_isbns:
             warnings.append(f"Row {idx}: ISBN already exists and may fail to import")
@@ -481,10 +535,73 @@ def validate_import(
     }
 
 
+def preview_import(
+    file_id: str,
+    user: User,
+    mapping: dict[str, ImportFieldConfig],
+    limit: int = 5,
+) -> dict:
+    """Preview how a mapping and transforms will affect the first *limit* rows.
+
+    Returns a dict with keys: preview_rows, row_count, errors.
+    """
+    parsed = load_parsed_upload(file_id, user.id)
+    rows = parsed.get("rows", [])
+    source_fields = set(parsed.get("source_fields", []))
+
+    _warnings, mapping_errors = _validate_mapping(mapping, source_fields)
+    if mapping_errors:
+        return {"preview_rows": [], "row_count": len(rows), "errors": mapping_errors}
+
+    transform_cache = _build_transform_cache(mapping)
+    preview_rows: list[dict] = []
+
+    for idx, row in enumerate(rows[:limit], start=1):
+        row_errors: list[str] = []
+        row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)}, row_errors)
+
+        # Validate required fields and data types for preview
+        title_value = row_data.get("title")
+        title = str(title_value).strip() if title_value is not None else ""
+        if not title:
+            row_errors.append("Missing required field 'title'")
+
+        try:
+            rating = _parse_int(row_data.get("rating"), "rating")
+            if rating is not None and (rating < 1 or rating > 5):
+                row_errors.append("Rating out of range, will be ignored")
+            _parse_year(row_data.get("published_year"), "published_year")
+            _parse_int(row_data.get("page_count"), "page_count")
+            _parse_reading_status(row_data.get("reading_status"))
+            date_started = _parse_datetime(row_data.get("date_started"), "date_started")
+            date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
+            if date_started and date_finished and date_started > date_finished:
+                row_errors.append("date_started is after date_finished")
+            _normalize_language(
+                None if row_data.get("language") is None else str(row_data.get("language"))
+            )
+        except ValueError as exc:
+            row_errors.append(str(exc))
+
+        # Convert raw values to strings for display
+        source_display = {k: str(v) if v is not None else "" for k, v in row.items()}
+        # Convert transformed values to strings for display
+        transformed_display = {k: str(v) if v is not None else "" for k, v in row_data.items()}
+
+        preview_rows.append({
+            "row_number": idx,
+            "source": source_display,
+            "transformed": transformed_display,
+            "errors": row_errors,
+        })
+
+    return {"preview_rows": preview_rows, "row_count": len(rows), "errors": []}
+
+
 async def execute_import(
     file_id: str,
     user: User,
-    mapping: dict[str, str],
+    mapping: dict[str, ImportFieldConfig],
     session: Session,
     import_mode: str,
     create_progress_for_read: bool = False,
@@ -519,10 +636,15 @@ async def execute_import(
         yield {"event": "error", "message": "; ".join(mapping_errors)}
         return
 
+    transform_cache = _build_transform_cache(mapping)
+
     async with httpx.AsyncClient(timeout=15.0) as client:
         for idx, row in enumerate(rows, start=1):
             try:
-                row_data = _mapped_row(row, mapping)
+                row_transform_errors: list[str] = []
+                row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": total}, row_transform_errors)
+                if row_transform_errors:
+                    raise ValueError(f"Transform error: {row_transform_errors[0]}")
                 title_value = row_data.get("title")
                 title = str(title_value).strip() if title_value is not None else ""
                 if not title:
@@ -624,6 +746,64 @@ async def execute_import(
         "failed": failed,
         "failures": failures,
     }
+
+
+PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
+    {
+        "id": -1,
+        "name": "Goodreads Export",
+        "source_fields": [
+            "Book Id", "Title", "Author", "ISBN", "ISBN13",
+            "Publisher", "Number of Pages", "Year Published",
+            "Original Publication Year", "Date Read", "Date Added",
+            "Exclusive Shelf", "My Review", "Bookshelves",
+            "My Rating", "Average Rating", "Read Count",
+        ],
+        "mapping": {
+            "title": {"source": "Title", "transform": None},
+            "subtitle": {"source": "", "transform": None},
+            "author": {"source": "Author", "transform": None},
+            "isbn": {"source": "ISBN13", "transform": None},
+            "publisher": {"source": "Publisher", "transform": None},
+            "published_year": {
+                "source": "Original Publication Year",
+                "transform": "str(int(value)) if value and str(value).strip() else None",
+            },
+            "page_count": {
+                "source": "Number of Pages",
+                "transform": "str(int(value)) if value and str(value).strip() else None",
+            },
+            "language": {"source": "", "transform": None},
+            "tags": {"source": "Bookshelves", "transform": None},
+            "notes": {"source": "My Review", "transform": None},
+            "blurb": {"source": "", "transform": None},
+            "rating": {
+                "source": "My Rating",
+                "transform": "str(int(value)) if value and str(value).strip() else None",
+            },
+            "reading_status": {
+                "source": "Exclusive Shelf",
+                "transform": (
+                    "shelf_map = {'to-read': 'want_to_read', "
+                    "'currently-reading': 'currently_reading', 'read': 'read'}\n"
+                    "status = shelf_map.get(value.strip().lower(), 'want_to_read')\n"
+                    "return status"
+                ),
+            },
+            "date_started": {"source": "Date Added", "transform": None},
+            "date_finished": {"source": "Date Read", "transform": None},
+            "cover_url": {"source": "", "transform": None},
+        },
+    },
+]
+
+
+def get_predefined_mapping(mapping_id: int) -> dict[str, object] | None:
+    """Return a predefined mapping by its negative ID, or None if not found."""
+    for pm in PREDEFINED_MAPPINGS:
+        if pm["id"] == mapping_id:
+            return pm
+    return None
 
 
 def cleanup_temp_files(max_age_hours: int = 24) -> None:

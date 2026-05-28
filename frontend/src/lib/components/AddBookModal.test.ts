@@ -27,24 +27,27 @@ vi.mock('$lib/toasts', () => ({
 	}
 }));
 
-// Mock html5-qrcode for BarcodeScanner
-vi.mock('html5-qrcode', () => ({
-	Html5Qrcode: class MockHtml5Qrcode {
-		async start() {}
-		async stop() {}
-		clear() {}
-		static async getCameras() {
-			return [];
+// Mock html5-qrcode subpath imports for BarcodeScanner
+vi.mock('html5-qrcode/esm/core', () => {
+	const BaseLoggger = class {
+		log() {} warn() {} logError() {} logErrors() {}
+	};
+	return {
+		Html5QrcodeSupportedFormats: {
+			EAN_13: 9, EAN_8: 10, UPC_A: 14, UPC_E: 15, CODE_128: 5, QR_CODE: 0
+		},
+		BaseLoggger
+	};
+});
+
+vi.mock('html5-qrcode/esm/code-decoder', () => {
+	const Html5QrcodeShim = class {
+		constructor() {
+			this.decodeAsync = function () { return Promise.resolve({ text: '' }); };
 		}
-	},
-	Html5QrcodeSupportedFormats: {
-		EAN_13: 1,
-		EAN_8: 2,
-		UPC_A: 3,
-		UPC_E: 4,
-		CODE_128: 5
-	}
-}));
+	};
+	return { Html5QrcodeShim };
+});
 
 describe('AddBookModal', () => {
 	beforeEach(() => {
@@ -91,7 +94,7 @@ describe('AddBookModal', () => {
 
 	it('closes modal when close button clicked', async () => {
 		render(AddBookModal, { props: { open: true } });
-		const closeBtn = screen.getByRole('button', { name: '✕' });
+		const closeBtn = screen.getByRole('button', { name: /close/i });
 		await fireEvent.click(closeBtn);
 		expect(screen.queryByRole('heading', { name: 'Add Book' })).not.toBeInTheDocument();
 	});
@@ -100,9 +103,9 @@ describe('AddBookModal', () => {
 		render(AddBookModal, { props: { open: true } });
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Subtitle/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Author/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/ISBN/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Publisher/)).toBeInTheDocument();
+		expect(screen.getByText(/Author/)).toBeInTheDocument();
+		expect(screen.getByRole('textbox', { name: 'ISBN' })).toBeInTheDocument();
+		expect(screen.getByText(/Publisher/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Language/)).toBeInTheDocument();
@@ -118,6 +121,14 @@ describe('AddBookModal', () => {
 		expect(select).toBeInTheDocument();
 	});
 
+	function fillAuthorAndPages(value: string) {
+		const searchboxes = screen.getAllByRole('searchbox');
+		const authorInput = searchboxes[0];
+		fireEvent.input(authorInput, { target: { value } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		fireEvent.input(pagesInput, { target: { value: '412' } });
+	}
+
 	it('submits form and calls api.books.create', async () => {
 		mockBooksCreate.mockResolvedValue({ id: 1, title: 'Test Book' });
 		const onAdded = vi.fn();
@@ -126,6 +137,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -134,6 +146,8 @@ describe('AddBookModal', () => {
 			expect(mockBooksCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					title: 'Test Book',
+					author: 'Frank Herbert',
+					page_count: 412,
 					reading_status: 'want_to_read'
 				})
 			);
@@ -149,6 +163,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -166,6 +181,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);
@@ -182,6 +198,7 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		fillAuthorAndPages('Frank Herbert');
 
 		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
 		await fireEvent.click(submitBtn);

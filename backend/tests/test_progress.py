@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 def _create_book(client: TestClient, **kwargs: Any) -> dict[str, Any]:
     """Helper to create a book via the API and return the JSON response."""
-    payload = {"title": "Progress Test Book", **kwargs}
+    payload = {"title": "Progress Test Book", "author": "Test Author", "page_count": 200, **kwargs}
     resp = client.post("/api/books", json=payload)
     assert resp.status_code == 201
     return resp.json()
@@ -26,13 +26,6 @@ def test_create_progress_page_exceeds_page_count(client: TestClient) -> None:
     book = _create_book(client, page_count=200)
     resp = client.post(f"/api/books/{book['id']}/progress", json={"page": 300})
     assert resp.status_code == 422
-
-
-def test_create_progress_no_page_count_allowed(client: TestClient) -> None:
-    book = _create_book(client, page_count=None)
-    resp = client.post(f"/api/books/{book['id']}/progress", json={"page": 50})
-    assert resp.status_code == 201
-    assert resp.json()["page"] == 50
 
 
 def test_create_progress_wrong_user_returns_404(client: TestClient, create_user_with_key: Callable[..., Any]) -> None:
@@ -129,3 +122,46 @@ def test_create_progress_appends_new_entry(client: TestClient) -> None:
     client.post(f"/api/books/{book['id']}/progress", json={"page": 30})
     resp = client.get(f"/api/books/{book['id']}/progress")
     assert len(resp.json()) == 2
+
+
+def test_update_progress_entry_date(client: TestClient) -> None:
+    """PATCH updates the created_at date of a progress entry."""
+    from datetime import datetime, timezone
+    book = _create_book(client, page_count=200)
+    entry = client.post(f"/api/books/{book['id']}/progress", json={"page": 50}).json()
+
+    resp = client.patch(
+        f"/api/books/{book['id']}/progress/{entry['id']}",
+        json={"created_at": "2024-06-15T08:30:00Z"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == entry["id"]
+    assert data["page"] == 50
+    expected = datetime(2024, 6, 15, 8, 30, tzinfo=timezone.utc)
+    assert datetime.fromisoformat(data["created_at"]) == expected
+
+    resp = client.get(f"/api/books/{book['id']}/progress")
+    assert datetime.fromisoformat(resp.json()[0]["created_at"]) == expected
+
+
+def test_update_progress_entry_wrong_user_returns_404(client: TestClient, create_user_with_key: Callable[..., Any]) -> None:
+    book = _create_book(client)
+    entry = client.post(f"/api/books/{book['id']}/progress", json={"page": 10}).json()
+    _user2, key2 = create_user_with_key(email="other@example.com")
+    with TestClient(client.app) as c2:  # type: ignore[arg-type]
+        c2.headers.update({"X-API-Key": key2})
+        resp = c2.patch(
+            f"/api/books/{book['id']}/progress/{entry['id']}",
+            json={"created_at": "2024-06-15T08:30:00Z"},
+        )
+        assert resp.status_code == 404
+
+
+def test_update_progress_entry_not_found(client: TestClient) -> None:
+    book = _create_book(client, page_count=200)
+    resp = client.patch(
+        f"/api/books/{book['id']}/progress/99999",
+        json={"created_at": "2024-06-15T08:30:00Z"},
+    )
+    assert resp.status_code == 404

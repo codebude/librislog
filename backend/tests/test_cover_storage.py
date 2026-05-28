@@ -5,14 +5,17 @@ All HTTP calls are intercepted with fake clients — no real network I/O.
 """
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
 import httpx
 import pytest
+from sqlmodel import Session, col, select
 
 from app.services.cover_storage import (
+    cleanup_orphan_covers,
     delete_cover_file,
     download_cover,
     resolve_cover_path,
@@ -314,3 +317,69 @@ def test_save_uploaded_cover_content_type_with_params(tmp_path: Path) -> None:
 
     assert filename is not None
     assert filename.endswith(".jpg")
+
+
+def test_cleanup_orphan_covers_deletes_unreferenced_files(session: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cover files on disk that are not referenced by any book should be deleted."""
+    from app.models import Book
+    from app.services import cover_storage
+    import time
+
+    # Create a book with a local cover URL
+    book = Book(user_id=1, title="Test", cover_url="/api/covers/1__abc123.jpg")
+    session.add(book)
+    session.commit()
+
+    # Verify the book is in the database
+    result = session.exec(select(Book.cover_url).where(col(Book.cover_url).is_not(None))).all()
+    assert len(result) == 1
+    assert result[0] == "/api/covers/1__abc123.jpg"
+
+    # Create cover files on disk
+    (tmp_path / "1__abc123.jpg").write_bytes(b"referenced")
+    (tmp_path / "1__orphan1.jpg").write_bytes(b"orphan1")
+    (tmp_path / "1__orphan2.png").write_bytes(b"orphan2")
+
+    # Make orphan files old enough to be eligible for deletion
+    old_time = time.time() - 7200  # 2 hours ago
+    os.utime(tmp_path / "1__orphan1.jpg", (old_time, old_time))
+    os.utime(tmp_path / "1__orphan2.png", (old_time, old_time))
+
+    monkeypatch.setattr(cover_storage.settings, "covers_dir", str(tmp_path))
+
+    deleted = cleanup_orphan_covers(session)
+    assert deleted == 2
+    assert (tmp_path / "1__abc123.jpg").exists()
+    assert not (tmp_path / "1__orphan1.jpg").exists()
+    assert not (tmp_path / "1__orphan2.png").exists()
+
+
+def test_cleanup_orphan_covers_skips_recent_files(session: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Recently modified orphan files should not be deleted."""
+    from app.services import cover_storage
+
+    (tmp_path / "1__recent.jpg").write_bytes(b"recent")
+
+    monkeypatch.setattr(cover_storage.settings, "covers_dir", str(tmp_path))
+
+    deleted = cleanup_orphan_covers(session)
+    assert deleted == 0
+    assert (tmp_path / "1__recent.jpg").exists()
+
+
+def test_cleanup_orphan_covers_empty_dir(session: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Empty covers directory should return 0."""
+    from app.services import cover_storage
+
+    monkeypatch.setattr(cover_storage.settings, "covers_dir", str(tmp_path))
+
+    assert cleanup_orphan_covers(session) == 0
+
+
+def test_cleanup_orphan_covers_nonexistent_dir(session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nonexistent covers directory should return 0."""
+    from app.services import cover_storage
+
+    monkeypatch.setattr(cover_storage.settings, "covers_dir", "/nonexistent/path")
+
+    assert cleanup_orphan_covers(session) == 0

@@ -75,7 +75,8 @@ describe('AutoSearchCoverModal', () => {
 		);
 		await fireEvent.click(imgButtons[0]);
 		expect(onSelect).toHaveBeenCalledOnce();
-		expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ source: 'AbeBooks' }));
+		// First card is sorted by resolution descending: OpenLibrary (400x600) before AbeBooks (200x300)
+		expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ source: 'OpenLibrary' }));
 	});
 
 	it('calls onCancel when close button clicked', async () => {
@@ -113,7 +114,7 @@ describe('AutoSearchCoverModal', () => {
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: candidateNoMeta, error: null, onCancel, onSelect }
 		});
-		expect(document.body.textContent).toContain('n/a - n/a');
+		expect(document.body.textContent).toContain('n/a');
 	});
 
 	it('shows KB filesize label', () => {
@@ -152,12 +153,12 @@ describe('AutoSearchCoverModal', () => {
 			props: { open: true, loading: false, candidates: candidateWithLoad, error: null, onCancel, onSelect }
 		});
 		const img = document.querySelector('img');
-		// Simulate image load with zero natural dimensions
+		// Simulate image load with zero natural dimensions — resolution stays hidden
 		const loadEvent = new Event('load');
 		Object.defineProperty(img!, 'naturalWidth', { value: 0 });
 		Object.defineProperty(img!, 'naturalHeight', { value: 0 });
 		await fireEvent(img!, loadEvent);
-		// Resolution should still show n/a since natural dimensions are 0
-		expect(document.body.textContent).toContain('n/a');
+		// Filesize is still shown
+		expect(document.body.textContent).toContain('1000 B');
 	});
 });

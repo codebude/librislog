@@ -1,0 +1,9 @@
+FROM mcr.microsoft.com/playwright:v1.60.0-noble
+
+WORKDIR /app/frontend
+COPY package.json package-lock.json ./
+RUN npm ci
+RUN npx playwright install chromium
+COPY . .
+
+CMD ["npx", "playwright", "test", "--config=playwright.config.ts"]

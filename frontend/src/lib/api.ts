@@ -1,13 +1,20 @@
 import type {
 	ApiKeyMeta,
+	BookListResponse,
 	DataExportDataset,
 	DataExportFormat,
 	DataImportEvent,
 	DataImportMappingListItem,
 	DataImportMappingRead,
 	DataImportParseResponse,
+	DataImportPreviewResponse,
 	DataImportValidateResponse,
 	DataResetResponse,
+	HygieneAttribute,
+	HygieneBatchUpdateRequest,
+	HygieneBatchUpdateResponse,
+	HygieneMissingResponse,
+	ImportFieldConfig,
 	Book,
 	CoverCandidateList,
 	BookImportCandidate,
@@ -136,7 +143,7 @@ export const api = {
 			return request<UserSettings>('/profile/settings');
 		},
 
-		updateSettings(data: { language?: string; timezone?: string }): Promise<UserSettings> {
+		updateSettings(data: { language?: string; timezone?: string; theme?: string; custom_theme?: string | null }): Promise<UserSettings> {
 			return request<UserSettings>('/profile/settings', {
 				method: 'PATCH',
 				body: JSON.stringify(data)
@@ -277,7 +284,7 @@ export const api = {
 			smart_sort?: boolean;
 			offset?: number;
 			limit?: number;
-		}): Promise<Book[]> {
+		}): Promise<BookListResponse> {
 			const qs = new URLSearchParams();
 			if (params?.status) qs.set('status', params.status);
 			if (params?.q) qs.set('q', params.q);
@@ -287,7 +294,7 @@ export const api = {
 			if (params?.offset !== undefined) qs.set('offset', String(params.offset));
 			if (params?.limit !== undefined) qs.set('limit', String(params.limit));
 			const query = qs.toString() ? `?${qs}` : '';
-			return request<Book[]>(`/books${query}`);
+			return request<BookListResponse>(`/books${query}`);
 		},
 
 		get(id: number): Promise<Book> {
@@ -312,6 +319,12 @@ export const api = {
 					body: JSON.stringify({ page })
 				});
 			},
+			async update(bookId: number, entryId: number, data: { created_at: string }): Promise<ReadingProgressEntry> {
+				return request<ReadingProgressEntry>(`/books/${bookId}/progress/${entryId}`, {
+					method: 'PATCH',
+					body: JSON.stringify(data)
+				});
+			},
 			async delete(bookId: number, entryId: number): Promise<void> {
 				return request<void>(`/books/${bookId}/progress/${entryId}`, { method: 'DELETE' });
 			},
@@ -330,6 +343,29 @@ export const api = {
 
 		delete(id: number): Promise<void> {
 			return request<void>(`/books/${id}`, { method: 'DELETE' });
+		}
+	},
+
+	hygiene: {
+		async listMissing(params: {
+			attributes: HygieneAttribute[];
+			match?: 'any' | 'all';
+			offset?: number;
+			limit?: number;
+		}): Promise<HygieneMissingResponse> {
+			const qs = new URLSearchParams();
+			qs.set('attributes', params.attributes.join(','));
+			if (params.match) qs.set('match', params.match);
+			if (params.offset !== undefined) qs.set('offset', String(params.offset));
+			if (params.limit !== undefined) qs.set('limit', String(params.limit));
+			return request<HygieneMissingResponse>(`/hygiene/missing?${qs.toString()}`);
+		},
+
+		async batchUpdate(data: HygieneBatchUpdateRequest): Promise<HygieneBatchUpdateResponse> {
+			return request<HygieneBatchUpdateResponse>('/hygiene/batch-update', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
 		}
 	},
 
@@ -457,54 +493,64 @@ export const api = {
 			return res.json() as Promise<DataImportParseResponse>;
 		},
 
-		suggestMapping(fileId: string): Promise<{ suggested_mapping: Record<string, string>; db_fields: string[] }> {
-			return request<{ suggested_mapping: Record<string, string>; db_fields: string[] }>('/data/import/suggest-mapping', {
-				method: 'POST',
-				body: JSON.stringify({ file_id: fileId })
-			});
-		},
+			suggestMapping(fileId: string): Promise<{ suggested_mapping: Record<string, ImportFieldConfig>; db_fields: string[] }> {
+				return request<{ suggested_mapping: Record<string, ImportFieldConfig>; db_fields: string[] }>('/data/import/suggest-mapping', {
+					method: 'POST',
+					body: JSON.stringify({ file_id: fileId })
+				});
+			},
 
-		saveMapping(payload: {
-			name: string;
-			source_fields: string[];
-			mapping: Record<string, string>;
-		}): Promise<DataImportMappingRead> {
-			return request<DataImportMappingRead>('/data/import/mappings', {
-				method: 'POST',
-				body: JSON.stringify(payload)
-			});
-		},
+			saveMapping(payload: {
+				name: string;
+				source_fields: string[];
+				mapping: Record<string, ImportFieldConfig>;
+			}): Promise<DataImportMappingRead> {
+				return request<DataImportMappingRead>('/data/import/mappings', {
+					method: 'POST',
+					body: JSON.stringify(payload)
+				});
+			},
 
-		listMappings(): Promise<DataImportMappingListItem[]> {
-			return request<DataImportMappingListItem[]>('/data/import/mappings');
-		},
+			listMappings(): Promise<DataImportMappingListItem[]> {
+				return request<DataImportMappingListItem[]>('/data/import/mappings');
+			},
 
-		getMapping(id: number): Promise<DataImportMappingRead> {
-			return request<DataImportMappingRead>(`/data/import/mappings/${id}`);
-		},
+			getMapping(id: number): Promise<DataImportMappingRead> {
+				return request<DataImportMappingRead>(`/data/import/mappings/${id}`);
+			},
 
-		deleteMapping(id: number): Promise<void> {
-			return request<void>(`/data/import/mappings/${id}`, { method: 'DELETE' });
-		},
+			deleteMapping(id: number): Promise<void> {
+				return request<void>(`/data/import/mappings/${id}`, { method: 'DELETE' });
+			},
 
-		validateImport(payload: {
-			file_id: string;
-			mapping: Record<string, string>;
-			create_progress_for_read?: boolean;
-		}): Promise<DataImportValidateResponse> {
-			return request<DataImportValidateResponse>('/data/import/validate', {
-				method: 'POST',
-				body: JSON.stringify(payload)
-			});
-		},
+			previewImport(payload: {
+				file_id: string;
+				mapping: Record<string, ImportFieldConfig>;
+			}): Promise<DataImportPreviewResponse> {
+				return request<DataImportPreviewResponse>('/data/import/preview', {
+					method: 'POST',
+					body: JSON.stringify(payload)
+				});
+			},
 
-		async *executeImport(payload: {
-			file_id: string;
-			mapping: Record<string, string>;
-			import_mode: 'rollback_all' | 'continue_on_error';
-			create_progress_for_read?: boolean;
-			signal?: AbortSignal;
-		}): AsyncGenerator<DataImportEvent> {
+			validateImport(payload: {
+				file_id: string;
+				mapping: Record<string, ImportFieldConfig>;
+				create_progress_for_read?: boolean;
+			}): Promise<DataImportValidateResponse> {
+				return request<DataImportValidateResponse>('/data/import/validate', {
+					method: 'POST',
+					body: JSON.stringify(payload)
+				});
+			},
+
+			async *executeImport(payload: {
+				file_id: string;
+				mapping: Record<string, ImportFieldConfig>;
+				import_mode: 'rollback_all' | 'continue_on_error';
+				create_progress_for_read?: boolean;
+				signal?: AbortSignal;
+			}): AsyncGenerator<DataImportEvent> {
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
 				...authHeaders()

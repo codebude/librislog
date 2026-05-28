@@ -1,4 +1,4 @@
-<script lang="ts">
+	<script lang="ts">
 	import type { Book, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -12,6 +12,8 @@
 	import TagInput from './TagInput.svelte';
 	import DateConflictDialog from './DateConflictDialog.svelte';
 	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
+	import BarcodeScanner from './BarcodeScanner.svelte';
+	import { ScanBarcode, X } from '@lucide/svelte';
 
 	let {
 		book = $bindable(null),
@@ -38,6 +40,7 @@
 	let autoSearchError = $state<string | null>(null);
 	let autoSearchCandidates = $state<CoverCandidate[]>([]);
 	let autoSearchRequestId = 0;
+	let scannerOpen = $state(false);
 
 	// Editable fields
 	let title = $state('');
@@ -85,11 +88,11 @@
 		const payload: Partial<Book> = {
 			title,
 			subtitle: subtitle || null,
-			author: author || null,
+			author: author.trim(),
 			isbn: isbn || null,
 			publisher: publisher || null,
 			published_year: published_year ? parseInt(published_year, 10) : null,
-			page_count: page_count ? parseInt(page_count, 10) : null,
+			page_count: parseInt(page_count, 10),
 			language: language || null,
 			tags: tags || null,
 			notes: notes || null,
@@ -167,6 +170,14 @@
 
 	async function save() {
 		if (!book) return;
+		if (!author.trim()) {
+			toasts.add($_('error.authorRequired'), 'error');
+			return;
+		}
+		if (!page_count) {
+			toasts.add($_('error.pageCountRequired'), 'error');
+			return;
+		}
 		const ds = date_started.trim();
 		const df = date_finished.trim();
 		if (ds && df && ds > df) {
@@ -328,60 +339,76 @@
 	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<!-- Header -->
 		<div class="flex items-center justify-between p-4 border-b border-base-200">
-			<h2 class="text-lg font-bold truncate">{book.title}</h2>
+			<div class="min-w-0 flex-1">
+				<h2 class="text-lg font-bold">{book.title}</h2>
+			</div>
 			<button
 				class="btn btn-ghost btn-sm btn-circle"
 				onclick={() => (open = false)}
 				aria-label={$_('common.close')}
-			>✕</button>
+			><X class="w-4 h-4" /></button>
 		</div>
 
 		<!-- Editable form -->
-		<form class="flex flex-col gap-3 px-4 pb-4 flex-1 min-h-0 overflow-y-auto" onsubmit={(e) => { e.preventDefault(); save(); }}>
-			<label class="form-control">
+		<form class="flex flex-col gap-4 px-4 pt-4 pb-4 flex-1 min-h-0 overflow-y-auto" onsubmit={(e) => { e.preventDefault(); save(); }}>
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.title')}</span>
-				<input class="input input-bordered input-sm" bind:value={title} required />
+				<input class="input input-bordered input-sm" name="title" bind:value={title} required />
 			</label>
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.subtitle')}</span>
-				<input class="input input-bordered input-sm" bind:value={subtitle} />
+				<input class="input input-bordered input-sm" name="subtitle" bind:value={subtitle} />
 			</label>
 
 			<SuggestionInput
 				bind:value={author}
-				label={$_('book.author')}
+				name="author"
+				label={$_('book.author') + ' *'}
 				placeholder={$_('book.author')}
 				fetchSuggestions={(q) => api.books.suggestions.authors(q)}
 			/>
 
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.isbn')}</span>
-				<input class="input input-bordered input-sm" bind:value={isbn} />
+				<div class="flex gap-2">
+					<input class="input input-bordered input-sm flex-1" name="isbn" bind:value={isbn} />
+					<button
+						type="button"
+						class="btn btn-outline btn-sm"
+						onclick={() => (scannerOpen = true)}
+						title={$_('import.scanIsbn')}
+						aria-label={$_('import.scanIsbn')}
+					>
+						<ScanBarcode class="w-4 h-4" />
+					</button>
+				</div>
 			</label>
 
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 				<SuggestionInput
 					bind:value={publisher}
+					name="publisher"
 					label={$_('book.publisher')}
 					placeholder={$_('book.publisher')}
 					fetchSuggestions={(q) => api.books.suggestions.publishers(q)}
 				/>
 
-				<label class="form-control">
+				<label class="flex flex-col gap-1">
 					<span class="label label-text">{$_('book.year')}</span>
-					<input type="number" class="input input-bordered input-sm" bind:value={published_year} min="1000" max="2100" />
+					<input type="number" class="input input-bordered input-sm" name="published_year" bind:value={published_year} max="2100" />
 				</label>
 
-				<label class="form-control">
-					<span class="label label-text">{$_('book.pages')}</span>
-					<input type="number" class="input input-bordered input-sm" bind:value={page_count} min="1" />
+				<label class="flex flex-col gap-1">
+					<span class="label label-text">{$_('book.pages')} <span class="text-error">*</span></span>
+					<input type="number" class="input input-bordered input-sm" name="page_count" bind:value={page_count} min="1" required />
 				</label>
 
-				<label class="form-control">
+				<label class="flex flex-col gap-1">
 					<span class="label label-text">{$_('book.language')}</span>
 					<input
 						type="text"
 						class="input input-bordered input-sm"
+						name="language"
 						bind:value={language}
 						maxlength="2"
 						placeholder="EN, DE, FR..."
@@ -389,39 +416,41 @@
 				</label>
 			</div>
 
-			<TagInput bind:value={tags} disabled={saving} fetchSuggestions={(q) => api.books.suggestions.tags(q)} />
+			<TagInput bind:value={tags} name="tags" disabled={saving} fetchSuggestions={(q) => api.books.suggestions.tags(q)} />
 
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.status')}</span>
-				<select class="select select-bordered select-sm" bind:value={reading_status}>
+				<select class="select select-bordered select-sm" name="status" bind:value={reading_status}>
 					{#each STATUS_OPTIONS as opt}
 						<option value={opt.value}>{$_(opt.label)}</option>
 					{/each}
 				</select>
 			</label>
 
-			<div class="form-control">
+			<div class="flex flex-col gap-1">
 				<span class="label label-text">{$_('common.rating')}</span>
-				<StarRating value={rating} onChange={(v) => (rating = v)} />
+				<div>
+					<StarRating value={rating} onChange={(v) => (rating = v)} />
+				</div>
 			</div>
 
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateStarted')}</span>
-				<input type="date" class="input input-bordered input-sm" bind:value={date_started} max={today} />
+				<input type="date" class="input input-bordered input-sm" name="date_started" bind:value={date_started} max={today} />
 			</label>
 
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateFinished')}</span>
-				<input type="date" class="input input-bordered input-sm" bind:value={date_finished} max={today} />
+				<input type="date" class="input input-bordered input-sm" name="date_finished" bind:value={date_finished} max={today} />
 			</label>
 
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.notes')}</span>
-				<textarea class="textarea textarea-bordered text-sm" rows="4" bind:value={notes}></textarea>
+				<textarea class="textarea textarea-bordered text-sm" name="notes" rows="4" bind:value={notes}></textarea>
 			</label>
-			<label class="form-control">
+			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.blurb')}</span>
-				<textarea class="textarea textarea-bordered text-sm" rows="4" bind:value={blurb}></textarea>
+				<textarea class="textarea textarea-bordered text-sm" name="blurb" rows="4" bind:value={blurb}></textarea>
 			</label>
 
 			<CoverPicker bind:value={cover_url} disabled={saving} />
@@ -545,4 +574,12 @@
 			></button>
 		</div>
 	{/if}
+
+	<BarcodeScanner
+		bind:open={scannerOpen}
+		onDetected={(detected) => {
+			isbn = detected;
+			scannerOpen = false;
+		}}
+	/>
 {/if}

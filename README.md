@@ -1,227 +1,106 @@
 # LibrisLog
 
-**Single-user book tracking webapp** — maintain three reading lists (Want to Read, Currently Reading, Read), import books from Open Library & Google Books, scrape cover art, and manage your collection through a modern Svelte dashboard.
+<p align="center">
+  <a href="https://codebude.github.io/librislog/">📚 Full Documentation</a>
+  &nbsp;·&nbsp;
+  <a href="https://codebude.github.io/librislog/guide/getting-started">Quick Start</a>
+  &nbsp;·&nbsp;
+  <a href="https://codebude.github.io/librislog/api/">API Reference</a>
+  &nbsp;·&nbsp;
+  <a href="https://codebude.github.io/librislog/next/">Nightly Docs</a>
+</p>
 
-![Python](https://img.shields.io/badge/python-3.14-%233776AB?logo=python)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-![Svelte](https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Backend tests](https://img.shields.io/badge/tests-628_✔️-2ea44f?logo=pytest)
-![Frontend tests](https://img.shields.io/badge/tests-290_✔️-2ea44f?logo=vitest)
+<p align="center">
+  <a href="https://github.com/codebude/librislog/actions/workflows/tests.yml"><img src="https://github.com/codebude/librislog/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/codebude/librislog/actions/workflows/docker.yml"><img src="https://github.com/codebude/librislog/actions/workflows/docker.yml/badge.svg" alt="Docker Build"></a>
+  <a href="https://codebude.github.io/librislog/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
+  <img src="https://img.shields.io/badge/python-3.14-%233776AB?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte" alt="Svelte">
+  <img src="https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
 
+**Multi-user book tracking webapp** — maintain four reading lists, import books from Open Library & Google Books, scrape cover art, and get rich reading analytics — all on your own hardware.
 
-## AI-Assisted Development Disclaimer
-
-This project was developed with the assistance of AI coding tools (OpenCode CLI) under the following human-supervised workflow:
-
-1. **Requirements engineering** — human specifies the feature
-2. **Agent drafts** — AI agent generates an initial implementation for larger changes
-3. **Plan review** — human reviews and corrects the plan iteratively
-4. **Implementation** — agent writes code guided by the approved plan
-5. **Code review** — agent runs a separate code-review AI model, reports findings
-6. **Human review** — all changes are reviewed and corrected by a human before commit
-
-No AI-generated code is committed without human review and approval.
+> `docker compose up -d` → full data ownership, no vendor lock-in, no API keys required.
 
 ---
 
-## Quick Start (Docker)
+## Quick Start
 
 ```bash
-cp .env.example .env          # review and adjust values
-docker compose up --build -d
+mkdir librislog && cd librislog
+curl -O https://raw.githubusercontent.com/codebude/librislog/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/codebude/librislog/main/.env.example
+cp .env.example .env
+# generate a random secret key
+sed -i "s/CHANGE_ME_TO_32PLUS_CHARS/$(openssl rand -base64 32)/" .env
+docker compose up -d
 ```
 
-The frontend is available at **http://localhost:8001** and the API at **http://localhost:8000**. Health check: `GET /api/health`.
+Open **http://localhost:8001** and create your account.
 
 ---
 
-## Configuration
+## Screenshots
 
-All configuration is done through the `.env` file in the project root. See `.env.example` for defaults.
-
-### Core
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `sqlite:///./data/librislog.db` | SQLite database path |
-| `CORS_ORIGINS` | `["http://localhost", …]` | Allowed CORS origins |
-| `LOG_LEVEL` | `INFO` | Python log level |
-| `API_KEY_ENCRYPTION_KEY` | — | **Required.** 32+ char secret for API key encryption |
-| `FORWARDED_ALLOW_IPS` | `*` | Trusted proxy IPs for forwarded headers. `*` trusts all (recommended behind your own TLS proxy). Set to specific IPs to restrict. |
-
-### Authentication
-
-| Variable | Default | Description |
-|---|---|---|
-| `AUTH_COOKIE_NAME` | `librislog_session` | Session cookie name |
-| `AUTH_COOKIE_SECURE` | `false` | Set `true` in production (HTTPS) |
-| `AUTH_COOKIE_SAMESITE` | `lax` | `lax` \| `strict` \| `none` |
-
-### OIDC (optional)
-
-| Variable | Default | Description |
-|---|---|---|
-| `OIDC_ENABLED` | `false` | Enable OpenID Connect login |
-| `OIDC_CLIENT_ID` | — | OIDC client ID |
-| `OIDC_CLIENT_SECRET` | — | OIDC client secret |
-| `OIDC_WELL_KNOWN_URL` | — | OIDC discovery URL |
-
-### Book import
-
-| Variable | Default | Description |
-|---|---|---|
-| `GOOGLE_BOOKS_API_KEY` | — | Google Books API key (required for Google fallback) |
-| `HARDCOVER_APP_API_TOKEN` | — | Hardcover.app API token (optional source) |
-
-### Cover scraping
-
-| Variable | Default | Description |
-|---|---|---|
-| `COVERS_DIR` | `./data/covers` | Local cover image storage directory |
-| `THALIA_COVER_SEARCH_ENABLED` | `false` | Enable Thalia.de cover scraping. **Research-only:** users must ensure compliance with Thalia's ToS. The author assumes no liability for misuse. |
-
-### Dashboard
-
-| Variable | Default | Description |
-|---|---|---|
-| `DASHBOARD_QUOTE_ENABLED` | `true` | Show motivational quote on dashboard |
-| `DASHBOARD_QUOTE_URL` | *(spark API)* | Quote API endpoint |
-| `DASHBOARD_QUOTE_CACHE_TTL` | `86400` | Quote cache TTL in seconds |
-
-### Frontend (build-time)
-
-| Variable | Default | Description |
-|---|---|---|
-| `PUBLIC_DEFAULT_LOCALE` | `en` | UI default locale: `en` \| `de` |
-
-### Build-time version injection
-
-```bash
-export APP_VERSION=$(git describe --tags --always)
-export GIT_SHA=$(git rev-parse HEAD)
-docker compose up --build -d
-```
-
-Omitting these vars leaves the fallback `v0.0.0-dev` / `unknown`. Version is shown in the sidebar and exposed on the health endpoint.
+<div>
+  <a href="docs/public/screenshots/dashboard.png"><img src="docs/public/screenshots/dashboard-thumb.png" width="270" alt="Dashboard"></a>
+  <a href="docs/public/screenshots/library-read.png"><img src="docs/public/screenshots/library-read-thumb.png" width="270" alt="Library"></a>
+  <a href="docs/public/screenshots/statistics.png"><img src="docs/public/screenshots/statistics-thumb.png" width="270" alt="Statistics"></a>
+</div>
+<div>
+  <a href="docs/public/screenshots/progress-detail.png"><img src="docs/public/screenshots/progress-detail-thumb.png" width="270" alt="Reading Progress"></a>
+  <a href="docs/public/screenshots/data-import.png"><img src="docs/public/screenshots/data-import-thumb.png" width="270" alt="Book Import"></a>
+  <a href="docs/public/screenshots/admin-backup.png"><img src="docs/public/screenshots/admin-backup-thumb.png" width="270" alt="Administration"></a>
+</div>
 
 ---
 
-## Development
+## Why LibrisLog?
 
-### Prerequisites
+- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no tracking, no vendor lock-in. A single SQLite file you can back up anytime.
+- **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
+- **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
+- **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
+- **Import any format you have.** Goodreads CSV with automatic field mapping, generic CSV with per-field Python transforms, JSON, ZIP with covers.
+- **Point your phone at an ISBN barcode.** Real-time barcode scanning in the browser — no native app required.
+- **Cover art from multiple sources.** Automatic search across AbeBooks, Open Library, Amazon, and Hardcover — plus manual upload or URL paste.
+- **Full REST API.** OpenAPI-documented backend you can script against — build your own frontend, connect home automation, or pipe data into your own tools.
+- **Lightweight.** Two Docker containers, one SQLite database.
+- **Bilingual UI.** English and German with a localization framework ready for more languages.
 
-- Python 3.14+
-- Node.js 26+ — use `nvm use` inside `frontend/` (`.nvmrc` is provided)
-- [uv](https://github.com/astral-sh/uv)
+---
 
-### Backend
+## Features
+
+- **Library** — Grid/list view, search and sort, four reading statuses (Want to Read, Currently Reading, Read, Did Not Finish)
+- **Reading progress** — Page-level slider, full progress timeline per book with edit/history
+- **Statistics dashboard** — Calendar heatmap, distribution charts, books finished per period, top authors
+- **Book import** — Search Open Library, Google Books, Hardcover.app. Scan ISBN barcodes on mobile. Manual entry for anything not found
+- **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from Goodreads or any CSV with custom field mapping
+- **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
+- **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
+- **Multi-user** — Admin/user roles, per-user libraries, optional OIDC login
+- **Themes** — Light, dark, and custom DaisyUI themes with persistent preferences
+- **Administration** — Full backup/restore of the SQLite database, user management, API key management
+
+---
+
+## API
+
+The backend is a standalone FastAPI application. The full API is documented via Swagger UI at `/api/docs` when the server is running.
+
+Create API keys from the web UI (Profile → API Keys) for headless access. See the [API Reference](https://codebude.github.io/librislog/api/) for details.
 
 ```bash
 cd backend
 uv sync
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload          # http://localhost:8000
-```
-
-All routes are documented at `/docs` (Swagger UI) when the server is running.
-
-### Frontend
-
-```bash
-cd frontend
-nvm use
-npm install
-npm run dev                                     # http://localhost:5173
-```
-
-The dev server proxies `/api` requests to `http://localhost:8000`.
-
----
-
-## Testing
-
-### Backend (pytest, 628 tests)
-
-```bash
-cd backend
-uv run pytest                                   # runs tests with coverage
-```
-
-### Frontend (Vitest, 290 tests)
-
-```bash
-cd frontend
-npm test                                        # runs tests
-npm run test:coverage                           # runs tests with coverage report
-```
-
-### Frontend type-checking (Svelte validation)
-
-```bash
-cd frontend
-npm run check                                   # runs svelte-check
+uv run uvicorn app.main:app --reload
 ```
 
 ---
-
-## Project Structure
-
-```
-librislog/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                 # FastAPI entry point
-│   │   ├── config.py               # pydantic-settings configuration
-│   │   ├── models.py               # SQLModel ORM models
-│   │   ├── schemas.py              # Pydantic request/response schemas
-│   │   ├── database.py             # DB engine & session dependency
-│   │   ├── auth.py                 # Authentication & session logic
-│   │   ├── oidc.py                 # OpenID Connect integration
-│   │   ├── routers/                # API route handlers
-│   │   │   ├── books.py            # Book CRUD
-│   │   │   ├── auth.py             # Login/logout
-│   │   │   ├── covers.py           # Cover upload/import
-│   │   │   ├── cover_candidates.py # Auto-search covers by ISBN
-│   │   │   ├── data.py             # Data export/import
-│   │   │   ├── import_.py          # Book import (Open Library, Google Books)
-│   │   │   ├── progress.py         # Reading progress
-│   │   │   ├── statistics.py       # Dashboard statistics
-│   │   │   ├── profile.py          # User profile & settings
-│   │   │   ├── admin.py            # Admin endpoints
-│   │   │   ├── users.py            # User management
-│   │   │   ├── health.py           # Health check
-│   │   │   └── docs.py             # Documentation routes
-│   │   └── services/               # Business logic
-│   │       ├── book_import.py      # Open Library & Google Books search
-│   │       ├── cover_import.py     # Cover download & processing
-│   │       ├── cover_storage.py    # Local cover file storage
-│   │       ├── data_export.py      # Export to JSON/CSV/ZIP
-│   │       ├── data_import.py      # Import from JSON/CSV
-│   │       ├── backup_restore.py   # Full DB backup & restore
-│   │       ├── tags.py             # Tag management
-│   │       ├── quote_cache.py      # Dashboard quote caching
-│   │       ├── isbn_utils.py       # ISBN-10/13 conversion
-│   │       └── user_deletion.py    # Account deletion
-│   ├── alembic/                    # Database migrations
-│   ├── tests/                      # 628 pytest tests
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── lib/
-│   │   │   ├── api.ts              # Typed fetch wrappers
-│   │   │   ├── types.ts            # TypeScript interfaces
-│   │   │   ├── toasts.ts           # Toast notification store
-│   │   │   ├── i18n/               # Internationalisation (en, de)
-│   │   │   ├── stores/             # Svelte stores (auth, timezone)
-│   │   │   ├── components/         # 27 Svelte components (41 files incl. tests)
-│   │   │   └── test/               # Test setup & mocks
-│   │   └── routes/                 # SvelteKit pages
-│   └── Dockerfile
-├── docker-compose.yml              # 2 services: backend + frontend
-└── .env.example                    # All configurable variables
-```
 
 ## Stack
 
@@ -230,6 +109,28 @@ librislog/
 | **Backend** | FastAPI, SQLModel, SQLite, Alembic, Pydantic v2 |
 | **Frontend** | Svelte 5, SvelteKit, Tailwind CSS v4, DaisyUI v5 |
 | **Auth** | Session cookies, optional OIDC (Authlib) |
-| **Reverse proxy** | nginx (embedded in frontend container) |
+| **Deployment** | Docker, Docker Compose |
 | **Package managers** | `uv` (Python), `npm` (Node) |
-| **Testing** | pytest + pytest-cov (backend), Vitest + Testing Library (frontend) |
+| **Testing** | pytest + pytest-cov (backend), Vitest + Testing Library (frontend), Playwright (E2E) |
+
+---
+
+## Contributing
+
+See the [Developer Setup](https://codebude.github.io/librislog/guide/developer-setup) guide for instructions on running LibrisLog locally, running tests, and using the CLI tool.
+
+This project was developed with the assistance of AI coding tools under a human-supervised workflow. No AI-generated code is committed without human review and approval.
+
+## License
+
+MIT
+
+## Star History
+
+<a href="https://www.star-history.com/#codebude/librislog&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=Date" />
+  </picture>
+</a>

@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import '$lib/chartjs/register';
 
 // --- Polyfill crypto.randomUUID for happy-dom ---
 if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
@@ -56,6 +57,11 @@ vi.mock('$app/navigation', () => ({
 	beforeNavigate: () => {},
 	afterNavigate: () => {},
 	onNavigate: () => () => {}
+}));
+
+// --- Mock animal-avatar-generator (ESM resolution issues in vitest) ---
+vi.mock('animal-avatar-generator', () => ({
+	default: () => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#8a9aae"/></svg>'
 }));
 
 // --- Reset DOM between tests ---

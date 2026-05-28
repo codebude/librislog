@@ -4,18 +4,23 @@
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
 	import ImportMappingEditor from '$lib/components/ImportMappingEditor.svelte';
+	import { highlightJson } from '$lib/utils/prism';
 	import type {
 		DataImportEvent,
 		DataImportMappingListItem,
 		DataImportParseResponse,
-		DataImportValidateResponse
+		DataImportValidateResponse,
+		DataImportPreviewResponse,
+		ImportFieldConfig
 	} from '$lib/types';
 
 	let selectedFile = $state<File | null>(null);
 	let parsing = $state(false);
 	let parsed = $state<DataImportParseResponse | null>(null);
-	let mapping = $state<Record<string, string>>({});
+	let mapping = $state<Record<string, ImportFieldConfig>>({});
 	let dbFields = $state<string[]>([]);
+	let preview = $state<DataImportPreviewResponse | null>(null);
+	let loadingPreview = $state(false);
 	let validating = $state(false);
 	let validation = $state<DataImportValidateResponse | null>(null);
 	let importMode = $state<'rollback_all' | 'continue_on_error'>('rollback_all');
@@ -29,7 +34,7 @@
 	let mappings = $state<DataImportMappingListItem[]>([]);
 	let loadingMappings = $state(false);
 	let selectedMappingId = $state('');
-	let showMappingPreview = $state(false);
+	let selectedMappingIsPredefined = $derived(mappings.find((m) => String(m.id) === selectedMappingId)?.is_predefined ?? false);
 	let showAllValidation = $state(false);
 	let showAllFailures = $state(false);
 	let importAbortController = $state<AbortController | null>(null);
@@ -37,6 +42,8 @@
 	let fileInput: HTMLInputElement | undefined = $state();
 	let pendingDeleteMappingId = $state<number | null>(null);
 	let pendingImportStart = $state(false);
+	let previewMappingSnapshot = $state<string | null>(null);
+	let isPreviewStale = $derived(previewMappingSnapshot !== null && previewMappingSnapshot !== JSON.stringify(mapping));
 
 	function resetFlow() {
 		parsed = null;
@@ -50,7 +57,6 @@
 		importResult = null;
 		showAllValidation = false;
 		showAllFailures = false;
-		showMappingPreview = false;
 	}
 
 	async function refreshMappings() {
@@ -103,14 +109,17 @@
 		}
 	}
 
+	let missingMappingFields = $state<Array<{ target: string; source: string }>>([]);
+
 	async function loadMapping(id: number) {
 		try {
 			const saved = await api.data.getMapping(id);
 			mapping = saved.mapping;
-			mappingName = saved.name;
-			const missing = Object.keys(saved.mapping).filter((source) => !parsed?.source_fields.includes(source));
-			if (missing.length > 0) {
-				toasts.add($_('data.import.mappingMissingFields', { values: { count: missing.length } }), 'error');
+			missingMappingFields = Object.entries(saved.mapping)
+				.filter(([, config]) => config.source && !parsed?.source_fields.includes(config.source))
+				.map(([target, config]) => ({ target, source: config.source }));
+			if (!saved.is_predefined) {
+				mappingName = saved.name;
 			}
 		} catch (err: unknown) {
 			toasts.add(err instanceof Error ? err.message : $_('data.import.errors.loadMappingFailed'), 'error');
@@ -119,13 +128,13 @@
 
 	async function loadSelectedMapping() {
 		const id = Number(selectedMappingId);
-		if (!Number.isFinite(id) || id <= 0) return;
+		if (!Number.isFinite(id) || id === 0) return;
 		await loadMapping(id);
 	}
 
 	function openDeleteMappingModal() {
 		const id = Number(selectedMappingId);
-		if (!Number.isFinite(id) || id <= 0) return;
+		if (!Number.isFinite(id) || id === 0 || selectedMappingIsPredefined) return;
 		pendingDeleteMappingId = id;
 	}
 
@@ -254,23 +263,35 @@
 		return showAllFailures ? importResult.failures : importResult.failures.slice(0, 8);
 	});
 
-	const mappedPreviewColumns = $derived.by(() => {
-		return Object.entries(mapping)
-			.filter(([, target]) => Boolean(target))
-			.map(([source, target]) => ({ source, target }));
-	});
-
-	const mappedPreviewRows = $derived.by(() => {
-		if (!parsed) return [];
-		return parsed.sample_rows.map((sample) => {
-			const row: Record<string, unknown> = {};
-			for (const [source, target] of Object.entries(mapping)) {
-				if (!target) continue;
-				row[target] = sample[source] ?? null;
+	function formatError(err: string): string {
+		if (err.startsWith('\x1f')) {
+			const idx = err.indexOf('\x1f', 1);
+			if (idx !== -1) {
+				const field = err.slice(1, idx);
+				const error = err.slice(idx + 1);
+				return $_('data.import.transformError', { values: { field, error } });
 			}
-			return row;
-		});
-	});
+		}
+		return err;
+	}
+
+	async function fetchPreview() {
+		if (!parsed) return;
+		loadingPreview = true;
+		try {
+			preview = await api.data.previewImport({ file_id: parsed.file_id, mapping });
+			previewMappingSnapshot = JSON.stringify(mapping);
+		} catch (err: unknown) {
+			toasts.add(err instanceof Error ? err.message : $_('data.import.errors.previewFailed'), 'error');
+		} finally {
+			loadingPreview = false;
+		}
+	}
+
+	function resetPreview() {
+		preview = null;
+		previewMappingSnapshot = null;
+	}
 </script>
 
 <div class="grid gap-4 min-w-0">
@@ -309,6 +330,7 @@
 				<input
 					bind:this={fileInput}
 					type="file"
+					name="import-file"
 					class="hidden"
 					accept=".csv,.json"
 					aria-label={$_('data.import.fileInputLabel')}
@@ -322,8 +344,9 @@
 				</button>
 			</div>
 			{#if parsed}
-				<p class="text-xs text-base-content/60">
-					{$_('data.import.fileSummary', { values: { rows: parsed.row_count, fields: parsed.source_fields.length } })}
+				<p class="text-xs text-base-content/60 flex items-center gap-2">
+					<span>{$_('data.import.fileSummary', { values: { rows: parsed.row_count, fields: parsed.source_fields.length } })}</span>
+					<button class="btn btn-ghost btn-xs" onclick={() => { resetFlow(); selectedFile = null; if (fileInput) fileInput.value = ''; }}>{$_('data.import.changeFile')}</button>
 				</p>
 			{/if}
 		</div>
@@ -338,7 +361,7 @@
 					<div class="grid md:grid-cols-[1fr_auto] gap-2 items-end">
 						<label class="form-control">
 							<span class="label-text text-xs">{$_('data.import.mappingName')}</span>
-							<input class="input input-bordered input-sm" bind:value={mappingName} />
+							<input class="input input-bordered input-sm" name="mapping-name" bind:value={mappingName} />
 						</label>
 						<button class="btn btn-outline btn-sm" onclick={saveMapping} disabled={!mappingName.trim()}>
 							{$_('data.import.saveMapping')}
@@ -348,62 +371,87 @@
 					<div class="grid md:grid-cols-[1fr_auto_auto] gap-2 items-end">
 						<label class="form-control">
 							<span class="label-text text-xs">{$_('data.import.loadSavedMapping')}</span>
-							<select class="select select-bordered select-sm" bind:value={selectedMappingId} disabled={mappings.length === 0}>
+							<select class="select select-bordered select-sm" name="load-mapping" bind:value={selectedMappingId} disabled={mappings.length === 0}>
 								<option value="">{$_('data.import.selectMapping')}</option>
 								{#each mappings as item}
-									<option value={String(item.id)}>{item.name}</option>
+									<option value={String(item.id)}>
+										{item.is_predefined ? `${item.name} (${$_('data.import.readonlyMapping')})` : item.name}
+									</option>
 								{/each}
 							</select>
 						</label>
 						<button class="btn btn-outline btn-sm" onclick={loadSelectedMapping} disabled={!selectedMappingId}>
 							{$_('data.import.loadMapping')}
 						</button>
-						<button class="btn btn-outline btn-error btn-sm" onclick={openDeleteMappingModal} disabled={!selectedMappingId}>
+						<button class="btn btn-outline btn-error btn-sm" onclick={openDeleteMappingModal} disabled={!selectedMappingId || selectedMappingIsPredefined}>
 							{$_('data.import.deleteMapping')}
 						</button>
 					</div>
+					{#if missingMappingFields.length > 0}
+						<div class="alert alert-warning text-sm p-3 flex items-start gap-2">
+							<div class="flex-1">
+								<p class="font-medium">{$_('data.import.missingFieldsTitle')}</p>
+								<ul class="list-disc pl-4 mt-1 text-xs">
+									{#each missingMappingFields as m}
+										<li>{$_('data.import.missingFieldEntry', { values: { target: m.target, source: m.source } })}</li>
+									{/each}
+								</ul>
+							</div>
+							<button class="btn btn-ghost btn-xs btn-square shrink-0" onclick={() => (missingMappingFields = [])} aria-label={$_('common.close')}>✕</button>
+						</div>
+					{/if}
 					{#if mappings.length === 0}
 						<p class="text-xs text-base-content/60">{$_('data.import.noSavedMappings')}</p>
 					{/if}
 				</div>
 
-				<div>
-					<button class="btn btn-ghost btn-sm" onclick={() => (showMappingPreview = !showMappingPreview)}>
-						{showMappingPreview ? $_('data.import.hidePreview') : $_('data.import.showPreview')}
-					</button>
-				</div>
-
 				<div class="min-w-0">
 					<ImportMappingEditor sourceFields={parsed.source_fields} {dbFields} {mapping} onChange={(next) => (mapping = next)} />
 				</div>
+			</div>
+		</div>
 
-				{#if showMappingPreview}
-					<div class="w-full max-w-full min-w-0 overflow-x-auto overflow-y-hidden border border-base-200 rounded-lg">
-						{#if mappedPreviewColumns.length === 0}
-							<div class="p-3 text-sm text-base-content/70">{$_('data.import.previewNoMappedFields')}</div>
-						{:else}
-							<table class="table table-zebra table-xs w-max min-w-full">
-								<thead>
-									<tr>
-										<th>#</th>
-										{#each mappedPreviewColumns as column}
-											<th>{column.target} <span class="text-base-content/60">({column.source})</span></th>
-										{/each}
-									</tr>
-								</thead>
-								<tbody>
-									{#each mappedPreviewRows as row, idx}
-										<tr>
-											<td>{idx + 1}</td>
-											{#each mappedPreviewColumns as column}
-												<td class="max-w-56 truncate" title={String(row[column.target] ?? '-')}>{row[column.target] ?? '-'}</td>
-											{/each}
-										</tr>
+		<div class="card bg-base-100 border border-base-200 shadow-sm min-w-0">
+			<div class="card-body gap-3">
+				<div class="flex flex-wrap items-center gap-2">
+					<h3 class="font-semibold">{$_('data.import.previewTitle')}</h3>
+					<button class="btn btn-outline btn-sm" onclick={fetchPreview} disabled={loadingPreview}>
+						{loadingPreview ? $_('data.import.previewLoading') : $_('data.import.previewButton')}
+					</button>
+					{#if isPreviewStale}
+						<span class="badge badge-warning badge-sm">{$_('data.import.previewStale')}</span>
+					{/if}
+				</div>
+				{#if preview}
+					{#if (preview.errors ?? []).length > 0}
+						<div class="alert alert-warning text-sm">
+							{#each preview.errors ?? [] as err}
+								<p>{formatError(err)}</p>
+							{/each}
+						</div>
+					{/if}
+					{#each preview.preview_rows as row}
+						<div class="border border-base-200 rounded-lg p-3">
+							<p class="text-xs font-semibold text-base-content/60 mb-2">{$_('data.import.previewRow', { values: { row: row.row_number } })}</p>
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+								<div>
+									<p class="text-xs text-base-content/50 mb-1">{$_('data.import.previewSource')}</p>
+									<pre class="text-xs font-mono bg-base-200 p-2 rounded overflow-x-auto">{@html highlightJson(JSON.stringify(row.source, null, 2))}</pre>
+								</div>
+								<div>
+									<p class="text-xs text-base-content/50 mb-1">{$_('data.import.previewTransformed')}</p>
+									<pre class="text-xs font-mono bg-base-200 p-2 rounded overflow-x-auto">{@html highlightJson(JSON.stringify(row.transformed, null, 2))}</pre>
+								</div>
+							</div>
+							{#if (row.errors ?? []).length > 0}
+								<div class="mt-2 text-xs text-error">
+									{#each row.errors as err}
+										<p>• {formatError(err)}</p>
 									{/each}
-								</tbody>
-							</table>
-						{/if}
-					</div>
+								</div>
+							{/if}
+						</div>
+					{/each}
 				{/if}
 			</div>
 		</div>
@@ -415,12 +463,12 @@
 					<button class="btn btn-primary btn-sm" onclick={simulate} disabled={validating}>
 						{validating ? $_('data.import.validating') : $_('data.import.simulate')}
 					</button>
-					<select class="select select-bordered select-sm" bind:value={importMode}>
+					<select class="select select-bordered select-sm" name="import-mode" bind:value={importMode}>
 						<option value="rollback_all">{$_('data.import.rollbackAll')}</option>
 						<option value="continue_on_error">{$_('data.import.continueOnError')}</option>
 					</select>
 					<label class="label cursor-pointer gap-2">
-						<input type="checkbox" class="checkbox checkbox-sm" bind:checked={createProgressForRead} />
+						<input type="checkbox" class="checkbox checkbox-sm" name="create-progress" bind:checked={createProgressForRead} />
 						<span class="label-text text-xs">{$_('data.import.createProgressForRead')}</span>
 					</label>
 					<button class="btn btn-secondary btn-sm" onclick={openImportModal} disabled={importing || !!(validation && !validation.valid)}>
@@ -448,7 +496,7 @@
 						{#if validation.errors.length > 0}
 							<ul class="list-disc pl-5 text-error">
 								{#each visibleErrors as error}
-									<li>{error}</li>
+									<li>{formatError(error)}</li>
 								{/each}
 							</ul>
 						{/if}
@@ -473,7 +521,7 @@
 						{#if importResult.failures.length > 0}
 							<ul class="list-disc pl-5 text-error">
 								{#each visibleFailures as failure}
-									<li>Row {failure.row}: {failure.error}</li>
+									<li>{$_('data.import.errorRow', { values: { row: failure.row } })} {formatError(failure.error)}</li>
 								{/each}
 							</ul>
 							{#if importResult.failures.length > 8}
@@ -518,3 +566,10 @@
 		<button type="button" onclick={closeImportModal}>{$_('common.close')}</button>
 	</form>
 </dialog>
+
+<style>
+	:global(.hl-json-key) { color: #7c3aed; }
+	:global(.hl-json-string) { color: #059669; }
+	:global(.hl-json-number) { color: #d97706; }
+	:global(.hl-json-bool) { color: #2563eb; }
+</style>

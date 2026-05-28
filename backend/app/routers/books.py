@@ -14,6 +14,7 @@ from app.database import get_session
 from app.models import Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
+    BookListResponse,
     BookRead,
     BookUpdate,
     DashboardQuote,
@@ -80,7 +81,7 @@ def _validate_dates(data: dict) -> None:
             if val.tzinfo is None:
                 val = val.replace(tzinfo=timezone.utc)
             if val > now:
-                raise HTTPException(status_code=422, detail="error.dateInFuture")
+                raise HTTPException(status_code=422, detail="Date cannot be in the future.")
     ds = data.get("date_started")
     df = data.get("date_finished")
     if ds is not None and df is not None and ds.tzinfo is None:
@@ -88,7 +89,7 @@ def _validate_dates(data: dict) -> None:
     if df is not None and df.tzinfo is None:
         df = df.replace(tzinfo=timezone.utc)
     if ds is not None and df is not None and ds > df:
-        raise HTTPException(status_code=422, detail="error.dateStartedAfterFinished")
+        raise HTTPException(status_code=422, detail="Start date cannot be after finish date.")
 
 
 def _validate_date_finished_for_read(
@@ -104,7 +105,7 @@ def _validate_date_finished_for_read(
     if book.date_finished is None:
         return
     if book.reading_status == ReadingStatus.read and target_status == ReadingStatus.read:
-        raise HTTPException(status_code=422, detail="error.dateFinishedRequiredForRead")
+        raise HTTPException(status_code=422, detail="A finished book must have an end date. Change the status if you want to remove the finish date.")
 
 
 def _normalize_language(language: str | None) -> str | None:
@@ -115,7 +116,7 @@ def _normalize_language(language: str | None) -> str | None:
     if not normalized:
         return None
     if len(normalized) != 2 or not normalized.isalpha():
-        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+        raise HTTPException(status_code=422, detail="Language must be a 2-letter ISO code (for example: EN, DE, FR).")
     return normalized
 
 
@@ -123,11 +124,11 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     """Convert ISBN unique-constraint violations to HTTP 409."""
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
     if "book.isbn" in message and "unique" in message:
-        raise HTTPException(status_code=409, detail="error.isbnAlreadyExists") from exc
+        raise HTTPException(status_code=409, detail="This ISBN is already used by another book.") from exc
     raise
 
 
-@router.get("", response_model=List[BookRead])
+@router.get("", response_model=BookListResponse)
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
     q: Optional[str] = Query(default=None),
@@ -140,7 +141,7 @@ def list_books(
     limit: Optional[int] = Query(default=None, ge=1, le=200),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> List[BookRead]:
+) -> BookListResponse:
     """List books for the authenticated user with filtering, sorting, and pagination.
 
     ``smart_sort`` overrides *sort*/*order* when a status filter is active:
@@ -151,10 +152,10 @@ def list_books(
         "list_books — status=%r q=%r sort=%s order=%s smart_sort=%s",
         status, q, sort, order, smart_sort,
     )
-    statement = select(Book).where(Book.user_id == current_user.id)
+    base_statement = select(Book).where(Book.user_id == current_user.id)
 
     if status is not None:
-        statement = statement.where(Book.reading_status == status)
+        base_statement = base_statement.where(Book.reading_status == status)
 
     if q:
         pattern = f"%{q}%"
@@ -162,7 +163,7 @@ def list_books(
             Tag.user_id == current_user.id,
             Tag.name.ilike(pattern),
         )
-        statement = statement.where(
+        base_statement = base_statement.where(
             or_(
                 Book.title.ilike(pattern),
                 Book.subtitle.ilike(pattern),
@@ -171,6 +172,10 @@ def list_books(
                 Book.id.in_(matching_tag_book_ids),
             )
         )
+
+    total = session.exec(
+        select(func.count()).select_from(base_statement.subquery())
+    ).one()
 
     if smart_sort and status is not None:
         sort_col = STATUS_DEFAULT_SORT_COLUMN[status]
@@ -195,13 +200,16 @@ def list_books(
     if sort_col in (Book.date_started, Book.date_finished):
         sort_expression = sort_expression.nullslast()
 
-    statement = statement.order_by(sort_expression).offset(offset)
+    statement = base_statement.order_by(sort_expression).offset(offset)
     if limit is not None:
         statement = statement.limit(limit)
 
     books = list(session.exec(statement).all())
-    logger.debug("list_books — returning %d book(s)", len(books))
-    return [build_book_read(session, book) for book in books]
+    logger.debug("list_books — returning %d/%d book(s)", len(books), total)
+    return BookListResponse(
+        books=[build_book_read(session, book) for book in books],
+        total=total,
+    )
 
 
 @router.get("/stats", response_model=LibraryStats)

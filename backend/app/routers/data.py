@@ -2,6 +2,7 @@
 
 import json
 import asyncio
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
@@ -19,21 +20,27 @@ from app.schemas import (
     DataImportMappingRead,
     DataImportMappingSave,
     DataImportParseResponse,
+    DataImportPreviewRequest,
+    DataImportPreviewResponse,
     DataImportRunRequest,
     DataImportSuggestRequest,
     DataImportSuggestResponse,
     DataImportValidateRequest,
     DataImportValidateResponse,
+    ImportFieldConfig,
 )
 from app.time_utils import utcnow
 from app.services.data_export import build_export_zip
 from app.services.data_import import (
     BOOK_IMPORT_FIELDS,
+    PREDEFINED_MAPPINGS,
     compute_schema_fingerprint,
     delete_parsed_upload,
     execute_import,
+    get_predefined_mapping,
     load_parsed_upload,
     parse_upload,
+    preview_import,
     suggest_mapping,
     validate_import,
 )
@@ -43,13 +50,15 @@ router = APIRouter(prefix="/api/data", tags=["data"])
 
 def _mapping_read(model: ImportMapping) -> DataImportMappingRead:
     """Convert an ImportMapping DB model to its response schema."""
+    raw_mapping = json.loads(model.mapping_json)
     return DataImportMappingRead(
         id=model.id or 0,
         name=model.name,
         source_fields=json.loads(model.source_fields_json),
-        mapping=json.loads(model.mapping_json),
+        mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
         created_at=model.created_at,
         updated_at=model.updated_at,
+        is_predefined=False,
     )
 
 
@@ -61,7 +70,7 @@ def export_data(
 ) -> Response:
     """Export user data as a ZIP archive with CSV or JSON datasets."""
     if not body.datasets:
-        raise HTTPException(status_code=400, detail="error.exportNoDatasets")
+        raise HTTPException(status_code=400, detail="Select at least one dataset to export.")
     zip_bytes, filename = build_export_zip(
         session=session,
         user=current_user,
@@ -90,7 +99,7 @@ async def parse_import_file(
         "text/plain",
     }
     if file.content_type and file.content_type not in allowed_content_types:
-        raise HTTPException(status_code=415, detail="error.importUnsupportedContentType")
+        raise HTTPException(status_code=415, detail="Unsupported upload content type. Use CSV or JSON files.")
     try:
         payload = parse_upload(await file.read(), file.filename or "upload", current_user.id)
     except (ValueError, json.JSONDecodeError) as exc:
@@ -132,9 +141,10 @@ def save_import_mapping(
         )
     ).first()
 
+    mapping_dict = {k: v.model_dump() for k, v in body.mapping.items()}
     if existing:
         existing.source_fields_json = json.dumps(body.source_fields)
-        existing.mapping_json = json.dumps(body.mapping)
+        existing.mapping_json = json.dumps(mapping_dict)
         existing.schema_fingerprint = schema_fingerprint
         existing.updated_at = now
         session.add(existing)
@@ -147,7 +157,7 @@ def save_import_mapping(
         name=body.name,
         schema_fingerprint=schema_fingerprint,
         source_fields_json=json.dumps(body.source_fields),
-        mapping_json=json.dumps(body.mapping),
+        mapping_json=json.dumps(mapping_dict),
         created_at=now,
         updated_at=now,
     )
@@ -156,7 +166,7 @@ def save_import_mapping(
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="error.importMappingNameConflict") from exc
+        raise HTTPException(status_code=409, detail="A mapping with this name already exists.") from exc
     session.refresh(mapping)
     return _mapping_read(mapping)
 
@@ -166,7 +176,18 @@ def list_import_mappings(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> list[DataImportMappingListItem]:
-    """List saved import mappings, newest first."""
+    """List saved and predefined import mappings."""
+    epoch = datetime(2000, 1, 1)
+    predefined: list[DataImportMappingListItem] = [
+        DataImportMappingListItem(
+            id=int(pm["id"]),  # type: ignore[arg-type]
+            name=str(pm["name"]),
+            created_at=epoch,
+            updated_at=epoch,
+            is_predefined=True,
+        )
+        for pm in PREDEFINED_MAPPINGS
+    ]
     rows = list(
         session.exec(
             select(ImportMapping)
@@ -174,7 +195,7 @@ def list_import_mappings(
             .order_by(ImportMapping.updated_at.desc())
         ).all()
     )
-    return [
+    user_mappings = [
         DataImportMappingListItem(
             id=row.id or 0,
             name=row.name,
@@ -183,6 +204,7 @@ def list_import_mappings(
         )
         for row in rows
     ]
+    return predefined + user_mappings
 
 
 @router.get("/import/mappings/{mapping_id}", response_model=DataImportMappingRead)
@@ -191,10 +213,25 @@ def get_import_mapping(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> DataImportMappingRead:
-    """Return a single saved import mapping by ID."""
+    """Return a single import mapping by ID (supports predefined mappings with negative IDs)."""
+    if mapping_id < 0:
+        pm = get_predefined_mapping(mapping_id)
+        if pm is None:
+            raise HTTPException(status_code=404, detail="Predefined mapping not found.")
+        raw_mapping: Any = pm.get("mapping")
+        raw_sources: Any = pm.get("source_fields", [])
+        return DataImportMappingRead(
+            id=mapping_id,
+            name=str(pm.get("name", "")),
+            source_fields=list(raw_sources),
+            mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
+            created_at=datetime(2000, 1, 1),
+            updated_at=datetime(2000, 1, 1),
+            is_predefined=True,
+        )
     row = session.get(ImportMapping, mapping_id)
     if not row or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="error.importMappingNotFound")
+        raise HTTPException(status_code=404, detail="Import mapping not found.")
     return _mapping_read(row)
 
 
@@ -204,10 +241,12 @@ def delete_import_mapping(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> None:
-    """Delete a saved import mapping."""
+    """Delete a saved import mapping. Predefined mappings cannot be deleted."""
+    if mapping_id < 0:
+        raise HTTPException(status_code=403, detail="Predefined mappings cannot be deleted.")
     row = session.get(ImportMapping, mapping_id)
     if not row or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="error.importMappingNotFound")
+        raise HTTPException(status_code=404, detail="Import mapping not found.")
     session.delete(row)
     session.commit()
 
@@ -227,6 +266,19 @@ def validate_import_data(
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return DataImportValidateResponse.model_validate(payload)
+
+
+@router.post("/import/preview", response_model=DataImportPreviewResponse)
+def preview_import_data(
+    body: DataImportPreviewRequest,
+    current_user: User = Depends(require_user),
+) -> DataImportPreviewResponse:
+    """Preview how a mapping and transforms will affect the first rows."""
+    try:
+        payload = preview_import(body.file_id, current_user, body.mapping)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return DataImportPreviewResponse.model_validate(payload)
 
 
 @router.post("/import/execute")

@@ -101,7 +101,7 @@ def delete_user(
     if admin.id == user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="error.cannotDeleteOwnAccountHere",
+            detail="You cannot delete your own account here. Use Profile > Danger Zone.",
         )
 
     user = session.get(User, user_id)

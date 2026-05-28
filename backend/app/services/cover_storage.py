@@ -3,7 +3,7 @@ Local cover image storage service.
 
 Downloads cover images from external URLs, stores them on disk with an atomic
 write, and returns the local filename.  Callers fall back to the original URL
-when this module returns None.
+when this module returns ``None``.
 """
 
 import hashlib
@@ -13,6 +13,11 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+from sqlalchemy import text
+from sqlmodel import Session, col, select
+
+from app.config import settings
+from app.models import Book
 
 logger = logging.getLogger(__name__)
 
@@ -213,3 +218,47 @@ def delete_cover_file(filename: str, covers_dir: str | Path) -> bool:
 
     logger.debug("Deleted cover: %s", filename)
     return True
+
+
+def cleanup_orphan_covers(session: Session, grace_minutes: int = 60) -> int:
+    """Delete cover files on disk that are no longer referenced by any book.
+
+    Only files older than *grace_minutes* are considered for deletion, to
+    avoid removing covers that were just uploaded but not yet saved to the
+    book entry.
+
+    Args:
+        session: Database session for querying book cover URLs.
+        grace_minutes: Minimum age in minutes before an orphaned file is
+            eligible for deletion. Defaults to 60.
+
+    Returns:
+        Number of orphaned files deleted.
+    """
+    import time
+
+    covers_path = Path(settings.covers_dir)
+    if not covers_path.exists():
+        return 0
+
+    referenced = {
+        url.removeprefix("/api/covers/")
+        for url in session.exec(select(Book.cover_url).where(col(Book.cover_url).is_not(None))).all()
+        if url and url.startswith("/api/covers/")
+    }
+
+    cutoff = time.time() - (grace_minutes * 60)
+    deleted = 0
+    for filename in covers_path.iterdir():
+        if filename.is_file() and filename.name not in referenced:
+            try:
+                if filename.stat().st_mtime > cutoff:
+                    logger.debug("Skipping recently modified cover: %s", filename.name)
+                    continue
+                filename.unlink()
+                logger.info("Deleted orphaned cover: %s", filename.name)
+                deleted += 1
+            except OSError as exc:
+                logger.warning("Failed to delete orphaned cover %s: %s", filename.name, exc)
+
+    return deleted

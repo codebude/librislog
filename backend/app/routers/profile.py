@@ -47,7 +47,7 @@ DELETE_ACCOUNT_PHRASE: str = "DELETE MY ACCOUNT"
 def _validate_confirmation(confirmation: str, expected_phrase: str) -> None:
     """Validate that *confirmation* matches *expected_phrase* exactly."""
     if confirmation.strip() != expected_phrase:
-        raise HTTPException(status_code=400, detail="error.invalidConfirmationPhrase")
+        raise HTTPException(status_code=400, detail="Confirmation phrase does not match.")
 
 
 @router.get("", response_model=UserRead)
@@ -95,6 +95,8 @@ def get_settings(
         language=settings.language,
         timezone=settings.timezone,
         quote_service_enabled=app_settings.dashboard_quote_enabled,
+        theme=settings.theme,
+        custom_theme=settings.custom_theme,
     )
 
 
@@ -110,7 +112,10 @@ def update_settings(
     ).first()
     if not settings:
         settings = UserSettings(user_id=current_user.id, language="en")
-    settings.sqlmodel_update(body.model_dump(exclude_unset=True))
+    update_data = body.model_dump(exclude_unset=True)
+    settings.sqlmodel_update(update_data)
+    if settings.theme != 'custom':
+        settings.custom_theme = None
     session.add(settings)
     session.commit()
     session.refresh(settings)
@@ -119,6 +124,8 @@ def update_settings(
         language=settings.language,
         timezone=settings.timezone,
         quote_service_enabled=app_settings.dashboard_quote_enabled,
+        theme=settings.theme,
+        custom_theme=settings.custom_theme,
     )
 
 

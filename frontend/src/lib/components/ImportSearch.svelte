@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
+	import { ScanBarcode } from '@lucide/svelte';
 
 	let {
 		onImport,
@@ -35,6 +36,7 @@
 	onMount(async () => {
 		cameraSupported =
 			typeof navigator !== 'undefined' &&
+			window.isSecureContext &&
 			!!navigator.mediaDevices &&
 			typeof navigator.mediaDevices.getUserMedia === 'function';
 		await refreshImportedLookups();
@@ -136,8 +138,8 @@
 
 	async function refreshImportedLookups() {
 		try {
-			const books = await api.books.list();
-			updateImportedLookups(books);
+			const response = await api.books.list();
+			updateImportedLookups(response.books);
 		} catch {
 			// Best-effort only; search and import still works without markers.
 		}
@@ -240,44 +242,45 @@
 	}
 </script>
 
-<div class="flex flex-col gap-3">
-	<div class="flex gap-2">
+<div class="flex flex-col gap-3 sm:pr-4">
+	<div class="flex flex-col sm:flex-row sm:items-center gap-2 grow basis-[0] min-w-[240px]">
 		<input
 			type="text"
-			class="input input-bordered input-sm flex-1"
+			name="import-query"
+			class="input input-bordered w-full sm:w-auto sm:grow sm:min-w-0"
 			placeholder={searchType === 'isbn' ? $_('import.enterIsbn') : $_('import.searchByTitleOrAuthor')}
 			bind:value={query}
 			onkeydown={(e) => e.key === 'Enter' && search()}
 		/>
-		<select class="select select-bordered select-sm" bind:value={searchType}>
-			<option value="title">{$_('book.title')}</option>
-			<option value="isbn">{$_('book.isbn')}</option>
-		</select>
-		{#if cameraSupported}
+		<div class="flex gap-2 w-full sm:w-auto">
+			<select class="select select-bordered min-w-fit max-sm:flex-1" name="import-type" bind:value={searchType}>
+				<option value="title">{$_('book.title')}</option>
+				<option value="isbn">{$_('book.isbn')}</option>
+			</select>
+			<button class="btn btn-primary shrink-0 max-sm:flex-1" onclick={search} disabled={searching}>
+				{searching ? $_('common.loadingEllipsis') : $_('common.search')}
+			</button>
+		</div>
+	</div>
+	{#if cameraSupported}
+		<div class="flex flex-col items-center sm:flex-row sm:items-center gap-3">
+			<div class="flex items-center gap-2 text-sm text-base-content/50 select-none">
+				<div class="h-px w-8 bg-base-300 sm:hidden"></div>
+				<span>{$_('import.or')}</span>
+				<div class="h-px w-8 bg-base-300 sm:hidden"></div>
+			</div>
 			<button
-				class="btn btn-outline btn-sm"
+				class="btn btn-outline"
 				onclick={() => onOpenScanner?.()}
 				disabled={searching}
 				title={$_('import.scanIsbn')}
 				aria-label={$_('import.scanIsbn')}
 			>
-				<svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
-					<rect x="2" y="4" width="1" height="16" fill="currentColor" />
-					<rect x="4" y="4" width="2" height="16" fill="currentColor" />
-					<rect x="7" y="4" width="1" height="16" fill="currentColor" />
-					<rect x="9" y="4" width="3" height="16" fill="currentColor" />
-					<rect x="13" y="4" width="1" height="16" fill="currentColor" />
-					<rect x="15" y="4" width="2" height="16" fill="currentColor" />
-					<rect x="18" y="4" width="1" height="16" fill="currentColor" />
-					<rect x="20" y="4" width="2" height="16" fill="currentColor" />
-				</svg>
+				<ScanBarcode class="w-4 h-4" />
 				<span>{$_('import.scan')}</span>
 			</button>
-		{/if}
-		<button class="btn btn-primary btn-sm" onclick={search} disabled={searching}>
-			{searching ? $_('common.loadingEllipsis') : $_('common.search')}
-		</button>
-	</div>
+		</div>
+	{/if}
 
 	{#if stages.length > 0}
 		<ul class="flex flex-col gap-1 text-sm">

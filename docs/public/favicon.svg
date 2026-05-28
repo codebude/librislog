@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .book { fill: #4a6fa5; }
+    .pages { fill: #f8f6f3; }
+    .bookmark { fill: #6b7d94; }
+    .check-bg { fill: #6b7d94; }
+    .check { stroke: #f8f6f3; }
+
+    @media (prefers-color-scheme: dark) {
+      .book { fill: #7a9bc7; }
+      .pages { fill: #1a1a2e; }
+      .bookmark { fill: #9aadbf; }
+      .check-bg { fill: #9aadbf; }
+      .check { stroke: #1a1a2e; }
+    }
+  </style>
+
+  <!-- Book cover -->
+  <path class="book" d="M 18 22 L 82 18 Q 88 18 88 24 L 88 76 Q 88 82 82 82 L 18 86 Q 12 86 12 80 L 12 28 Q 12 22 18 22 Z" />
+  <!-- Pages -->
+  <path class="pages" d="M 18 22 L 82 18 Q 86 18 86 22 L 86 24 Q 86 28 82 28 L 18 32 Q 14 32 14 28 L 14 26 Q 14 22 18 22 Z" />
+  <!-- Spine -->
+  <path class="book" opacity="0.8" d="M 12 28 L 12 80 Q 12 86 18 86 L 20 86 Q 14 86 14 80 L 14 28 Q 14 22 20 22 L 18 22 Q 12 22 12 28 Z" />
+  <!-- Bookmark -->
+  <path class="bookmark" d="M 50 18 L 62 16 L 62 42 L 56 36 L 50 42 Z" />
+  <!-- Text lines -->
+  <rect class="bookmark" opacity="0.6" x="22" y="44" width="44" height="6" rx="3" />
+  <rect class="bookmark" opacity="0.6" x="22" y="56" width="36" height="6" rx="3" />
+  <rect class="bookmark" opacity="0.6" x="22" y="68" width="28" height="6" rx="3" />
+  <!-- Checkmark badge -->
+  <circle class="check-bg" cx="74" cy="70" r="16" />
+  <!-- Checkmark -->
+  <path class="check" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M 65 70 L 71 76 L 83 64" />
+</svg>

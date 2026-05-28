@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.auth import require_user
 from app.database import get_session
 from app.models import Book, ReadingProgress, User
-from app.schemas import ReadingProgressCreate, ReadingProgressLatest, ReadingProgressRead
+from app.schemas import ReadingProgressCreate, ReadingProgressLatest, ReadingProgressRead, ReadingProgressUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,33 @@ def list_progress_entries(
         )
         for r in rows
     ]
+
+
+@router.patch("/{book_id}/progress/{entry_id}", response_model=ReadingProgressRead)
+def update_progress_entry(
+    book_id: int,
+    entry_id: int,
+    data: ReadingProgressUpdate,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> ReadingProgressRead:
+    """Update the date of a single progress entry."""
+    entry = session.get(ReadingProgress, entry_id)
+    if not entry or entry.book_id != book_id or entry.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Progress entry not found")
+
+    entry.created_at = data.created_at
+    entry.updated_at = data.created_at
+    session.commit()
+    session.refresh(entry)
+    logger.debug("Updated progress entry date: entry_id=%s", entry_id)
+    return ReadingProgressRead(
+        id=entry.id,
+        book_id=entry.book_id,
+        page=entry.page,
+        created_at=entry.created_at,
+        updated_at=entry.updated_at,
+    )
 
 
 @router.delete("/{book_id}/progress/{entry_id}", status_code=204)

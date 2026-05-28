@@ -56,12 +56,12 @@ class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     subtitle: Optional[str] = None
-    author: Optional[str] = Field(default=None, index=True)
+    author: str = Field(default="", index=True)
     isbn: Optional[str] = Field(default=None, unique=True)
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
     published_year: Optional[int] = None
-    page_count: Optional[int] = None
+    page_count: int = Field(default=0)
     language: Optional[str] = Field(default=None, max_length=2)
     notes: Optional[str] = None
     blurb: Optional[str] = None
@@ -126,12 +126,14 @@ class User(SQLModel, table=True):
 
 
 class UserSettings(SQLModel, table=True):
-    """Per-user settings such as language and timezone."""
+    """Per-user settings such as language, timezone, and theme."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", unique=True, index=True)
     language: str = Field(default="en", max_length=10)
     timezone: str = Field(default="UTC", max_length=64)
+    theme: str = Field(default="light", max_length=20)
+    custom_theme: Optional[str] = Field(default=None, max_length=30)
 
 
 class ApiKey(SQLModel, table=True):

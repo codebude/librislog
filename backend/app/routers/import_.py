@@ -28,7 +28,7 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     """Convert ISBN unique-constraint violations to HTTP 409."""
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
     if "book.isbn" in message and "unique" in message:
-        raise HTTPException(status_code=409, detail="error.isbnAlreadyExists") from exc
+        raise HTTPException(status_code=409, detail="This ISBN is already used by another book.") from exc
     raise
 
 
@@ -40,7 +40,7 @@ def _normalize_language(language: str | None) -> str | None:
     if not normalized:
         return None
     if len(normalized) != 2 or not normalized.isalpha():
-        raise HTTPException(status_code=422, detail="error.invalidLanguageCode")
+        raise HTTPException(status_code=422, detail="Language must be a 2-letter ISO code (for example: EN, DE, FR).")
     return normalized
 
 
@@ -52,7 +52,10 @@ async def search_books(
 ) -> List[BookImportCandidate]:
     """Search external APIs for books by title or ISBN."""
     logger.debug("Search request — q=%r type=%r", q, type)
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(
+        timeout=10.0,
+        headers={"User-Agent": "LibrisLog/1.0 (book import; +https://github.com/codebude/librislog)"},
+    ) as client:
         results = await book_import.search(
             q,
             type,
@@ -79,7 +82,10 @@ async def search_books_stream(
     logger.debug("Stream search request — q=%r type=%r", q, type)
 
     async def event_generator():
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            headers={"User-Agent": "LibrisLog/1.0 (book import; +https://github.com/codebude/librislog)"},
+        ) as client:
             async for event in book_import.search_with_progress(
                 q,
                 type,
