@@ -243,6 +243,8 @@
 			</div>
 		</div>
 
+		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.sectionDistributions')}</div>
+
 		<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
 				<div class="card-body">
@@ -314,6 +316,8 @@
 				<p class="text-xs text-base-content/70">{$_('statistics.pagesWastedFootnote')}</p>
 			</div>
 		</div>
+
+		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.sectionCharts')}</div>
 
 		<div class="grid grid-cols-1 gap-4">
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
@@ -453,6 +457,8 @@
 			</div>
 		</div>
 
+		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.sectionActivity')}</div>
+
 		<div class="card bg-base-100 border border-base-200 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-base">{$_('statistics.pagesReadCalendar')}</h2>
@@ -487,6 +493,8 @@
 				{/if}
 			</div>
 		</div>
+
+		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.ratingStats')}</div>
 
 		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
