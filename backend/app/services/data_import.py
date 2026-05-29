@@ -3,6 +3,7 @@
 import csv
 import hashlib
 import json
+import logging
 import re
 import secrets
 from datetime import datetime, timezone
@@ -16,6 +17,8 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.models import Book, ReadingProgress, ReadingStatus, User
 from app.schemas import ImportFieldConfig
+
+logger = logging.getLogger(__name__)
 from app.time_utils import utcnow
 from app.services.cover_storage import download_cover
 from app.services.tags import sync_book_tags
@@ -753,8 +756,8 @@ async def execute_import(
                 session.add(book)
                 session.flush()
 
-                if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None:
-                    log_date = date_finished if date_finished is not None else utcnow()
+                if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None and date_finished is not None:
+                    log_date = date_finished
                     if log_date.tzinfo is None:
                         log_date = log_date.replace(tzinfo=timezone.utc)
                     progress_entry = ReadingProgress(

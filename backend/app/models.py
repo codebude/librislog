@@ -103,7 +103,7 @@ class BookTag(SQLModel, table=True):
     __tablename__ = "book_tag"
 
     book_id: int = Field(foreign_key="book.id", primary_key=True)
-    tag_id: int = Field(foreign_key="tag.id", primary_key=True)
+    tag_id: int = Field(foreign_key="tag.id", primary_key=True, index=True)
 
 
 class User(SQLModel, table=True):

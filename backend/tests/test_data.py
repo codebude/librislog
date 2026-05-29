@@ -385,7 +385,7 @@ def test_data_import_execute_progress_uses_date_finished_for_read_books(
     assert progress[0]["created_at"] == "2024-01-15T10:30:00Z"
 
 
-def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
+def test_data_import_execute_read_book_without_date_finished_skips_progress(
     client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
@@ -396,7 +396,6 @@ def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
     )
     file_id = parse_resp.json()["file_id"]
 
-    before = datetime.now(timezone.utc)
     execute_resp = client.post(
         "/api/data/import/execute",
         json={
@@ -410,23 +409,16 @@ def test_data_import_execute_progress_falls_back_to_now_without_date_finished(
             "create_progress_for_read": True,
         },
     )
-    after = datetime.now(timezone.utc)
     assert execute_resp.status_code == 200
+    events = _parse_sse(execute_resp.text)
+    complete = next(e for e in events if e.get("event") == "complete")
+    assert complete["failed"] == 1
+    assert complete["imported"] == 0
 
     books_resp = client.get("/api/books")
     assert books_resp.status_code == 200
     books_body = books_resp.json()
-    assert books_body["total"] == 1
-    book = books_body["books"][0]
-    assert book["date_finished"] is None
-
-    progress_resp = client.get(f"/api/books/{book['id']}/progress")
-    assert progress_resp.status_code == 200
-    progress = progress_resp.json()
-    assert len(progress) == 1
-
-    created_at = datetime.fromisoformat(progress[0]["created_at"].replace("Z", "+00:00"))
-    assert before <= created_at <= after
+    assert books_body["total"] == 0
 
 
 def test_data_export_no_datasets_raises_400(client: TestClient) -> None:

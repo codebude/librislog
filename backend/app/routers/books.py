@@ -31,7 +31,7 @@ from app.services.cover_storage import (
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
-from app.services.tags import build_book_read, cleanup_orphan_tags, sync_book_tags
+from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -128,6 +128,14 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     raise
 
 
+def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
+    """Build a BookRead from a Book model with a pre-resolved tags string."""
+    payload = book.model_dump()
+    payload.pop("user_id", None)
+    payload["tags"] = tags_text
+    return BookRead.model_validate(payload)
+
+
 @router.get("", response_model=BookListResponse)
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
@@ -206,8 +214,13 @@ def list_books(
 
     books = list(session.exec(statement).all())
     logger.debug("list_books — returning %d/%d book(s)", len(books), total)
+    book_ids = [b.id for b in books if b.id is not None]
+    book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
     return BookListResponse(
-        books=[build_book_read(session, book) for book in books],
+        books=[
+            _build_book_read_with_tags(book, book_tags_map.get(book.id))
+            for book in books
+        ],
         total=total,
     )
 
@@ -279,12 +292,13 @@ def get_tag_cloud(
     session: Session = Depends(get_session),
 ) -> List[TagCloudEntry]:
     """Return tags sorted by usage count (descending) for the authenticated user."""
+    count_label = func.count(BookTag.book_id).label("cnt")
     rows = session.exec(
-        select(Tag.name, func.count(BookTag.book_id))
+        select(Tag.name, count_label)
         .join(BookTag, BookTag.tag_id == Tag.id)
         .where(Tag.user_id == current_user.id)
-        .group_by(Tag.id, Tag.name)
-        .order_by(func.count(BookTag.book_id).desc(), Tag.name.asc())
+        .group_by(Tag.id)
+        .order_by(count_label.desc(), Tag.name.asc())
         .limit(limit)
     ).all()
     return [TagCloudEntry(tag=name, count=count) for name, count in rows]

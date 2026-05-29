@@ -103,6 +103,25 @@ def tags_text_for_book(session: Session, book_id: int) -> str | None:
     return ", ".join(names)
 
 
+def load_tags_batch(session: Session, book_ids: list[int]) -> dict[int, str | None]:
+    """Batch-load comma-separated tag strings for all given book IDs.
+
+    Returns a dict mapping each book_id to its tags string (or None).
+    """
+    if not book_ids:
+        return {}
+    rows = session.exec(
+        select(BookTag.book_id, Tag.name)
+        .join(Tag, Tag.id == BookTag.tag_id)
+        .where(BookTag.book_id.in_(book_ids))
+        .order_by(BookTag.book_id, Tag.name.asc())
+    ).all()
+    result: dict[int, list[str]] = {}
+    for book_id, tag_name in rows:
+        result.setdefault(book_id, []).append(tag_name)
+    return {bid: ", ".join(names) if names else None for bid, names in result.items()}
+
+
 def build_book_read(session: Session, book: Book) -> BookRead:
     """Build a BookRead response schema from a Book model, populating tags."""
     payload = book.model_dump()
