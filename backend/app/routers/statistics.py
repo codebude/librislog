@@ -260,14 +260,20 @@ def get_pages_per_day(
 
     virtual_entries = []
     for book in books:
-        if book.id in books_with_progress and book.date_started:
-            virtual_entries.append(
-                SimpleNamespace(
-                    book_id=book.id,
-                    page=0,
-                    created_at=book.date_started,
-                )
+        if book.id not in books_with_progress or not book.date_started:
+            continue
+        # Finished books without date_finished have no bounded reading
+        # period; skip to avoid spreading pages from date_started to
+        # today via a single import-created progress entry.
+        if book.reading_status == ReadingStatus.read and not book.date_finished:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(
+                book_id=book.id,
+                page=0,
+                created_at=book.date_started,
             )
+        )
 
     all_progress_entries = list(progress_entries) + virtual_entries
     progress_daily = _extract_progress_daily_pages(all_progress_entries, tz, start_date_utc, end_date_utc)
@@ -394,14 +400,17 @@ def get_statistics(
 
     virtual_entries = []
     for book in books:
-        if book.id in books_with_progress and book.date_started:
-            virtual_entries.append(
-                SimpleNamespace(
-                    book_id=book.id,
-                    page=0,
-                    created_at=book.date_started,
-                )
+        if book.id not in books_with_progress or not book.date_started:
+            continue
+        if book.reading_status == ReadingStatus.read and not book.date_finished:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(
+                book_id=book.id,
+                page=0,
+                created_at=book.date_started,
             )
+        )
 
     all_progress_entries = list(progress_entries) + virtual_entries
     pages_read_per_month_counter = _compute_pages_per_month_from_progress(all_progress_entries, tz)
