@@ -64,8 +64,53 @@ def _month_range(start_key: str, end_key: str) -> list[str]:
     return keys
 
 
-def _extract_progress_daily_pages(entries: list, tz: ZoneInfo) -> Counter[str]:
-    """Distribute reading progress page-deltas across calendar days."""
+def _clamp_window(
+    start: datetime, end: datetime,
+    window_start: datetime | None, window_end: datetime | None,
+) -> tuple[datetime | None, datetime | None]:
+    """Clamp *start*/*end* to *window_start*/*window_end* if provided.
+    
+    Returns (clamped_start, clamped_end) or (None, None) when the span
+    does not overlap the window at all.
+    All returned datetimes are UTC-aware (matching the DB convention)
+    so callers can safely use .astimezone() and compare.
+    """
+    if window_start is not None:
+        w_start = _naive_utc(window_start)
+        s = _naive_utc(start)
+        e = _naive_utc(end)
+        if e < w_start:
+            return (None, None)
+        if s < w_start:
+            start = w_start.replace(tzinfo=timezone.utc)
+    if window_end is not None:
+        w_end = _naive_utc(window_end)
+        s = _naive_utc(start)
+        e = _naive_utc(end)
+        if s > w_end:
+            return (None, None)
+        if e > w_end:
+            end = w_end.replace(tzinfo=timezone.utc)
+    return (start, end)
+
+
+def _naive_utc(dt: datetime) -> datetime:
+    """Return a naive datetime representing the same instant as *dt* in UTC."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def _extract_progress_daily_pages(
+    entries: list, tz: ZoneInfo,
+    window_start: datetime | None = None, window_end: datetime | None = None,
+) -> Counter[str]:
+    """Distribute reading progress page-deltas across calendar days.
+    
+    When *window_start*/*window_end* are provided, only days within that
+    window are emitted.  The daily average is still computed from the full
+    span so the values stay correct.
+    """
     daily: Counter[str] = Counter()
     grouped: dict[int, list] = {}
     for entry in entries:
@@ -80,18 +125,27 @@ def _extract_progress_daily_pages(entries: list, tz: ZoneInfo) -> Counter[str]:
                 day_diff = (curr.created_at - prev.created_at).days + 1
                 if day_diff > 0:
                     daily_avg = delta / day_diff
-                    current = prev.created_at
-                    end_dt = curr.created_at
-                    while current <= end_dt:
-                        date_key = current.astimezone(tz).strftime("%Y-%m-%d")
+                    start, end = _clamp_window(prev.created_at, curr.created_at, window_start, window_end)
+                    if start is None:
+                        continue
+                    while start <= end:
+                        date_key = start.astimezone(tz).strftime("%Y-%m-%d")
                         daily[date_key] += daily_avg
-                        current += timedelta(days=1)
+                        start += timedelta(days=1)
 
     return daily
 
 
-def _extract_book_level_daily_pages(books: list[Book], tz: ZoneInfo) -> Counter[str]:
-    """Distribute page counts across the reading period for books finished without progress entries."""
+def _extract_book_level_daily_pages(
+    books: list[Book], tz: ZoneInfo,
+    window_start: datetime | None = None, window_end: datetime | None = None,
+) -> Counter[str]:
+    """Distribute page counts across the reading period for books finished without progress entries.
+    
+    When *window_start*/*window_end* are provided, only days within that
+    window are emitted.  The daily average is still computed from the full
+    span so the values stay correct.
+    """
     daily: Counter[str] = Counter()
     for book in books:
         if not (book.date_started and book.date_finished and book.page_count):
@@ -102,11 +156,13 @@ def _extract_book_level_daily_pages(books: list[Book], tz: ZoneInfo) -> Counter[
         if total_days <= 0:
             continue
         daily_avg = book.page_count / total_days
-        current = book.date_started
-        while current <= book.date_finished:
-            date_key = current.astimezone(tz).strftime("%Y-%m-%d")
+        start, end = _clamp_window(book.date_started, book.date_finished, window_start, window_end)
+        if start is None:
+            continue
+        while start <= end:
+            date_key = start.astimezone(tz).strftime("%Y-%m-%d")
             daily[date_key] += daily_avg
-            current += timedelta(days=1)
+            start += timedelta(days=1)
     return daily
 
 
@@ -214,7 +270,7 @@ def get_pages_per_day(
             )
 
     all_progress_entries = list(progress_entries) + virtual_entries
-    progress_daily = _extract_progress_daily_pages(all_progress_entries, tz)
+    progress_daily = _extract_progress_daily_pages(all_progress_entries, tz, start_date_utc, end_date_utc)
 
     fallback_books = [
         b
@@ -225,7 +281,7 @@ def get_pages_per_day(
         and b.date_finished
         and b.page_count
     ]
-    fallback_daily = _extract_book_level_daily_pages(fallback_books, tz)
+    fallback_daily = _extract_book_level_daily_pages(fallback_books, tz, start_date_utc, end_date_utc)
 
     combined: Counter[str] = Counter()
     for k, v in progress_daily.items():
