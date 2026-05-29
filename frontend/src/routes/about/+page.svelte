@@ -50,7 +50,7 @@
 	];
 </script>
 
-<div class="max-w-3xl mx-auto flex flex-col gap-6">
+<div class="max-w-5xl mx-auto flex flex-col gap-6">
 	<h1 class="text-2xl font-bold">{$_('about.title')}</h1>
 
 	<div class="card bg-base-100 border border-base-200 shadow-sm">

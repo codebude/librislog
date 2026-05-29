@@ -146,11 +146,11 @@
 </script>
 
 {#if !isAdmin}
-	<div class="max-w-3xl mx-auto">
+	<div class="max-w-5xl mx-auto">
 		<div class="alert alert-error"><span>Admin access required.</span></div>
 	</div>
 {:else}
-	<div class="max-w-4xl mx-auto flex flex-col gap-6">
+	<div class="max-w-5xl mx-auto flex flex-col gap-6">
 		<h1 class="text-2xl font-bold">{$_('admin.title')}</h1>
 
 		<div role="tablist" class="tabs tabs-bordered">

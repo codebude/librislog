@@ -182,7 +182,7 @@
 	<title>{searchQuery ? `${searchQuery} - ` : ''}{$_('app.title')}</title>
 </svelte:head>
 
-<div class="flex flex-col gap-6 max-w-6xl mx-auto">
+<div class="flex flex-col gap-6">
 	<!-- Search Header -->
 	<div class="flex items-center gap-4">
 		<button

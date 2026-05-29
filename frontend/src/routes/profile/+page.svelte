@@ -344,7 +344,7 @@
 	});
 </script>
 
-<div id="profile-content" class="max-w-3xl mx-auto flex flex-col gap-6">
+<div id="profile-content" class="max-w-5xl mx-auto flex flex-col gap-6">
 	<h1 class="text-2xl font-bold">{$_('user.profile')}</h1>
 
 	<div id="section-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">

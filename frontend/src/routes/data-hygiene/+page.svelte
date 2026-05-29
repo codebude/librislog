@@ -179,7 +179,7 @@
 	});
 </script>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6 max-w-5xl mx-auto">
 	<div class="hero rounded-2xl bg-base-100 shadow-sm border border-base-200">
 		<div class="hero-content text-center py-10">
 			<div class="max-w-2xl">
