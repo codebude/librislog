@@ -491,16 +491,27 @@ def validate_import(
             _parse_year(row_data.get("published_year"), "published_year")
             _parse_int(row_data.get("page_count"), "page_count")
             reading_status = _parse_reading_status(row_data.get("reading_status"))
-            date_started = _parse_datetime(row_data.get("date_started"), "date_started")
-            date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
-            if date_started and date_finished and date_started > date_finished:
-                errors.append(f"Row {idx}: date_started is after date_finished")
-                continue
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
         except ValueError as exc:
             errors.append(f"Row {idx}: {exc}")
+            continue
+
+        date_started: datetime | None = None
+        try:
+            date_started = _parse_datetime(row_data.get("date_started"), "date_started")
+        except ValueError as exc:
+            errors.append(f"Row {idx}: {exc}")
+
+        date_finished: datetime | None = None
+        try:
+            date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
+        except ValueError as exc:
+            errors.append(f"Row {idx}: {exc}")
+
+        if date_started and date_finished and date_started > date_finished:
+            errors.append(f"Row {idx}: date_started is after date_finished")
             continue
 
         if create_progress_for_read and reading_status == ReadingStatus.read and not row_data.get("page_count"):
@@ -573,15 +584,26 @@ def preview_import(
             _parse_year(row_data.get("published_year"), "published_year")
             _parse_int(row_data.get("page_count"), "page_count")
             _parse_reading_status(row_data.get("reading_status"))
-            date_started = _parse_datetime(row_data.get("date_started"), "date_started")
-            date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
-            if date_started and date_finished and date_started > date_finished:
-                row_errors.append("date_started is after date_finished")
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
         except ValueError as exc:
             row_errors.append(str(exc))
+
+        date_started: datetime | None = None
+        try:
+            date_started = _parse_datetime(row_data.get("date_started"), "date_started")
+        except ValueError as exc:
+            row_errors.append(str(exc))
+
+        date_finished: datetime | None = None
+        try:
+            date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
+        except ValueError as exc:
+            row_errors.append(str(exc))
+
+        if date_started and date_finished and date_started > date_finished:
+            row_errors.append("date_started is after date_finished")
 
         # Convert raw values to strings for display
         source_display = {k: str(v) if v is not None else "" for k, v in row.items()}
@@ -659,8 +681,22 @@ async def execute_import(
                 language = _normalize_language(
                     None if row_data.get("language") is None else str(row_data.get("language"))
                 )
-                date_started = _parse_datetime(row_data.get("date_started"), "date_started")
-                date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
+                date_errors: list[str] = []
+                date_started: datetime | None = None
+                try:
+                    date_started = _parse_datetime(row_data.get("date_started"), "date_started")
+                except ValueError as exc:
+                    date_errors.append(str(exc))
+
+                date_finished: datetime | None = None
+                try:
+                    date_finished = _parse_datetime(row_data.get("date_finished"), "date_finished")
+                except ValueError as exc:
+                    date_errors.append(str(exc))
+
+                if date_errors:
+                    raise ValueError("; ".join(date_errors))
+
                 if date_started and date_finished and date_started > date_finished:
                     raise ValueError("date_started is after date_finished")
 
