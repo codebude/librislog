@@ -151,7 +151,8 @@ def test_statistics_top_authors_no_covers(client: Any) -> None:
     assert resp.status_code == 200
     top_authors = resp.json()["top_authors"]
     assert top_authors[0]["author"] == "No Cover Author"
-    assert top_authors[0]["covers"] == []
+    assert len(top_authors[0]["covers"]) == 2
+    assert all(c["cover_url"] is None for c in top_authors[0]["covers"])
 
 
 def test_statistics_timezone_month_bucketing(client: Any, session: Session) -> None:

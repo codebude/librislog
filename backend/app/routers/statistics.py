@@ -487,7 +487,8 @@ def get_statistics(
 
         covers_by_author: dict[str, list[TopAuthorCover]] = {}
         for author_name in top_author_names:
-            author_cover_rows = session.exec(
+            max_slots = min(5, author_counts[author_name])
+            cover_rows = session.exec(
                 select(Book.id, Book.reading_status, Book.cover_url)
                 .where(
                     Book.user_id == current_user.id,
@@ -495,13 +496,31 @@ def get_statistics(
                     Book.cover_url.is_not(None),
                 )
                 .order_by(Book.id)
-                .limit(5)
+                .limit(max_slots)
             ).all()
-            covers_by_author[author_name] = [
+            results = [
                 TopAuthorCover(book_id=book_id, reading_status=reading_status, cover_url=cover_url)
-                for book_id, reading_status, cover_url in author_cover_rows
-                if cover_url and book_id is not None
+                for book_id, reading_status, cover_url in cover_rows
+                if book_id is not None
             ]
+            remaining = max_slots - len(results)
+            if remaining > 0:
+                no_cover_rows = session.exec(
+                    select(Book.id, Book.reading_status, Book.cover_url)
+                    .where(
+                        Book.user_id == current_user.id,
+                        Book.author == author_name,
+                        Book.cover_url.is_(None),
+                    )
+                    .order_by(Book.id)
+                    .limit(remaining)
+                ).all()
+                results.extend(
+                    TopAuthorCover(book_id=book_id, reading_status=reading_status, cover_url=cover_url)
+                    for book_id, reading_status, cover_url in no_cover_rows
+                    if book_id is not None
+                )
+            covers_by_author[author_name] = results
 
         top_authors = [
             TopAuthor(

@@ -224,7 +224,7 @@ class TopAuthorCover(SQLModel):
     """Cover reference for a book by a top author."""
     book_id: int
     reading_status: ReadingStatus
-    cover_url: str
+    cover_url: str | None
 
 
 class TopRatedBook(SQLModel):

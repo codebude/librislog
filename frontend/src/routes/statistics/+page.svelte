@@ -438,9 +438,9 @@
 											onclick={() => openCoverBook(cover.book_id)}
 										>
 											<img
-												src={cover.cover_url}
+												src={cover.cover_url ?? '/placeholder-cover.svg'}
 												alt={$_('book.coverForAuthor', { values: { author: author.author, index: coverIdx + 1 } })}
-												class="h-24 w-auto rounded shadow-sm ring-1 ring-base-200 bg-base-100 transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/30 hover:ring-2 hover:ring-primary {activeBookId === cover.book_id ? 'shadow-lg shadow-primary/30 ring-2 ring-primary' : ''}"
+												class="h-24 w-auto rounded shadow-sm ring-1 ring-base-200 bg-base-100 object-cover transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/30 hover:ring-2 hover:ring-primary {activeBookId === cover.book_id ? 'shadow-lg shadow-primary/30 ring-2 ring-primary' : ''}"
 											/>
 											</button>
 										{/each}
