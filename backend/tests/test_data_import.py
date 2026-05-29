@@ -738,8 +738,8 @@ async def test_execute_import_progress_naive_utcnow_fallback(session: Session, t
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
     user = _create_test_user(session)
     payload = {
-        "rows": [{"title": "Book", "status": "read", "pages": "100"}],
-        "source_fields": ["title", "status", "pages"],
+        "rows": [{"title": "Book", "status": "read", "pages": "100", "finished": "2024-01-15"}],
+        "source_fields": ["title", "status", "pages", "finished"],
     }
     file_id = "test_exec_naive_utc"
     path = di._temp_file_path(user.id, file_id)
@@ -753,7 +753,7 @@ async def test_execute_import_progress_naive_utcnow_fallback(session: Session, t
     async for event in di.execute_import(
         file_id,
         user,
-        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status"), "page_count": ImportFieldConfig(source="pages")},
+        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status"), "page_count": ImportFieldConfig(source="pages"), "date_finished": ImportFieldConfig(source="finished")},
         session, "continue_on_error",
         create_progress_for_read=True,
     ):

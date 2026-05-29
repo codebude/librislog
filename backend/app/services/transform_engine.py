@@ -19,6 +19,7 @@ class TransformExecutionError(Exception):
 # Whitelisted modules available in transform globals
 _TRANSFORM_MODULES: dict[str, Any] = {
     "datetime": __import__("datetime"),
+    "time": __import__("time"),
     "re": __import__("re"),
     "json": __import__("json"),
     "math": __import__("math"),
@@ -73,7 +74,7 @@ _TRANSFORM_GLOBALS: dict[str, Any] = {
 }
 
 # Whitelisted modules that may be imported
-_ALLOWED_IMPORTS: set[str] = {"datetime", "re", "json", "math"}
+_ALLOWED_IMPORTS: set[str] = {"datetime", "time", "re", "json", "math"}
 
 # AST node types that are forbidden in transforms
 _FORBIDDEN_AST_NODES: tuple[type[ast.AST], ...] = (

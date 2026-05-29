@@ -518,6 +518,12 @@ def validate_import(
             errors.append(f"Row {idx}: date_started is after date_finished")
             continue
 
+        if reading_status == ReadingStatus.read and not date_finished:
+            warnings.append(
+                f"Row {idx}: marked as 'read' but has no finished date; "
+                "without a finish date the book will not count toward monthly statistics"
+            )
+
         if create_progress_for_read and reading_status == ReadingStatus.read and not row_data.get("page_count"):
             warnings.append(f"Row {idx}: marked as 'read' but has no page count; will not create a progress entry")
 
@@ -587,7 +593,7 @@ def preview_import(
                 row_errors.append("Rating out of range, will be ignored")
             _parse_year(row_data.get("published_year"), "published_year")
             _parse_int(row_data.get("page_count"), "page_count")
-            _parse_reading_status(row_data.get("reading_status"))
+            reading_status = _parse_reading_status(row_data.get("reading_status"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -611,6 +617,12 @@ def preview_import(
 
         if date_started and date_finished and date_started > date_finished:
             row_errors.append("date_started is after date_finished")
+
+        if reading_status == ReadingStatus.read and not date_finished:
+            row_errors.append(
+                "Marked as 'read' but has no finished date; "
+                "without a finish date the book will not count toward monthly statistics"
+            )
 
         # Convert raw values to strings for display
         source_display = {k: str(v) if v is not None else "" for k, v in row.items()}
@@ -706,6 +718,9 @@ async def execute_import(
 
                 if date_started and date_finished and date_started > date_finished:
                     raise ValueError("date_started is after date_finished")
+
+                if reading_status == ReadingStatus.read and not date_finished:
+                    raise ValueError("Marked as 'read' but has no finished date")
 
                 cover_url = None
                 raw_cover = row_data.get("cover_url")
@@ -834,7 +849,22 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
                 ),
             },
             "date_started": {"source": "Date Added", "transform": "value.replace('/', '-') if value else None"},
-            "date_finished": {"source": "Date Read", "transform": "None if not value or (row.get('Date Added') and value < row['Date Added']) else value.replace('/', '-')"},
+            "date_finished": {
+                "source": "Date Read",
+                "transform": (
+                    "df = None if not value or (row.get('Date Added') "
+                    "and value < row['Date Added']) "
+                    "else value.replace('/', '-')\n"
+                    "# Uncomment the following lines, to add date_finished to \"Date Added + 1 day\" "
+                    "in case Good Reads set status == \"read\" but did not provide a finish date\n"
+                    "#if not df and row.get(\"Date Added\") and row.get(\"Exclusive Shelf\") == \"read\":\n"
+                    "#\t# Fallback to date_added + 1\n"
+                    "#\tfrom datetime import datetime, timedelta\n"
+                    "#\treturn (datetime.strptime(row[\"Date Added\"], "
+                    "\"%Y/%m/%d\") + timedelta(days=1)).strftime(\"%Y-%m-%d\")\n"
+                    "return df"
+                ),
+            },
             "cover_url": {"source": "", "transform": None},
         },
     },
