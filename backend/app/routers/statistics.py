@@ -1,5 +1,6 @@
 """Statistics dashboard — full stats, pages-per-day breakdown, and book-level fallback."""
 
+import calendar
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from statistics import mean
@@ -107,6 +108,62 @@ def _extract_book_level_daily_pages(books: list[Book], tz: ZoneInfo) -> Counter[
             daily[date_key] += daily_avg
             current += timedelta(days=1)
     return daily
+
+
+def _allocate_daily_avg_across_months(
+    daily_avg: float, start: datetime, end: datetime, tz: ZoneInfo
+) -> Counter[str]:
+    """Spread a per-day value proportionally across months from *start* to *end* inclusive."""
+    monthly: Counter[str] = Counter()
+    current = start
+    while current <= end:
+        _, last_dom = calendar.monthrange(current.year, current.month)
+        period_end = min(current.replace(day=last_dom), end)
+        days = (period_end - current).days + 1
+        month_key = _month_key(current, tz)
+        monthly[month_key] += daily_avg * days
+        current = period_end + timedelta(days=1)
+    return monthly
+
+
+def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> Counter[str]:
+    """Compute pages read per month from reading progress entries."""
+    monthly: Counter[str] = Counter()
+    grouped: dict[int, list] = {}
+    for entry in entries:
+        grouped.setdefault(entry.book_id, []).append(entry)
+    for book_id in sorted(grouped):
+        book_entries = sorted(grouped[book_id], key=lambda e: (e.created_at, e.page))
+        for prev, curr in zip(book_entries, book_entries[1:]):
+            delta = curr.page - prev.page
+            if delta <= 0:
+                continue
+            day_diff = (curr.created_at - prev.created_at).days + 1
+            if day_diff <= 0:
+                continue
+            m = _allocate_daily_avg_across_months(delta / day_diff, prev.created_at, curr.created_at, tz)
+            for k, v in m.items():
+                monthly[k] += v
+    return monthly
+
+
+def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> Counter[str]:
+    """Compute pages read per month for finished books without progress entries."""
+    monthly: Counter[str] = Counter()
+    for book in books:
+        if not (book.date_started and book.date_finished and book.page_count):
+            continue
+        if book.date_finished < book.date_started:
+            continue
+        total_days = (book.date_finished - book.date_started).days + 1
+        if total_days <= 0:
+            continue
+        m = _allocate_daily_avg_across_months(
+            book.page_count / total_days, book.date_started, book.date_finished, tz
+        )
+        for k, v in m.items():
+            monthly[k] += v
+    return monthly
 
 
 @router.get("/pages-per-day", response_model=DailyPagesResponse)
@@ -291,7 +348,7 @@ def get_statistics(
             )
 
     all_progress_entries = list(progress_entries) + virtual_entries
-    progress_daily = _extract_progress_daily_pages(all_progress_entries, tz)
+    pages_read_per_month_counter = _compute_pages_per_month_from_progress(all_progress_entries, tz)
 
     fallback_books = [
         b
@@ -302,18 +359,9 @@ def get_statistics(
         and b.date_finished
         and b.page_count
     ]
-    fallback_daily = _extract_book_level_daily_pages(fallback_books, tz)
-
-    combined_daily: Counter[str] = Counter()
-    for k, v in progress_daily.items():
-        combined_daily[k] += v
-    for k, v in fallback_daily.items():
-        combined_daily[k] += v
-
-    pages_read_per_month_counter: Counter[str] = Counter()
-    for date_str, pages in combined_daily.items():
-        month_key = date_str[:7]
-        pages_read_per_month_counter[month_key] += pages
+    fallback_monthly = _compute_pages_per_month_from_books(fallback_books, tz)
+    for k, v in fallback_monthly.items():
+        pages_read_per_month_counter[k] += v
 
     if finished_books_per_month:
         avg_books_per_month = round(
