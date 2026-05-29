@@ -140,6 +140,7 @@ export interface TopAuthor {
 
 export interface TopAuthorCover {
 	book_id: number;
+	title: string;
 	reading_status: ReadingStatus;
 	cover_url: string;
 }

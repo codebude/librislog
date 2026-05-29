@@ -411,9 +411,16 @@
 									{$_('statistics.booksCount', { values: { count: author.book_count } })}
 								</div>
 								{#if author.covers.length > 0}
+									{@const hoveredCover = author.covers.find(c => c.book_id === activeBookId)}
+									<div class="h-5 overflow-hidden mb-1">
+										<p
+											class="text-xs font-medium truncate transition-all duration-300 {hoveredCover ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}"
+											title={hoveredCover?.title ?? ''}
+										>{hoveredCover?.title ?? ''}</p>
+									</div>
 									<!-- Covers overlap with -ml-3 to save space, pl-3 keeps the first cover fully visible. -->
 									<div
-										class="flex items-end overflow-hidden pt-4 pb-1 pl-3"
+										class="flex items-end overflow-hidden pt-2 pb-1 pl-3"
 										role="group"
 										aria-label={$_('statistics.coversForAuthor', { values: { author: author.author } })}
 										ontouchmove={(e) => {
@@ -436,6 +443,8 @@
 											style:z-index={activeBookId === cover.book_id ? 50 : coverIdx + 1}
 											data-book-id={cover.book_id}
 											onclick={() => openCoverBook(cover.book_id)}
+											onmouseenter={() => { activeBookId = cover.book_id; }}
+											onmouseleave={() => { activeBookId = null; }}
 										>
 											<img
 												src={cover.cover_url ?? '/placeholder-cover.svg'}

@@ -489,7 +489,7 @@ def get_statistics(
         for author_name in top_author_names:
             max_slots = min(5, author_counts[author_name])
             cover_rows = session.exec(
-                select(Book.id, Book.reading_status, Book.cover_url)
+                select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                 .where(
                     Book.user_id == current_user.id,
                     Book.author == author_name,
@@ -499,14 +499,14 @@ def get_statistics(
                 .limit(max_slots)
             ).all()
             results = [
-                TopAuthorCover(book_id=book_id, reading_status=reading_status, cover_url=cover_url)
-                for book_id, reading_status, cover_url in cover_rows
+                TopAuthorCover(book_id=book_id, title=title, reading_status=reading_status, cover_url=cover_url)
+                for book_id, title, reading_status, cover_url in cover_rows
                 if book_id is not None
             ]
             remaining = max_slots - len(results)
             if remaining > 0:
                 no_cover_rows = session.exec(
-                    select(Book.id, Book.reading_status, Book.cover_url)
+                    select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                     .where(
                         Book.user_id == current_user.id,
                         Book.author == author_name,
@@ -516,8 +516,8 @@ def get_statistics(
                     .limit(remaining)
                 ).all()
                 results.extend(
-                    TopAuthorCover(book_id=book_id, reading_status=reading_status, cover_url=cover_url)
-                    for book_id, reading_status, cover_url in no_cover_rows
+                    TopAuthorCover(book_id=book_id, title=title, reading_status=reading_status, cover_url=cover_url)
+                    for book_id, title, reading_status, cover_url in no_cover_rows
                     if book_id is not None
                 )
             covers_by_author[author_name] = results
