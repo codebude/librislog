@@ -11,11 +11,13 @@ const mockProgressList = vi.fn(async () => []);
 const mockProgressCreate = vi.fn(async (_bookId: number, _page: number) => ({ id: 1, book_id: _bookId, page: _page, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }));
 const mockProgressDelete = vi.fn(async () => {});
 const mockBooksDelete = vi.fn(async () => {});
+const mockBooksUpdate = vi.fn(async (_id: number, _data: unknown) => ({ ..._data, id: _id }));
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({
 	api: {
 		books: {
+			update: (id: number, data: unknown) => mockBooksUpdate(id, data),
 			progress: {
 				list: (bookId: number) => mockProgressList(bookId),
 				create: (bookId: number, page: number) => mockProgressCreate(bookId, page),
@@ -94,6 +96,27 @@ describe('BookDetailDialog', () => {
 	it('shows rating with StarRating component', () => {
 		render(BookDetailDialog, { props: { book: mockBook, open: true } });
 		expect(screen.getAllByRole('radio')).toHaveLength(5);
+	});
+
+	it('updates rating and shows toast when star is clicked', async () => {
+		mockBooksUpdate.mockResolvedValue({ ...mockBook, rating: 3 });
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+		const stars = screen.getAllByRole('radio');
+		await fireEvent.click(stars[2]); // click 3rd star (value=3)
+		await waitFor(() => {
+			expect(mockBooksUpdate).toHaveBeenCalledWith(1, { rating: 3 });
+			expect(mockToastsAdd).toHaveBeenCalledWith('Rating saved', 'success', 2000);
+		});
+	});
+
+	it('shows error toast on rating update failure', async () => {
+		mockBooksUpdate.mockRejectedValue(new Error('Network error'));
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+		const stars = screen.getAllByRole('radio');
+		await fireEvent.click(stars[4]); // click 5th star (value=5)
+		await waitFor(() => {
+			expect(mockToastsAdd).toHaveBeenCalledWith('Network error', 'error');
+		});
 	});
 
 	it('shows book metadata fields', () => {

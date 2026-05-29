@@ -199,6 +199,20 @@
 		}
 	}
 
+	async function saveRating(newRating: number) {
+		if (!book) return;
+		try {
+			const updated = await api.books.update(book.id, { rating: newRating });
+			book.rating = updated.rating;
+			toasts.add($_('common.ratingSaved'), 'success', 2000);
+		} catch (e: unknown) {
+			toasts.add(
+				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.rating') } }),
+				'error'
+			);
+		}
+	}
+
 	const uniqueDays = $derived.by(() => {
 		const seen = new Set<string>();
 		return progressEntries.filter((e) => {
@@ -353,7 +367,7 @@
 
 			<div>
 				<div class="text-xs text-base-content/60 mb-1">{$_('common.rating')}</div>
-				<StarRating value={book.rating} readonly />
+				<StarRating value={book.rating} onChange={(v) => saveRating(v)} />
 			</div>
 
 			<div class="grid grid-cols-2 gap-3 text-sm">
