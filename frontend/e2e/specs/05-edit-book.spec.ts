@@ -72,13 +72,13 @@ test.describe('Edit Book', () => {
 		await cards.first().click();
 		await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 
-		const star2 = page.locator('[role="dialog"] input[type="radio"][aria-label="2 star"]');
+		const star2 = page.locator('[role="dialog"] input[type="radio"][aria-label*="2"]');
 		await expect(star2).toBeVisible({ timeout: 5000 });
 		await star2.click();
 
-		await expect(page.getByText('Rating saved')).toBeVisible({ timeout: 3000 });
+		await expect(page.getByText(/Rating saved|Bewertung gespeichert/i)).toBeVisible({ timeout: 3000 });
 
-		const closeBtn = page.locator('[role="dialog"] button').filter({ hasText: 'Close' });
+		const closeBtn = page.locator('button[aria-label*="Close"], button[aria-label*="Schließen"]').first();
 		await closeBtn.click();
 		await page.waitForTimeout(500);
 
@@ -86,6 +86,6 @@ test.describe('Edit Book', () => {
 		await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 
 		const checkedStar = page.locator('[role="dialog"] input[type="radio"]:checked');
-		await expect(checkedStar).toHaveAttribute('aria-label', '2 star');
+		await expect(checkedStar).toHaveAttribute('aria-label', /2 (star|Stern)/);
 	});
 });

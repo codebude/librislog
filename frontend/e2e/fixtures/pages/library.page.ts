@@ -9,7 +9,24 @@ export class LibraryPage {
 	}
 
 	async switchTab(status: string) {
-		const tab = this.page.locator(`[role="tab"]`).filter({ hasText: new RegExp(status, 'i') });
+		const STATUS_ORDER: Record<string, number> = {
+			'want to read': 0,
+			'currently reading': 1,
+			'read': 2,
+			'did not finish': 3,
+		};
+		const key = status.toLowerCase().replace(/\s+/g, '_');
+		const posMap: Record<string, number> = {
+			'want_to_read': 0,
+			'currently_reading': 1,
+			'read': 2,
+			'did_not_finish': 3,
+		};
+		const index = posMap[key] ?? STATUS_ORDER[status.toLowerCase()];
+		if (index === undefined) {
+			throw new Error(`Unknown tab status: ${status}`);
+		}
+		const tab = this.page.locator('[role="tab"]').nth(index);
 		await tab.click();
 		await this.page.waitForTimeout(500);
 	}

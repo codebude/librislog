@@ -21,16 +21,16 @@ test.describe('Statistics', () => {
 		await page.goto('/statistics');
 		await page.waitForTimeout(2000);
 
-		await expect(page.getByText('Books with Rating')).toBeVisible();
-		await expect(page.getByText('Books without Rating')).toBeVisible();
-		await expect(page.getByText('Avg Rating')).toBeVisible();
+		await expect(page.getByText(/Books with Rating|Bewertete Bücher/)).toBeVisible();
+		await expect(page.getByText(/Books without Rating|Unbewertete Bücher/)).toBeVisible();
+		await expect(page.getByText(/Avg Rating|Ø Bewertung/)).toBeVisible();
 
-		await expect(page.getByText('Top Rated')).toBeVisible();
-		await expect(page.getByText('Worst Rated')).toBeVisible();
+		await expect(page.getByText(/Top Rated|Am besten bewertet/)).toBeVisible();
+		await expect(page.getByText(/Worst Rated|Am schlechtesten bewertet/)).toBeVisible();
 
-		await expect(page.getByText('To Kill a Mockingbird')).toBeVisible();
-		await expect(page.getByText('1984')).toBeVisible();
-		await expect(page.getByText('The Great Gatsby')).toBeVisible();
-		await expect(page.getByText('Brave New World')).toBeVisible();
+		await expect(page.getByText('To Kill a Mockingbird').first()).toBeVisible();
+		await expect(page.getByText('1984').first()).toBeVisible();
+		await expect(page.getByText('The Great Gatsby').first()).toBeVisible();
+		await expect(page.getByText('Brave New World').first()).toBeVisible();
 	});
 });
