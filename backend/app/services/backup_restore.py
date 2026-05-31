@@ -52,6 +52,45 @@ def _run_alembic_migrations() -> None:
     upgrade(alembic_cfg, "head")
 
 
+def _stamp_alembic_head_if_fresh() -> None:
+    """Stamp alembic_version at the current head when the version table is absent
+    or empty.
+
+    After ``SQLModel.metadata.create_all()`` creates tables directly (bypassing
+    alembic), alembic would otherwise try to re-run the initial migration and fail
+    with *table already exists*.
+
+    When ``alembic_version`` already has a row (e.g. an old backup was restored),
+    stamping is skipped so that ``alembic upgrade head`` can apply pending
+    migrations on top of whatever revision the backup was at.
+    """
+    from alembic.config import Config
+    from alembic import command
+    from alembic.script import ScriptDirectory
+
+    import sqlite3
+
+    db_path = _extract_db_path(settings.database_url)
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'"
+        )
+        table_exists = cursor.fetchone() is not None
+        if table_exists:
+            row_count = conn.execute("SELECT COUNT(*) FROM alembic_version").fetchone()[0]
+            if row_count > 0:
+                return
+    finally:
+        conn.close()
+
+    alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini"))
+    script = ScriptDirectory.from_config(alembic_cfg)
+    head = script.get_current_head()
+    if head:
+        command.stamp(alembic_cfg, head)
+
+
 def _recreate_engine() -> None:
     """Replace the global SQLAlchemy engine with a fresh one.
 
@@ -67,6 +106,7 @@ def _recreate_engine() -> None:
         connect_args={"check_same_thread": False},
     )
     SQLModel.metadata.create_all(new_engine)
+    _stamp_alembic_head_if_fresh()
     _run_alembic_migrations()
     db_mod.engine = new_engine
 

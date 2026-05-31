@@ -546,14 +546,13 @@ def test_restore_backup_single_file_too_large(valid_backup_zip: bytes, tmp_db_pa
 
 # ── _recreate_engine ──────────────────────────────────────────────────────────
 
-def test_recreate_engine(monkeypatch: MonkeyPatch) -> None:
+def test_recreate_engine(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     """_recreate_engine should replace app.database.engine."""
     import app.database as db_mod
 
     original_engine = db_mod.engine
+    tmp_db = str(tmp_path / "test.db")
     try:
-        # Use a temp DB path
-        tmp_db = "/tmp/test_recreate_engine.db"
         conn = sqlite3.connect(tmp_db)
         conn.execute("CREATE TABLE IF NOT EXISTS t (id INT)")
         conn.commit()
@@ -563,10 +562,7 @@ def test_recreate_engine(monkeypatch: MonkeyPatch) -> None:
         br._recreate_engine()
         new_engine = db_mod.engine
         assert new_engine is not original_engine
-
-        os.remove(tmp_db)
     finally:
-        # Dispose the newly created engine before restoring the original
         if db_mod.engine is not original_engine:
             db_mod.engine.dispose()
         db_mod.engine = original_engine
