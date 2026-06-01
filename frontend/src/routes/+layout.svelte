@@ -273,7 +273,7 @@
 <div class="min-h-screen bg-base-200 flex">
 	<!-- Floating user menu (desktop) -->
 	<div class="hidden md:block">
-		<UserMenu />
+		<UserMenu {updateInfo} />
 	</div>
 	<!-- Sidebar (desktop) -->
 	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
@@ -316,16 +316,9 @@
 					<Logo class="w-10 h-10 shrink-0" />
 					<span class="font-bold tracking-tight hidden sm:inline">{$_('app.title')}</span>
 				</a>
-				{#if updateInfo}
-					<div class="tooltip tooltip-right ml-2" data-tip={$_('toasts.newVersion', { values: { version: updateInfo.latestVersion } })}>
-						<a href={updateInfo.releaseUrl} target="_blank" rel="noopener noreferrer" aria-label={$_('toasts.newVersion', { values: { version: updateInfo.latestVersion } })} class="flex items-center justify-center p-2.5">
-							<CloudDownload class="w-6 h-6 text-green-500" />
-						</a>
-					</div>
-				{/if}
 			</div>
-			<div class="navbar-end">
-				<UserMenu floating={false} />
+			<div class="navbar-end gap-1">
+				<UserMenu floating={false} {updateInfo} />
 			</div>
 		</div>
 

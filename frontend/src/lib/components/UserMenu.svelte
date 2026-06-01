@@ -2,12 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { broadcastLogout, currentUser, csrfToken } from '$lib/stores/auth';
+	import type { UpdateInfo } from '$lib/stores/updateCheck';
 	import { _ } from '$lib/i18n';
 	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '$lib/stores/theme';
 	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
-	import { Sun, Moon, Palette } from '@lucide/svelte';
+	import { Sun, Moon, Palette, CloudDownload } from '@lucide/svelte';
 
-	let { floating = true }: { floating?: boolean } = $props();
+	let { floating = true, updateInfo = null }: { floating?: boolean; updateInfo?: UpdateInfo | null } = $props();
 
 	let open = $state(false);
 	let themeIcon = $state(getThemeIcon());
@@ -71,26 +72,40 @@
 </script>
 
 <div class="{floating ? 'fixed top-4 right-4 z-50' : 'relative'}">
-	<button
-		type="button"
-		class="btn btn-ghost btn-circle"
-		onclick={onMenuToggle}
-		aria-label={$_('user.menu')}
-	>
-		{#if user}
-			<AnimalAvatar seed={user.email} size={36} class="w-9 h-9" />
-		{:else}
-			<div class="w-9 h-9 rounded-full bg-primary text-primary-content text-xs grid place-items-center font-semibold">
-				{initials}
-			</div>
+	<div class="indicator">
+		{#if updateInfo}
+			<span class="indicator-item badge badge-success badge-xs border-base-100 shadow-sm mt-1 mr-1"></span>
 		{/if}
-	</button>
+		<button
+			type="button"
+			class="btn btn-ghost btn-circle"
+			onclick={onMenuToggle}
+			aria-label={$_('user.menu')}
+		>
+			{#if user}
+				<AnimalAvatar seed={user.email} size={36} class="w-9 h-9" />
+			{:else}
+				<div class="w-9 h-9 rounded-full bg-primary text-primary-content text-xs grid place-items-center font-semibold">
+					{initials}
+				</div>
+			{/if}
+		</button>
+	</div>
 
 	{#if open}
 		<ul
 			tabindex="-1"
-			class="menu menu-sm dropdown-content absolute right-0 mt-3 w-40 rounded-xl bg-base-100 shadow z-50 p-2"
+			class="menu menu-sm dropdown-content absolute right-0 mt-3 w-48 rounded-xl bg-base-100 shadow z-50 p-2"
 		>
+			{#if updateInfo}
+				<li>
+					<a href={updateInfo.releaseUrl} target="_blank" rel="noopener noreferrer" class="text-success font-medium" onclick={() => (open = false)}>
+						<CloudDownload class="w-4 h-4" />
+						{$_('toasts.newVersion', { values: { version: updateInfo.latestVersion } })}
+					</a>
+				</li>
+				<li><hr class="menu-divider opacity-30 mt-2 mb-2 rounded-none" style="padding: 0;"></li>
+			{/if}
 			<li><a href="/profile" onclick={() => (open = false)}>{$_('user.profile')}</a></li>
 			<li><a href="/about" onclick={() => (open = false)}>{$_('user.about')}</a></li>
 			<li><hr class="menu-divider opacity-30 mt-2 mb-2 rounded-none" style="padding: 0;"></li>
