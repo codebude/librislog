@@ -27,7 +27,17 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: develop
+          fetch-depth: 0
           path: develop
+
+      - name: Debug lastUpdated git history inputs
+        run: |
+          echo "Release HEAD: $(git -C release rev-parse --short HEAD)"
+          echo "Develop HEAD: $(git -C develop rev-parse --short HEAD)"
+          echo "Release about.md last commit: $(git -C release log -1 --format='%h %cI %s' -- docs/about.md || echo 'N/A')"
+          echo "Develop about.md last commit: $(git -C develop log -1 --format='%h %cI %s' -- docs/about.md || echo 'N/A')"
+          echo "Release administration.md last commit: $(git -C release log -1 --format='%h %cI %s' -- docs/guide/using-librislog/administration.md || echo 'N/A')"
+          echo "Develop administration.md last commit: $(git -C develop log -1 --format='%h %cI %s' -- docs/guide/using-librislog/administration.md || echo 'N/A')"
 
       - name: Determine release ref
         id: release-ref
