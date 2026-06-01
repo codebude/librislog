@@ -119,7 +119,9 @@
     "clickToRate": "Klicke auf einen Stern zum Bewerten",
     "actionFailed": "{action} fehlgeschlagen",
     "readMore": "Mehr lesen",
-    "readLess": "Weniger lesen"
+    "readLess": "Weniger lesen",
+    "serverStarting": "Server wird gestartet...",
+    "serverStartingDesc": "Bitte warte, während der Server hochfährt."
   },
   "book": {
     "title": "Titel",

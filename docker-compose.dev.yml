@@ -25,6 +25,4 @@ services:
         GIT_SHA: ${GIT_SHA:-unknown}
     ports:
       - "8001:80"
-    depends_on:
-      - backend
     restart: unless-stopped

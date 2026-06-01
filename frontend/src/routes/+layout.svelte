@@ -32,6 +32,7 @@
 	let addBookOpen = $state(false);
 	let i18nReady = $state(false);
 	let authReady = $state(false);
+	let backendReady = $state(false);
 	let versionInterval: ReturnType<typeof setInterval> | undefined;
 	const isPublicAuthRoute = $derived(
 		$page.url.pathname.startsWith('/setup') ||
@@ -45,6 +46,18 @@
 	import { setContext } from 'svelte';
 	setContext('openAddBook', () => (addBookOpen = true));
 
+	async function waitForBackend(): Promise<void> {
+		for (let i = 0; i < 30; i++) {
+			try {
+				const res = await fetch('/api/auth/setup-required');
+				if (res.ok) return;
+			} catch {
+				// backend not ready yet
+			}
+			await new Promise(r => setTimeout(r, 2000));
+		}
+	}
+
 		onMount(async () => {
 		initAuthSync(() => {
 			currentUser.set(null);
@@ -56,7 +69,13 @@
 		await setupI18n();
 		i18nReady = true;
 
+		// Wait for backend on login/setup/oidc routes so the page doesn't
+		// render before the server is ready (e.g. OIDC config fetch).
 		const path = $page.url.pathname;
+		if (path.startsWith('/login') || path.startsWith('/setup') || path.startsWith('/auth/oidc')) {
+			await waitForBackend();
+		}
+		backendReady = true;
 		const isSetupRoute = path.startsWith('/setup');
 		const isLoginRoute = path.startsWith('/login');
 		const isOidcCallbackRoute = path.startsWith('/auth/oidc');
@@ -227,7 +246,20 @@
 	<title>{pageTitle()}</title>
 </svelte:head>
 
-{#if !i18nReady || !authReady}
+{#if !i18nReady}
+	<div class="min-h-screen bg-base-200 flex items-center justify-center">
+		<span class="loading loading-spinner loading-lg"></span>
+	</div>
+{:else if !backendReady}
+	<div class="min-h-screen bg-base-200 flex flex-col items-center justify-center gap-4 px-4">
+		<Logo class="w-20 h-20" />
+		<div class="text-center">
+			<p class="text-lg font-medium">{$_('common.serverStarting')}</p>
+			<p class="text-sm text-base-content/60 mt-1">{$_('common.serverStartingDesc')}</p>
+		</div>
+		<span class="loading loading-spinner loading-md"></span>
+	</div>
+{:else if !authReady}
 	<div class="min-h-screen bg-base-200 flex items-center justify-center">
 		<span class="loading loading-spinner loading-lg"></span>
 	</div>

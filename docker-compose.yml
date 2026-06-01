@@ -16,6 +16,4 @@ services:
     image: ghcr.io/codebude/librislog/librislog:latest
     ports:
       - "8001:80"
-    depends_on:
-      - backend
     restart: unless-stopped
