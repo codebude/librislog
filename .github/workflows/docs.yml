@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: develop
+          fetch-depth: 0
           path: develop
 
       - name: Determine release ref
