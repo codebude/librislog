@@ -119,7 +119,9 @@
     "clickToRate": "Click a star to rate",
     "actionFailed": "{action} failed",
     "readMore": "Read more",
-    "readLess": "Read less"
+    "readLess": "Read less",
+    "serverStarting": "Server is starting up...",
+    "serverStartingDesc": "Please wait while the server finishes booting."
   },
   "book": {
     "title": "Title",
