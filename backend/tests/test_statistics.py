@@ -206,7 +206,19 @@ def test_statistics_invalid_timezone_falls_back_to_utc(client: Any, session: Ses
 
     resp = client.get("/api/statistics")
     assert resp.status_code == 200
-    assert resp.json()["books_finished_per_month"] == [{"month": "2026-05", "count": 1}]
+    data = resp.json()
+    now = datetime.now(timezone.utc)
+    expected_months = []
+    year, month = 2026, 5
+    while (year < now.year) or (year == now.year and month <= now.month):
+        expected_months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    assert data["books_finished_per_month"] == [
+        {"month": m, "count": 1 if m == "2026-05" else 0} for m in expected_months
+    ]
 
 
 def test_pages_per_day_fallback_books_without_progress(client: Any) -> None:
