@@ -836,7 +836,10 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
             },
             "language": {"source": "", "transform": None},
             "tags": {"source": "Bookshelves", "transform": None},
-            "notes": {"source": "My Review", "transform": None},
+            "notes": {
+                "source": "My Review", 
+                "transform": "value.replace('<br/>', '\n') if value else None",
+            },
             "blurb": {"source": "", "transform": None},
             "rating": {
                 "source": "My Rating",
@@ -846,7 +849,7 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
                 "source": "Exclusive Shelf",
                 "transform": (
                     "shelf_map = {'to-read': 'want_to_read', "
-                    "'currently-reading': 'currently_reading', 'read': 'read'}\n"
+                    "'currently-reading': 'currently_reading', 'read': 'read', 'did-not-finish': 'did_not_finish'}\n"
                     "status = shelf_map.get(value.strip().lower(), 'want_to_read')\n"
                     "return status"
                 ),
