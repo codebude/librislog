@@ -240,15 +240,41 @@ def get_pages_per_day(
     start_date_utc = start_date.astimezone(timezone.utc).replace(tzinfo=None)
     end_date_utc = end_date.astimezone(timezone.utc).replace(tzinfo=None)
 
-    progress_entries = list(
+    # Books with at least one progress entry in the window — we need their full
+    # entry chains to compute correct daily averages.
+    book_ids_with_window_progress = set(
         session.exec(
-            select(ReadingProgress)
+            select(ReadingProgress.book_id)
             .where(
                 ReadingProgress.user_id == current_user.id,
                 ReadingProgress.created_at >= start_date_utc,
-                ReadingProgress.created_at <= end_date_utc,
             )
-            .order_by(ReadingProgress.book_id, ReadingProgress.created_at)
+            .distinct()
+        ).all()
+    )
+
+    # Load full entry chains for those books (including entries before the window
+    # so that the prev→curr delta and day_diff span are complete).
+    if book_ids_with_window_progress:
+        progress_entries = list(
+            session.exec(
+                select(ReadingProgress)
+                .where(
+                    ReadingProgress.user_id == current_user.id,
+                    ReadingProgress.book_id.in_(book_ids_with_window_progress),
+                )
+                .order_by(ReadingProgress.book_id, ReadingProgress.created_at)
+            ).all()
+        )
+    else:
+        progress_entries = []
+
+    # All book_ids with *any* progress entry (used to exclude books from fallback).
+    all_book_ids_with_progress = set(
+        session.exec(
+            select(ReadingProgress.book_id)
+            .where(ReadingProgress.user_id == current_user.id)
+            .distinct()
         ).all()
     )
 
@@ -256,11 +282,9 @@ def get_pages_per_day(
         session.exec(select(Book).where(Book.user_id == current_user.id)).all()
     )
 
-    books_with_progress = {e.book_id for e in progress_entries}
-
     virtual_entries = []
     for book in books:
-        if book.id not in books_with_progress or not book.date_started:
+        if book.id not in all_book_ids_with_progress or not book.date_started:
             continue
         # Finished books without date_finished have no bounded reading
         # period; skip to avoid spreading pages from date_started to
@@ -281,11 +305,13 @@ def get_pages_per_day(
     fallback_books = [
         b
         for b in books
-        if b.id not in books_with_progress
+        if b.id not in all_book_ids_with_progress
         and b.reading_status == ReadingStatus.read
         and b.date_started
         and b.date_finished
         and b.page_count
+        # Only include books whose reading period could overlap the window.
+        and _naive_utc(b.date_finished) >= start_date_utc
     ]
     fallback_daily = _extract_book_level_daily_pages(fallback_books, tz, start_date_utc, end_date_utc)
 
