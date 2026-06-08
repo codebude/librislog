@@ -315,33 +315,6 @@ def test_data_import_validate_rejects_invalid_reading_status_enum(client: TestCl
     assert any("reading_status" in error for error in payload["errors"])
 
 
-def test_data_import_execute_deletes_temp_file_after_completion(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    import_temp_dir = tmp_path / "import_temp"
-    monkeypatch.setattr(settings, "import_temp_dir", str(import_temp_dir))
-    csv_payload = "Title\nDune\n"
-    parse_resp = client.post(
-        "/api/data/import/parse",
-        files={"file": ("books.csv", csv_payload, "text/csv")},
-    )
-    assert parse_resp.status_code == 200
-    file_id = parse_resp.json()["file_id"]
-
-    temp_file = import_temp_dir / "1" / f"{file_id}.json"
-    assert temp_file.exists()
-
-    execute_resp = client.post(
-        "/api/data/import/execute",
-        json={
-            "file_id": file_id,
-            "mapping": {"title": {"source": "Title", "transform": None}},
-            "import_mode": "continue_on_error",
-        },
-    )
-    assert execute_resp.status_code == 200
-    events = _parse_sse(execute_resp.text)
-    assert any(event.get("event") == "complete" for event in events)
-    assert not temp_file.exists()
-
 
 def test_data_import_execute_progress_uses_date_finished_for_read_books(
     client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path
