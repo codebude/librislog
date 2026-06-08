@@ -116,8 +116,8 @@ Output goes to `docs/.vitepress/dist/`.
 ### Nightly Docs
 
 The CI workflow publishes two doc sets on every push to `develop`:
-- **Release docs** at `https://codebude.github.io/librislog/` — built from the latest git tag
-- **Nightly docs** at `https://codebude.github.io/librislog/next/` — built from `develop`
+- **Release docs** at `https://docs.librislog.app/` — built from the latest git tag
+- **Nightly docs** at `https://docs.librislog.app/next/` — built from `develop`
 
 The nightly build uses a separate config (`config.nightly.ts`) which sets a different base path and swaps the nav link to point back to the release docs.
 

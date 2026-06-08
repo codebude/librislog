@@ -100,6 +100,10 @@ jobs:
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
           printf '{"version":"%s","release_url":"%s"}\n' "$VERSION" "$RELEASE_URL" > ./dist/version.json
 
+      - name: Write CNAME
+        run: |
+          printf 'docs.librislog.app\n' > ./dist/CNAME
+
       - uses: peaceiris/actions-gh-pages@v4
         if: steps.check-release-docs.outputs.has_docs == 'true'
         with:
