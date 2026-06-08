@@ -838,7 +838,7 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
             "tags": {"source": "Bookshelves", "transform": None},
             "notes": {
                 "source": "My Review", 
-                "transform": "value.replace('<br/>', '\n') if value else None",
+                "transform": "re.sub(r'<br\\s*/?>', '\\n', value, flags=re.IGNORECASE) if value else None",
             },
             "blurb": {"source": "", "transform": None},
             "rating": {

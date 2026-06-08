@@ -35,7 +35,6 @@ from app.services.data_import import (
     BOOK_IMPORT_FIELDS,
     PREDEFINED_MAPPINGS,
     compute_schema_fingerprint,
-    delete_parsed_upload,
     execute_import,
     get_predefined_mapping,
     load_parsed_upload,
@@ -323,8 +322,7 @@ async def execute_import_data(
                 final_error = 'error.importExecutionFailed'
                 yield f"data: {json.dumps({'event': 'error', 'message': 'error.importExecutionFailed'})}\n\n"
             finally:
-                if completed and import_failed_rows == 0 and final_error is None:
-                    delete_parsed_upload(body.file_id, current_user.id)
+                pass  # import file is cleaned up by the periodic temp file job
 
     return StreamingResponse(
         event_generator(),
