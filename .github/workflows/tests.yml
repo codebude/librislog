@@ -163,6 +163,7 @@ jobs:
     permissions:
       checks: write
       pull-requests: write
+      issues: write
     steps:
       - uses: actions/download-artifact@v8
         with:
