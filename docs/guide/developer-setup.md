@@ -20,7 +20,7 @@ When building, you can override these arguments:
 |----------|-------------|---------|
 | `APP_VERSION` | Application version string | `v0.0.0-dev` |
 | `GIT_SHA` | Git commit hash for version display | `unknown` |
-| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en` or `de`) | `en` |
+| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en`, `de`, `zh`, `es`, or `fr`) | `en` |
 
 Example:
 

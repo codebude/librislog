@@ -58,7 +58,7 @@ All configuration is done via environment variables in a `.env` file at the proj
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en` or `de`) | `en` |
+| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en`, `de`, `zh`, `es`, or `fr`) | `en` |
 
 ## Import Limits
 

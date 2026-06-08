@@ -68,7 +68,7 @@ Open **http://localhost:8001** and create your account.
 - **Cover art from multiple sources.** Automatic search across AbeBooks, Open Library, Amazon, and Hardcover — plus manual upload or URL paste.
 - **Full REST API.** OpenAPI-documented backend you can script against — build your own frontend, connect home automation, or pipe data into your own tools.
 - **Lightweight.** Two Docker containers, one SQLite database.
-- **Bilingual UI.** English and German with a localization framework ready for more languages.
+- **Multi-language UI.** English, German, Spanish, French, and Chinese (Simplified) — with a localization framework ready for more languages.
 
 ---
 
