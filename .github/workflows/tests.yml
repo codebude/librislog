@@ -219,7 +219,8 @@ jobs:
           fail-on-error: "false"
 
       - name: Post PR comment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: actions/github-script@v9
         env:
           backend_passed:     ${{ steps.backend.outputs.passed }}
