@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/import", tags=["import"])
 def _raise_integrity_conflict(exc: IntegrityError) -> None:
     """Convert ISBN unique-constraint violations to HTTP 409."""
     message = str(exc.orig).lower() if exc.orig else str(exc).lower()
-    if "book.isbn" in message and "unique" in message:
+    if ("book.isbn" in message or "uq_book_user_id_isbn" in message) and "unique" in message:
         raise HTTPException(status_code=409, detail="This ISBN is already used by another book.") from exc
     raise
 

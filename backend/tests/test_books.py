@@ -991,6 +991,84 @@ def test_suggest_user_isolation(client: TestClient, create_user_with_key: Callab
         assert resp2.json()["suggestions"] == []
 
 
+# ── user data isolation ────────────────────────────────────────────────────────
+
+def test_same_isbn_allowed_for_different_users(client: TestClient, create_user_with_key: Callable[..., tuple[User, str]]) -> None:
+    """ISBN uniqueness is per-user — two users can each have the same ISBN."""
+
+    shared_isbn = "9780441013593"
+
+    # Create book with a shared ISBN for User 1 (default admin)
+    book1 = _create_book(client, title="Dune", author="Frank Herbert", page_count=412, isbn=shared_isbn)
+
+    # Create second user and their book with the same ISBN
+    user2, key2 = create_user_with_key(email="other@example.com")
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        resp = c2.post("/api/books", json={
+            "title": "Dune", "author": "Frank Herbert", "page_count": 412, "isbn": shared_isbn,
+        })
+        assert resp.status_code == 201
+        book2 = resp.json()
+
+    # ── list ──
+    list1 = client.get("/api/books").json()
+    assert len(list1["books"]) == 1
+    assert list1["books"][0]["id"] == book1["id"]
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        list2 = c2.get("/api/books").json()
+        assert len(list2["books"]) == 1
+        assert list2["books"][0]["id"] == book2["id"]
+
+    # ── get by id (own) ──
+    assert client.get(f"/api/books/{book1['id']}").status_code == 200
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        assert c2.get(f"/api/books/{book2['id']}").status_code == 200
+
+    # ── get by id (other user) ──
+    assert client.get(f"/api/books/{book2['id']}").status_code == 404
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        assert c2.get(f"/api/books/{book1['id']}").status_code == 404
+
+    # ── update (other user) ──
+    assert client.patch(f"/api/books/{book2['id']}", json={"title": "Hacked"}).status_code == 404
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        assert c2.patch(f"/api/books/{book1['id']}", json={"title": "Hacked"}).status_code == 404
+
+    # ── delete (other user) ──
+    assert client.delete(f"/api/books/{book2['id']}").status_code == 404
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        assert c2.delete(f"/api/books/{book1['id']}").status_code == 404
+
+    # ── stats isolation ──
+    stats1 = client.get("/api/books/stats").json()
+    assert stats1["total_books"] == 1
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        stats2 = c2.get("/api/books/stats").json()
+        assert stats2["total_books"] == 1
+
+    # ── suggestions isolation ──
+    resp1 = client.get("/api/books/suggestions/authors?q=Frank")
+    assert resp1.json()["suggestions"] == ["Frank Herbert"]
+
+    with TestClient(client.app) as c2:
+        c2.headers.update({"X-API-Key": key2})
+        resp2 = c2.get("/api/books/suggestions/authors?q=Frank")
+        assert resp2.json()["suggestions"] == ["Frank Herbert"]
+
+
 # ── prevent removing date_finished for read books ──────────────────────────────
 
 def test_update_book_rejects_clearing_date_finished_for_read(client: TestClient) -> None:

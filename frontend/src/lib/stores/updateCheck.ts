@@ -7,7 +7,7 @@ export interface UpdateInfo {
 
 const STORAGE_KEY = 'librislog_update_check';
 const CACHE_TTL = 60 * 60 * 1000;
-const CHECK_URL = 'https://codebude.github.io/librislog/version.json';
+const CHECK_URL = 'https://docs.librislog.app/version.json';
 
 function parseVersion(v: string): { parts: number[]; isPreRelease: boolean } {
 	const segments = v.replace(/^v/, '').split(/[.-]/);

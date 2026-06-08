@@ -3,17 +3,17 @@ import baseConfig from './config.base'
 
 export default defineConfig({
   ...baseConfig,
-  base: '/librislog/next/',
+  base: '/next/',
   head: [
     ...(baseConfig.head || []),
-    ['link', { rel: 'icon', href: '/librislog/next/favicon.svg', type: 'image/svg+xml' }],
-    ['link', { rel: 'alternate icon', href: '/librislog/next/favicon.ico', sizes: 'any' }],
+    ['link', { rel: 'icon', href: '/next/favicon.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'alternate icon', href: '/next/favicon.ico', sizes: 'any' }],
   ],
   themeConfig: {
     ...baseConfig.themeConfig,
     nav: [
       ...(baseConfig.themeConfig?.nav || []),
-      { text: 'Release Docs', link: 'https://codebude.github.io/librislog/' },
+      { text: 'Release Docs', link: 'https://docs.librislog.app/' },
     ],
   },
 })

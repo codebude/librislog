@@ -54,11 +54,15 @@ class UserRole(str, Enum):
 class Book(SQLModel, table=True):
     """A book in the user's library."""
 
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "isbn", name="uq_book_user_id_isbn"),
+    )
+
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     subtitle: Optional[str] = None
     author: str = Field(default="", index=True)
-    isbn: Optional[str] = Field(default=None, unique=True)
+    isbn: Optional[str] = Field(default=None)
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
 

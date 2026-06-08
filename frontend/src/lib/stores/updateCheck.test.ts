@@ -3,7 +3,7 @@ import { isNewer, checkForUpdate } from './updateCheck';
 
 vi.mock('$lib/version', () => ({ version: 'v1.0.0', gitSha: 'abc1234' }));
 
-const CHECK_URL = 'https://codebude.github.io/librislog/version.json';
+const CHECK_URL = 'https://docs.librislog.app/version.json';
 const STORAGE_KEY = 'librislog_update_check';
 
 function mockFetch(data: unknown, ok = true) {

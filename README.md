@@ -1,19 +1,19 @@
 # LibrisLog
 
 <p align="center">
-  <a href="https://codebude.github.io/librislog/">📚 Full Documentation</a>
+  <a href="https://docs.librislog.app/">📚 Full Documentation</a>
   &nbsp;·&nbsp;
-  <a href="https://codebude.github.io/librislog/guide/getting-started">Quick Start</a>
+  <a href="https://docs.librislog.app/guide/getting-started">Quick Start</a>
   &nbsp;·&nbsp;
-  <a href="https://codebude.github.io/librislog/api/">API Reference</a>
+  <a href="https://docs.librislog.app/api/">API Reference</a>
   &nbsp;·&nbsp;
-  <a href="https://codebude.github.io/librislog/next/">Nightly Docs</a>
+  <a href="https://docs.librislog.app/next/">Nightly Docs</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/codebude/librislog/actions/workflows/tests.yml"><img src="https://github.com/codebude/librislog/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/codebude?tab=packages&repo_name=librislog"><img src="https://github.com/codebude/librislog/actions/workflows/docker.yml/badge.svg" alt="Docker Build"></a>
-  <a href="https://codebude.github.io/librislog/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
+  <a href="https://docs.librislog.app/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
   <img src="https://img.shields.io/badge/python-3.14-%233776AB?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte" alt="Svelte">
   <img src="https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi" alt="FastAPI">
@@ -91,7 +91,7 @@ Open **http://localhost:8001** and create your account.
 
 The backend is a standalone FastAPI application. The full API is documented via Swagger UI at `/api/docs` when the server is running.
 
-Create API keys from the web UI (Profile → API Keys) for headless access. See the [API Reference](https://codebude.github.io/librislog/api/) for details.
+Create API keys from the web UI (Profile → API Keys) for headless access. See the [API Reference](https://docs.librislog.app/api/) for details.
 
 ```bash
 cd backend
@@ -117,7 +117,7 @@ uv run uvicorn app.main:app --reload
 
 ## Contributing
 
-See the [Developer Setup](https://codebude.github.io/librislog/guide/developer-setup) guide for instructions on running LibrisLog locally, running tests, and using the CLI tool.
+See the [Developer Setup](https://docs.librislog.app/guide/developer-setup) guide for instructions on running LibrisLog locally, running tests, and using the CLI tool.
 
 This project was developed with the assistance of AI coding tools under a human-supervised workflow. No AI-generated code is committed without human review and approval.
 
