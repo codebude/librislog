@@ -16,6 +16,9 @@ API key to use them. You can create one either:
 
 ## Available Integrations
 
+- [Dashy](/api/integrations/dashy) — Display your LibrisLog statistics as
+  styled stat cards on a [Dashy](https://dashy.to/) dashboard using the HTML
+  embedded widget.
 - [Home Assistant](/api/integrations/homeassistant) — Expose your LibrisLog
   reading statistics as sensors in
   [Home Assistant](https://www.home-assistant.io/) using the RESTful
