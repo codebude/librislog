@@ -81,6 +81,7 @@ export default defineConfig({
               link: '/api/integrations/',
               collapsed: true,
               items: [
+                { text: 'Home Assistant', link: '/api/integrations/homeassistant' },
                 { text: 'Homepage', link: '/api/integrations/homepage' },
               ],
             },

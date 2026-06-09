@@ -16,6 +16,10 @@ API key to use them. You can create one either:
 
 ## Available Integrations
 
+- [Home Assistant](/api/integrations/homeassistant) — Expose your LibrisLog
+  reading statistics as sensors in
+  [Home Assistant](https://www.home-assistant.io/) using the RESTful
+  integration.
 - [Homepage](/api/integrations/homepage) — Display your LibrisLog statistics
   on a [Homepage](https://gethomepage.dev/) dashboard using the custom API
   widget.
