@@ -278,7 +278,10 @@
   },
   "languages": {
     "en": "English",
-    "de": "German"
+    "de": "German",
+    "zh": "Chinese",
+    "es": "Spanish",
+    "fr": "French"
   },
   "auth": {
     "login": "Login",

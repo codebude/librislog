@@ -1,7 +1,7 @@
 import { addMessages, init, locale, register, waitLocale, _ } from 'svelte-i18n';
 import { api } from '$lib/api';
 
-export const SUPPORTED_LOCALES = ['en', 'de'] as const;
+export const SUPPORTED_LOCALES = ['en', 'de', 'zh', 'es', 'fr'] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 
 const DEFAULT_LOCALE: AppLocale = 'en';
@@ -12,6 +12,9 @@ const configuredDefaultLocale: AppLocale = isSupportedLocale(envLocale) ? envLoc
 
 register('en', () => import('./locales/en.json'));
 register('de', () => import('./locales/de.json'));
+register('zh', () => import('./locales/zh.json'));
+register('es', () => import('./locales/es.json'));
+register('fr', () => import('./locales/fr.json'));
 
 addMessages('en', {});
 

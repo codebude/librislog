@@ -67,8 +67,9 @@ Open **http://localhost:8001** and create your account.
 - **Point your phone at an ISBN barcode.** Real-time barcode scanning in the browser — no native app required.
 - **Cover art from multiple sources.** Automatic search across AbeBooks, Open Library, Amazon, and Hardcover — plus manual upload or URL paste.
 - **Full REST API.** OpenAPI-documented backend you can script against — build your own frontend, connect home automation, or pipe data into your own tools.
+- **Third-party integrations.** Display your stats on [Dashy](https://dashy.to/), [Home Assistant](https://www.home-assistant.io/), or [Homepage](https://gethomepage.dev/) dashboards and more. [See all integrations →](https://docs.librislog.app/api/integrations/)
 - **Lightweight.** Two Docker containers, one SQLite database.
-- **Bilingual UI.** English and German with a localization framework ready for more languages.
+- **Multi-language UI.** English, German, Spanish, French, and Chinese (Simplified) — with a localization framework ready for more languages.
 
 ---
 
@@ -127,10 +128,10 @@ MIT
 
 ## Star History
 
-<a href="https://www.star-history.com/#codebude/librislog&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=Date" />
-  </picture>
+<a href="https://www.star-history.com/?repos=codebude%2Flibrislog&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
+ </picture>
 </a>

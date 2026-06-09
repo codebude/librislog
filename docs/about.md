@@ -11,7 +11,7 @@ LibrisLog is a **multi-user book tracking web application** designed for readers
 - **Cover Management**: Automatic cover image scraping from multiple sources with manual override
 - **Data Portability**: Export/import library as JSON or CSV. Full backup and restore functionality
 - **REST API**: Full API with OpenAPI documentation for programmatic access
-- **Multilingual**: English and German UI support
+- **Multilingual**: English, German, Spanish, French, and Chinese (Simplified) UI support
 - **Themes**: Light, dark, and custom DaisyUI themes with persistent preferences
 
 ## Technology Stack
