@@ -605,6 +605,13 @@
     "allSet": "Ta bibliothèque est en pleine forme ! Tous les livres ont des métadonnées complètes.",
     "allSetFiltered": "Ta bibliothèque est en pleine forme ! Tous les livres ont des métadonnées complètes pour les attributs sélectionnés.",
     "tableHeaderMissing": "Manquant",
+    "actions": "Actions",
+    "openDetails": "Ouvrir les détails",
+    "detailsShort": "Détails",
+    "viewCover": "Voir la couverture",
+    "coverShort": "Couverture",
+    "noCover": "Pas de couverture",
+    "loadBookDetailsFailed": "Impossible de charger les détails du livre.",
     "remaining": "restants",
     "andXMore": "...et {count} autres"
   },

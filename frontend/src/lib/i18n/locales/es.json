@@ -605,6 +605,13 @@
     "allSet": "¡Tu biblioteca está en excelente estado! Todos los libros tienen metadatos completos.",
     "allSetFiltered": "¡Tu biblioteca está en excelente estado! Todos los libros tienen metadatos completos para los atributos seleccionados.",
     "tableHeaderMissing": "Faltante",
+    "actions": "Acciones",
+    "openDetails": "Abrir detalles",
+    "detailsShort": "Detalles",
+    "viewCover": "Ver portada",
+    "coverShort": "Portada",
+    "noCover": "Sin portada",
+    "loadBookDetailsFailed": "No se pudieron cargar los detalles del libro.",
     "remaining": "restantes",
     "andXMore": "...y {count} más"
   },

@@ -605,6 +605,13 @@
     "allSet": "你的书库状态良好！所有图书元数据完整。",
     "allSetFiltered": "你的书库状态良好！所选属性的所有图书元数据完整。",
     "tableHeaderMissing": "缺失",
+    "actions": "操作",
+    "openDetails": "打开详情",
+    "detailsShort": "详情",
+    "viewCover": "查看封面",
+    "coverShort": "封面",
+    "noCover": "无封面",
+    "loadBookDetailsFailed": "加载图书详情失败。",
     "remaining": "剩余",
     "andXMore": "...还有 {count} 个"
   },

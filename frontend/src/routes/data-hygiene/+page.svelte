@@ -5,8 +5,10 @@
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
 	import Alert from '$lib/components/Alert.svelte';
-	import { LoaderCircle } from '@lucide/svelte';
-	import type { HygieneAttribute, HygieneMissingBook } from '$lib/types';
+	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import { LoaderCircle, X } from '@lucide/svelte';
+	import type { Book, HygieneAttribute, HygieneMissingBook } from '$lib/types';
 
 	const ATTRIBUTES: { key: HygieneAttribute; labelKey: string }[] = [
 		{ key: 'author', labelKey: 'dataHygiene.attributes.author' },
@@ -32,10 +34,16 @@
 	let selectedBookIds = $state<Set<number>>(new Set());
 	let batchField = $state<HygieneAttribute | null>(null);
 	let batchValue = $state('');
+	let batchFieldWasAutoSelected = $state(false);
 	let showBatchConfirm = $state(false);
 	let batchUpdating = $state(false);
 	let dataLoaded = $state(false);
 	let hasMore = $state(false);
+	let selectedBook = $state<Book | null>(null);
+	let detailOpen = $state(false);
+	let drawerOpen = $state(false);
+	let detailLoadingBookId = $state<number | null>(null);
+	let coverViewer = $state<{ title: string; coverUrl: string } | null>(null);
 
 	const effectiveAttributes = $derived(
 		selectedAttributes.length > 0 ? selectedAttributes : ATTRIBUTES.map(a => a.key)
@@ -163,6 +171,51 @@
 		void loadData(false);
 	}
 
+	async function openBookDetails(book: HygieneMissingBook) {
+		detailLoadingBookId = book.id;
+		try {
+			selectedBook = await api.books.get(book.id);
+			detailOpen = true;
+			drawerOpen = false;
+		} catch (e: unknown) {
+			toasts.add(localizeError(e, $_, $_('dataHygiene.loadBookDetailsFailed')), 'error');
+		} finally {
+			detailLoadingBookId = null;
+		}
+	}
+
+	function openEditFromDetail(book: Book) {
+		selectedBook = book;
+		detailOpen = false;
+		drawerOpen = true;
+	}
+
+	async function handleSave(updated: Book) {
+		selectedBook = updated;
+		detailOpen = false;
+		drawerOpen = false;
+		await loadData(true);
+	}
+
+	function handleDelete(id: number) {
+		detailOpen = false;
+		drawerOpen = false;
+		selectedBookIds = new Set([...selectedBookIds].filter(bookId => bookId !== id));
+		void loadData(true);
+	}
+
+	function openCoverViewer(book: HygieneMissingBook) {
+		if (!book.cover_url) return;
+		coverViewer = {
+			title: book.title,
+			coverUrl: book.cover_url,
+		};
+	}
+
+	function closeCoverViewer() {
+		coverViewer = null;
+	}
+
 	const allComplete = $derived(
 		dataLoaded && total === 0 && Object.values(totalMissingPerAttribute).every(c => c === 0)
 	);
@@ -176,6 +229,25 @@
 			}
 		}
 		return [...set];
+	});
+
+	$effect(() => {
+		if (missingAttrsOfSelected.length === 1) {
+			batchField = missingAttrsOfSelected[0];
+			batchFieldWasAutoSelected = true;
+			return;
+		}
+
+		if (missingAttrsOfSelected.length > 1 && batchFieldWasAutoSelected) {
+			batchField = null;
+			batchFieldWasAutoSelected = false;
+			return;
+		}
+
+		if (batchField && !missingAttrsOfSelected.includes(batchField)) {
+			batchField = null;
+			batchFieldWasAutoSelected = false;
+		}
 	});
 </script>
 
@@ -242,7 +314,7 @@
 		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('dataHygiene.sectionResults')}</div>
 
 		<div class="card bg-base-100 border border-base-200 shadow-sm">
-			<div class="card-body p-0">
+			<div class="card-body p-0 overflow-x-auto">
 				<table class="table table-sm">
 					<thead>
 						<tr>
@@ -256,10 +328,11 @@
 								/>
 							</th>
 							<th>{$_('book.title')}</th>
-							<th class="hidden sm:table-cell">{$_('book.author')}</th>
-							<th class="hidden md:table-cell">{$_('book.isbn')}</th>
-							<th class="hidden lg:table-cell">{$_('book.publisher')}</th>
+							<th class="hidden lg:table-cell">{$_('book.author')}</th>
+							<th class="hidden lg:table-cell">{$_('book.isbn')}</th>
+							<th class="hidden xl:table-cell">{$_('book.publisher')}</th>
 							<th>{$_('dataHygiene.tableHeaderMissing')}</th>
+							<th class="w-20 xl:w-28">{$_('dataHygiene.actions')}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -277,14 +350,49 @@
 									</div>
 								</td>
 								<td class="font-medium break-words min-w-0">{book.title}</td>
-								<td class="hidden sm:table-cell max-w-[180px] truncate">{book.author || '—'}</td>
-								<td class="hidden md:table-cell font-mono text-xs">{book.isbn || '—'}</td>
-								<td class="hidden lg:table-cell max-w-[150px] truncate">{book.publisher || '—'}</td>
+								<td class="hidden lg:table-cell max-w-[180px] truncate">{book.author || '—'}</td>
+								<td class="hidden lg:table-cell font-mono text-xs">{book.isbn || '—'}</td>
+								<td class="hidden xl:table-cell max-w-[150px] truncate">{book.publisher || '—'}</td>
 								<td>
 									<div class="flex flex-wrap gap-1">
 										{#each book.missing_attributes as attr}
 											<span class="badge badge-outline badge-xs">{$_(ATTRIBUTES.find(a => a.key === attr)?.labelKey ?? attr)}</span>
 										{/each}
+									</div>
+								</td>
+								<td>
+									<div class="flex items-center gap-1 sm:gap-2">
+										<button
+											class="btn btn-ghost btn-xs gap-1"
+											onclick={() => void openBookDetails(book)}
+											disabled={detailLoadingBookId === book.id}
+											aria-label={$_('dataHygiene.openDetails')}
+											title={$_('dataHygiene.openDetails')}
+										>
+											{#if detailLoadingBookId === book.id}
+												<span class="loading loading-spinner loading-xs"></span>
+											{:else}
+												<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+													<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+													<circle cx="12" cy="12" r="3"/>
+												</svg>
+											{/if}
+											<span class="hidden xl:inline">{$_('dataHygiene.detailsShort')}</span>
+										</button>
+										<button
+											class="btn btn-ghost btn-xs gap-1"
+											onclick={() => openCoverViewer(book)}
+											disabled={!book.cover_url}
+											aria-label={$_('dataHygiene.viewCover')}
+											title={book.cover_url ? $_('dataHygiene.viewCover') : $_('dataHygiene.noCover')}
+										>
+											<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<rect x="3" y="3" width="18" height="18" rx="2"/>
+												<circle cx="8.5" cy="8.5" r="1.5"/>
+												<path d="M21 15l-5-5L5 21"/>
+											</svg>
+											<span class="hidden xl:inline">{$_('dataHygiene.coverShort')}</span>
+										</button>
 									</div>
 								</td>
 							</tr>
@@ -323,8 +431,9 @@
 				</span>
 
 				<select
-					class="select select-bordered select-xs flex-1 min-w-[140px]"
+					class="select select-bordered select-xs w-44 sm:w-52 flex-none"
 					bind:value={batchField}
+					onchange={() => (batchFieldWasAutoSelected = false)}
 					aria-label={$_('dataHygiene.batchFieldLabel')}
 				>
 					<option value={null}>{$_('dataHygiene.batchFieldPlaceholder')}</option>
@@ -364,6 +473,37 @@
 	{/if}
 </div>
 
+{#if coverViewer}
+	<div
+		class="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"
+		role="button"
+		tabindex="-1"
+		onclick={closeCoverViewer}
+		onkeydown={(e) => e.key === 'Escape' && closeCoverViewer()}
+	></div>
+	<div class="fixed inset-0 z-[130] p-3 sm:p-6 flex items-center justify-center pointer-events-none">
+		<div class="w-full max-w-4xl pointer-events-auto">
+			<div class="relative bg-base-100 rounded-2xl shadow-2xl border border-base-300 overflow-hidden">
+				<button
+					class="btn btn-ghost btn-sm btn-circle absolute top-2 right-2 z-10 bg-base-100/90 shadow"
+					onclick={closeCoverViewer}
+					aria-label={$_('common.close')}
+				>
+					<X class="w-4 h-4" />
+				</button>
+				<div class="bg-base-200/60 px-4 py-2 text-sm font-medium truncate">{coverViewer.title}</div>
+				<div class="p-2 sm:p-4 bg-base-200/40">
+					<img
+						src={coverViewer.coverUrl}
+						alt={$_('book.coverOf', { values: { title: coverViewer.title } })}
+						class="w-full max-h-[78dvh] object-contain rounded-xl"
+					/>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <!-- Confirmation dialog -->
 <dialog class="modal" class:modal-open={showBatchConfirm}>
 	<div class="modal-box">
@@ -396,3 +536,6 @@
 		<button onclick={() => (showBatchConfirm = false)}>{$_('common.close')}</button>
 	</form>
 </dialog>
+
+<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
+<BookDrawer bind:book={selectedBook} bind:open={drawerOpen} onSave={handleSave} />

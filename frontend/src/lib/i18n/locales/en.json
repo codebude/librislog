@@ -605,6 +605,13 @@
     "allSet": "Your library is in great shape! All books have complete metadata.",
     "allSetFiltered": "Your library is in great shape! All books have complete metadata for the selected attributes.",
     "tableHeaderMissing": "Missing",
+    "actions": "Actions",
+    "openDetails": "Open details",
+    "detailsShort": "Details",
+    "viewCover": "View cover",
+    "coverShort": "Cover",
+    "noCover": "No cover",
+    "loadBookDetailsFailed": "Failed to load book details.",
     "remaining": "remaining",
     "andXMore": "...and {count} more"
   },

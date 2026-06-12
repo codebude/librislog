@@ -605,6 +605,13 @@
     "allSet": "Deine Bibliothek ist in großartiger Verfassung! Alle Bücher haben vollständige Metadaten.",
     "allSetFiltered": "Deine Bibliothek ist in großartiger Verfassung! Alle Bücher haben vollständige Metadaten für die ausgewählten Attribute.",
     "tableHeaderMissing": "Fehlend",
+    "actions": "Aktionen",
+    "openDetails": "Details öffnen",
+    "detailsShort": "Details",
+    "viewCover": "Cover ansehen",
+    "coverShort": "Cover",
+    "noCover": "Kein Cover",
+    "loadBookDetailsFailed": "Buchdetails konnten nicht geladen werden.",
     "remaining": "übrig",
     "andXMore": "...und {count} weitere"
   },
