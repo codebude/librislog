@@ -343,7 +343,7 @@
 				</span>
 
 				<select
-					class="select select-bordered select-xs flex-1 min-w-[140px]"
+					class="select select-bordered select-xs w-44 sm:w-52 flex-none"
 					bind:value={batchField}
 					onchange={() => (batchFieldWasAutoSelected = false)}
 					aria-label={$_('dataHygiene.batchFieldLabel')}
