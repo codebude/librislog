@@ -82,6 +82,7 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { text: 'Dashy', link: '/api/integrations/dashy' },
+                { text: 'Glance', link: '/api/integrations/glance' },
                 { text: 'Home Assistant', link: '/api/integrations/homeassistant' },
                 { text: 'Homepage', link: '/api/integrations/homepage' },
               ],
