@@ -3,25 +3,25 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/sv
 import { writable } from 'svelte/store';
 import DataImport from './DataImport.svelte';
 
-const mockParseImportFile = vi.fn(async () => ({
+const mockParseImportFile = vi.fn(async (_file: File) => ({
 	file_id: 'test-file-123',
 	format: 'csv' as const,
 	source_fields: ['Book Title', 'Author Name', 'ISBN'],
 	sample_rows: [{ 'Book Title': 'Dune', 'Author Name': 'Frank Herbert', 'ISBN': '978-3-16-148410-0' }],
 	row_count: 1
 }));
-const mockSuggestMapping = vi.fn(async () => ({
+const mockSuggestMapping = vi.fn(async (_fileId: string) => ({
 	suggested_mapping: { title: 'Book Title', author: 'Author Name', isbn: 'ISBN' },
 	db_fields: ['title', 'author', 'isbn', 'publisher', 'page_count']
 }));
-const mockValidateImport = vi.fn(async () => ({
+const mockValidateImport = vi.fn(async (_params: unknown) => ({
 	valid: true,
 	row_count: 1,
 	warnings: [],
 	errors: []
 }));
 const mockListMappings = vi.fn(async () => []);
-const mockExecuteImport = vi.fn(async function* () {
+const mockExecuteImport = vi.fn(async function* (_params: unknown) {
 	yield { event: 'start', total_rows: 1 };
 	yield { event: 'progress', processed: 1, total: 1, percent: 100 };
 	yield { event: 'complete', imported: 1, failed: 0, failures: [] };

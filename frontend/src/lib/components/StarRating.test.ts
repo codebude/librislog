@@ -56,7 +56,7 @@ describe('StarRating', () => {
 		});
 		try {
 			const { container } = render(StarRating, { props: { value: null } });
-			const radios = container.querySelectorAll('input[type="radio"]');
+			const radios = container.querySelectorAll<HTMLInputElement>('input[type="radio"]');
 			expect(radios[0].name).toMatch(/^rating-\d+$/);
 			expect(radios[0].name).toBe(radios[1].name);
 		} finally {

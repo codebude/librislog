@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import DataExport from './DataExport.svelte';
 
-const mockExportData = vi.fn(async () => new Blob(['test']));
+const mockExportData = vi.fn(async (_params: unknown) => new Blob(['test']));
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({

@@ -11,7 +11,7 @@ const mockBroadcastLogout = vi.fn();
 vi.mock('$lib/stores/auth', async () => {
 	const { writable } = await import('svelte/store');
 	return {
-		currentUser: writable<{ id: number; firstname: string; lastname: string; email: string; role: string } | null>(null),
+		currentUser: writable<{ id: number; firstname: string; lastname: string; email: string; role: 'admin' | 'user'; created_at: string } | null>(null),
 		csrfToken: writable<string | null>(null),
 		broadcastLogout: () => mockBroadcastLogout()
 	};
@@ -42,14 +42,23 @@ describe('UserMenu', () => {
 		cleanup();
 	});
 
+	const mockUser = {
+		id: 1,
+		firstname: 'John',
+		lastname: 'Doe',
+		email: 'john@example.com',
+		role: 'user' as const,
+		created_at: '2024-01-01T00:00:00Z'
+	};
+
 	it('renders user avatar button', () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 		expect(screen.getByRole('button', { name: 'User menu' })).toBeInTheDocument();
 	});
 
 	it('shows user avatar', () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 		expect(screen.getByRole('button', { name: 'User menu' }).querySelector('svg')).toBeInTheDocument();
 	});
@@ -61,7 +70,7 @@ describe('UserMenu', () => {
 	});
 
 	it('opens dropdown when clicked', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 
 		const menuBtn = screen.getByRole('button', { name: 'User menu' });
@@ -72,7 +81,7 @@ describe('UserMenu', () => {
 	});
 
 	it('has profile link', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'User menu' }));
@@ -81,7 +90,7 @@ describe('UserMenu', () => {
 	});
 
 	it('calls logout API and redirects on logout', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		csrfToken.set('test-csrf');
 		render(UserMenu);
 
@@ -95,7 +104,7 @@ describe('UserMenu', () => {
 	});
 
 	it('clears stores on logout', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		csrfToken.set('test-csrf');
 		render(UserMenu);
 
@@ -113,7 +122,7 @@ describe('UserMenu', () => {
 
 	it('handles logout API failure gracefully', async () => {
 		mockLogout.mockRejectedValue(new Error('Network error'));
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'User menu' }));
@@ -123,7 +132,7 @@ describe('UserMenu', () => {
 	});
 
 	it('closes dropdown when logout clicked', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'User menu' }));
@@ -133,7 +142,7 @@ describe('UserMenu', () => {
 	});
 
 	it('closes dropdown when profile link clicked', async () => {
-		currentUser.set({ id: 1, firstname: 'John', lastname: 'Doe', email: 'john@example.com', role: 'user' });
+		currentUser.set(mockUser);
 		render(UserMenu);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'User menu' }));

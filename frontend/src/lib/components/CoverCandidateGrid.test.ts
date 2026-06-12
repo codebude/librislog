@@ -4,10 +4,10 @@ import CoverCandidateGrid from './CoverCandidateGrid.svelte';
 import type { CoverCandidate } from '$lib/types';
 
 const candidates: CoverCandidate[] = [
-	{ source: 'abebooks', url: 'https://example.com/1.jpg', available: true, filesize: 20408, width: 200, height: 300 },
-	{ source: 'hardcover', url: 'https://example.com/2.jpg', available: true, filesize: 3706413, width: 500, height: 800 },
-	{ source: 'amazon', url: 'https://example.com/3.jpg', available: false, filesize: null, width: null, height: null },
-	{ source: 'thalia', url: 'https://example.com/4.jpg', available: false, filesize: 12036, width: null, height: null }
+	{ source: 'abebooks', url: 'https://example.com/1.jpg', available: true, filesize: 20408, width: 200, height: 300, content_type: 'image/jpeg' },
+	{ source: 'hardcover', url: 'https://example.com/2.jpg', available: true, filesize: 3706413, width: 500, height: 800, content_type: 'image/jpeg' },
+	{ source: 'amazon', url: 'https://example.com/3.jpg', available: false, filesize: null, width: null, height: null, content_type: null },
+	{ source: 'thalia', url: 'https://example.com/4.jpg', available: false, filesize: 12036, width: null, height: null, content_type: null }
 ];
 
 describe('CoverCandidateGrid', () => {
@@ -69,16 +69,16 @@ describe('CoverCandidateGrid', () => {
 	});
 
 	it('shows n/a for missing filesize and resolution when unloaded', () => {
-		const missing = [
-			{ source: 'amazon', url: 'https://example.com/x.jpg', available: true, filesize: null, width: null, height: null }
+		const missing: CoverCandidate[] = [
+			{ source: 'amazon', url: 'https://example.com/x.jpg', available: true, filesize: null, width: null, height: null, content_type: null }
 		];
 		render(CoverCandidateGrid, { props: { loading: false, candidates: missing, onSelect: vi.fn() } });
 		expect(document.body.textContent).toContain('n/a');
 	});
 
 	it('updates resolution from image onload event', async () => {
-		const single = [
-			{ source: 'abebooks', url: 'https://example.com/load.jpg', available: true, filesize: 1000, width: null, height: null }
+		const single: CoverCandidate[] = [
+			{ source: 'abebooks', url: 'https://example.com/load.jpg', available: true, filesize: 1000, width: null, height: null, content_type: null }
 		];
 		render(CoverCandidateGrid, { props: { loading: false, candidates: single, onSelect: vi.fn() } });
 		const img = document.querySelector('img');

@@ -21,37 +21,39 @@ const BACKEND_ERROR_REGEX: [RegExp, string, string[]][] = [
 	[/^At most (\d+) books can be updated at once$/, 'error.tooManyBooksSelected', ['max']],
 ];
 
-export function localizeBackendError(err: unknown): { key: string; values?: Record<string, unknown> } {
+type TranslationValue = string | number | boolean | Date | null | undefined;
+
+export function localizeBackendError(err: unknown): { id: string; values?: Record<string, TranslationValue> } {
 	if (err instanceof Error) {
 		if (err.message.startsWith('error.')) {
-			return { key: err.message };
+			return { id: err.message };
 		}
 		const exactKey = BACKEND_ERROR_MAP[err.message];
 		if (exactKey) {
-			return { key: exactKey };
+			return { id: exactKey };
 		}
 		for (const [pattern, key, names] of BACKEND_ERROR_REGEX) {
 			const match = err.message.match(pattern);
 			if (match) {
-				const values: Record<string, unknown> = {};
+				const values: Record<string, TranslationValue> = {};
 				for (let i = 0; i < names.length; i++) {
 					values[names[i]] = match[i + 1];
 				}
-				return { key, values };
+				return { id: key, values };
 			}
 		}
-		return { key: err.message };
+		return { id: err.message };
 	}
-	return { key: 'Unknown error' };
+	return { id: 'Unknown error' };
 }
 
-export function localizeError(err: unknown, translate: (key: string, options?: { values?: Record<string, unknown> }) => string, fallback: string): string {
-	const { key, values } = localizeBackendError(err);
-	if (key.startsWith('error.')) {
-		return translate(key, values ? { values } : undefined);
+export function localizeError(err: unknown, translate: (key: string, options?: any) => string, fallback: string): string {
+	const { id, values } = localizeBackendError(err);
+	if (id.startsWith('error.')) {
+		return translate(id, values ? { values } : undefined);
 	}
-	if (key !== 'Unknown error') {
-		return key;
+	if (id !== 'Unknown error') {
+		return id;
 	}
 	return fallback;
 }

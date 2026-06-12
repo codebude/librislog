@@ -18,7 +18,7 @@ describe('api.covers.upload', () => {
 			.mockResolvedValue({
 				ok: true,
 				json: async () => ({ cover_url: '/api/covers/uploaded.jpg' })
-			} as Response);
+			} as unknown as Response);
 
 		const file = new File(['fake-image-bytes'], 'cover.jpg', { type: 'image/jpeg' });
 		const coverUrl = await api.covers.upload(file);
@@ -59,7 +59,7 @@ describe('api.books.list', () => {
 			ok: true,
 			headers: { get: () => 'application/json' },
 			json: async () => mockResponse,
-		} as Response);
+		} as unknown as Response);
 
 		const result = await api.books.list();
 
@@ -76,7 +76,7 @@ describe('api.books.list', () => {
 			ok: true,
 			headers: { get: () => 'application/json' },
 			json: async () => ({ books: [], total: 0 }),
-		} as Response);
+		} as unknown as Response);
 
 		const result = await api.books.list();
 
@@ -89,7 +89,7 @@ describe('api.books.list', () => {
 			ok: true,
 			headers: { get: () => 'application/json' },
 			json: async () => ({ books: [], total: 0 }),
-		} as Response);
+		} as unknown as Response);
 
 		await api.books.list({ status: 'read', q: 'dune', sort: 'title', order: 'asc' });
 
@@ -105,7 +105,7 @@ describe('api.books.list', () => {
 			ok: true,
 			headers: { get: () => 'application/json' },
 			json: async () => ({ books: [], total: 0 }),
-		} as Response);
+		} as unknown as Response);
 
 		await api.books.list({ q: '' });
 

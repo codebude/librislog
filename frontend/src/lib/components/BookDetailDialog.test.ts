@@ -2,22 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import BookDetailDialog from './BookDetailDialog.svelte';
+import type { Book, ReadingProgressEntry } from '$lib/types';
 
 vi.mock('svelte-chartjs', () => ({
 	Line: vi.fn().mockImplementation(() => ({ default: {} })),
 }));
 
-const mockProgressList = vi.fn(async () => []);
-const mockProgressCreate = vi.fn(async (_bookId: number, _page: number) => ({ id: 1, book_id: _bookId, page: _page, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }));
-const mockProgressDelete = vi.fn(async () => {});
-const mockBooksDelete = vi.fn(async () => {});
-const mockBooksUpdate = vi.fn(async (_id: number, _data: unknown) => ({ ..._data, id: _id }));
+const mockProgressList = vi.fn(async (_bookId: number): Promise<ReadingProgressEntry[]> => []);
+const mockProgressCreate = vi.fn(async (_bookId: number, _page: number): Promise<ReadingProgressEntry> => ({ id: 1, book_id: _bookId, page: _page, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }));
+const mockProgressDelete = vi.fn(async (_bookId: number, _entryId: number) => {});
+const mockBooksDelete = vi.fn(async (_id: number) => {});
+const mockBooksUpdate = vi.fn(async (_id: number, _data: Partial<Book>) => ({ ...mockBook, ..._data, id: _id }));
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({
 	api: {
 		books: {
-			update: (id: number, data: unknown) => mockBooksUpdate(id, data),
+			update: (id: number, data: Partial<Book>) => mockBooksUpdate(id, data),
 			progress: {
 				list: (bookId: number) => mockProgressList(bookId),
 				create: (bookId: number, page: number) => mockProgressCreate(bookId, page),

@@ -4,8 +4,11 @@ import '$lib/chartjs/register';
 
 // --- Polyfill crypto.randomUUID for happy-dom ---
 if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
-	// @ts-expect-error polyfill for testing environment
-	crypto.randomUUID = () => '00000000-0000-0000-0000-000000000000';
+	Object.defineProperty(crypto, 'randomUUID', {
+		value: () => '00000000-0000-0000-0000-000000000000',
+		configurable: true,
+		writable: true
+	});
 }
 
 // --- Mock svelte-i18n ($lib/i18n) ---

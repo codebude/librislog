@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
+import type { CoverCandidate } from '$lib/types';
 
 describe('AutoSearchCoverModal', () => {
 	const onCancel = vi.fn();
 	const onSelect = vi.fn();
 
-	const candidates = [
-		{ source: 'AbeBooks', url: 'https://example.com/1.jpg', available: true, filesize: 512, width: 200, height: 300 },
-		{ source: 'OpenLibrary', url: 'https://example.com/2.jpg', available: true, filesize: 1024 * 1024, width: 400, height: 600 },
-		{ source: 'Amazon', url: 'https://example.com/3.jpg', available: false, filesize: null, width: null, height: null }
+	const candidates: CoverCandidate[] = [
+		{ source: 'abebooks', url: 'https://example.com/1.jpg', available: true, filesize: 512, width: 200, height: 300, content_type: 'image/jpeg' },
+		{ source: 'openlibrary', url: 'https://example.com/2.jpg', available: true, filesize: 1024 * 1024, width: 400, height: 600, content_type: 'image/jpeg' },
+		{ source: 'amazon', url: 'https://example.com/3.jpg', available: false, filesize: null, width: null, height: null, content_type: null }
 	];
 
 	beforeEach(() => {
@@ -76,7 +77,7 @@ describe('AutoSearchCoverModal', () => {
 		await fireEvent.click(imgButtons[0]);
 		expect(onSelect).toHaveBeenCalledOnce();
 		// First card is sorted by resolution descending: OpenLibrary (400x600) before AbeBooks (200x300)
-		expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ source: 'OpenLibrary' }));
+		expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ source: 'openlibrary' }));
 	});
 
 	it('calls onCancel when close button clicked', async () => {
@@ -103,13 +104,15 @@ describe('AutoSearchCoverModal', () => {
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: [], error: null, onCancel, onSelect }
 		});
-		await fireEvent.click(document.querySelector('.modal-backdrop'));
+		const backdrop = document.querySelector('.modal-backdrop');
+		expect(backdrop).toBeTruthy();
+		await fireEvent.click(backdrop as Element);
 		expect(onCancel).toHaveBeenCalledOnce();
 	});
 
 	it('shows n/a for missing filesize and resolution', () => {
-		const candidateNoMeta = [
-			{ source: 'Test', url: 'https://example.com/x.jpg', available: true, filesize: null, width: null, height: null }
+		const candidateNoMeta: CoverCandidate[] = [
+			{ source: 'amazon', url: 'https://example.com/x.jpg', available: true, filesize: null, width: null, height: null, content_type: null }
 		];
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: candidateNoMeta, error: null, onCancel, onSelect }
@@ -118,8 +121,8 @@ describe('AutoSearchCoverModal', () => {
 	});
 
 	it('shows KB filesize label', () => {
-		const candidateKB = [
-			{ source: 'Test', url: 'https://example.com/kb.jpg', available: true, filesize: 5120, width: 100, height: 150 }
+		const candidateKB: CoverCandidate[] = [
+			{ source: 'amazon', url: 'https://example.com/kb.jpg', available: true, filesize: 5120, width: 100, height: 150, content_type: 'image/jpeg' }
 		];
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: candidateKB, error: null, onCancel, onSelect }
@@ -128,8 +131,8 @@ describe('AutoSearchCoverModal', () => {
 	});
 
 	it('updates resolution map when image loads', async () => {
-		const candidateWithLoad = [
-			{ source: 'Test', url: 'https://example.com/load.jpg', available: true, filesize: 1000, width: null, height: null }
+		const candidateWithLoad: CoverCandidate[] = [
+			{ source: 'amazon', url: 'https://example.com/load.jpg', available: true, filesize: 1000, width: null, height: null, content_type: null }
 		];
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: candidateWithLoad, error: null, onCancel, onSelect }
@@ -146,8 +149,8 @@ describe('AutoSearchCoverModal', () => {
 	});
 
 	it('skips resolution update when image has no natural dimensions', async () => {
-		const candidateWithLoad = [
-			{ source: 'Test', url: 'https://example.com/load2.jpg', available: true, filesize: 1000, width: null, height: null }
+		const candidateWithLoad: CoverCandidate[] = [
+			{ source: 'amazon', url: 'https://example.com/load2.jpg', available: true, filesize: 1000, width: null, height: null, content_type: null }
 		];
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: candidateWithLoad, error: null, onCancel, onSelect }

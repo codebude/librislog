@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { formatLanguageCode } from '$lib/utils/language';
 
 describe('formatLanguageCode', () => {
@@ -33,15 +33,19 @@ describe('formatLanguageCode', () => {
 	});
 
 	it('returns uppercase code when Intl.DisplayNames throws', () => {
-		const OriginalDisplayNames = Intl.DisplayNames;
-		// @ts-expect-error mock
-		Intl.DisplayNames = vi.fn(function () {
+		const originalDescriptor = Object.getOwnPropertyDescriptor(Intl, 'DisplayNames');
+		Object.defineProperty(Intl, 'DisplayNames', {
+			value: vi.fn(function () {
 			throw new TypeError('Intl not available');
+			}),
+			configurable: true
 		});
 		try {
 			expect(formatLanguageCode('fr', 'en')).toBe('FR');
 		} finally {
-			Intl.DisplayNames = OriginalDisplayNames;
+			if (originalDescriptor) {
+				Object.defineProperty(Intl, 'DisplayNames', originalDescriptor);
+			}
 		}
 	});
 });

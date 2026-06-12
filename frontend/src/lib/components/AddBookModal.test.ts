@@ -42,6 +42,7 @@ vi.mock('html5-qrcode/esm/core', () => {
 
 vi.mock('html5-qrcode/esm/code-decoder', () => {
 	const Html5QrcodeShim = class {
+		decodeAsync: () => Promise<{ text: string }>;
 		constructor() {
 			this.decodeAsync = function () { return Promise.resolve({ text: '' }); };
 		}

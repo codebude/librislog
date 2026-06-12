@@ -42,7 +42,7 @@ export interface BookImportCandidate {
 }
 
 export interface CoverCandidate {
-	source: 'abebooks' | 'openlibrary' | 'amazon' | 'hardcover';
+	source: 'abebooks' | 'openlibrary' | 'amazon' | 'hardcover' | 'thalia';
 	url: string;
 	available: boolean;
 	width: number | null;

@@ -3,11 +3,11 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/sv
 import { writable } from 'svelte/store';
 import BookDrawer from './BookDrawer.svelte';
 
-const mockBooksUpdate = vi.fn(async () => ({ id: 1, title: 'Updated' }));
-const mockTransitionStatus = vi.fn(async () => ({ book: { id: 1, title: 'Updated' }, date_conflict: null }));
-const mockSuggestionsAuthors = vi.fn(async () => ['Author 1']);
-const mockSuggestionsPublishers = vi.fn(async () => ['Publisher 1']);
-const mockSuggestionsTags = vi.fn(async () => ['Tag 1']);
+const mockBooksUpdate = vi.fn(async (_id: number, _data: unknown) => ({ id: 1, title: 'Updated' }));
+const mockTransitionStatus = vi.fn(async (_id: number, _data: unknown) => ({ book: { id: 1, title: 'Updated' }, date_conflict: null }));
+const mockSuggestionsAuthors = vi.fn(async (_q: string) => ['Author 1']);
+const mockSuggestionsPublishers = vi.fn(async (_q: string) => ['Publisher 1']);
+const mockSuggestionsTags = vi.fn(async (_q: string) => ['Tag 1']);
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({
@@ -33,6 +33,7 @@ vi.mock('html5-qrcode/esm/core', () => ({
 
 vi.mock('html5-qrcode/esm/code-decoder', () => {
 	const Html5QrcodeShim = class {
+		decodeAsync: () => Promise<{ text: string }>;
 		constructor() {
 			this.decodeAsync = function () { return Promise.resolve({ text: '' }); };
 		}
