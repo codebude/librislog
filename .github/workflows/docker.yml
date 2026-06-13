@@ -48,10 +48,18 @@ jobs:
           SANITIZED="$(echo "$SANITIZED" | sed 's/^[^a-zA-Z0-9_]\+//')"
           echo "sanitized_tag=${SANITIZED:0:128}" >> "$GITHUB_OUTPUT"
 
+      - name: Normalize repository name
+        id: repo
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: return context.repo.repository.toLowerCase()
+
     outputs:
       version: ${{ steps.version.outputs.version }}
       sha_short: ${{ steps.version.outputs.sha_short }}
       sanitized_tag: ${{ steps.sanitize.outputs.sanitized_tag }}
+      repository: ${{ steps.repo.outputs.result }}
 
   build-and-push:
     runs-on: ${{ matrix.runner }}
@@ -101,7 +109,7 @@ jobs:
       - name: Generate image tags
         id: tags
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.image }}"
+          IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-tags-and-names.outputs.repository }}/${{ matrix.service.image }}"
           SHA_SHORT="${{ needs.prepare-tags-and-names.outputs.sha_short }}"
 
           if [ "${{ github.event_name }}" = "release" ]; then
@@ -156,7 +164,7 @@ jobs:
 
       - name: Create multi-arch manifest
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.image }}"
+          IMAGE="${{ env.REGISTRY }}/${{ needs.prepare-tags-and-names.outputs.repository }}/${{ matrix.service.image }}"
           SHA_SHORT="${{ needs.prepare-tags-and-names.outputs.sha_short }}"
 
           if [ "${{ github.event_name }}" = "release" ]; then
