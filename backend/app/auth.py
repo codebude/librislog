@@ -115,6 +115,31 @@ def get_api_key_prefix(api_key: str) -> str:
     return api_key[:12]
 
 
+# --- Embed token utilities ---
+
+EMBED_TOKEN_PREFIX = "le_"
+EMBED_TOKEN_SCOPE_STATS_READ = "embed:stats:read"
+
+
+def generate_embed_token() -> str:
+    """Generate a new random embed token prefixed with 'le_'."""
+    return f"{EMBED_TOKEN_PREFIX}{secrets.token_urlsafe(32)}"
+
+
+def hash_embed_token(value: str) -> str:
+    """Return a HMAC-SHA256 hex digest of the embed token."""
+    return hmac.new(
+        settings.api_key_encryption_key.encode("utf-8"),
+        value.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def get_embed_token_prefix(token: str) -> str:
+    """Return the first 12 characters of the embed token (visible prefix)."""
+    return token[:12]
+
+
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 

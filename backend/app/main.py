@@ -13,7 +13,7 @@ from starlette.responses import Response
 from app._build_info import __git_sha__, __version__
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import admin, auth, books, cover_candidates, covers, data, docs, health, hygiene, import_, oidc, profile, progress, statistics, users
+from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, statistics, users
 from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
 
@@ -164,4 +164,7 @@ app.include_router(health.router)
 app.include_router(hygiene.router)
 app.include_router(statistics.router)
 app.include_router(data.router)
+app.include_router(config.router)
+if settings.embed_enabled:
+    app.include_router(embed.router)
 app.include_router(admin.router)

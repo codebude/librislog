@@ -1,0 +1,12 @@
+{
+  "embed": {
+    "stats": {
+      "books": "图书",
+      "reading": "正在阅读",
+      "read": "已读",
+      "to_read": "待读",
+      "pages": "页数",
+      "avg_pages": "每本页数"
+    }
+  }
+}

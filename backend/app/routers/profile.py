@@ -9,14 +9,17 @@ from app.auth import (
     clear_browser_session,
     ensure_password_complexity,
     generate_api_key,
+    generate_embed_token,
     get_api_key_prefix,
+    get_embed_token_prefix,
     get_password_hash,
     hash_api_key,
+    hash_embed_token,
     require_user,
 )
 from app.config import settings as app_settings
 from app.database import get_session
-from app.models import ApiKey, User, UserSettings
+from app.models import ApiKey, EmbedToken, User, UserSettings
 from app.schemas import (
     ApiKeyCreate,
     ApiKeyCreateResponse,
@@ -24,6 +27,10 @@ from app.schemas import (
     ConfirmationPhrase,
     DataResetDeleted,
     DataResetResponse,
+    EmbedTokenCreate,
+    EmbedTokenCreateResponse,
+    EmbedTokenRead,
+    EmbedTokenUpdate,
     ProfileUpdate,
     UserRead,
     UserSettingsRead,
@@ -94,7 +101,6 @@ def get_settings(
         user_id=settings.user_id,
         language=settings.language,
         timezone=settings.timezone,
-        quote_service_enabled=app_settings.dashboard_quote_enabled,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
     )
@@ -123,7 +129,6 @@ def update_settings(
         user_id=settings.user_id,
         language=settings.language,
         timezone=settings.timezone,
-        quote_service_enabled=app_settings.dashboard_quote_enabled,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
     )
@@ -200,7 +205,7 @@ def list_api_keys(
         select(ApiKey).where(
             ApiKey.user_id == current_user.id,
             ApiKey.revoked_at.is_(None),
-        )
+        ).order_by(ApiKey.created_at.desc())
     ).all()
     return [ApiKeyRead.model_validate(k) for k in keys]
 
@@ -238,4 +243,120 @@ def delete_api_key(
 
     key.revoked_at = utcnow()
     session.add(key)
+    session.commit()
+
+
+@router.get("/embed-tokens", response_model=list[EmbedTokenRead])
+def list_embed_tokens(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> list[EmbedTokenRead]:
+    """List non-revoked embed tokens for the current user."""
+    tokens = session.exec(
+        select(EmbedToken).where(
+            EmbedToken.user_id == current_user.id,
+            EmbedToken.revoked_at.is_(None),
+        ).order_by(EmbedToken.created_at.desc())
+    ).all()
+    return [EmbedTokenRead.model_validate(t) for t in tokens]
+
+
+@router.post("/embed-tokens", response_model=EmbedTokenCreateResponse, status_code=201)
+def create_embed_token(
+    body: EmbedTokenCreate,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> EmbedTokenCreateResponse:
+    """Create a new embed token for the current user."""
+    plain_token = generate_embed_token()
+    token = EmbedToken(
+        user_id=current_user.id,
+        name=body.name,
+        token_prefix=get_embed_token_prefix(plain_token),
+        token_hash=hash_embed_token(plain_token),
+        allowed_origins=body.allowed_origins or None,
+        expires_at=body.expires_at,
+    )
+    session.add(token)
+    session.commit()
+    session.refresh(token)
+    return EmbedTokenCreateResponse(
+        token=plain_token,
+        embed_token=EmbedTokenRead.model_validate(token),
+    )
+
+
+@router.patch("/embed-tokens/{token_id}", response_model=EmbedTokenRead)
+def update_embed_token(
+    token_id: int,
+    body: EmbedTokenUpdate,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> EmbedTokenRead:
+    """Update name, allowed_origins, or expires_at for an embed token."""
+    token = session.get(EmbedToken, token_id)
+    if not token or token.user_id != current_user.id or token.revoked_at is not None:
+        raise HTTPException(status_code=404, detail="Embed token not found")
+
+    update_data = body.model_dump(exclude_unset=True)
+    token.sqlmodel_update(update_data)
+    session.add(token)
+    session.commit()
+    session.refresh(token)
+    return EmbedTokenRead.model_validate(token)
+
+
+@router.post("/embed-tokens/{token_id}/rotate", response_model=EmbedTokenCreateResponse)
+def rotate_embed_token(
+    token_id: int,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> EmbedTokenCreateResponse:
+    """Revoke the current embed token and create a new one with the same settings."""
+    token = session.get(EmbedToken, token_id)
+    if not token or token.user_id != current_user.id or token.revoked_at is not None:
+        raise HTTPException(status_code=404, detail="Embed token not found")
+
+    now = utcnow()
+    if token.expires_at is not None and token.expires_at < now:
+        raise HTTPException(
+            status_code=409,
+            detail="Expired embed tokens cannot be rotated",
+        )
+
+    token.revoked_at = now
+    session.add(token)
+
+    plain_token = generate_embed_token()
+    new_token = EmbedToken(
+        user_id=current_user.id,
+        name=token.name,
+        token_prefix=get_embed_token_prefix(plain_token),
+        token_hash=hash_embed_token(plain_token),
+        scopes=token.scopes,
+        allowed_origins=token.allowed_origins,
+        expires_at=token.expires_at,
+    )
+    session.add(new_token)
+    session.commit()
+    session.refresh(new_token)
+    return EmbedTokenCreateResponse(
+        token=plain_token,
+        embed_token=EmbedTokenRead.model_validate(new_token),
+    )
+
+
+@router.delete("/embed-tokens/{token_id}", status_code=204)
+def delete_embed_token(
+    token_id: int,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> None:
+    """Revoke an embed token by ID."""
+    token = session.get(EmbedToken, token_id)
+    if not token or token.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Embed token not found")
+
+    token.revoked_at = utcnow()
+    session.add(token)
     session.commit()

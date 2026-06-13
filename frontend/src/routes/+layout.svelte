@@ -128,7 +128,8 @@
 					csrfToken.set(csrf.csrf_token);
 					const settings = await api.profile.getSettings();
 					setTimezone(settings.timezone);
-					setQuoteServiceEnabled(settings.quote_service_enabled);
+					const appConfig = await api.app.config();
+					setQuoteServiceEnabled(appConfig.dashboard_quote_enabled);
 					if (settings.theme) {
 						const dbMode = sanitizeThemeMode(settings.theme);
 						const storedMode = localStorage.getItem(THEME_MODE_KEY);

@@ -6,7 +6,7 @@
 	import { _ } from '$lib/i18n';
 	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '$lib/stores/theme';
 	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
-	import { Sun, Moon, Palette, CloudDownload } from '@lucide/svelte';
+	import { Sun, Moon, Palette, CloudDownload, ExternalLink } from '@lucide/svelte';
 
 	let { floating = true, updateInfo = null }: { floating?: boolean; updateInfo?: UpdateInfo | null } = $props();
 
@@ -108,6 +108,12 @@
 			{/if}
 			<li><a href="/profile" onclick={() => (open = false)}>{$_('user.profile')}</a></li>
 			<li><a href="/about" onclick={() => (open = false)}>{$_('user.about')}</a></li>
+			<li>
+				<a href="https://codebude.github.io/librislog/" target="_blank" rel="noopener noreferrer" onclick={() => (open = false)}>
+					<ExternalLink class="w-4 h-4" />
+					{$_('user.docs')}
+				</a>
+			</li>
 			<li><hr class="menu-divider opacity-30 mt-2 mb-2 rounded-none" style="padding: 0;"></li>
 			<li>
 				<button type="button" class="cursor-pointer flex items-center gap-2" onclick={toggleTheme}>

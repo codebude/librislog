@@ -324,7 +324,6 @@ class UserSettingsRead(SQLModel):
     user_id: int
     language: str
     timezone: str
-    quote_service_enabled: bool
     theme: str
     custom_theme: Optional[str] = None
 
@@ -417,6 +416,13 @@ class OidcConfigRead(SQLModel):
     enabled: bool
     provider_id: Optional[str] = None
     provider_name: Optional[str] = None
+
+
+class AppConfigRead(SQLModel):
+    """Application-level feature flags."""
+    embed_enabled: bool
+    dashboard_quote_enabled: bool
+    thalia_cover_search_enabled: bool
 
 
 class OidcLinkRead(SQLModel):
@@ -597,6 +603,38 @@ class DataImportPreviewResponse(SQLModel):
     preview_rows: list[DataImportPreviewRow]
     row_count: int
     errors: list[str] = []
+
+
+class EmbedTokenCreate(SQLModel):
+    """Embed token creation request."""
+    name: str = Field(max_length=255)
+    allowed_origins: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+
+class EmbedTokenUpdate(SQLModel):
+    """Embed token update request."""
+    name: Optional[str] = None
+    allowed_origins: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+
+class EmbedTokenRead(SQLModel):
+    """Embed token read response (without the raw token value)."""
+    id: int
+    name: str
+    token_prefix: str
+    scopes: str
+    allowed_origins: Optional[str]
+    expires_at: Optional[datetime]
+    last_used_at: Optional[datetime]
+    created_at: datetime
+
+
+class EmbedTokenCreateResponse(SQLModel):
+    """Embed token creation response containing the raw token (shown once)."""
+    token: str
+    embed_token: EmbedTokenRead
 
 
 class DataImportExecuteResult(SQLModel):

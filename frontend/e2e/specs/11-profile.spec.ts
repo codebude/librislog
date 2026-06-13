@@ -54,4 +54,63 @@ test.describe('Profile', () => {
 			await expect(page.locator('body')).toContainText(/key|api/i);
 		}
 	});
+
+	test('11.5 create embed token', async ({ page }) => {
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		await page.locator('#section-embed-tokens').scrollIntoViewIfNeeded();
+		await page.waitForTimeout(500);
+
+		const input = page.locator('input[name="embed-token-name"]');
+		await input.fill('E2E Test Widget');
+		await page.locator('#section-embed-tokens button.btn-primary').first().click();
+		await page.waitForTimeout(1000);
+
+		await expect(page.locator('#section-embed-tokens')).toContainText(/le_/);
+
+		const tokenText = await page.locator('#section-embed-tokens div.font-mono.break-all').first().textContent();
+		expect(tokenText).toBeTruthy();
+
+		if (tokenText) {
+			const backendHealthUrl = process.env.E2E_BACKEND_URL || 'http://backend:8000/api/health';
+			const backendOrigin = new URL(backendHealthUrl).origin;
+			const iframeUrl = `${backendOrigin}/embed/v1/stats?token=${tokenText.trim()}`;
+			const resp = await page.request.get(iframeUrl);
+			expect(resp.status()).toBe(200);
+			const html = await resp.text();
+			expect(html).toContain('Books');
+			expect(html).toMatch(/^<!doctype html>/i);
+		}
+	});
+
+	test('11.6 embed tokens section respects embed_enabled flag', async ({ page }) => {
+		// Mock the config endpoint to simulate embed being disabled
+		await page.route('**/api/config', async route => {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					embed_enabled: false,
+					dashboard_quote_enabled: true,
+					thalia_cover_search_enabled: false
+				})
+			});
+		});
+
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		// The embed tokens section should not exist in the DOM
+		await expect(page.locator('#section-embed-tokens')).toHaveCount(0);
+
+		// Remove the route override so next navigation uses real config
+		await page.unroute('**/api/config');
+
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		// Now the embed tokens section should be visible
+		await expect(page.locator('#section-embed-tokens')).toBeVisible();
+	});
 });

@@ -1,0 +1,12 @@
+{
+  "embed": {
+    "stats": {
+      "books": "Libros",
+      "reading": "Leyendo",
+      "read": "Leído",
+      "to_read": "Quiero leer",
+      "pages": "Páginas",
+      "avg_pages": "Páginas/Libro"
+    }
+  }
+}

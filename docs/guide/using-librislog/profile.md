@@ -26,6 +26,22 @@ Create and manage API keys for headless access to the REST API. Each key can hav
 
 See the [API Keys guide](/guide/api-keys) for detailed setup instructions.
 
+## Embed Tokens
+
+Create scoped embed tokens for iframe dashboard integrations (e.g. Homarr). Each token can have an optional name and a comma-separated list of allowed origins. You can also configure an expiry date.
+
+To create a token:
+
+1. Enter a name for your token.
+2. Optionally restrict allowed origins (comma-separated URLs). Leave empty for wildcard access.
+3. Click **Add token**.
+4. **Copy the displayed token immediately** — it is shown only once.
+
+Existing tokens can be **rotated** (revokes the old token and creates a new one with the same settings) or **deleted** from the list.
+
+See the [Embed API](/api/integrations/embed-api) integration guide for usage
+details and a list of supported dashboard integrations.
+
 ## Data Management
 
 Two data management tools are available:

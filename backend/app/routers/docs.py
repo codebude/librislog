@@ -80,35 +80,49 @@ def _wrap_docs_html(html: str) -> HTMLResponse:
     return HTMLResponse(html.replace("</head>", f"{custom_css}</head>"))
 
 
+def _get_openapi_url(request: Request) -> str:
+    """Return the OpenAPI URL relative to the current request, respecting root_path."""
+    root_path = request.scope.get("root_path", "")
+    return f"{root_path}/api/openapi.json"
+
+
 @router.get("/docs", include_in_schema=False)
 def redirect_to_custom_swagger_docs(request: Request) -> RedirectResponse:
     """Redirect to the custom-themed Swagger UI page."""
-    return RedirectResponse(url="/api/docs")
+    root_path = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root_path}/api/docs")
 
 @router.get("/api/docs", include_in_schema=False)
 def custom_swagger_docs(request: Request) -> HTMLResponse:
     """Serve a custom-themed Swagger UI page."""
-    html = get_swagger_ui_html(
-        openapi_url=request.app.openapi_url,
+    openapi_url = _get_openapi_url(request)
+    response = get_swagger_ui_html(
+        openapi_url=openapi_url,
         title=f"{request.app.title} - Swagger UI",
         swagger_ui_parameters={
             "defaultModelsExpandDepth": -1,
             "displayRequestDuration": True,
             "docExpansion": "list",
         },
-    ).body.decode("utf-8")
+    )
+    body = response.body.tobytes() if isinstance(response.body, memoryview) else response.body
+    html = body.decode("utf-8")
     return _wrap_docs_html(html)
 
 @router.get("/redoc", include_in_schema=False)
 def redirect_to_custom_redoc_docs(request: Request) -> RedirectResponse:
     """Redirect to the custom-themed ReDoc page."""
-    return RedirectResponse(url="/api/redoc")
+    root_path = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root_path}/api/redoc")
 
 @router.get("/api/redoc", include_in_schema=False)
 def custom_redoc_docs(request: Request) -> HTMLResponse:
     """Serve a custom-themed ReDoc page."""
-    html = get_redoc_html(
-        openapi_url=request.app.openapi_url,
+    openapi_url = _get_openapi_url(request)
+    response = get_redoc_html(
+        openapi_url=openapi_url,
         title=f"{request.app.title} - ReDoc",
-    ).body.decode("utf-8")
+    )
+    body = response.body.tobytes() if isinstance(response.body, memoryview) else response.body
+    html = body.decode("utf-8")
     return _wrap_docs_html(html)

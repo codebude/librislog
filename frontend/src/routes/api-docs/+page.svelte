@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { _ } from '$lib/i18n';
 
 	type DocsView = 'swagger' | 'redoc';
 	let docsView = $state<DocsView>('swagger');
 	let docsLoading = $state(true);
 
-	const docsUrl = $derived(docsView === 'swagger' ? '/api/docs' : '/api/redoc');
+	const docsUrl = $derived(docsView === 'swagger' ? `${base}/api/docs` : `${base}/api/redoc`);
 
 	function onDocsViewChange(event: Event) {
 		docsView = (event.currentTarget as HTMLSelectElement).value as DocsView;

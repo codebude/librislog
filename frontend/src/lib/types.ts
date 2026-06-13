@@ -202,7 +202,6 @@ export interface UserSettings {
 	user_id: number;
 	language: string;
 	timezone: string;
-	quote_service_enabled: boolean;
 	theme: string;
 	custom_theme: string | null;
 }
@@ -213,6 +212,22 @@ export interface ApiKeyMeta {
 	description: string | null;
 	created_at: string;
 	last_used_at: string | null;
+}
+
+export interface EmbedTokenMeta {
+	id: number;
+	name: string;
+	token_prefix: string;
+	scopes: string;
+	allowed_origins: string | null;
+	expires_at: string | null;
+	last_used_at: string | null;
+	created_at: string;
+}
+
+export interface EmbedTokenCreateResponse {
+	token: string;
+	embed_token: EmbedTokenMeta;
 }
 
 export interface DataResetResponse {
@@ -228,6 +243,12 @@ export interface OidcConfig {
 	enabled: boolean;
 	provider_id: string | null;
 	provider_name: string | null;
+}
+
+export interface AppConfig {
+	embed_enabled: boolean;
+	dashboard_quote_enabled: boolean;
+	thalia_cover_search_enabled: boolean;
 }
 
 export interface OidcLinkStatus {

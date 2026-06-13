@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     cover_import_timeout_seconds: int = 15
     hardcover_app_api_token: str = ""
     thalia_cover_search_enabled: bool = False
+    embed_enabled: bool = True
     forwarded_allow_ips: str = "*"
 
     @field_validator("api_key_encryption_key")

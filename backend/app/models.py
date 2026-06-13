@@ -205,6 +205,36 @@ class OidcLink(SQLModel, table=True):
     )
 
 
+class EmbedToken(SQLModel, table=True):
+    """A scoped embed token for iframe/dashboard integrations."""
+
+    __tablename__ = "embed_token"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(max_length=255)
+    token_prefix: str = Field(index=True)
+    token_hash: str = Field(index=True, unique=True)
+    scopes: str = Field(default="embed:stats:read")  # comma-separated list
+    allowed_origins: Optional[str] = None  # comma-separated; null = wildcard
+    expires_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None)
+    )
+    last_used_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None)
+    )
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+    revoked_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None)
+    )
+
+
 class ImportMapping(SQLModel, table=True):
     """A saved column-mapping configuration for data import."""
 
