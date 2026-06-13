@@ -84,6 +84,7 @@
     "did_not_finish": "弃读"
   },
   "common": {
+    "optional": "可选",
     "search": "搜索",
     "searchBooks": "搜索图书...",
     "result": "个结果",
@@ -307,7 +308,25 @@
     "addKey": "添加密钥",
     "newKeyShownOnce": "立即复制此密钥。仅显示一次",
     "noDescription": "无描述",
-    "newPassword": "新密码"
+    "newPassword": "新密码",
+    "embedTokens": "嵌入令牌",
+    "embedTokenDescription": "创建用于iframe仪表板集成（如Homarr）的令牌。",
+    "embedTokenName": "名称",
+    "embedTokenNamePlaceholder": "小组件名称",
+    "addEmbedToken": "添加令牌",
+    "embedTokenOrigins": "允许的来源（逗号分隔，空=任意）",
+    "embedTokenOriginsPlaceholder": "https://homarr.local,https://dashy.local",
+    "embedTokenExpiresAt": "过期时间（可选）",
+    "embedTokenExpiresAtLabel": "过期时间",
+    "embedTokenNewShownOnce": "立即复制此令牌。仅显示一次",
+    "embedTokenNoOrigins": "任意来源（通配符）",
+    "embedTokenExpired": "已过期",
+    "embedTokenLastUsed": "上次使用",
+    "embedTokenStale": "超过90天未使用",
+    "embedTokenNeverUsed": "从未使用",
+    "embedTokenOriginsTooltip": "限制哪些仪表板URL可以使用此令牌。多个来源用逗号分隔。留空则允许任何来源。",
+    "rotateEmbedToken": "轮换",
+    "noEmbedTokens": "暂无嵌入令牌"
   },
   "admin": {
     "title": "管理",

@@ -113,3 +113,109 @@ describe('api.books.list', () => {
 		expect(url).not.toContain('q=');
 	});
 });
+
+describe('api.profile.embedTokens', () => {
+	afterEach(() => {
+		apiKey.set(null);
+		csrfToken.set(null);
+		vi.restoreAllMocks();
+	});
+
+	const mockHeaders = { get: () => 'application/json' };
+
+	it('listEmbedTokens calls GET /profile/embed-tokens', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => [{ id: 1, name: 'Test', token_prefix: 'le_abc', scopes: 'embed:stats:read', allowed_origins: null, expires_at: null, last_used_at: null, created_at: '2024-01-01T00:00:00Z' }]
+		} as unknown as Response);
+
+		const result = await api.profile.listEmbedTokens();
+		expect(result).toHaveLength(1);
+		const [url] = fetchMock.mock.calls[0] as [string];
+		expect(url).toContain('/profile/embed-tokens');
+	});
+
+	it('createEmbedToken sends POST with name', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => ({ token: 'le_newtoken123', embed_token: { id: 2, name: 'My Widget', token_prefix: 'le_newtoken1', scopes: 'embed:stats:read', allowed_origins: null, expires_at: null, last_used_at: null, created_at: '2024-01-01T00:00:00Z' } })
+		} as unknown as Response);
+
+		const result = await api.profile.createEmbedToken({ name: 'My Widget' });
+		expect(result.token).toBe('le_newtoken123');
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.method).toBe('POST');
+		expect(init.body).toContain('My Widget');
+	});
+
+	it('createEmbedToken includes allowed_origins and expires_at when provided', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => ({ token: 'le_newtoken456', embed_token: { id: 3, name: 'With Origins', token_prefix: 'le_newtoken4', scopes: 'embed:stats:read', allowed_origins: 'https://homarr.local', expires_at: null, last_used_at: null, created_at: '2024-01-01T00:00:00Z' } })
+		} as unknown as Response);
+
+		await api.profile.createEmbedToken({ name: 'With Origins', allowed_origins: 'https://homarr.local' });
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.body).toContain('https://homarr.local');
+	});
+
+	it('updateEmbedToken sends PATCH with fields', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => ({ id: 1, name: 'Renamed', token_prefix: 'le_abc', scopes: 'embed:stats:read', allowed_origins: null, expires_at: null, last_used_at: null, created_at: '2024-01-01T00:00:00Z' })
+		} as unknown as Response);
+
+		await api.profile.updateEmbedToken(1, { name: 'Renamed' });
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.method).toBe('PATCH');
+		expect(fetchMock.mock.calls[0][0]).toContain('/profile/embed-tokens/1');
+	});
+
+	it('rotateEmbedToken sends POST .../rotate', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => ({ token: 'le_rotated', embed_token: { id: 4, name: 'Rotated', token_prefix: 'le_rotated', scopes: 'embed:stats:read', allowed_origins: null, expires_at: null, last_used_at: null, created_at: '2024-01-01T00:00:00Z' } })
+		} as unknown as Response);
+
+		await api.profile.rotateEmbedToken(1);
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.method).toBe('POST');
+		expect(fetchMock.mock.calls[0][0]).toContain('/profile/embed-tokens/1/rotate');
+	});
+
+	it('deleteEmbedToken sends DELETE', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: mockHeaders,
+			json: async () => ({})
+		} as unknown as Response);
+
+		await api.profile.deleteEmbedToken(1);
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.method).toBe('DELETE');
+		expect(fetchMock.mock.calls[0][0]).toContain('/profile/embed-tokens/1');
+	});
+});

@@ -1,5 +1,6 @@
 import type {
 	ApiKeyMeta,
+	AppConfig,
 	BookListResponse,
 	DataExportDataset,
 	DataExportFormat,
@@ -10,6 +11,8 @@ import type {
 	DataImportPreviewResponse,
 	DataImportValidateResponse,
 	DataResetResponse,
+	EmbedTokenCreateResponse,
+	EmbedTokenMeta,
 	HygieneAttribute,
 	HygieneBatchUpdateRequest,
 	HygieneBatchUpdateResponse,
@@ -165,6 +168,34 @@ export const api = {
 			return request<void>(`/profile/api-keys/${id}`, { method: 'DELETE' });
 		},
 
+		listEmbedTokens(): Promise<EmbedTokenMeta[]> {
+			return request<EmbedTokenMeta[]>('/profile/embed-tokens');
+		},
+
+		createEmbedToken(data: { name: string; allowed_origins?: string | null; expires_at?: string | null }): Promise<EmbedTokenCreateResponse> {
+			return request<EmbedTokenCreateResponse>('/profile/embed-tokens', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		updateEmbedToken(id: number, data: { name?: string; allowed_origins?: string | null; expires_at?: string | null }): Promise<EmbedTokenMeta> {
+			return request<EmbedTokenMeta>(`/profile/embed-tokens/${id}`, {
+				method: 'PATCH',
+				body: JSON.stringify(data)
+			});
+		},
+
+		rotateEmbedToken(id: number): Promise<EmbedTokenCreateResponse> {
+			return request<EmbedTokenCreateResponse>(`/profile/embed-tokens/${id}/rotate`, {
+				method: 'POST'
+			});
+		},
+
+		deleteEmbedToken(id: number): Promise<void> {
+			return request<void>(`/profile/embed-tokens/${id}`, { method: 'DELETE' });
+		},
+
 		resetData(confirmation: string): Promise<DataResetResponse> {
 			return request<DataResetResponse>('/profile/reset-data', {
 				method: 'POST',
@@ -218,6 +249,12 @@ export const api = {
 		getPagesPerDay(days: number = 365): Promise<DailyPagesResponse> {
 			const qs = new URLSearchParams({ days: String(days) });
 			return request<DailyPagesResponse>(`/statistics/pages-per-day?${qs}`);
+		}
+	},
+
+		app: {
+		config(): Promise<AppConfig> {
+			return request<AppConfig>('/config');
 		}
 	},
 

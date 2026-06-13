@@ -84,6 +84,7 @@
     "did_not_finish": "Abgebrochen"
   },
   "common": {
+    "optional": "optional",
     "search": "Suchen",
     "searchBooks": "Bücher suchen...",
     "result": "Ergebnis",
@@ -307,7 +308,25 @@
     "addKey": "Schlüssel hinzufügen",
     "newKeyShownOnce": "Diesen Schlüssel jetzt kopieren. Er wird nur einmal angezeigt",
     "noDescription": "Keine Beschreibung",
-    "newPassword": "Neues Passwort"
+    "newPassword": "Neues Passwort",
+    "embedTokens": "Embed-Tokens",
+    "embedTokenDescription": "Erstelle Tokens für iframe Dashboard-Integrationen (z.B. Homarr).",
+    "embedTokenName": "Name",
+    "embedTokenNamePlaceholder": "Widget-Name",
+    "addEmbedToken": "Token hinzufügen",
+    "embedTokenOrigins": "Erlaubte Ursprünge (kommagetrennt, leer = alle)",
+    "embedTokenOriginsPlaceholder": "https://homarr.local,https://dashy.local",
+    "embedTokenExpiresAt": "Ablaufdatum (optional)",
+    "embedTokenExpiresAtLabel": "Ablaufdatum",
+    "embedTokenNewShownOnce": "Diesen Token jetzt kopieren. Er wird nur einmal angezeigt",
+    "embedTokenNoOrigins": "Beliebiger Ursprung (Wildcard)",
+    "embedTokenExpired": "Abgelaufen",
+    "embedTokenLastUsed": "Zuletzt genutzt",
+    "embedTokenStale": ">90 Tage ungenutzt",
+    "embedTokenNeverUsed": "Nie genutzt",
+    "embedTokenOriginsTooltip": "Beschränke, welche Dashboard-URLs diesen Token verwenden dürfen. Mehrere Ursprünge mit Kommas trennen. Leer lassen für beliebigen Ursprung.",
+    "rotateEmbedToken": "Erneuern",
+    "noEmbedTokens": "Noch keine Embed-Tokens"
   },
   "admin": {
     "title": "Administration",

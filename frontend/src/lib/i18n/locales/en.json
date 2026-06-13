@@ -84,6 +84,7 @@
     "did_not_finish": "Did Not Finish"
   },
   "common": {
+    "optional": "optional",
     "search": "Search",
     "searchBooks": "Search books...",
     "result": "result",
@@ -307,7 +308,25 @@
     "addKey": "Add key",
     "newKeyShownOnce": "Copy this key now. It is shown only once",
     "noDescription": "No description",
-    "newPassword": "New password"
+    "newPassword": "New password",
+    "embedTokens": "Embed Tokens",
+    "embedTokenDescription": "Create tokens for iframe dashboard integrations (e.g. Homarr).",
+    "embedTokenName": "Name",
+    "embedTokenNamePlaceholder": "Widget name",
+    "addEmbedToken": "Add token",
+    "embedTokenOrigins": "Allowed origins (comma-separated, empty = any)",
+    "embedTokenOriginsPlaceholder": "https://homarr.local,https://dashy.local",
+    "embedTokenExpiresAt": "Expires at (optional)",
+    "embedTokenExpiresAtLabel": "Expires at",
+    "embedTokenNewShownOnce": "Copy this token now. It is shown only once",
+    "embedTokenNoOrigins": "Any origin (wildcard)",
+    "embedTokenExpired": "Expired",
+    "embedTokenLastUsed": "Last used",
+    "embedTokenStale": "Unused >90 days",
+    "embedTokenNeverUsed": "Never used",
+    "embedTokenOriginsTooltip": "Restrict which dashboard URLs can use this token. Separate multiple origins with commas. Leave empty to allow any origin.",
+    "rotateEmbedToken": "Rotate",
+    "noEmbedTokens": "No embed tokens yet"
   },
   "admin": {
     "title": "Administration",

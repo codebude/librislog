@@ -84,6 +84,7 @@
     "did_not_finish": "Abandonado"
   },
   "common": {
+    "optional": "opcional",
     "search": "Buscar",
     "searchBooks": "Buscar libros...",
     "result": "resultado",
@@ -307,7 +308,25 @@
     "addKey": "Añadir clave",
     "newKeyShownOnce": "Copia esta clave ahora. Solo se muestra una vez",
     "noDescription": "Sin descripción",
-    "newPassword": "Nueva contraseña"
+    "newPassword": "Nueva contraseña",
+    "embedTokens": "Tokens de inserción",
+    "embedTokenDescription": "Crea tokens para integraciones de iframe (p.ej. Homarr).",
+    "embedTokenName": "Nombre",
+    "embedTokenNamePlaceholder": "Nombre del widget",
+    "addEmbedToken": "Añadir token",
+    "embedTokenOrigins": "Orígenes permitidos (separados por coma, vacío = cualquiera)",
+    "embedTokenOriginsPlaceholder": "https://homarr.local,https://dashy.local",
+    "embedTokenExpiresAt": "Caduca el (opcional)",
+    "embedTokenExpiresAtLabel": "Caduca el",
+    "embedTokenNewShownOnce": "Copia este token ahora. Solo se muestra una vez",
+    "embedTokenNoOrigins": "Cualquier origen (wildcard)",
+    "embedTokenExpired": "Caducado",
+    "embedTokenLastUsed": "Último uso",
+    "embedTokenStale": "Sin usar >90 días",
+    "embedTokenNeverUsed": "Nunca usado",
+    "embedTokenOriginsTooltip": "Restringe qué URLs de panel pueden usar este token. Separa varios orígenes con comas. Déjalo vacío para permitir cualquier origen.",
+    "rotateEmbedToken": "Rotar",
+    "noEmbedTokens": "Aún no hay tokens de inserción"
   },
   "admin": {
     "title": "Administración",

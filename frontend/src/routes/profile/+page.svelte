@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
+	import { Info } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
@@ -10,7 +12,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
-	import type { ApiKeyMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
+	import type { ApiKeyMeta, AppConfig, EmbedTokenMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -27,6 +29,7 @@
 	let keys = $state<ApiKeyMeta[]>([]);
 	let pendingDeleteKeyId = $state<number | null>(null);
 	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null });
+	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false });
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);
 	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -124,6 +127,8 @@
 		saveThemeToStorage();
 		saveRestorePoint();
 		keys = await api.profile.listApiKeys();
+		embedTokens = await api.profile.listEmbedTokens();
+		appConfig = await api.app.config();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
 			oidcLink = await api.oidc.linkStatus();
@@ -249,6 +254,76 @@
 		pendingDeleteKeyId = null;
 		await api.profile.deleteApiKey(id);
 		keys = await api.profile.listApiKeys();
+	}
+
+	let embedTokens = $state<EmbedTokenMeta[]>([]);
+	let embedTokenName = $state('');
+	let embedTokenOrigins = $state('');
+	let embedTokenExpires = $state('');
+	let createdEmbedToken = $state<string | null>(null);
+	let embedTokenCopied = $state(false);
+	let pendingRotateTokenId = $state<number | null>(null);
+	let pendingDeleteEmbedTokenId = $state<number | null>(null);
+	let embedTokenMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+	async function loadEmbedTokens() {
+		embedTokens = await api.profile.listEmbedTokens();
+	}
+
+	async function createEmbedToken() {
+		embedTokenMessage = null;
+		try {
+			const payload: { name: string; allowed_origins?: string | null; expires_at?: string | null } = { name: embedTokenName };
+			if (embedTokenOrigins.trim()) payload.allowed_origins = embedTokenOrigins.trim();
+			if (embedTokenExpires) {
+				payload.expires_at = new Date(embedTokenExpires + 'T23:59:59').toISOString();
+			}
+			const result = await api.profile.createEmbedToken(payload);
+			createdEmbedToken = result.token;
+			embedTokenCopied = false;
+			embedTokenName = '';
+			embedTokenOrigins = '';
+			embedTokenExpires = '';
+			await loadEmbedTokens();
+		} catch (e: unknown) {
+			embedTokenMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.create') } }) };
+		}
+	}
+
+	async function copyCreatedEmbedToken() {
+		if (!createdEmbedToken) return;
+		await navigator.clipboard.writeText(createdEmbedToken);
+		embedTokenCopied = true;
+	}
+
+	async function rotateEmbedToken(id: number) {
+		pendingRotateTokenId = id;
+		try {
+			const result = await api.profile.rotateEmbedToken(id);
+			createdEmbedToken = result.token;
+			embedTokenCopied = false;
+			await loadEmbedTokens();
+		} catch (e: unknown) {
+			embedTokenMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.rotate') } }) };
+		} finally {
+			pendingRotateTokenId = null;
+		}
+	}
+
+	function requestDeleteEmbedToken(id: number) {
+		pendingDeleteEmbedTokenId = id;
+	}
+
+	function cancelDeleteEmbedToken() {
+		pendingDeleteEmbedTokenId = null;
+	}
+
+	async function confirmDeleteEmbedToken() {
+		if (pendingDeleteEmbedTokenId === null) return;
+		const id = pendingDeleteEmbedTokenId;
+		pendingDeleteEmbedTokenId = null;
+		await api.profile.deleteEmbedToken(id);
+		embedTokens = await api.profile.listEmbedTokens();
 	}
 
 	async function startOidcLink() {
@@ -457,7 +532,7 @@
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
 			<p class="text-sm text-base-content/70">
-				<a href="/api-docs" class="link link-primary">{$_('settings.apiDocsTitle')}</a>
+				<a href={`${base}/api-docs`} class="link link-primary">{$_('settings.apiDocsTitle')}</a>
 			</p>
 			<div class="flex gap-2">
 				<input class="input input-bordered flex-1" name="key-description" bind:value={description} placeholder={$_('user.keyDescription')} />
@@ -489,6 +564,87 @@
 			</ul>
 		</div>
 	</div>
+
+	{#if appConfig.embed_enabled}
+	<div id="section-embed-tokens" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('user.embedTokens')}</h2>
+			<p class="text-sm text-base-content/70">{$_('user.embedTokenDescription')}</p>
+			{#if embedTokenMessage}
+				<Alert type={embedTokenMessage.type === 'success' ? 'success' : 'error'} onClose={() => (embedTokenMessage = null)}>
+					{embedTokenMessage.text}
+				</Alert>
+			{/if}
+			<div class="flex gap-2">
+				<input class="input input-bordered flex-1" name="embed-token-name" bind:value={embedTokenName} placeholder={$_('user.embedTokenNamePlaceholder')} />
+				<button class="btn btn-primary btn-sm" onclick={createEmbedToken} disabled={!embedTokenName.trim()}>{$_('user.addEmbedToken')}</button>
+			</div>
+			<div class="flex gap-2">
+				<input class="input input-bordered flex-1" name="embed-token-origins" bind:value={embedTokenOrigins} placeholder={$_('user.embedTokenOriginsPlaceholder')} />
+			</div>
+			<p class="text-xs text-base-content/50 flex items-start gap-1">
+				<Info class="w-3 h-3 shrink-0" />
+				{$_('user.embedTokenOriginsTooltip')}
+			</p>
+			<input type="date" class="input input-bordered max-w-48" name="embed-token-expires" bind:value={embedTokenExpires} min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()} />
+			<p class="text-xs text-base-content/50 -mt-1">{$_('user.embedTokenExpiresAt')}</p>
+			{#if createdEmbedToken}
+				<Alert type="success" onClose={() => (createdEmbedToken = null)} duration={0}>
+					<div class="flex flex-col items-start gap-2 text-xs">
+						<span>{$_('user.embedTokenNewShownOnce')}</span>
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+							{createdEmbedToken}
+						</div>
+						<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedEmbedToken}>
+							{embedTokenCopied ? $_('common.copied') : $_('common.copy')}
+						</button>
+					</div>
+				</Alert>
+			{/if}
+			{#if embedTokens.length === 0}
+				<p class="text-sm text-base-content/50">{$_('user.noEmbedTokens')}</p>
+			{:else}
+				<ul class="flex flex-col gap-2">
+					{#each embedTokens as t}
+						<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
+							<div class="min-w-0 flex-1">
+								<p class="font-medium">{t.name}</p>
+								<p class="font-mono text-xs text-base-content/60">{t.token_prefix}...</p>
+								<p class="text-xs text-base-content/50">
+									{t.allowed_origins ?? $_('user.embedTokenNoOrigins')}
+								</p>
+								<p class="text-xs text-base-content/50">
+									{#if t.expires_at}
+										{$_('user.embedTokenExpiresAtLabel')}: {new Date(t.expires_at).toLocaleDateString()}
+										{#if new Date(t.expires_at) < new Date()}
+											<span class="badge badge-error badge-xs align-middle">{$_('user.embedTokenExpired')}</span>
+										{/if}
+									{/if}
+								</p>
+								<p class="text-xs text-base-content/50">
+									{#if t.last_used_at}
+										{$_('user.embedTokenLastUsed')}: {new Date(t.last_used_at).toLocaleDateString()}
+										{new Date(t.last_used_at) < new Date(Date.now() - 90 * 86400000)
+											? ' · ' + $_('user.embedTokenStale')
+											: ''}
+									{:else}
+										{$_('user.embedTokenNeverUsed')}
+									{/if}
+								</p>
+							</div>
+							<div class="flex gap-1 shrink-0">
+								<button class="btn btn-ghost btn-xs" onclick={() => rotateEmbedToken(t.id)} disabled={pendingRotateTokenId === t.id}>
+									{$_('user.rotateEmbedToken')}
+								</button>
+								<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteEmbedToken(t.id)}>{$_('common.delete')}</button>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	</div>
+	{/if}
 
 	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
@@ -620,6 +776,7 @@
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
 		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
+		<li><a href="#section-embed-tokens" class:menu-active={activeSection === 'section-embed-tokens'}>{$_('user.embedTokens')}</a></li>
 		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>
 		{#if oidcConfig.enabled}
 			<li><a href="#section-oidc" class:menu-active={activeSection === 'section-oidc'}>{$_('oidc.profileTitle')}</a></li>
@@ -639,5 +796,19 @@
 	</div>
 	<form method="dialog" class="modal-backdrop">
 		<button type="button" onclick={cancelDeleteKey}>{$_('common.close')}</button>
+	</form>
+</dialog>
+
+<dialog class="modal" class:modal-open={pendingDeleteEmbedTokenId !== null}>
+	<div class="modal-box">
+		<h3 class="text-lg font-bold">Do you really want to delete?</h3>
+		<p class="py-3 text-sm text-base-content/70">{$_('common.confirm')}</p>
+		<div class="modal-action">
+			<button type="button" class="btn btn-ghost" onclick={cancelDeleteEmbedToken}>{$_('common.cancel')}</button>
+			<button type="button" class="btn btn-error" onclick={confirmDeleteEmbedToken}>{$_('common.delete')}</button>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button type="button" onclick={cancelDeleteEmbedToken}>{$_('common.close')}</button>
 	</form>
 </dialog>

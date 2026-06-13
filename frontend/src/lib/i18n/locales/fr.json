@@ -84,6 +84,7 @@
     "did_not_finish": "Abandonné"
   },
   "common": {
+    "optional": "optionnel",
     "search": "Rechercher",
     "searchBooks": "Rechercher des livres...",
     "result": "résultat",
@@ -307,7 +308,25 @@
     "addKey": "Ajouter une clé",
     "newKeyShownOnce": "Copie cette clé maintenant. Elle n'est affichée qu'une seule fois",
     "noDescription": "Aucune description",
-    "newPassword": "Nouveau mot de passe"
+    "newPassword": "Nouveau mot de passe",
+    "embedTokens": "Jetons d'intégration",
+    "embedTokenDescription": "Créez des jetons pour les intégrations iframe (p. ex. Homarr).",
+    "embedTokenName": "Nom",
+    "embedTokenNamePlaceholder": "Nom du widget",
+    "addEmbedToken": "Ajouter un jeton",
+    "embedTokenOrigins": "Origines autorisées (séparées par des virgules, vide = toutes)",
+    "embedTokenOriginsPlaceholder": "https://homarr.local,https://dashy.local",
+    "embedTokenExpiresAt": "Expire le (optionnel)",
+    "embedTokenExpiresAtLabel": "Expire le",
+    "embedTokenNewShownOnce": "Copiez ce jeton maintenant. Il n'est affiché qu'une seule fois",
+    "embedTokenNoOrigins": "Toute origine (wildcard)",
+    "embedTokenExpired": "Expiré",
+    "embedTokenLastUsed": "Dernière utilisation",
+    "embedTokenStale": "Inutilisé >90 jours",
+    "embedTokenNeverUsed": "Jamais utilisé",
+    "embedTokenOriginsTooltip": "Restreindre les URL de tableau de bord pouvant utiliser ce jeton. Séparez plusieurs origines par des virgules. Laissez vide pour autoriser toute origine.",
+    "rotateEmbedToken": "Renouveler",
+    "noEmbedTokens": "Pas encore de jetons d'intégration"
   },
   "admin": {
     "title": "Administration",
