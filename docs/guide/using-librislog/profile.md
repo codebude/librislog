@@ -39,7 +39,8 @@ To create a token:
 
 Existing tokens can be **rotated** (revokes the old token and creates a new one with the same settings) or **deleted** from the list.
 
-See the [Homarr integration guide](/api/integrations/homarr) for a usage example.
+See the [Embed API](/api/integrations/embed-api) integration guide for usage
+details and a list of supported dashboard integrations.
 
 ## Data Management
 

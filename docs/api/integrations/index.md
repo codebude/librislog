@@ -16,8 +16,9 @@ API key to use them. You can create one either:
 
 ## Embed Widgets (No Header Auth)
 
-Some dashboards (like Homarr) only support iframe widgets and cannot set
-custom HTTP headers. For these integrations you need an **embed token**:
+Some dashboards only support iframe widgets and cannot set custom HTTP
+headers. For these integrations you need an **embed token**, used with the
+[Embed API](/api/integrations/embed-api):
 
 <span id="embed-tokens"></span>
 
@@ -29,6 +30,9 @@ custom HTTP headers. For these integrations you need an **embed token**:
 
 ## Available Integrations
 
+- [Embed API](/api/integrations/embed-api) — Generic embed widget API for
+  iframe-based dashboards. Uses scoped embed tokens and supports custom
+  styling.
 - [Dashy](/api/integrations/dashy) — Display your LibrisLog statistics as
   styled stat cards on a [Dashy](https://dashy.to/) dashboard using the HTML
   embedded widget.
@@ -40,8 +44,7 @@ custom HTTP headers. For these integrations you need an **embed token**:
   [Home Assistant](https://www.home-assistant.io/) using the RESTful
   integration.
 - [Homarr](/api/integrations/homarr) — Display your LibrisLog statistics on a
-  [Homarr](https://homarr.dev/) dashboard using the iframe widget with an
-  embed token.
+  [Homarr](https://homarr.dev/) dashboard using the iframe widget.
 - [Homepage](/api/integrations/homepage) — Display your LibrisLog statistics
   on a [Homepage](https://gethomepage.dev/) dashboard using the custom API
   widget.
