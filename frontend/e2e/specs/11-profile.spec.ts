@@ -79,8 +79,8 @@ test.describe('Profile', () => {
 			const resp = await page.request.get(iframeUrl);
 			expect(resp.status()).toBe(200);
 			const html = await resp.text();
-			expect(html).toContain('LibrisLog');
-			expect(html).toMatch(/<!doctype html>/i);
+			expect(html).toContain('Books');
+			expect(html).toMatch(/^<!doctype html>/i);
 		}
 	});
 
