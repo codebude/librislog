@@ -66,6 +66,12 @@ async def lifespan(app: FastAPI):
     Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
     cleanup_temp_files()
 
+    if not settings.mail_server.strip() or not settings.mail_from.strip():
+        logger.warning(
+            "MAIL_SERVER or MAIL_FROM is not configured — password reset emails will not be sent. "
+            "See .env.example for mail setup instructions."
+        )
+
     maintenance_task = asyncio.create_task(_periodic_maintenance())
     yield
     maintenance_task.cancel()

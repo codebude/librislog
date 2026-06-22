@@ -130,6 +130,20 @@ export const api = {
 
 		logout(): Promise<{ message: string }> {
 			return request<{ message: string }>('/auth/logout', { method: 'POST' });
+		},
+
+		forgotPassword(data: { email: string; locale?: string }): Promise<{ message: string }> {
+			return request<{ message: string }>('/auth/forgot-password', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		resetPassword(data: { token: string; password: string }): Promise<{ message: string }> {
+			return request<{ message: string }>('/auth/reset-password', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
 		}
 	},
 

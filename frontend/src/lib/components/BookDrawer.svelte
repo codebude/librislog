@@ -60,6 +60,30 @@
 	let date_finished = $state('');
 	let cover_url = $state<string | null>(null);
 
+	// ── Android back button: close drawer instead of navigating away ──────────
+	let _pushed = false;
+	let _popClosed = false;
+
+	$effect(() => {
+		if (open) {
+			history.pushState(null, '');
+			_pushed = true;
+			_popClosed = false;
+
+			const onPop = () => {
+				_popClosed = true;
+				open = false;
+			};
+			window.addEventListener('popstate', onPop);
+			return () => {
+				window.removeEventListener('popstate', onPop);
+				if (_pushed && !_popClosed) history.back();
+				_pushed = false;
+				_popClosed = false;
+			};
+		}
+	});
+
 	$effect(() => {
 		if (book) {
 			title = book.title;

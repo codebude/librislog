@@ -8,5 +8,9 @@
       "pages": "Pages",
       "avg_pages": "Avg/Book"
     }
+  },
+  "email": {
+    "passwordResetSubject": "Password Reset – LibrisLog",
+    "passwordResetBody": "<html>\n<body>\n<p>You have requested a password reset for your LibrisLog account.</p>\n<p>Click the link below to reset your password. This link is valid for {duration_minutes} minutes.</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>If you did not request this, please ignore this email.</p>\n</body>\n</html>"
   }
 }

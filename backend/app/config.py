@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     hardcover_app_api_token: str = ""
     thalia_cover_search_enabled: bool = False
     embed_enabled: bool = True
+    mail_server: str = ""
+    mail_port: int = 587
+    mail_username: str = ""
+    mail_password: str = ""
+    mail_from: str = ""
+    mail_from_name: str = "LibrisLog"
+    mail_starttls: bool = True
+    mail_ssl_tls: bool = False
+    password_reset_token_max_age: int = 3600
+    public_app_url: str = "http://localhost:5173"
     forwarded_allow_ips: str = "*"
 
     @field_validator("api_key_encryption_key")

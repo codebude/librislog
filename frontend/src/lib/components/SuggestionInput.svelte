@@ -5,6 +5,8 @@
 		placeholder = '',
 		name = '',
 		disabled = false,
+		ariaLabel = '',
+		inputClass = 'input input-bordered w-full',
 		fetchSuggestions = async (_q: string): Promise<string[]> => []
 	}: {
 		value?: string;
@@ -12,6 +14,8 @@
 		placeholder?: string;
 		name?: string;
 		disabled?: boolean;
+		ariaLabel?: string;
+		inputClass?: string;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
 	} = $props();
 
@@ -119,7 +123,7 @@
 	<div class="relative">
 		<input
 			type="text"
-			class="input input-bordered w-full"
+			class={inputClass}
 			bind:this={inputEl}
 			bind:value={inputValue}
 			oninput={handleInput}
@@ -128,6 +132,7 @@
 			{placeholder}
 			{disabled}
 			{name}
+			aria-label={ariaLabel || undefined}
 			autocomplete="off"
 			role="searchbox"
 			aria-autocomplete="list"

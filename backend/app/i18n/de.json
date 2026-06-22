@@ -8,5 +8,9 @@
       "pages": "Seiten",
       "avg_pages": "Seiten/Buch"
     }
+  },
+  "email": {
+    "passwordResetSubject": "Passwort zurücksetzen – LibrisLog",
+    "passwordResetBody": "<html>\n<body>\n<p>Du hast das Zurücksetzen deines Passworts für dein LibrisLog-Konto beantragt.</p>\n<p>Klicke auf den Link unten, um dein Passwort zurückzusetzen. Dieser Link ist {duration_minutes} Minuten gültig.</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>Falls du dies nicht angefordert hast, ignoriere bitte diese E-Mail.</p>\n</body>\n</html>"
   }
 }

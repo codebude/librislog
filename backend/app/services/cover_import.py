@@ -88,5 +88,5 @@ async def import_cover_from_url(
     Returns:
         The local filename on success, or None on failure.
     """
-    async with httpx.AsyncClient(timeout=timeout_seconds, follow_redirects=False) as client:
+    async with httpx.AsyncClient(timeout=timeout_seconds, follow_redirects=True) as client:
         return await download_cover(url, covers_dir, client, user_id)

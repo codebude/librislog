@@ -14,6 +14,8 @@ from passlib.exc import UnknownHashError
 from passlib.context import CryptContext
 from sqlmodel import Session, select
 
+from itsdangerous import URLSafeTimedSerializer
+
 from app.config import settings
 from app.database import get_session
 from app.models import ApiKey, User, UserRole
@@ -140,6 +142,37 @@ def get_embed_token_prefix(token: str) -> str:
     return token[:12]
 
 
+# --- Password reset token utilities ---
+
+_password_reset_serializer = URLSafeTimedSerializer(
+    secret_key=settings.api_key_encryption_key,
+    salt="password-reset",
+)
+
+
+def generate_password_reset_token(email: str, credentials_version: int = 0) -> str:
+    """Generate a signed, time-limited token for resetting a user's password."""
+    return _password_reset_serializer.dumps({
+        "email": email,
+        "credentials_version": credentials_version,
+    })
+
+
+def verify_password_reset_token(token: str, max_age: int = 3600) -> dict | None:
+    """Verify a password reset token and return the payload.
+
+    Returns a dict with 'email' and 'credentials_version' if the token is valid
+    and not expired, otherwise None.
+    """
+    try:
+        result = _password_reset_serializer.loads(token, max_age=max_age)
+        if isinstance(result, dict) and "email" in result and "credentials_version" in result:
+            return result
+        return None
+    except Exception:
+        return None
+
+
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
@@ -191,6 +224,13 @@ def require_user(
     if user_id is not None:
         user = session.get(User, user_id)
         if user is not None:
+            session_cv = request.session.get("credentials_version", 0)
+            if user.credentials_version != session_cv:
+                request.session.clear()
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session expired, please log in again",
+                )
             if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
                 csrf_token = request.session.get("csrf_token")
                 if not csrf_token or not x_csrf_token or x_csrf_token != csrf_token:
@@ -210,10 +250,11 @@ def require_admin(user: User = Depends(require_user)) -> User:
     return user
 
 
-def start_browser_session(request: Request, user_id: int) -> None:
+def start_browser_session(request: Request, user_id: int, credentials_version: int = 0) -> None:
     """Start an authenticated browser session by storing user_id and a CSRF token."""
     request.session["user_id"] = user_id
     request.session["csrf_token"] = secrets.token_urlsafe(32)
+    request.session["credentials_version"] = credentials_version
 
 
 def clear_browser_session(request: Request) -> None:

@@ -8,5 +8,9 @@
       "pages": "页数",
       "avg_pages": "每本页数"
     }
+  },
+  "email": {
+    "passwordResetSubject": "密码重置 – LibrisLog",
+    "passwordResetBody": "<html>\n<body>\n<p>您已请求重置 LibrisLog 帐户的密码。</p>\n<p>点击下面的链接重置您的密码。此链接有效期为 {duration_minutes} 分钟。</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>如果您没有请求此操作，请忽略此邮件。</p>\n</body>\n</html>"
   }
 }
