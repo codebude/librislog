@@ -312,13 +312,11 @@
 	});
 
 	// ── Android back button: close drawer instead of navigating away ──────────
-	let _pushed = false;
 	let _popClosed = false;
 
 	$effect(() => {
 		if (open) {
 			history.pushState(null, '');
-			_pushed = true;
 			_popClosed = false;
 
 			const onPop = () => {
@@ -328,8 +326,6 @@
 			window.addEventListener('popstate', onPop);
 			return () => {
 				window.removeEventListener('popstate', onPop);
-				if (_pushed && !_popClosed) history.back();
-				_pushed = false;
 				_popClosed = false;
 			};
 		}
