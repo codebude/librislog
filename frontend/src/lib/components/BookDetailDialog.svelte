@@ -224,11 +224,11 @@
 	});
 
 	const lineChartData = $derived.by(() => {
-		if (uniqueDays.length < 1) return { labels: [] as string[], data: [] as number[] };
+		if (uniqueDays.length < 1) return { data: [] as Array<{ x: number; y: number }> };
 		const oldestEntry = uniqueDays[0];
 		const useStartDate = !!book?.date_started && formatDate(book.date_started, tz) < formatDate(oldestEntry.created_at, tz);
 		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
-		if (!rawStart) return { labels: [] as string[], data: [] as number[] };
+		if (!rawStart) return { data: [] as Array<{ x: number; y: number }> };
 		const virtualEntry: ReadingProgressEntry = {
 			id: 0,
 			book_id: book?.id ?? 0,
@@ -238,8 +238,7 @@
 		};
 		const entries = [virtualEntry, ...uniqueDays];
 		return {
-			labels: entries.map((e) => formatDate(e.created_at, tz)),
-			data: entries.map((e) => e.page),
+			data: entries.map((e) => ({ x: new Date(e.created_at).getTime(), y: e.page })),
 		};
 	});
 
@@ -255,11 +254,11 @@
 	const lineChartConfig = $derived.by<ChartData<'line'>>(() => {
 		void _themeSignal;
 		return {
-			labels: lineChartData.labels,
 			datasets: [
 				{
 					label: $_('book.currentPage'),
 					data: lineChartData.data,
+					parsing: false,
 					borderColor: getDaisyColorRgb('primary'),
 					backgroundColor: getDaisyColorRgb('primary'),
 					tension: 0.4,
@@ -286,6 +285,11 @@
 			},
 			scales: {
 				x: {
+					type: 'time',
+					time: {
+						displayFormats: { day: 'MMM D' },
+						tooltipFormat: 'YYYY-MM-DD HH:mm',
+					},
 					grid: { display: false },
 					ticks: {
 						maxTicksLimit: 6,
