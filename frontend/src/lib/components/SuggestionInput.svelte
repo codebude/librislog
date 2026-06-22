@@ -5,6 +5,7 @@
 		placeholder = '',
 		name = '',
 		disabled = false,
+		ariaLabel = '',
 		inputClass = 'input input-bordered w-full',
 		fetchSuggestions = async (_q: string): Promise<string[]> => []
 	}: {
@@ -13,6 +14,7 @@
 		placeholder?: string;
 		name?: string;
 		disabled?: boolean;
+		ariaLabel?: string;
 		inputClass?: string;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
 	} = $props();
@@ -130,6 +132,7 @@
 			{placeholder}
 			{disabled}
 			{name}
+			aria-label={ariaLabel || undefined}
 			autocomplete="off"
 			role="searchbox"
 			aria-autocomplete="list"

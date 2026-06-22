@@ -455,6 +455,7 @@
 					<SuggestionInput
 						bind:value={batchValue}
 						placeholder={$_('dataHygiene.batchValuePlaceholder')}
+						ariaLabel={$_('dataHygiene.batchValueLabel')}
 						name="batch-author"
 						inputClass="input input-bordered input-xs flex-1 min-w-[140px]"
 						fetchSuggestions={(q) => api.books.suggestions.authors(q)}
@@ -463,6 +464,7 @@
 					<SuggestionInput
 						bind:value={batchValue}
 						placeholder={$_('dataHygiene.batchValuePlaceholder')}
+						ariaLabel={$_('dataHygiene.batchValueLabel')}
 						name="batch-publisher"
 						inputClass="input input-bordered input-xs flex-1 min-w-[140px]"
 						fetchSuggestions={(q) => api.books.suggestions.publishers(q)}
