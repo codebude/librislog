@@ -5,6 +5,7 @@
 		placeholder = '',
 		name = '',
 		disabled = false,
+		inputClass = 'input input-bordered w-full',
 		fetchSuggestions = async (_q: string): Promise<string[]> => []
 	}: {
 		value?: string;
@@ -12,6 +13,7 @@
 		placeholder?: string;
 		name?: string;
 		disabled?: boolean;
+		inputClass?: string;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
 	} = $props();
 
@@ -119,7 +121,7 @@
 	<div class="relative">
 		<input
 			type="text"
-			class="input input-bordered w-full"
+			class={inputClass}
 			bind:this={inputEl}
 			bind:value={inputValue}
 			oninput={handleInput}

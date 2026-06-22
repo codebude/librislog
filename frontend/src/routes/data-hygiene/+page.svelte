@@ -7,6 +7,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import SuggestionInput from '$lib/components/SuggestionInput.svelte';
 	import { LoaderCircle, X } from '@lucide/svelte';
 	import type { Book, HygieneAttribute, HygieneMissingBook } from '$lib/types';
 
@@ -450,6 +451,22 @@
 						placeholder={$_('dataHygiene.batchValuePlaceholder')}
 						aria-label={$_('dataHygiene.batchValueLabel')}
 					/>
+				{:else if batchField === 'author'}
+					<SuggestionInput
+						bind:value={batchValue}
+						placeholder={$_('dataHygiene.batchValuePlaceholder')}
+						name="batch-author"
+						inputClass="input input-bordered input-xs flex-1 min-w-[140px]"
+						fetchSuggestions={(q) => api.books.suggestions.authors(q)}
+					/>
+				{:else if batchField === 'publisher'}
+					<SuggestionInput
+						bind:value={batchValue}
+						placeholder={$_('dataHygiene.batchValuePlaceholder')}
+						name="batch-publisher"
+						inputClass="input input-bordered input-xs flex-1 min-w-[140px]"
+						fetchSuggestions={(q) => api.books.suggestions.publishers(q)}
+					/>
 				{:else}
 					<input
 						type="text"
@@ -457,7 +474,6 @@
 						bind:value={batchValue}
 						placeholder={$_('dataHygiene.batchValuePlaceholder')}
 						aria-label={$_('dataHygiene.batchValueLabel')}
-						list={batchField === 'author' ? 'author-suggestions' : batchField === 'publisher' ? 'publisher-suggestions' : undefined}
 					/>
 				{/if}
 
