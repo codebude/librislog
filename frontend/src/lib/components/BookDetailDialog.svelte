@@ -226,7 +226,7 @@
 	const lineChartData = $derived.by(() => {
 		if (uniqueDays.length < 1) return { data: [] as Array<{ x: number; y: number }> };
 		const oldestEntry = uniqueDays[0];
-		const useStartDate = !!book?.date_started && formatDate(book.date_started, tz) < formatDate(oldestEntry.created_at, tz);
+		const useStartDate = !!book?.date_started && new Date(book.date_started).getTime() < new Date(oldestEntry.created_at).getTime();
 		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
 		if (!rawStart) return { data: [] as Array<{ x: number; y: number }> };
 		const virtualEntry: ReadingProgressEntry = {
