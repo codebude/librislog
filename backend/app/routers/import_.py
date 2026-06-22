@@ -133,7 +133,7 @@ async def import_book(
     # Attempt to download and cache the cover locally; fall back to external URL.
     cover_url = c.cover_url
     if cover_url:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)
         if filename:
             cover_url = f"/api/covers/{filename}"
