@@ -127,6 +127,10 @@ class User(SQLModel, table=True):
     email: str = Field(index=True, unique=True)
     role: UserRole = Field(default=UserRole.user, index=True)
     hashed_password: str
+    credentials_version: int = Field(
+        default=0,
+        sa_column=Column(sa.Integer, default=0, nullable=False)
+    )
     created_at: datetime = Field(
         default_factory=utcnow,
         sa_column=Column(UtcDateTime, default=utcnow)

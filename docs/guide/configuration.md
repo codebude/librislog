@@ -30,6 +30,39 @@ All configuration is done via environment variables in a `.env` file at the proj
 | `OIDC_CLIENT_SECRET` | OIDC client secret |
 | `OIDC_WELL_KNOWN_URL` | OIDC well-known configuration URL |
 
+## Password Reset / Email (Optional)
+
+Password reset is optional. If mail is not configured, the "Forgot password?" link on the login page still appears, but no reset email is sent. A warning is logged at startup when mail is not configured.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MAIL_SERVER` | SMTP server hostname (e.g. `smtp.gmail.com`). Leave empty to disable password reset emails. | — |
+| `MAIL_PORT` | SMTP server port | `587` |
+| `MAIL_USERNAME` | SMTP username (leave empty for unauthenticated relay) | — |
+| `MAIL_PASSWORD` | SMTP password | — |
+| `MAIL_FROM` | Sender email address | — |
+| `MAIL_FROM_NAME` | Sender display name | `LibrisLog` |
+| `MAIL_STARTTLS` | Use STARTTLS (`True`/`False`) | `True` |
+| `MAIL_SSL_TLS` | Use implicit SSL/TLS (`True`/`False`) | `False` |
+| `PUBLIC_APP_URL` | Public URL of the frontend (used to build the reset link in emails) | `http://localhost:5173` |
+| `PASSWORD_RESET_TOKEN_MAX_AGE` | Reset token validity in seconds | `3600` (1 hour) |
+
+::: tip Local Development
+For local development, use [Mailpit](https://github.com/axllent/mailpit) (included in `docker-compose.dev.yml`):
+
+```bash
+MAIL_SERVER=localhost
+MAIL_PORT=1025
+MAIL_STARTTLS=False
+MAIL_SSL_TLS=False
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=noreply@localhost
+```
+
+The Mailpit web UI is available at http://localhost:8025 to inspect sent emails.
+:::
+
 ## Book Import Sources
 
 | Variable | Description |
@@ -99,4 +132,16 @@ DASHBOARD_QUOTE_CACHE_TTL=86400
 PUBLIC_DEFAULT_LOCALE=en
 MAX_IMPORT_FILE_SIZE_MB=100
 MAX_IMPORT_ROW_COUNT=10000
+
+# Password reset (optional — leave empty to disable)
+MAIL_SERVER=
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=
+MAIL_FROM_NAME=LibrisLog
+MAIL_STARTTLS=True
+MAIL_SSL_TLS=False
+PUBLIC_APP_URL=http://localhost:5173
+PASSWORD_RESET_TOKEN_MAX_AGE=3600
 ```

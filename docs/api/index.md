@@ -103,6 +103,42 @@ curl -X POST \
 | GET | `/api/import/search/stream` | Stream search progress |
 | POST | `/api/import` | Import a candidate |
 
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/setup` | Create first admin (only when no admin exists) |
+| POST | `/api/auth/login` | Log in with email and password |
+| POST | `/api/auth/logout` | Log out (clear session) |
+| GET | `/api/auth/me` | Get current user |
+| GET | `/api/auth/csrf` | Get CSRF token |
+| POST | `/api/auth/forgot-password` | Request a password reset email (always returns 200) |
+| POST | `/api/auth/reset-password` | Reset password using a token from the reset email |
+
+::: details Password Reset Endpoints
+These endpoints do not require an API key or session — they are public.
+
+**Forgot Password**
+
+```bash
+curl -X POST http://localhost:8000/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "locale": "en"}'
+```
+
+Always returns `200` with `{"message": "If the email is registered, a reset link has been sent"}` to prevent user enumeration. The `locale` field is optional (defaults to `en`) and controls the email language.
+
+**Reset Password**
+
+```bash
+curl -X POST http://localhost:8000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"token": "token-from-email", "password": "new-secure-password"}'
+```
+
+Returns `200` on success, `400` if the token is invalid/expired or the password doesn't meet complexity requirements. After a successful reset, all existing sessions for that user are invalidated.
+:::
+
 ## Error Handling
 
 The API returns standard HTTP status codes:

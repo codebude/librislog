@@ -682,7 +682,7 @@ async def execute_import(
 
     transform_cache = _build_transform_cache(mapping)
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
         for idx, row in enumerate(rows, start=1):
             try:
                 row_transform_errors: list[str] = []

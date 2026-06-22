@@ -8,5 +8,9 @@
       "pages": "Pages",
       "avg_pages": "Pages/Livre"
     }
+  },
+  "email": {
+    "passwordResetSubject": "Réinitialisation du mot de passe – LibrisLog",
+    "passwordResetBody": "<html>\n<body>\n<p>Vous avez demandé une réinitialisation de mot de passe pour votre compte LibrisLog.</p>\n<p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe. Ce lien est valable {duration_minutes} minutes.</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>Si vous n'avez pas demandé cela, veuillez ignorer cet e-mail.</p>\n</body>\n</html>"
   }
 }

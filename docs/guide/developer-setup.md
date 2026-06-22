@@ -12,6 +12,27 @@ docker compose -f docker-compose.dev.yml up -d --build
 
 This builds fresh images using your local checkout. The `docker-compose.dev.yml` file mirrors the default compose file but uses `build:` directives instead of pulling pre-built images.
 
+### Mailpit (Email Testing)
+
+The dev compose file includes a [Mailpit](https://github.com/axllent/mailpit) service for testing password reset emails locally:
+
+- **SMTP**: `localhost:1025` (or `mailpit:1025` from within Docker)
+- **Web UI**: http://localhost:8025
+
+To enable password reset emails in dev, add these to your `.env`:
+
+```bash
+MAIL_SERVER=localhost
+MAIL_PORT=1025
+MAIL_STARTTLS=False
+MAIL_SSL_TLS=False
+MAIL_FROM=noreply@localhost
+MAIL_USERNAME=
+MAIL_PASSWORD=
+```
+
+If mail is not configured, a warning is logged at startup and the "Forgot password?" link on the login page will not send emails.
+
 ### Build Arguments
 
 When building, you can override these arguments:

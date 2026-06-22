@@ -266,6 +266,18 @@ class UserLogin(SQLModel):
     password: str
 
 
+class ForgotPasswordRequest(SQLModel):
+    """Request body to request a password reset email."""
+    email: str
+    locale: str = "en"
+
+
+class ResetPasswordRequest(SQLModel):
+    """Request body to reset a password using a token."""
+    token: str
+    password: str
+
+
 class SetupRequest(SQLModel):
     """Initial admin setup request body."""
     firstname: str

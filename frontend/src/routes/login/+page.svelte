@@ -46,6 +46,12 @@
 		setLocale(next);
 	}
 
+	let forgotEmail = $state('');
+	let forgotLoading = $state(false);
+	let forgotSent = $state(false);
+	let forgotError = $state('');
+	let forgotDialog: HTMLDialogElement | undefined = $state();
+
 	async function submit() {
 		error = '';
 		loading = true;
@@ -85,6 +91,27 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	async function forgotSubmit() {
+		forgotError = '';
+		forgotSent = false;
+		forgotLoading = true;
+		try {
+			await api.auth.forgotPassword({ email: forgotEmail, locale: selectedLanguage });
+			forgotSent = true;
+		} catch (e: unknown) {
+			forgotError = e instanceof Error ? e.message : $_('auth.forgotError');
+		} finally {
+			forgotLoading = false;
+		}
+	}
+
+	function openForgotDialog() {
+		forgotEmail = email;
+		forgotSent = false;
+		forgotError = '';
+		forgotDialog?.showModal();
 	}
 
 	function startOidcLogin() {
@@ -144,6 +171,11 @@
 						disabled={loading}
 					/>
 				</label>
+				<div class="flex justify-end">
+					<button type="button" class="link link-hover text-sm" onclick={openForgotDialog}>
+						{$_('auth.forgotPassword')}
+					</button>
+				</div>
 				<button type="submit" class="btn btn-primary btn-block" disabled={loading}>
 					{loading ? $_('common.loadingEllipsis') : $_('auth.login')}
 				</button>
@@ -157,3 +189,46 @@
 		</div>
 	</div>
 </div>
+
+<dialog bind:this={forgotDialog} class="modal">
+	<div class="modal-box">
+		<h3 class="text-lg font-bold mb-4">{$_('auth.forgotPasswordTitle')}</h3>
+		{#if forgotSent}
+			<div class="alert alert-success mb-4">
+				<span>{$_('auth.forgotSent')}</span>
+			</div>
+			<div class="modal-action">
+				<button class="btn" onclick={() => forgotDialog?.close()}>{$_('auth.forgotClose')}</button>
+			</div>
+		{:else}
+			<p class="text-sm mb-4">{$_('auth.forgotPasswordInstruction')}</p>
+			{#if forgotError}
+				<div class="alert alert-error mb-4">
+					<span>{forgotError}</span>
+				</div>
+			{/if}
+			<label class="form-control">
+				<span class="label label-text">{$_('auth.email')}</span>
+				<input
+					type="email"
+					class="input input-bordered w-full"
+					bind:value={forgotEmail}
+					autocomplete="email"
+					required
+					disabled={forgotLoading}
+				/>
+			</label>
+			<div class="modal-action">
+				<button class="btn" onclick={() => forgotDialog?.close()} disabled={forgotLoading}>
+					{$_('common.cancel')}
+				</button>
+				<button class="btn btn-primary" onclick={forgotSubmit} disabled={forgotLoading}>
+					{forgotLoading ? $_('common.loadingEllipsis') : $_('auth.forgotSend')}
+				</button>
+			</div>
+		{/if}
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>

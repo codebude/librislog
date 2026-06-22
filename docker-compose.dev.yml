@@ -15,6 +15,9 @@ services:
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
     restart: unless-stopped
+    depends_on:
+      mailpit:
+        condition: service_started
 
   frontend:
     build:
@@ -25,4 +28,11 @@ services:
         GIT_SHA: ${GIT_SHA:-unknown}
     ports:
       - "8001:80"
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     restart: unless-stopped
