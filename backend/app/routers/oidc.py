@@ -143,7 +143,7 @@ async def oidc_callback(
         logger.error("OIDC link points to missing user: link_id=%s user_id=%s", link.id, link.user_id)
         return _frontend_warning_redirect("Linked user account no longer exists")
 
-    start_browser_session(request, user.id)
+    start_browser_session(request, user.id, user.credentials_version)
     return _frontend_success_redirect()
 
 

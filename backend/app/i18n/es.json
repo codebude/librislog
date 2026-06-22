@@ -8,5 +8,9 @@
       "pages": "Páginas",
       "avg_pages": "Páginas/Libro"
     }
+  },
+  "email": {
+    "passwordResetSubject": "Restablecer contraseña – LibrisLog",
+    "passwordResetBody": "<html>\n<body>\n<p>Has solicitado un restablecimiento de contraseña para tu cuenta de LibrisLog.</p>\n<p>Haz clic en el enlace de abajo para restablecer tu contraseña. Este enlace es válido por {duration_minutes} minutos.</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>Si no solicitaste esto, ignora este correo electrónico.</p>\n</body>\n</html>"
   }
 }

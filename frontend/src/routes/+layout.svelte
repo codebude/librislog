@@ -36,11 +36,17 @@
 	let backendReady = $state(false);
 	let versionInterval: ReturnType<typeof setInterval> | undefined;
 	let updateInfo: UpdateInfo | null = $state(null);
-	const isPublicAuthRoute = $derived(
-		$page.url.pathname.startsWith('/setup') ||
-			$page.url.pathname.startsWith('/login') ||
-			$page.url.pathname.startsWith('/auth/oidc')
-	);
+
+	function _isPublicAuthRoute(pathname: string): boolean {
+		return (
+			pathname.startsWith('/setup') ||
+			pathname.startsWith('/login') ||
+			pathname.startsWith('/reset-password') ||
+			pathname.startsWith('/auth/oidc')
+		);
+	}
+
+	const isPublicAuthRoute = $derived(_isPublicAuthRoute($page.url.pathname));
 	const showAppChrome = $derived(!isPublicAuthRoute && $currentUser !== null);
 
 	// Expose a way for pages to trigger open
@@ -71,17 +77,16 @@
 		await setupI18n();
 		i18nReady = true;
 
-		// Wait for backend on login/setup/oidc routes so the page doesn't
+		// Wait for backend on public auth routes so the page doesn't
 		// render before the server is ready (e.g. OIDC config fetch).
 		const path = $page.url.pathname;
-		if (path.startsWith('/login') || path.startsWith('/setup') || path.startsWith('/auth/oidc')) {
+		const isPublic = _isPublicAuthRoute(path);
+		if (isPublic) {
 			await waitForBackend();
 		}
 		backendReady = true;
 		const isSetupRoute = path.startsWith('/setup');
 		const isLoginRoute = path.startsWith('/login');
-		const isOidcCallbackRoute = path.startsWith('/auth/oidc');
-		const publicAuthRoute = isSetupRoute || isLoginRoute || isOidcCallbackRoute;
 
 		try {
 			const setup = await api.auth.setupRequired();
@@ -120,7 +125,7 @@
 				}
 			}
 
-			if (!setup.required && !publicAuthRoute) {
+			if (!setup.required && !isPublic) {
 				try {
 					const me = await api.auth.me();
 					currentUser.set(me);
@@ -148,7 +153,7 @@
 				}
 			}
 		} catch {
-			if (!publicAuthRoute) {
+			if (!isPublic) {
 				csrfToken.set(null);
 				window.location.href = '/login';
 				return;
