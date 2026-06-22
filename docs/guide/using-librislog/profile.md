@@ -8,6 +8,12 @@ The profile page is your personal settings hub. Access it by clicking your avata
 
 Update your first name, last name, or password. The password field is optional — leave it blank to keep your current password. A password strength indicator and complexity requirements are shown below the input.
 
+::: tip Forgot your password?
+If you have forgotten your password and mail is configured, click the **"Forgot password?"** link on the login page. Enter your email address and a reset link will be sent to you. The link is valid for one hour and can only be used once. After a successful reset, all existing sessions are invalidated and you will need to log in again.
+
+This feature requires SMTP settings to be configured — see [Configuration](/guide/configuration#password-reset-email-optional).
+:::
+
 ## Language
 
 Switch the UI language between available locales. The change applies immediately after saving.
