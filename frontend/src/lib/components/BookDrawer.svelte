@@ -35,6 +35,8 @@
 	let pendingStatus = $state<ReadingStatus | null>(null);
 	let pendingPayload = $state<Partial<Book> | null>(null);
 	let pendingProgressBook = $state<Book | null>(null);
+	let startDatePromptOpen = $state(false);
+	let promptedStartDate = $state(tzToday(tz));
 	let autoSearchOpen = $state(false);
 	let autoSearchLoading = $state(false);
 	let autoSearchError = $state<string | null>(null);
@@ -188,7 +190,7 @@
 		pendingPayload = null;
 	}
 
-	async function save() {
+	async function save({ skipAutoDateStarted = false } = {}) {
 		if (!book) return;
 		if (!author.trim()) {
 			toasts.add($_('error.authorRequired'), 'error');
@@ -205,6 +207,17 @@
 			return;
 		}
 		const statusChanged = reading_status !== book.reading_status;
+		if (
+			!skipAutoDateStarted &&
+			book.reading_status === 'want_to_read' &&
+			reading_status === 'read' &&
+			!book.date_started &&
+			!ds
+		) {
+			promptedStartDate = today;
+			startDatePromptOpen = true;
+			return;
+		}
 		const dfCleared = !df && !!book.date_finished;
 		if (dfCleared && reading_status === 'read' && !statusChanged) {
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
@@ -224,6 +237,7 @@
 
 				const transition = await api.books.transitionStatus(book.id, {
 					new_status: reading_status,
+					...(skipAutoDateStarted ? { skip_auto_date_started: true } : {}),
 					...(dfCleared ? { clear_date_finished: true } : {}),
 					...(dateStartedChanged && ds ? { force_date_started: fromDateInputValue(date_started, tz) } : {}),
 					...(dateFinishedChanged && df ? { force_date_finished: fromDateInputValue(date_finished, tz) } : {})
@@ -543,6 +557,39 @@
 			);
 		}}
 	/>
+
+	{#if startDatePromptOpen}
+		<div class="modal modal-open" role="dialog" aria-label={$_('book.startDatePromptTitle')}>
+			<div class="modal-box max-w-sm">
+				<h3 class="text-lg font-bold">{$_('book.startDatePromptTitle')}</h3>
+				<p class="text-sm text-base-content/70 mt-2">{$_('book.startDatePromptMessage')}</p>
+				<label class="flex flex-col gap-1 mt-4">
+					<span class="label label-text">{$_('book.dateStarted')}</span>
+					<input type="date" class="input input-bordered input-sm" bind:value={promptedStartDate} max={today} />
+				</label>
+				<div class="modal-action">
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm"
+						onclick={() => {
+							startDatePromptOpen = false;
+							void save({ skipAutoDateStarted: true });
+						}}
+					>{$_('book.startDatePromptSkip')}</button>
+					<button
+						type="button"
+						class="btn btn-primary btn-sm"
+						onclick={() => {
+							date_started = promptedStartDate;
+							startDatePromptOpen = false;
+							void save();
+						}}
+					>{$_('book.startDatePromptSet')}</button>
+				</div>
+			</div>
+			<button type="button" class="modal-backdrop" aria-label={$_('common.close')} onclick={() => (startDatePromptOpen = false)}></button>
+		</div>
+	{/if}
 
 	{#if pendingProgressBook}
 		{@const pbook = pendingProgressBook}
