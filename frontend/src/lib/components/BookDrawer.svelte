@@ -176,7 +176,7 @@
 		}
 
 		book = updated;
-		if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+		if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
 			pendingProgressBook = updated;
 			dateConflictOpen = false;
 			pendingStatus = null;
@@ -257,7 +257,7 @@
 					updated = await api.books.update(book.id, cleanPayload);
 				}
 				book = updated;
-				if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+				if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
 					pendingProgressBook = updated;
 					pendingStatus = null;
 					pendingPayload = null;
@@ -275,7 +275,7 @@
 				reading_status
 			});
 			book = updated;
-			if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+			if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
 				pendingProgressBook = updated;
 				return;
 			}
