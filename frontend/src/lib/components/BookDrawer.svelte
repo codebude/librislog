@@ -131,6 +131,19 @@
 		return payload;
 	}
 
+	async function needsCompletionProgressPrompt(updated: Book, dateFinishedWasNull: boolean): Promise<boolean> {
+		if (updated.reading_status !== 'read' || !dateFinishedWasNull || !updated.date_finished || !updated.page_count) {
+			return false;
+		}
+		try {
+			const [progress] = await api.books.progress.latest([updated.id]);
+			return (progress?.current_page ?? 0) < updated.page_count;
+		} catch {
+			// Preserve the prompt if the optional progress lookup fails.
+			return true;
+		}
+	}
+
 	async function applyPendingTransition(params: {
 		forceDateStarted?: string | null;
 		forceDateFinished?: string | null;
@@ -176,7 +189,7 @@
 		}
 
 		book = updated;
-		if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
+		if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 			pendingProgressBook = updated;
 			dateConflictOpen = false;
 			pendingStatus = null;
@@ -257,7 +270,7 @@
 					updated = await api.books.update(book.id, cleanPayload);
 				}
 				book = updated;
-				if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
+				if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 					pendingProgressBook = updated;
 					pendingStatus = null;
 					pendingPayload = null;
@@ -275,7 +288,7 @@
 				reading_status
 			});
 			book = updated;
-			if (updated.reading_status === 'read' && dateFinishedWasNull && updated.date_finished && updated.page_count) {
+			if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 				pendingProgressBook = updated;
 				return;
 			}
