@@ -257,6 +257,10 @@
 		void refreshStatusCounts();
 	}
 
+	function handleProgressChange(bookId: number, currentPage: number) {
+		progressMap = { ...progressMap, [bookId]: currentPage };
+	}
+
 	function handleDelete(id: number) {
 		detailOpen = false;
 		drawerOpen = false;
@@ -441,7 +445,13 @@
 	{/if}
 </div>
 
-<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
+<BookDetailDialog
+	bind:book={selectedBook}
+	bind:open={detailOpen}
+	onEdit={openEditFromDetail}
+	onDelete={handleDelete}
+	onProgress={handleProgressChange}
+/>
 
 <BookDrawer
 	bind:book={selectedBook}
