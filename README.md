@@ -128,10 +128,12 @@ MIT
 
 ## Star History
 
+## Star History
+
 <a href="https://www.star-history.com/?repos=codebude%2Flibrislog&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&theme=dark&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
  </picture>
 </a>
