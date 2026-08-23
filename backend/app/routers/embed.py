@@ -270,14 +270,14 @@ def get_embed_stats(
         invalid = keys - VALID_STAT_KEYS
         if invalid:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Invalid stat keys: {', '.join(sorted(invalid))}. Valid: {', '.join(sorted(VALID_STAT_KEYS))}",
             )
         show_set = keys if keys else None
 
     if layout not in LAYOUT_MODES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid layout '{layout}'. Valid: {', '.join(sorted(LAYOUT_MODES))}",
         )
 
