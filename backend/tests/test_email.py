@@ -13,6 +13,9 @@ async def test_send_password_reset_email_success(monkeypatch) -> None:
     monkeypatch.setattr("app.config.settings.password_reset_token_max_age", 3600)
     monkeypatch.setattr("app.config.settings.mail_username", "user")
     monkeypatch.setattr("app.config.settings.mail_password", "pass")
+    monkeypatch.setattr("app.config.settings.mail_from", "noreply@example.com")
+    monkeypatch.setattr("app.config.settings.mail_server", "smtp.example.com")
+    monkeypatch.setattr("app.config.settings.mail_port", 587)
 
     mock_fastmail_cls = MagicMock()
     mock_fm = MagicMock()
@@ -38,6 +41,9 @@ async def test_send_password_reset_email_exception_logs_error(monkeypatch) -> No
     monkeypatch.setattr("app.config.settings.password_reset_token_max_age", 1800)
     monkeypatch.setattr("app.config.settings.mail_username", "user")
     monkeypatch.setattr("app.config.settings.mail_password", "pass")
+    monkeypatch.setattr("app.config.settings.mail_from", "noreply@example.com")
+    monkeypatch.setattr("app.config.settings.mail_server", "smtp.example.com")
+    monkeypatch.setattr("app.config.settings.mail_port", 587)
 
     mock_fastmail_cls = MagicMock()
     mock_fm = MagicMock()
