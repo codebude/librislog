@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlmodel import Session, func, select
+from sqlmodel import Session, col, func, select
 
 from app.models import ApiKey, Book, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
 from app.time_utils import utcnow
@@ -59,7 +59,7 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
             if not shared:
                 delete_cover_file(filename, covers_dir)
 
-        for link in session.exec(select(BookTag).where(BookTag.book_id.in_(book_ids))).all():
+        for link in session.exec(select(BookTag).where(col(BookTag.book_id).in_(book_ids))).all():
             session.delete(link)
 
     for entry in session.exec(select(ReadingProgress).where(ReadingProgress.user_id == user_id)).all():
@@ -83,6 +83,7 @@ def delete_user_account_data(session: Session, user: User, covers_dir: str) -> R
 
     Revokes API keys, unlinks OIDC, removes settings, then deletes the user.
     """
+    assert user.id is not None
     deletion_counts = delete_user_reading_data(session, user.id, covers_dir)
 
     for key in session.exec(select(ApiKey).where(ApiKey.user_id == user.id)).all():

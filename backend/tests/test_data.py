@@ -210,7 +210,7 @@ def test_data_import_mapping_crud(client: TestClient) -> None:
 
 def test_data_import_validate_and_execute_continue_on_error(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
-    csv_payload = "Title,Author\nDune,Frank Herbert\n,No Title\n"
+    csv_payload = "Title,Author,Availability\nDune,Frank Herbert,owned\n,No Title,owned\n"
     parse_resp = client.post(
         "/api/data/import/parse",
         files={"file": ("books.csv", csv_payload, "text/csv")},
@@ -219,14 +219,14 @@ def test_data_import_validate_and_execute_continue_on_error(client: TestClient, 
 
     validate_resp = client.post(
         "/api/data/import/validate",
-        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}}},
+        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}, "acquisition_status": {"source": "Availability", "transform": None}}},
     )
     assert validate_resp.status_code == 200
     assert validate_resp.json()["valid"] is False
 
     preview_resp = client.post(
         "/api/data/import/preview",
-        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}}},
+        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}, "acquisition_status": {"source": "Availability", "transform": None}}},
     )
     assert preview_resp.status_code == 200
     preview = preview_resp.json()
@@ -238,7 +238,7 @@ def test_data_import_validate_and_execute_continue_on_error(client: TestClient, 
         "/api/data/import/execute",
         json={
             "file_id": file_id,
-            "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}},
+            "mapping": {"title": {"source": "Title", "transform": None}, "author": {"source": "Author", "transform": None}, "acquisition_status": {"source": "Availability", "transform": None}},
             "import_mode": "continue_on_error",
         },
     )
@@ -298,7 +298,7 @@ def test_data_import_execute_rejects_invalid_target_mapping(client: TestClient, 
 
 def test_data_import_validate_rejects_invalid_reading_status_enum(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
-    csv_payload = "Title,Status\nDune,uxnread\n"
+    csv_payload = "Title,Status,Availability\nDune,uxnread,owned\n"
     parse_resp = client.post(
         "/api/data/import/parse",
         files={"file": ("books.csv", csv_payload, "text/csv")},
@@ -307,7 +307,7 @@ def test_data_import_validate_rejects_invalid_reading_status_enum(client: TestCl
 
     validate_resp = client.post(
         "/api/data/import/validate",
-        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "reading_status": {"source": "Status", "transform": None}}},
+        json={"file_id": file_id, "mapping": {"title": {"source": "Title", "transform": None}, "reading_status": {"source": "Status", "transform": None}, "acquisition_status": {"source": "Availability", "transform": None}}},
     )
     assert validate_resp.status_code == 200
     payload = validate_resp.json()
@@ -320,7 +320,7 @@ def test_data_import_execute_progress_uses_date_finished_for_read_books(
     client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
-    csv_payload = "Title,Status,Pages,Date Finished\nDune,read,412,2024-01-15T10:30:00Z\n"
+    csv_payload = "Title,Status,Pages,Date Finished,Availability\nDune,read,412,2024-01-15T10:30:00Z,owned\n"
     parse_resp = client.post(
         "/api/data/import/parse",
         files={"file": ("books.csv", csv_payload, "text/csv")},
@@ -336,6 +336,7 @@ def test_data_import_execute_progress_uses_date_finished_for_read_books(
                 "reading_status": {"source": "Status", "transform": None},
                 "page_count": {"source": "Pages", "transform": None},
                 "date_finished": {"source": "Date Finished", "transform": None},
+                "acquisition_status": {"source": "Availability", "transform": None},
             },
             "import_mode": "continue_on_error",
             "create_progress_for_read": True,
@@ -362,7 +363,7 @@ def test_data_import_execute_read_book_without_date_finished_skips_progress(
     client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
-    csv_payload = "Title,Status,Pages\nDune,read,412\n"
+    csv_payload = "Title,Status,Pages,Availability\nDune,read,412,owned\n"
     parse_resp = client.post(
         "/api/data/import/parse",
         files={"file": ("books.csv", csv_payload, "text/csv")},
@@ -377,6 +378,7 @@ def test_data_import_execute_read_book_without_date_finished_skips_progress(
                 "title": {"source": "Title", "transform": None},
                 "reading_status": {"source": "Status", "transform": None},
                 "page_count": {"source": "Pages", "transform": None},
+                "acquisition_status": {"source": "Availability", "transform": None},
             },
             "import_mode": "continue_on_error",
             "create_progress_for_read": True,
@@ -571,3 +573,40 @@ def test_data_import_execute_unexpected_error(client: TestClient, monkeypatch: M
     )
     events = _parse_sse(resp.text)
     assert any(event.get("message") == "error.importExecutionFailed" for event in events)
+
+
+def test_data_import_mapping_get_predefined(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-1")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["is_predefined"] is True
+    assert data["id"] == -1
+    assert data["name"] == "Goodreads Export"
+
+
+def test_data_import_mapping_get_predefined_missing(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-999")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Predefined mapping not found."
+
+
+def test_data_import_mapping_delete_predefined_forbidden(client: TestClient) -> None:
+    resp = client.delete("/api/data/import/mappings/-1")
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Predefined mappings cannot be deleted."
+
+
+def test_data_import_preview_file_not_found(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    from app.routers import data as data_module
+
+    def fake_preview(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("Import file not found.")
+
+    monkeypatch.setattr(data_module, "preview_import", fake_preview)
+
+    resp = client.post(
+        "/api/data/import/preview",
+        json={"file_id": "missing", "mapping": {}},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Import file not found."

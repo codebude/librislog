@@ -55,6 +55,7 @@ def admin_client_with_file_db(tmp_path: Path, monkeypatch: MonkeyPatch) -> Gener
         session.add(user)
         session.commit()
         session.refresh(user)
+        assert user.id is not None
 
         session.add(UserSettings(user_id=user.id, language="en"))
 
@@ -207,7 +208,7 @@ def test_admin_restore_success(admin_client_with_file_db: tuple[TestClient, str]
 
     # 2. Modify the database (add a new book)
     conn = sqlite3.connect(db_path)
-    conn.execute("INSERT INTO book (title, author, page_count, user_id, reading_status) VALUES ('New Book', '', 0, 1, 'read')")
+    conn.execute("INSERT INTO book (title, author, page_count, user_id, reading_status, acquisition_status) VALUES ('New Book', '', 0, 1, 'read', 'owned')")
     conn.commit()
     row = conn.execute("SELECT COUNT(*) FROM book").fetchone()
     assert row[0] == 2

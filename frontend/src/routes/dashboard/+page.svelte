@@ -177,6 +177,10 @@ import { Search, X } from '@lucide/svelte';
 		void loadDashboard();
 	}
 
+	function handleProgressChange(bookId: number, currentPage: number) {
+		progressMap = { ...progressMap, [bookId]: currentPage };
+	}
+
 	function handleDelete(id: number) {
 		detailOpen = false;
 		drawerOpen = false;
@@ -491,7 +495,13 @@ import { Search, X } from '@lucide/svelte';
 	{/if}
 </div>
 
-<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
+<BookDetailDialog
+	bind:book={selectedBook}
+	bind:open={detailOpen}
+	onEdit={openEditFromDetail}
+	onDelete={handleDelete}
+	onProgress={handleProgressChange}
+/>
 
 <BookDrawer
 	bind:book={selectedBook}

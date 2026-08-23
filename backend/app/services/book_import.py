@@ -272,7 +272,7 @@ async def search(
 
         results_list = await asyncio.gather(*tasks, return_exceptions=True)
 
-        ol_results = results_list[0] if not isinstance(results_list[0], Exception) else []
+        ol_results = results_list[0] if not isinstance(results_list[0], BaseException) else []
         if isinstance(results_list[0], SourceBackendError):
             logger.warning("Open Library backend error for %r: status=%s", query, results_list[0].status_code)
         elif isinstance(results_list[0], Exception):
@@ -280,7 +280,7 @@ async def search(
 
         hc_results: list[BookImportCandidate] = []
         if len(results_list) > 1:
-            if not isinstance(results_list[1], Exception):
+            if not isinstance(results_list[1], BaseException):
                 hc_results = results_list[1]
             else:
                 logger.warning("Hardcover error for %r: %s", query, results_list[1])

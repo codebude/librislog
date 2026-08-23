@@ -25,6 +25,7 @@
     "mostPopularLanguage": "阅读最多的语言",
     "languageDistribution": "按语言分布",
     "statusDistribution": "按状态分布",
+    "acquisitionStatusDistribution": "按所有权分布",
     "pageBuckets": "页数统计",
     "pagesToRead": "待读页数",
     "pagesRead": "已读页数",
@@ -84,6 +85,7 @@
     "did_not_finish": "弃读"
   },
   "common": {
+    "all": "全部",
     "optional": "可选",
     "search": "搜索",
     "searchBooks": "搜索图书...",
@@ -143,6 +145,12 @@
     "blurb": "简介",
     "about": "关于本书",
     "dateStarted": "开始日期",
+    "acquisitionStatus": "可用性",
+    "selectAcquisitionStatus": "选择可用性...",
+    "startDatePromptTitle": "设置开始日期？",
+    "startDatePromptMessage": "此书没有开始日期。在将其标记为已读前，请设为今天或选择其他日期。",
+    "startDatePromptSet": "设置开始日期",
+    "startDatePromptSkip": "保持为空",
     "dateFinished": "完成日期",
     "cover": "封面",
     "coverForAuthor": "{author} 的图书封面 {index}",
@@ -272,6 +280,12 @@
       "keepDesc": "保留完成日期（{finishedDate}），不设置开始日期。",
       "clearDesc": "删除完成日期并将今天（{newStartDate}）设为开始日期。"
     }
+  },
+  "acquisition": {
+    "owned": "已拥有",
+    "borrowed": "借阅中",
+    "digital_access": "可数字访问",
+    "to_acquire": "需要获取"
   },
   "search": {
     "resultsCount": "找到 {count} 个结果",

@@ -112,7 +112,8 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
+          context: .
+          file: ./backend/Dockerfile
           tags: librislog-e2e-backend
           load: true
           build-args: |

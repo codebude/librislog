@@ -44,6 +44,15 @@ class ReadingStatus(str, Enum):
     did_not_finish = "did_not_finish"
 
 
+class AcquisitionStatus(str, Enum):
+    """Enum of a book's current availability to the user."""
+
+    owned = "owned"
+    borrowed = "borrowed"
+    digital_access = "digital_access"
+    to_acquire = "to_acquire"
+
+
 class UserRole(str, Enum):
     """Enum of possible user roles."""
 
@@ -79,6 +88,7 @@ class Book(SQLModel, table=True):
     blurb: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)
+    acquisition_status: AcquisitionStatus = Field(default=AcquisitionStatus.owned, index=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     date_added: datetime = Field(
         default_factory=utcnow,
@@ -97,7 +107,7 @@ class Book(SQLModel, table=True):
 class Tag(SQLModel, table=True):
     """A user-specific tag that can be applied to books."""
 
-    __tablename__ = "tag"
+    __tablename__: str = "tag"
     __table_args__ = (sa.UniqueConstraint("user_id", "name", name="uq_tag_user_id_name"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -112,7 +122,7 @@ class Tag(SQLModel, table=True):
 class BookTag(SQLModel, table=True):
     """Many-to-many association between books and tags."""
 
-    __tablename__ = "book_tag"
+    __tablename__: str = "book_tag"
 
     book_id: int = Field(foreign_key="book.id", primary_key=True)
     tag_id: int = Field(foreign_key="tag.id", primary_key=True, index=True)
@@ -178,7 +188,7 @@ class ApiKey(SQLModel, table=True):
 class ReadingProgress(SQLModel, table=True):
     """A page-number reading progress entry for a book."""
 
-    __tablename__ = "reading_progress"
+    __tablename__: str = "reading_progress"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     book_id: int = Field(foreign_key="book.id", index=True)
@@ -212,7 +222,7 @@ class OidcLink(SQLModel, table=True):
 class EmbedToken(SQLModel, table=True):
     """A scoped embed token for iframe/dashboard integrations."""
 
-    __tablename__ = "embed_token"
+    __tablename__: str = "embed_token"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True)
@@ -242,7 +252,7 @@ class EmbedToken(SQLModel, table=True):
 class ImportMapping(SQLModel, table=True):
     """A saved column-mapping configuration for data import."""
 
-    __tablename__ = "import_mapping"
+    __tablename__: str = "import_mapping"
     __table_args__ = (
         sa.UniqueConstraint("user_id", "name", name="uq_import_mapping_user_id_name"),
     )

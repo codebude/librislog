@@ -2,6 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 from sqlmodel import Session
 
 from app.models import Book, ReadingStatus, User
@@ -353,3 +354,81 @@ class TestBatchUpdate:
         assert data["updated"] == 0
         assert data["skipped"] == 1
         assert b1.id in data["skipped_ids"]
+
+    def test_batch_update_author_empty(self, client: TestClient, session: Session) -> None:
+        """Setting author to whitespace should be rejected."""
+        b1 = _create_book(session, 1, title="B1", author="Old")
+        resp = client.post("/api/hygiene/batch-update", json={
+            "book_ids": [b1.id],
+            "field": "author",
+            "value": "   ",
+        })
+        assert resp.status_code == 422
+        assert "author must not be empty" in resp.json()["detail"]
+
+    def test_batch_update_published_year_success(self, client: TestClient, session: Session) -> None:
+        """published_year up to 2099 can be set."""
+        b1 = _create_book(session, 1, title="B1", published_year=2020)
+        resp = client.post("/api/hygiene/batch-update", json={
+            "book_ids": [b1.id],
+            "field": "published_year",
+            "value": 2099,
+        })
+        assert resp.status_code == 200
+        session.refresh(b1)
+        assert b1.published_year == 2099
+
+    def test_batch_update_published_year_too_large(self, client: TestClient, session: Session) -> None:
+        """published_year greater than 2099 should be rejected."""
+        b1 = _create_book(session, 1, title="B1", published_year=2020)
+        resp = client.post("/api/hygiene/batch-update", json={
+            "book_ids": [b1.id],
+            "field": "published_year",
+            "value": 2100,
+        })
+        assert resp.status_code == 422
+        assert "no greater than 2099" in resp.json()["detail"]
+
+    def test_batch_update_database_error(self, client: TestClient, session: Session, monkeypatch: MonkeyPatch) -> None:
+        """A database error during the update should return 500."""
+        from sqlalchemy.sql.dml import Update
+
+        b1 = _create_book(session, 1, title="B1", author="Old")
+        original_exec = session.exec
+
+        def fake_exec(statement, *args, **kwargs):
+            if isinstance(statement, Update):
+                raise Exception("database error")
+            return original_exec(statement, *args, **kwargs)
+
+        monkeypatch.setattr(session, "exec", fake_exec)
+
+        resp = client.post("/api/hygiene/batch-update", json={
+            "book_ids": [b1.id],
+            "field": "author",
+            "value": "New",
+        })
+        assert resp.status_code == 500
+        assert resp.json()["detail"] == "Batch update failed due to a database error"
+
+
+class TestListMissingEdgeCases:
+    def test_missing_empty_attribute_part_skipped(self, client: TestClient, session: Session) -> None:
+        """Empty parts in the attributes list are ignored."""
+        _create_book(session, 1, title="Missing ISBN", isbn=None, author="Author")
+        resp = client.get("/api/hygiene/missing?attributes=isbn,,&match=all")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+
+    def test_missing_unknown_attribute_returns_422(self, client: TestClient) -> None:
+        """Unknown attribute names return a 422 error."""
+        resp = client.get("/api/hygiene/missing?attributes=unknown")
+        assert resp.status_code == 422
+        assert "Unknown attribute" in resp.json()["detail"]
+
+    def test_missing_only_empty_attributes_returns_422(self, client: TestClient) -> None:
+        """A list containing only empty attribute names is rejected."""
+        resp = client.get("/api/hygiene/missing?attributes=,,&match=all")
+        assert resp.status_code == 422
+        assert "At least one attribute" in resp.json()["detail"]

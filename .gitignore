@@ -216,8 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-/.memsearch
-/.playwright-mcp
 
 /ideas.txt
 /backend/data/
@@ -227,7 +225,14 @@ __marimo__/
 !frontend/src/lib
 cookies.txt
 profile-snapshot
-.plan/
+
 node_modules/
 /*.png
 *-snapshot.md
+
+# AI tools
+/.memsearch
+/.playwright-mcp
+/.sverklo
+.plan/
+/.opencode

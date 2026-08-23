@@ -1,4 +1,5 @@
 export type ReadingStatus = 'want_to_read' | 'currently_reading' | 'read' | 'did_not_finish';
+export type AcquisitionStatus = 'owned' | 'borrowed' | 'digital_access' | 'to_acquire';
 
 export interface Book {
 	id: number;
@@ -16,6 +17,7 @@ export interface Book {
 	blurb: string | null;
 	rating: number | null; // 1–5
 	reading_status: ReadingStatus;
+	acquisition_status: AcquisitionStatus;
 	date_added: string; // ISO datetime
 	date_started: string | null;
 	date_finished: string | null;
@@ -111,6 +113,13 @@ export interface StatusDistribution {
 	did_not_finish: number;
 }
 
+export interface AcquisitionStatusDistribution {
+	owned: number;
+	borrowed: number;
+	digital_access: number;
+	to_acquire: number;
+}
+
 export interface PageBuckets {
 	pages_to_read: number;
 	pages_read: number;
@@ -163,6 +172,7 @@ export interface StatisticsResponse {
 	most_popular_language_count: number | null;
 	language_distribution: LanguageDistribution[];
 	status_distribution: StatusDistribution;
+	acquisition_status_distribution: AcquisitionStatusDistribution;
 	page_buckets: PageBuckets;
 	pages_read_per_month: MonthlyPages[];
 	books_finished_per_month: MonthlyBooks[];

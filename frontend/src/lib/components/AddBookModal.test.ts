@@ -128,6 +128,7 @@ describe('AddBookModal', () => {
 		fireEvent.input(authorInput, { target: { value } });
 		const pagesInput = screen.getByLabelText(/Pages/);
 		fireEvent.input(pagesInput, { target: { value: '412' } });
+		fireEvent.change(screen.getByRole('combobox', { name: /Availability/ }), { target: { value: 'owned' } });
 	}
 
 	it('submits form and calls api.books.create', async () => {
@@ -219,6 +220,40 @@ describe('AddBookModal', () => {
 		await fireEvent.click(submitBtn);
 
 		expect(mockBooksCreate).not.toHaveBeenCalled();
+	});
+
+	it('does not submit when availability is not selected', async () => {
+		render(AddBookModal, { props: { open: true } });
+
+		const titleInput = screen.getByLabelText(/Title/);
+		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		const searchboxes = screen.getAllByRole('searchbox');
+		await fireEvent.input(searchboxes[0], { target: { value: 'Author' } });
+		const pagesInput = screen.getByLabelText(/Pages/);
+		await fireEvent.input(pagesInput, { target: { value: '412' } });
+
+		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
+		await fireEvent.click(submitBtn);
+
+		expect(mockBooksCreate).not.toHaveBeenCalled();
+	});
+
+	it('submits acquisition_status in payload', async () => {
+		mockBooksCreate.mockResolvedValue({ id: 1, title: 'Test Book' });
+		render(AddBookModal, { props: { open: true } });
+
+		const titleInput = screen.getByLabelText(/Title/);
+		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
+		fillAuthorAndPages('Frank Herbert');
+
+		const submitBtn = screen.getByRole('button', { name: 'Add Book' });
+		await fireEvent.click(submitBtn);
+
+		await waitFor(() => {
+			expect(mockBooksCreate).toHaveBeenCalledWith(
+				expect.objectContaining({ acquisition_status: 'owned' })
+			);
+		});
 	});
 
 	it('sets default status from prop', () => {

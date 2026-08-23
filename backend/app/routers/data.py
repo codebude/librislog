@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.config import settings
@@ -90,6 +90,7 @@ async def parse_import_file(
     current_user: User = Depends(require_user),
 ) -> DataImportParseResponse:
     """Parse an uploaded CSV or JSON import file and return field info and samples."""
+    assert current_user.id is not None
     allowed_content_types = {
         "text/csv",
         "application/csv",
@@ -112,6 +113,7 @@ def suggest_import_mapping(
     current_user: User = Depends(require_user),
 ) -> DataImportSuggestResponse:
     """Suggest a field-name mapping based on the parsed import file."""
+    assert current_user.id is not None
     try:
         parsed = load_parsed_upload(body.file_id, current_user.id)
     except FileNotFoundError as exc:
@@ -130,6 +132,7 @@ def save_import_mapping(
     session: Session = Depends(get_session),
 ) -> DataImportMappingRead:
     """Create or update a saved column-mapping configuration."""
+    assert current_user.id is not None
     now = utcnow()
     schema_fingerprint = compute_schema_fingerprint(body.source_fields)
 
@@ -191,7 +194,7 @@ def list_import_mappings(
         session.exec(
             select(ImportMapping)
             .where(ImportMapping.user_id == current_user.id)
-            .order_by(ImportMapping.updated_at.desc())
+            .order_by(col(ImportMapping.updated_at).desc())
         ).all()
     )
     user_mappings = [
@@ -261,6 +264,7 @@ def validate_import_data(
         payload = validate_import(
             body.file_id, current_user, body.mapping, session,
             create_progress_for_read=body.create_progress_for_read,
+            require_acquisition_status=True,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -274,7 +278,7 @@ def preview_import_data(
 ) -> DataImportPreviewResponse:
     """Preview how a mapping and transforms will affect the first rows."""
     try:
-        payload = preview_import(body.file_id, current_user, body.mapping)
+        payload = preview_import(body.file_id, current_user, body.mapping, require_acquisition_status=True)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return DataImportPreviewResponse.model_validate(payload)
@@ -302,6 +306,7 @@ async def execute_import_data(
                     session=session,
                     import_mode=body.import_mode,
                     create_progress_for_read=body.create_progress_for_read,
+                    require_acquisition_status=True,
                 ):
                     if event.get("event") == "complete":
                         completed = True

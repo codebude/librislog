@@ -31,13 +31,16 @@ Chart.register(
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import weekday from 'dayjs/plugin/weekday';
+import { getTimezone } from '$lib/stores/timezone';
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
 dayjs.extend(advancedFormat);
 dayjs.extend(localizedFormat);
@@ -69,16 +72,17 @@ _adapters._date.override({
 		const d = dayjs.utc(value as string | number | Date);
 		return d.isValid() ? d.valueOf() : null;
 	},
-	format: (time: unknown, format: string) => dayjs.utc(time as number).format(format),
-	add: (time: unknown, amount: number, unit: string) => dayjs.utc(time as number).add(amount, unit as dayjs.ManipulateType).valueOf(),
-	diff: (max: unknown, min: unknown, unit: string) => dayjs.utc(max as number).diff(dayjs.utc(min as number), unit as dayjs.OpUnitType),
+	format: (time: unknown, format: string) => dayjs.utc(time as number).tz(getTimezone()).format(format),
+	add: (time: unknown, amount: number, unit: string) => dayjs.utc(time as number).tz(getTimezone()).add(amount, unit as dayjs.ManipulateType).valueOf(),
+	diff: (max: unknown, min: unknown, unit: string) => dayjs.utc(max as number).tz(getTimezone()).diff(dayjs.utc(min as number).tz(getTimezone()), unit as dayjs.OpUnitType),
 	startOf: (time: unknown, unit: string, weekday?: number) => {
+		const date = dayjs.utc(time as number).tz(getTimezone());
 		if (unit === 'isoWeek') {
-			return (dayjs.utc(time as number) as unknown as { weekday: (w: number) => { valueOf: () => number } }).weekday(weekday ?? 1).valueOf();
+			return (date as unknown as { weekday: (w: number) => { valueOf: () => number } }).weekday(weekday ?? 1).valueOf();
 		}
-		return dayjs.utc(time as number).startOf(unit as dayjs.OpUnitType).valueOf();
+		return date.startOf(unit as dayjs.OpUnitType).valueOf();
 	},
-	endOf: (time: unknown, unit: string) => dayjs.utc(time as number).endOf(unit as dayjs.OpUnitType).valueOf(),
+	endOf: (time: unknown, unit: string) => dayjs.utc(time as number).tz(getTimezone()).endOf(unit as dayjs.OpUnitType).valueOf(),
 } as unknown as Parameters<typeof _adapters._date.override>[0]);
 
 export { Chart as ChartJS };

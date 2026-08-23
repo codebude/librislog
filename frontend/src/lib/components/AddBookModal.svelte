@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { Book, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -39,6 +39,7 @@
 	let blurb = $state('');
 	let rating = $state('');
 	let status = $state<ReadingStatus>('want_to_read');
+	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
 	let cover_url = $state<string | null>(null);
 	$effect(() => { status = defaultStatus; });
 
@@ -56,6 +57,7 @@
 		blurb = '';
 		rating = '';
 		status = defaultStatus;
+		acquisitionStatus = '';
 		cover_url = null;
 		activeTab = 'manual';
 	}
@@ -64,6 +66,7 @@
 		if (!title.trim()) return;
 		if (!author.trim()) return;
 		if (!page_count) return;
+		if (!acquisitionStatus) return;
 		submitting = true;
 		try {
 			const book = await api.books.create({
@@ -80,6 +83,7 @@
 				blurb: blurb || null,
 				rating: rating ? parseInt(rating) : null,
 				reading_status: status,
+				acquisition_status: acquisitionStatus,
 				cover_url: cover_url || null
 			});
 			onAdded?.(book);
@@ -103,6 +107,12 @@
 		{ value: 'currently_reading', label: 'status.currently_reading' },
 		{ value: 'read', label: 'status.read' },
 		{ value: 'did_not_finish', label: 'status.did_not_finish' }
+	];
+	const ACQUISITION_OPTIONS: { value: AcquisitionStatus; label: string }[] = [
+		{ value: 'owned', label: 'acquisition.owned' },
+		{ value: 'borrowed', label: 'acquisition.borrowed' },
+		{ value: 'digital_access', label: 'acquisition.digital_access' },
+		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
 	];
 </script>
 
@@ -200,6 +210,15 @@
 							<option value={opt.value}>{$_(opt.label)}</option>
 						{/each}
 				</select>
+				</label>
+				<label class="flex flex-col gap-1">
+					<span class="label label-text">{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+					<select class="select select-bordered" name="acquisition_status" bind:value={acquisitionStatus} required>
+						<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+						{#each ACQUISITION_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
 				</label>
 				<label class="flex flex-col gap-1">
 					<span class="label label-text">{$_('book.notes')}</span>

@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { Book, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -35,6 +35,8 @@
 	let pendingStatus = $state<ReadingStatus | null>(null);
 	let pendingPayload = $state<Partial<Book> | null>(null);
 	let pendingProgressBook = $state<Book | null>(null);
+	let startDatePromptOpen = $state(false);
+	let promptedStartDate = $state(tzToday(tz));
 	let autoSearchOpen = $state(false);
 	let autoSearchLoading = $state(false);
 	let autoSearchError = $state<string | null>(null);
@@ -51,6 +53,7 @@
 	let blurb = $state('');
 	let rating = $state<number | null>(null);
 	let reading_status = $state<ReadingStatus>('want_to_read');
+	let acquisition_status = $state<AcquisitionStatus>('owned');
 	let publisher = $state('');
 	let published_year = $state('');
 	let page_count = $state('');
@@ -90,6 +93,7 @@
 			blurb = book.blurb ?? '';
 			rating = book.rating;
 			reading_status = book.reading_status;
+			acquisition_status = book.acquisition_status;
 			publisher = book.publisher ?? '';
 			published_year = book.published_year !== null ? String(book.published_year) : '';
 			page_count = book.page_count !== null ? String(book.page_count) : '';
@@ -118,7 +122,8 @@
 			notes: notes || null,
 			blurb: blurb || null,
 			rating,
-			cover_url: cover_url || null
+			cover_url: cover_url || null,
+			acquisition_status
 		};
 
 		if (includeDates) {
@@ -127,6 +132,19 @@
 		}
 
 		return payload;
+	}
+
+	async function needsCompletionProgressPrompt(updated: Book, dateFinishedWasNull: boolean): Promise<boolean> {
+		if (updated.reading_status !== 'read' || !dateFinishedWasNull || !updated.date_finished || !updated.page_count) {
+			return false;
+		}
+		try {
+			const [progress] = await api.books.progress.latest([updated.id]);
+			return (progress?.current_page ?? 0) < updated.page_count;
+		} catch {
+			// Preserve the prompt if the optional progress lookup fails.
+			return true;
+		}
 	}
 
 	async function applyPendingTransition(params: {
@@ -174,7 +192,7 @@
 		}
 
 		book = updated;
-		if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+		if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 			pendingProgressBook = updated;
 			dateConflictOpen = false;
 			pendingStatus = null;
@@ -188,7 +206,7 @@
 		pendingPayload = null;
 	}
 
-	async function save() {
+	async function save({ skipAutoDateStarted = false } = {}) {
 		if (!book) return;
 		if (!author.trim()) {
 			toasts.add($_('error.authorRequired'), 'error');
@@ -205,6 +223,17 @@
 			return;
 		}
 		const statusChanged = reading_status !== book.reading_status;
+		if (
+			!skipAutoDateStarted &&
+			book.reading_status === 'want_to_read' &&
+			reading_status === 'read' &&
+			!book.date_started &&
+			!ds
+		) {
+			promptedStartDate = today;
+			startDatePromptOpen = true;
+			return;
+		}
 		const dfCleared = !df && !!book.date_finished;
 		if (dfCleared && reading_status === 'read' && !statusChanged) {
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
@@ -224,6 +253,7 @@
 
 				const transition = await api.books.transitionStatus(book.id, {
 					new_status: reading_status,
+					...(skipAutoDateStarted ? { skip_auto_date_started: true } : {}),
 					...(dfCleared ? { clear_date_finished: true } : {}),
 					...(dateStartedChanged && ds ? { force_date_started: fromDateInputValue(date_started, tz) } : {}),
 					...(dateFinishedChanged && df ? { force_date_finished: fromDateInputValue(date_finished, tz) } : {})
@@ -243,7 +273,7 @@
 					updated = await api.books.update(book.id, cleanPayload);
 				}
 				book = updated;
-				if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+				if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 					pendingProgressBook = updated;
 					pendingStatus = null;
 					pendingPayload = null;
@@ -261,7 +291,7 @@
 				reading_status
 			});
 			book = updated;
-			if (dateFinishedWasNull && updated.date_finished && updated.page_count) {
+			if (await needsCompletionProgressPrompt(updated, dateFinishedWasNull)) {
 				pendingProgressBook = updated;
 				return;
 			}
@@ -294,6 +324,12 @@
 		{ value: 'currently_reading', label: 'status.currently_reading' },
 		{ value: 'read', label: 'status.read' },
 		{ value: 'did_not_finish', label: 'status.did_not_finish' }
+	];
+	const ACQUISITION_OPTIONS: { value: AcquisitionStatus; label: string }[] = [
+		{ value: 'owned', label: 'acquisition.owned' },
+		{ value: 'borrowed', label: 'acquisition.borrowed' },
+		{ value: 'digital_access', label: 'acquisition.digital_access' },
+		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
 	];
 
 	const coverSearchUrl = $derived.by(() => {
@@ -446,6 +482,14 @@
 					{/each}
 				</select>
 			</label>
+			<label class="flex flex-col gap-1">
+				<span class="label label-text">{$_('book.acquisitionStatus')}</span>
+				<select class="select select-bordered select-sm" name="acquisition_status" bind:value={acquisition_status}>
+					{#each ACQUISITION_OPTIONS as opt}
+						<option value={opt.value}>{$_(opt.label)}</option>
+					{/each}
+				</select>
+			</label>
 
 			<div class="flex flex-col gap-1">
 				<span class="label label-text">{$_('common.rating')}</span>
@@ -543,6 +587,39 @@
 			);
 		}}
 	/>
+
+	{#if startDatePromptOpen}
+		<div class="modal modal-open" role="dialog" aria-label={$_('book.startDatePromptTitle')}>
+			<div class="modal-box max-w-sm">
+				<h3 class="text-lg font-bold">{$_('book.startDatePromptTitle')}</h3>
+				<p class="text-sm text-base-content/70 mt-2">{$_('book.startDatePromptMessage')}</p>
+				<label class="flex flex-col gap-1 mt-4">
+					<span class="label label-text">{$_('book.dateStarted')}</span>
+					<input type="date" class="input input-bordered input-sm" bind:value={promptedStartDate} max={today} />
+				</label>
+				<div class="modal-action">
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm"
+						onclick={() => {
+							startDatePromptOpen = false;
+							void save({ skipAutoDateStarted: true });
+						}}
+					>{$_('book.startDatePromptSkip')}</button>
+					<button
+						type="button"
+						class="btn btn-primary btn-sm"
+						onclick={() => {
+							date_started = promptedStartDate;
+							startDatePromptOpen = false;
+							void save();
+						}}
+					>{$_('book.startDatePromptSet')}</button>
+				</div>
+			</div>
+			<button type="button" class="modal-backdrop" aria-label={$_('common.close')} onclick={() => (startDatePromptOpen = false)}></button>
+		</div>
+	{/if}
 
 	{#if pendingProgressBook}
 		{@const pbook = pendingProgressBook}

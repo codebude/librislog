@@ -16,7 +16,7 @@
   <a href="https://docs.librislog.app/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
   <img src="https://img.shields.io/badge/python-3.14-%233776AB?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte" alt="Svelte">
-  <img src="https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/FastAPI-0.141-%23009688?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
@@ -95,8 +95,8 @@ The backend is a standalone FastAPI application. The full API is documented via 
 Create API keys from the web UI (Profile → API Keys) for headless access. See the [API Reference](https://docs.librislog.app/api/) for details.
 
 ```bash
-cd backend
 uv sync
+cd backend
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
@@ -128,10 +128,12 @@ MIT
 
 ## Star History
 
+## Star History
+
 <a href="https://www.star-history.com/?repos=codebude%2Flibrislog&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&theme=dark&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=codebude/librislog&type=date&legend=top-left&sealed_token=63MQnBuCo06yuka4CK7jSufogWTsYJDymR_l4uRyMUp_LWPSC65IxbPKjm2UeEPNaU4GKsdNJG308hwGsMjSqtjKwc6Br0SiEkEx-UkS4-7OKgvFQfRqR8rB8bFTNi8eWhacZ2clPYvs_oKBPqUsbCDUXDqGQxuneV_1LAEC3AoIiqlsodcwv_RAvCvm" />
  </picture>
 </a>

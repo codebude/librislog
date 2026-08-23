@@ -1,6 +1,7 @@
 """Tests for app.logging_config module."""
 
 import logging
+from collections.abc import Generator
 
 import pytest
 

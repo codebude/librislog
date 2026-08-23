@@ -3,7 +3,8 @@ name: librislog-e2e
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: ./backend/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-v0.0.0-dev}
         GIT_SHA: ${GIT_SHA:-unknown}

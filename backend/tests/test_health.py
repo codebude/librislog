@@ -39,6 +39,19 @@ def test_health_database_schema_exception(client: TestClient, monkeypatch) -> No
     assert checks["database_schema"]["status"] == "unhealthy"
 
 
+def test_health_database_schema_inspector_none(client: TestClient, monkeypatch) -> None:
+    """When inspect(bind) returns None, schema check should report unhealthy."""
+    def _inspect_none(bind):
+        return None
+
+    monkeypatch.setattr("app.routers.health.inspect", _inspect_none)
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    checks = resp.json()["checks"]
+    assert checks["database_schema"]["status"] == "unhealthy"
+    assert "no inspector" in checks["database_schema"]["detail"].lower()
+
+
 def test_health_not_sqlite(client: TestClient, monkeypatch) -> None:
     """Non-SQLite DB should skip data_dir_writable with skipped message."""
     monkeypatch.setattr(

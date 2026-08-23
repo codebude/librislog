@@ -21,10 +21,10 @@
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
-		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/jest-dom": "^7.0.1",
 		"@testing-library/svelte": "^5.3.1",
 		"@types/hammerjs": "^2.0.46",
-		"@types/node": "^25.7.0",
+		"@types/node": "^26.2.0",
 		"@vitest/coverage-v8": "^4.1.7",
 		"happy-dom": "^20.9.0",
 		"svelte": "^5.55.2",
@@ -48,5 +48,14 @@
 		"svelte-chartjs": "^4.0.1",
 		"svelte-i18n": "^4.0.1",
 		"tailwindcss": "^4.3.0"
+	},
+	"overrides": {
+		"cookie": "^0.7.2",
+		"svelte-i18n": {
+			"esbuild": "^0.25.0"
+		}
+	},
+	"allowScripts": {
+		"esbuild@0.25.12": true
 	}
 }

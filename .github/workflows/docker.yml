@@ -75,7 +75,7 @@ jobs:
           - name: backend
             image: librislog-api
             dockerfile: ./backend/Dockerfile
-            context: ./backend
+            context: .
 
         arch: [amd64, arm64]
 

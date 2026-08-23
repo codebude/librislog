@@ -2,6 +2,7 @@
 	import type { Book } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import StarRating from './StarRating.svelte';
+	import { ShoppingCart } from '@lucide/svelte';
 
 	let {
 		book,
@@ -38,7 +39,7 @@
 	class="card bg-base-100 rounded-2xl {compact ? 'shadow-sm' : 'shadow-sm hover:shadow-md'} transition-shadow duration-300 cursor-pointer w-full text-left"
 	onclick={() => onClick(book)}
 >
-	<figure class="aspect-[2/3] bg-base-200 overflow-hidden {compact ? 'm-2 mb-0 rounded-lg' : 'm-4 mb-0 rounded-xl'}">
+	<figure class="aspect-[2/3] bg-base-200 overflow-hidden {compact ? 'm-2 mb-0 rounded-lg' : 'm-4 mb-0 rounded-xl'} relative">
 		{#if book.cover_url}
 			<img
 				src={book.cover_url}
@@ -52,11 +53,25 @@
 				</svg>
 			</div>
 		{/if}
+		{#if book.acquisition_status === 'to_acquire'}
+			<div
+				class="absolute z-10 rounded-full bg-primary text-primary-content shadow-sm {compact ? 'top-1 right-1 p-1' : 'top-2 right-2 p-1.5'}"
+				aria-label={$_('acquisition.to_acquire')}
+				title={$_('acquisition.to_acquire')}
+			>
+				<ShoppingCart class={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
+			</div>
+		{/if}
 	</figure>
 	<div class="card-body {compact ? 'p-3 gap-1' : 'p-5 gap-2'} overflow-hidden">
 		<h2 class="card-title {compact ? 'text-xs' : 'text-sm'} leading-tight line-clamp-2">{book.title}</h2>
 		{#if book.author}
 			<p class="text-xs text-base-content/50 truncate">{book.author}</p>
+		{/if}
+		{#if book.reading_status === 'want_to_read' && book.acquisition_status === 'to_acquire'}
+			<span class="inline-flex items-center gap-1 text-xs text-base-content/50" aria-label={$_('acquisition.to_acquire')}>
+				<ShoppingCart class="w-3.5 h-3.5" /> {$_('acquisition.to_acquire')}
+			</span>
 		{/if}
 
 		{#if progressPercent > 0}

@@ -22,12 +22,14 @@
 		book = $bindable(null),
 		open = $bindable(false),
 		onEdit,
-		onDelete
+		onDelete,
+		onProgress
 	}: {
 		book?: Book | null;
 		open?: boolean;
 		onEdit?: (book: Book) => void;
 		onDelete?: (id: number) => void;
+		onProgress?: (bookId: number, currentPage: number) => void;
 	} = $props();
 
 	let blurbExpanded = $state(false);
@@ -96,6 +98,8 @@
 			const entry = await api.books.progress.create(book.id, currentPage);
 			latestDbPage = currentPage;
 			progressEntries = [entry, ...progressEntries.filter((e) => e.id !== entry.id)];
+			chartRenderKey += 1;
+			onProgress?.(book.id, currentPage);
 		} catch (e: unknown) {
 			toasts.add(
 				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.save') } }),
@@ -126,6 +130,7 @@
 				currentPage = 0;
 				latestDbPage = 0;
 			}
+			onProgress?.(book.id, currentPage);
 		} catch (e: unknown) {
 			toasts.add(
 				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('common.delete') } }),
@@ -244,11 +249,22 @@
 
 	let lineChart = $state<import('chart.js').Chart<'line'> | null>(null);
 	let _themeSignal = $state(0);
+	let chartRenderKey = $state(0);
 
 	onMount(() => {
 		return themeApplyCount.subscribe((n: number) => {
 			_themeSignal = n;
 		});
+	});
+
+	// Force a full re-mount of the chart after the progress log modal closes so the
+	// graph is painted from scratch the same way it is when the detail drawer opens.
+	$effect(() => {
+		if (logModalOpen) {
+			return () => {
+				chartRenderKey += 1;
+			};
+		}
 	});
 
 	const lineChartConfig = $derived.by<ChartData<'line'>>(() => {
@@ -420,6 +436,10 @@
 					<div>{book.date_finished ? formatDate(book.date_finished, tz) : '-'}</div>
 				</div>
 				<div>
+					<div class="text-xs text-base-content/60">{$_('book.acquisitionStatus')}</div>
+					<div>{$_(`acquisition.${book.acquisition_status}`)}</div>
+				</div>
+				<div>
 					<div class="text-xs text-base-content/60">{$_('book.tags')}</div>
 					{#if splitTags(book.tags).length > 0}
 						<div class="flex flex-wrap gap-1">
@@ -487,7 +507,9 @@
 		<div class="border-t border-base-200 pt-3">
 			<div class="text-xs text-base-content/60 mb-2">{$_('book.progressGraph')}</div>
 			<div class="border border-base-300 rounded-xl bg-base-100 p-2" style="height: 200px;">
-				<Line bind:chart={lineChart} data={lineChartConfig} options={lineChartOptions} />
+				{#key chartRenderKey}
+					<Line bind:chart={lineChart} data={lineChartConfig} options={lineChartOptions} />
+				{/key}
 			</div>
 		</div>
 	{/if}

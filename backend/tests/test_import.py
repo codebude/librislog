@@ -66,6 +66,7 @@ def test_map_open_library_fields() -> None:
     assert result.page_count == 412
     assert result.language == "EN"
     assert result.publisher == "Ace Books"
+    assert result.tags is not None
     assert "Science Fiction" in result.tags
     assert result.cover_url == "https://covers.openlibrary.org/b/id/11481354-L.jpg"
     assert result.source == "open_library"
@@ -851,7 +852,7 @@ class _FakeResponse:
 
     def raise_for_status(self) -> None:
         if not self.is_success:
-            raise httpx.HTTPStatusError("error", request=None, response=self)  # type: ignore[arg-type]
+            raise httpx.HTTPStatusError("error", request=None, response=self)  # ty: ignore[invalid-argument-type]
 
     def json(self) -> dict[str, Any]:
         return self._body
@@ -904,7 +905,7 @@ async def test_best_cover_prefers_large_over_thumbnail() -> None:
             _LARGE_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
         },
     )
-    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # ty: ignore[invalid-argument-type]
     assert result == _LARGE_URL
 
 
@@ -926,7 +927,7 @@ async def test_best_cover_falls_back_when_large_too_small() -> None:
             _MEDIUM_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
         },
     )
-    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # ty: ignore[invalid-argument-type]
     assert result == _MEDIUM_URL
 
 
@@ -948,7 +949,7 @@ async def test_best_cover_falls_back_when_large_not_image() -> None:
             _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
         },
     )
-    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # ty: ignore[invalid-argument-type]
     assert result == _THUMB_URL
 
 
@@ -961,7 +962,7 @@ async def test_best_cover_uses_fallback_when_volume_fetch_fails() -> None:
             _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),
         },
     )
-    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(_VOLUME_ID, _THUMB_URL, fake_client)  # ty: ignore[invalid-argument-type]
     assert result == _THUMB_URL
 
 
@@ -976,7 +977,7 @@ async def test_best_cover_upgrades_http_to_https() -> None:
             _THUMB_URL: _FakeResponse(200, headers=_IMAGE_HEADERS),  # https version
         },
     )
-    result = await book_import._best_google_books_cover(_VOLUME_ID, http_thumb, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(_VOLUME_ID, http_thumb, fake_client)  # ty: ignore[invalid-argument-type]
     assert result is not None
     assert result.startswith("https://")
 
@@ -985,7 +986,7 @@ async def test_best_cover_upgrades_http_to_https() -> None:
 async def test_best_cover_returns_none_when_no_candidates() -> None:
     """Returns None when no fallback is provided and volume fetch fails."""
     fake_client = _FakeClient()
-    result = await book_import._best_google_books_cover(None, None, fake_client)  # type: ignore[arg-type]
+    result = await book_import._best_google_books_cover(None, None, fake_client)  # ty: ignore[invalid-argument-type]
     assert result is None
 
 

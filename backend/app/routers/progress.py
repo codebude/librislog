@@ -5,7 +5,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
@@ -28,6 +28,7 @@ def create_progress_entry(
 
     The page must not exceed the book's page_count (if set).
     """
+    assert current_user.id is not None
     book = session.get(Book, book_id)
     if not book or book.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -46,6 +47,7 @@ def create_progress_entry(
     session.add(entry)
     session.commit()
     session.refresh(entry)
+    assert entry.id is not None
     logger.debug("Created progress entry: book_id=%s page=%s", book_id, data.page)
     return ReadingProgressRead(
         id=entry.id,
@@ -73,11 +75,11 @@ def list_progress_entries(
             ReadingProgress.book_id == book_id,
             ReadingProgress.user_id == current_user.id,
         )
-        .order_by(ReadingProgress.created_at.desc())
+        .order_by(col(ReadingProgress.created_at).desc())
     ).all()
     return [
         ReadingProgressRead(
-            id=r.id,
+            id=r.id,  # ty: ignore[invalid-argument-type]
             book_id=r.book_id,
             page=r.page,
             created_at=r.created_at,
@@ -106,7 +108,7 @@ def update_progress_entry(
     session.refresh(entry)
     logger.debug("Updated progress entry date: entry_id=%s", entry_id)
     return ReadingProgressRead(
-        id=entry.id,
+        id=entry.id,  # ty: ignore[invalid-argument-type]
         book_id=entry.book_id,
         page=entry.page,
         created_at=entry.created_at,
@@ -147,11 +149,11 @@ def get_latest_progress_batch(
             ReadingProgress.book_id,
             ReadingProgress.page,
             func.row_number()
-            .over(partition_by=ReadingProgress.book_id, order_by=ReadingProgress.created_at.desc())
+            .over(partition_by=col(ReadingProgress.book_id), order_by=col(ReadingProgress.created_at).desc())
             .label("rn"),
         )
         .where(
-            ReadingProgress.book_id.in_(ids),
+            col(ReadingProgress.book_id).in_(ids),
             ReadingProgress.user_id == current_user.id,
         )
         .subquery()
