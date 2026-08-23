@@ -614,6 +614,7 @@ def preview_import(
         if not title:
             row_errors.append("Missing required field 'title'")
 
+        reading_status: ReadingStatus | None = None
         try:
             rating = _parse_int(row_data.get("rating"), "rating")
             if rating is not None and (rating < 1 or rating > 5):

@@ -1093,3 +1093,19 @@ def test_probe_source_candidates_empty_urls() -> None:
             await _probe_source_candidates("abebooks", [], None, 1000)  # ty: ignore[invalid-argument-type]
 
     asyncio.run(run())
+
+
+def test_fetch_thalia_page_sync_returns_none_on_unrewritable_url(monkeypatch) -> None:
+    """_fetch_thalia_page_sync returns None when _rewrite_thalia_image_url fails."""
+    from app.routers.cover_candidates import _fetch_thalia_page_sync
+
+    mock_page = _make_mock_page(suchtreffer="1", src="https://images.thalia.media/03")
+
+    class _FakeFetcher:
+        @classmethod
+        def get(cls, url: str, **kwargs: object) -> object:
+            return mock_page
+
+    monkeypatch.setattr("app.routers.cover_candidates._THALIA_FETCHER_CLASS", _FakeFetcher)
+    result = _fetch_thalia_page_sync("9783426440087", 10)
+    assert result is None

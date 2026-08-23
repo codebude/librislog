@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.models import Book, BookTag, Tag
 from app.services.tags import (
     cleanup_orphan_tags,
+    load_tags_batch,
     parse_tags,
     sync_book_tags,
     tags_text_for_book,
@@ -176,3 +177,39 @@ def test_tags_text_for_book_returns_comma_separated(session: Session) -> None:
 
     result = tags_text_for_book(session, book.id)
     assert result == "fantasy, sci-fi"
+
+
+# ── load_tags_batch ───────────────────────────────────────────────────────────
+
+def test_load_tags_batch_empty_book_ids(session: Session) -> None:
+    assert load_tags_batch(session, []) == {}
+
+
+def test_load_tags_batch_multiple_books(session: Session) -> None:
+    user_id = 1
+    book1 = Book(title="Book 1", user_id=user_id)
+    book2 = Book(title="Book 2", user_id=user_id)
+    session.add(book1)
+    session.add(book2)
+    session.flush()
+    assert book1.id is not None
+    assert book2.id is not None
+
+    tag1 = Tag(user_id=user_id, name="fantasy")
+    tag2 = Tag(user_id=user_id, name="sci-fi")
+    tag3 = Tag(user_id=user_id, name="history")
+    session.add(tag1)
+    session.add(tag2)
+    session.add(tag3)
+    session.flush()
+    assert tag1.id is not None
+    assert tag2.id is not None
+    assert tag3.id is not None
+
+    session.add(BookTag(book_id=book1.id, tag_id=tag1.id))
+    session.add(BookTag(book_id=book1.id, tag_id=tag2.id))
+    session.add(BookTag(book_id=book2.id, tag_id=tag3.id))
+
+    result = load_tags_batch(session, [book1.id, book2.id])
+    assert result[book1.id] == "fantasy, sci-fi"
+    assert result[book2.id] == "history"

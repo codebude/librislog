@@ -579,3 +579,73 @@ def test_profile_delete_account_deletes_regular_user_data(
     keys = session.exec(select(ApiKey).where(ApiKey.user_id == user.id)).all()
     assert keys
     assert all(k.revoked_at is not None for k in keys)
+
+
+def test_forgot_password_with_mail_server(client: TestClient, monkeypatch: MonkeyPatch, session: Session) -> None:
+    from app import config
+    monkeypatch.setattr(config.settings, "mail_server", "smtp.example.com")
+
+    import app.routers.auth as auth_module
+
+    sent: list[tuple[str, str, str]] = []
+
+    async def fake_send(email: str, url: str, locale: str = "en") -> None:
+        sent.append((email, url, locale))
+
+    monkeypatch.setattr(auth_module, "send_password_reset_email", fake_send)
+
+    resp = client.post("/api/auth/forgot-password", json={"email": "test@example.com", "locale": "de"})
+    assert resp.status_code == 200
+    assert "reset link" in resp.json()["message"]
+    assert len(sent) == 1
+    assert sent[0][0] == "test@example.com"
+    assert sent[0][2] == "de"
+    assert "/reset-password?token=" in sent[0][1]
+
+
+def test_forgot_password_without_mail_server(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    from app import config
+    monkeypatch.setattr(config.settings, "mail_server", None)
+
+    import app.routers.auth as auth_module
+
+    called: list[object] = []
+    monkeypatch.setattr(auth_module, "send_password_reset_email", lambda *args, **kwargs: called.append(args))
+
+    resp = client.post("/api/auth/forgot-password", json={"email": "test@example.com"})
+    assert resp.status_code == 200
+    assert "reset link" in resp.json()["message"]
+    assert not called
+
+
+def test_reset_password_valid_token(client: TestClient) -> None:
+    from app.auth import generate_password_reset_token
+
+    token = generate_password_reset_token("test@example.com", 0)
+    resp = client.post("/api/auth/reset-password", json={"token": token, "password": "Newpass1!"})
+    assert resp.status_code == 200
+    assert resp.json()["message"] == "Password has been reset successfully"
+
+    login = client.post("/api/auth/login", json={"email": "test@example.com", "password": "Newpass1!"})
+    assert login.status_code == 200
+
+
+def test_reset_password_invalid_token(client: TestClient) -> None:
+    resp = client.post("/api/auth/reset-password", json={"token": "not-a-valid-token", "password": "Newpass1!"})
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Invalid or expired reset token"
+
+
+def test_reset_password_mismatched_credentials_version(client: TestClient, session: Session) -> None:
+    from app.auth import generate_password_reset_token
+
+    user = session.exec(select(User).where(User.email == "test@example.com")).first()
+    assert user is not None
+    user.credentials_version = 5
+    session.add(user)
+    session.commit()
+
+    token = generate_password_reset_token("test@example.com", 0)
+    resp = client.post("/api/auth/reset-password", json={"token": token, "password": "Newpass1!"})
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Invalid or expired reset token"

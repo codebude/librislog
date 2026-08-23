@@ -1,12 +1,16 @@
 """Tests for embed token lifecycle and the embed HTML widget endpoint."""
 
+import json
 import re
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.auth import generate_embed_token, hash_embed_token
@@ -358,3 +362,193 @@ class TestEmbedStatsEndpoint:
         assert resp.headers.get("x-content-type-options") == "nosniff"
         assert resp.headers.get("referrer-policy") == "no-referrer"
         assert resp.headers.get("content-security-policy") == "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors *"
+
+
+# ── Direct unit tests for uncovered embed branches ───────────────────────
+
+
+def _make_fake_path_class(tmp_path: Path):
+    """Return a minimal Path stand-in that redirects embed i18n lookups to tmp_path."""
+
+    class FakePath:
+        def __init__(self, *parts: str):
+            self._parts = parts
+            if not parts or parts == ("i18n",):
+                self._path = tmp_path
+            else:
+                self._path = tmp_path.joinpath(*parts)
+
+        def resolve(self):
+            return self
+
+        @property
+        def parent(self):
+            return FakePath()
+
+        def __truediv__(self, other: str):
+            if other == "i18n":
+                return FakePath()
+            return FakePath(other)
+
+        def glob(self, pattern: str):
+            return [FakePath(p.name) for p in sorted(tmp_path.glob(pattern))]
+
+        @property
+        def stem(self):
+            return self._path.stem
+
+        def open(self, *args, **kwargs):
+            return self._path.open(*args, **kwargs)
+
+        def __str__(self):
+            return str(self._path)
+
+        @property
+        def name(self):
+            return self._path.name
+
+    return FakePath
+
+
+def test_load_stat_labels_skips_invalid_stats(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    from app.routers import embed as embed_module
+
+    (tmp_path / "de.json").write_text(json.dumps({"embed": {"stats": "not-a-dict"}}))
+    (tmp_path / "en.json").write_text(
+        json.dumps(
+            {
+                "embed": {
+                    "stats": {
+                        "books": "Books",
+                        "reading": "Reading",
+                        "read": "Read",
+                        "to_read": "To Read",
+                        "pages": "Pages",
+                        "avg_pages": "Avg/Book",
+                    }
+                }
+            }
+        )
+    )
+    monkeypatch.setattr(embed_module, "Path", _make_fake_path_class(tmp_path))
+    labels = embed_module._load_stat_labels()
+    assert "en" in labels
+    assert "de" not in labels
+
+
+def test_load_stat_labels_missing_required_key(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    from app.routers import embed as embed_module
+
+    (tmp_path / "en.json").write_text(json.dumps({"embed": {"stats": {"books": "Books"}}}))
+    monkeypatch.setattr(embed_module, "Path", _make_fake_path_class(tmp_path))
+    with pytest.raises(RuntimeError, match="missing embed.stats keys"):
+        embed_module._load_stat_labels()
+
+
+def test_load_stat_labels_missing_english(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    from app.routers import embed as embed_module
+
+    (tmp_path / "de.json").write_text(
+        json.dumps(
+            {
+                "embed": {
+                    "stats": {
+                        "books": "B\u00fccher",
+                        "reading": "Lesen",
+                        "read": "Gelesen",
+                        "to_read": "Zu lesen",
+                        "pages": "Seiten",
+                        "avg_pages": "\u00d8/Buch",
+                    }
+                }
+            }
+        )
+    )
+    monkeypatch.setattr(embed_module, "Path", _make_fake_path_class(tmp_path))
+    with pytest.raises(RuntimeError, match="expected at least en.json"):
+        embed_module._load_stat_labels()
+
+
+def test_verify_embed_token_missing_scope(client: TestClient, session: Session) -> None:
+    from app.routers.embed import _verify_embed_token
+
+    plain = generate_embed_token()
+    token = EmbedToken(
+        user_id=1,
+        name="No Scope",
+        token_prefix=plain[:12],
+        token_hash=hash_embed_token(plain),
+        scopes="other:scope",
+    )
+    session.add(token)
+    session.commit()
+
+    request = Request({"type": "http", "headers": []})
+    with pytest.raises(HTTPException) as exc_info:
+        _verify_embed_token(plain, session, request)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Token lacks required scope"
+
+
+def test_verify_embed_token_empty_origin_allowed(client: TestClient, session: Session) -> None:
+    from app.routers.embed import _verify_embed_token
+
+    plain = _create_token(session, user_id=1, allowed_origins="https://example.com")
+    request = Request({"type": "http", "headers": []})
+    user = _verify_embed_token(plain, session, request)
+    assert user.email == "test@example.com"
+
+
+def test_verify_embed_token_user_not_found(session: Session) -> None:
+    from app.auth import get_password_hash
+    from app.models import User
+    from app.routers.embed import _verify_embed_token
+
+    user = User(
+        firstname="Orphan",
+        lastname="Token",
+        email="orphan@example.com",
+        role=UserRole.user,
+        hashed_password=get_password_hash("secret"),
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    assert user.id is not None
+
+    plain = generate_embed_token()
+    token = EmbedToken(
+        user_id=user.id,
+        name="Orphan",
+        token_prefix=plain[:12],
+        token_hash=hash_embed_token(plain),
+    )
+    session.add(token)
+    session.commit()
+
+    session.delete(user)
+    session.commit()
+
+    request = Request({"type": "http", "headers": []})
+    with pytest.raises(HTTPException) as exc_info:
+        _verify_embed_token(plain, session, request)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Token user not found"
+
+
+def test_render_stats_html_zero_items_grid() -> None:
+    from app.routers.embed import _render_stats_html
+
+    html = _render_stats_html(
+        {},
+        theme="light",
+        accent="#000000",
+        radius="md",
+        density="normal",
+        hide_labels=False,
+        lang="en",
+        font_scale=1.0,
+        layout="grid",
+        show={"not_a_stat"},
+    )
+    assert "grid-template-columns:repeat(1,1fr)" in html

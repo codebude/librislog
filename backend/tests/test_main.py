@@ -2,7 +2,7 @@
 
 import asyncio
 import importlib
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
@@ -179,6 +179,77 @@ async def test_proxy_headers_middleware_skips_when_no_header() -> None:
         "headers": [(b"host", b"example.com")],
         "scheme": "http",
         "client": ("10.0.0.1", 54321),
+    }
+    received: dict | None = None
+
+    async def call_next(request: Request) -> Response:
+        nonlocal received
+        received = {"scheme": request.url.scheme}
+        return JSONResponse(received)
+
+    request = Request(scope)
+    await proxy_headers_middleware(request, call_next)
+    assert received is not None
+    assert received["scheme"] == "http"
+
+
+@pytest.mark.anyio
+async def test_lifespan_logs_warning_when_mail_not_configured(monkeypatch) -> None:
+    """Lifespan should warn when MAIL_SERVER or MAIL_FROM are not configured."""
+    from app.config import settings
+    import app.main as main_module
+
+    original_server = settings.mail_server
+    original_from = settings.mail_from
+    try:
+        settings.mail_server = "   "
+        settings.mail_from = "   "
+        importlib.reload(main_module)
+        with patch("app.main.logger") as mock_logger:
+            with patch("app.main._periodic_maintenance", new=AsyncMock()):
+                async with main_module.lifespan(main_module.app):
+                    pass
+        warning_messages = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any("MAIL_SERVER or MAIL_FROM" in msg for msg in warning_messages)
+    finally:
+        settings.mail_server = original_server
+        settings.mail_from = original_from
+        importlib.reload(main_module)
+
+
+def test_display_version_includes_git_sha_when_not_embedded() -> None:
+    """Version display should include the git sha when it is not part of the version string."""
+    from app import _build_info
+    import app.main as main_module
+
+    original_sha = _build_info.__git_sha__
+    original_version = _build_info.__version__
+    try:
+        _build_info.__git_sha__ = "abcdef1234567890"
+        _build_info.__version__ = "1.0.0"
+        importlib.reload(main_module)
+        assert "abcdef1" in main_module._display_version
+    finally:
+        _build_info.__git_sha__ = original_sha
+        _build_info.__version__ = original_version
+        importlib.reload(main_module)
+@pytest.mark.anyio
+async def test_proxy_headers_middleware_skips_untrusted_proxy(monkeypatch) -> None:
+    """When request is not from a trusted proxy, X-Forwarded-Proto is ignored."""
+    from app.main import proxy_headers_middleware
+
+    monkeypatch.setattr("app.main._TRUSTED_PROXY_IPS", {"10.0.0.5"})
+
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "headers": [
+            (b"host", b"example.com"),
+            (b"x-forwarded-proto", b"https"),
+        ],
+        "scheme": "http",
+        "client": ("192.168.1.1", 54321),
     }
     received: dict | None = None
 

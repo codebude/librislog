@@ -384,3 +384,37 @@ def test_cleanup_orphan_covers_nonexistent_dir(session: Session, monkeypatch: py
     monkeypatch.setattr(cover_storage.settings, "covers_dir", "/nonexistent/path")
 
     assert cleanup_orphan_covers(session) == 0
+
+
+def test_cleanup_orphan_covers_logs_warning_on_unlink_error(
+    session: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OSError during orphan cover deletion should be logged and counted as not deleted."""
+    import time
+
+    from app.services import cover_storage
+
+    orphan = tmp_path / "1__orphan.jpg"
+    orphan.write_bytes(b"orphan")
+    old_time = time.time() - 7200
+    os.utime(orphan, (old_time, old_time))
+
+    monkeypatch.setattr(cover_storage.settings, "covers_dir", str(tmp_path))
+
+    def _raise_unlink(self: Path, missing_ok: bool = False) -> Any:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "unlink", _raise_unlink)
+
+    warned = False
+
+    def _capture_warning(msg: str, *args: Any, **kwargs: Any) -> None:
+        nonlocal warned
+        if "Failed to delete orphaned cover" in msg:
+            warned = True
+
+    monkeypatch.setattr(cover_storage.logger, "warning", _capture_warning)
+
+    deleted = cleanup_orphan_covers(session)
+    assert deleted == 0
+    assert warned

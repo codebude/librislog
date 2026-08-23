@@ -839,3 +839,493 @@ def test_cleanup_temp_files_oserror_on_unlink(monkeypatch: MonkeyPatch, tmp_path
     monkeypatch.setattr(Path, "unlink", _raise_unlink)
     # Should not raise
     di.cleanup_temp_files()
+
+
+# ── _parse_acquisition_status ─────────────────────────────────────────────────
+
+def test_parse_acquisition_status_missing_value() -> None:
+    with pytest.raises(ValueError, match="Missing required field 'acquisition_status'"):
+        di._parse_acquisition_status(None)
+    with pytest.raises(ValueError, match="Missing required field 'acquisition_status'"):
+        di._parse_acquisition_status("   ")
+
+
+# ── _mapped_row ───────────────────────────────────────────────────────────────
+
+def test_mapped_row_transform_execution_error() -> None:
+    mapping = {"title": ImportFieldConfig(source="title", transform="return int(value)")}
+    transform_cache = di._build_transform_cache(mapping)
+    errors: list[str] = []
+    result = di._mapped_row(
+        {"title": "not-a-number"},
+        mapping,
+        transform_cache,
+        {},
+        errors,
+    )
+    assert "title" not in result
+    assert any("title" in e for e in errors)
+
+
+# ── _validate_mapping ─────────────────────────────────────────────────────────
+
+def test_validate_mapping_invalid_target_with_empty_source() -> None:
+    mapping = {
+        "title": ImportFieldConfig(source="A"),
+        "invalid_target": ImportFieldConfig(source=""),
+    }
+    warnings, errors = di._validate_mapping(mapping, {"A"})
+    assert any("Invalid mapping target: invalid_target" in e for e in errors)
+
+
+# ── validate_import ───────────────────────────────────────────────────────────
+
+def test_validate_import_invalid_mapping_returns_early(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book"}],
+        "source_fields": ["title"],
+    }
+    file_id = "test_validate_early"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id, user, {"invalid_target": ImportFieldConfig(source="title")}, session
+    )
+    assert result["valid"] is False
+    assert any("Invalid mapping target" in e for e in result["errors"])
+
+
+def test_validate_import_require_acquisition_status_invalid(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "acq": "wishlist"}],
+        "source_fields": ["title", "acq"],
+    }
+    file_id = "test_validate_acq"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "acquisition_status": ImportFieldConfig(source="acq")},
+        session,
+        require_acquisition_status=True,
+    )
+    assert any("acquisition_status" in e for e in result["errors"])
+
+
+def test_validate_import_invalid_date_started(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "started": "not-a-date"}],
+        "source_fields": ["title", "started"],
+    }
+    file_id = "test_validate_bad_started"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "date_started": ImportFieldConfig(source="started")},
+        session,
+    )
+    assert any("date_started" in e for e in result["errors"])
+
+
+def test_validate_import_invalid_date_finished(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "finished": "not-a-date"}],
+        "source_fields": ["title", "finished"],
+    }
+    file_id = "test_validate_bad_finished"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.validate_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "date_finished": ImportFieldConfig(source="finished")},
+        session,
+    )
+    assert any("date_finished" in e for e in result["errors"])
+
+
+# ── preview_import ────────────────────────────────────────────────────────────
+
+def test_preview_import_missing_title(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": ""}],
+        "source_fields": ["title"],
+    }
+    file_id = "test_preview_missing_title"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title")}
+    )
+    assert any("Missing required field 'title'" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_rating_out_of_range(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "rating": "99"}],
+        "source_fields": ["title", "rating"],
+    }
+    file_id = "test_preview_rating"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "rating": ImportFieldConfig(source="rating")}
+    )
+    assert any("Rating out of range" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_invalid_page_count(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "pages": "abc"}],
+        "source_fields": ["title", "pages"],
+    }
+    file_id = "test_preview_pages"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "page_count": ImportFieldConfig(source="pages")}
+    )
+    assert any("page_count" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_invalid_date_started(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "started": "bad-date"}],
+        "source_fields": ["title", "started"],
+    }
+    file_id = "test_preview_bad_started"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "date_started": ImportFieldConfig(source="started")}
+    )
+    assert any("date_started" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_invalid_date_finished(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "finished": "bad-date"}],
+        "source_fields": ["title", "finished"],
+    }
+    file_id = "test_preview_bad_finished"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "date_finished": ImportFieldConfig(source="finished")}
+    )
+    assert any("date_finished" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_date_order(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "started": "2024-02-01", "finished": "2024-01-01"}],
+        "source_fields": ["title", "started", "finished"],
+    }
+    file_id = "test_preview_order"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id,
+        user,
+        {
+            "title": ImportFieldConfig(source="title"),
+            "date_started": ImportFieldConfig(source="started"),
+            "date_finished": ImportFieldConfig(source="finished"),
+        },
+    )
+    assert any("date_started is after date_finished" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_read_without_finished_date(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "status": "read"}],
+        "source_fields": ["title", "status"],
+    }
+    file_id = "test_preview_read_nofinish"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status")}
+    )
+    assert any("no finished date" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_require_acquisition_status_invalid(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "acq": "wishlist"}],
+        "source_fields": ["title", "acq"],
+    }
+    file_id = "test_preview_acq"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "acquisition_status": ImportFieldConfig(source="acq")},
+        require_acquisition_status=True,
+    )
+    assert any("acquisition_status" in e for e in result["preview_rows"][0]["errors"])
+
+
+def test_preview_import_invalid_isbn(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "isbn": "not-valid"}],
+        "source_fields": ["title", "isbn"],
+    }
+    file_id = "test_preview_isbn"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    result = di.preview_import(
+        file_id, user, {"title": ImportFieldConfig(source="title"), "isbn": ImportFieldConfig(source="isbn")}
+    )
+    assert any("isbn" in e.lower() for e in result["preview_rows"][0]["errors"])
+
+
+# ── execute_import ────────────────────────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_execute_import_transform_error(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "num": "abc"}],
+        "source_fields": ["title", "num"],
+    }
+    file_id = "test_exec_transform"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    events = []
+    async for event in di.execute_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "rating": ImportFieldConfig(source="num", transform="return int(value)")},
+        session,
+        "continue_on_error",
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["failed"] == 1
+
+
+@pytest.mark.anyio
+async def test_execute_import_invalid_date_started(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "started": "bad-date"}],
+        "source_fields": ["title", "started"],
+    }
+    file_id = "test_exec_bad_started"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    events = []
+    async for event in di.execute_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "date_started": ImportFieldConfig(source="started")},
+        session,
+        "continue_on_error",
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["failed"] == 1
+
+
+@pytest.mark.anyio
+async def test_execute_import_invalid_date_finished(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "finished": "bad-date"}],
+        "source_fields": ["title", "finished"],
+    }
+    file_id = "test_exec_bad_finished"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    events = []
+    async for event in di.execute_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "date_finished": ImportFieldConfig(source="finished")},
+        session,
+        "continue_on_error",
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["failed"] == 1
+
+
+@pytest.mark.anyio
+async def test_execute_import_read_without_finished_date(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "status": "read"}],
+        "source_fields": ["title", "status"],
+    }
+    file_id = "test_exec_read_nofinish"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    events = []
+    async for event in di.execute_import(
+        file_id,
+        user,
+        {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status")},
+        session,
+        "continue_on_error",
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["failed"] == 1
+
+
+@pytest.mark.anyio
+async def test_execute_import_naive_log_date_gets_utc_tz(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [{"title": "Book", "status": "read", "pages": "100", "finished": "2024-01-15"}],
+        "source_fields": ["title", "status", "pages", "finished"],
+    }
+    file_id = "test_exec_naive_logdate"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    original_parse_datetime = di._parse_datetime
+
+    def _naive_finished_parse(value: object, field: str):
+        if field == "date_finished":
+            return datetime(2024, 1, 15, 10, 30, 0)  # naive
+        return original_parse_datetime(value, field)
+
+    monkeypatch.setattr(di, "_parse_datetime", _naive_finished_parse)
+
+    events = []
+    async for event in di.execute_import(
+        file_id,
+        user,
+        {
+            "title": ImportFieldConfig(source="title"),
+            "reading_status": ImportFieldConfig(source="status"),
+            "page_count": ImportFieldConfig(source="pages"),
+            "date_finished": ImportFieldConfig(source="finished"),
+        },
+        session,
+        "continue_on_error",
+        create_progress_for_read=True,
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["imported"] == 1
+
+
+# ── get_predefined_mapping ────────────────────────────────────────────────────
+
+def test_get_predefined_mapping_known_id() -> None:
+    result = di.get_predefined_mapping(-1)
+    assert result is not None
+    assert result["name"] == "Goodreads Export"
+
+
+def test_get_predefined_mapping_unknown_id() -> None:
+    assert di.get_predefined_mapping(-999) is None
