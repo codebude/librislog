@@ -7,8 +7,8 @@ LibrisLog includes a command-line tool for common development tasks. It automate
 From the repository root:
 
 ```bash
-cd cli
 uv sync
+cd cli
 ```
 
 Then run commands with:
