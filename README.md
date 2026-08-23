@@ -95,8 +95,8 @@ The backend is a standalone FastAPI application. The full API is documented via 
 Create API keys from the web UI (Profile → API Keys) for headless access. See the [API Reference](https://docs.librislog.app/api/) for details.
 
 ```bash
-cd backend
 uv sync
+cd backend
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
