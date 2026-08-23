@@ -84,6 +84,7 @@
     "did_not_finish": "Abgebrochen"
   },
   "common": {
+    "all": "Alle",
     "optional": "optional",
     "search": "Suchen",
     "searchBooks": "Bücher suchen...",

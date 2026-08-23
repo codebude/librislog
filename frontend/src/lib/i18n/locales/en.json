@@ -84,6 +84,7 @@
     "did_not_finish": "Did Not Finish"
   },
   "common": {
+    "all": "All",
     "optional": "optional",
     "search": "Search",
     "searchBooks": "Search books...",

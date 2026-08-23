@@ -84,6 +84,7 @@
     "did_not_finish": "Abandonado"
   },
   "common": {
+    "all": "Todos",
     "optional": "opcional",
     "search": "Buscar",
     "searchBooks": "Buscar libros...",

@@ -84,6 +84,7 @@
     "did_not_finish": "弃读"
   },
   "common": {
+    "all": "全部",
     "optional": "可选",
     "search": "搜索",
     "searchBooks": "搜索图书...",
