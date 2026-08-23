@@ -143,6 +143,8 @@
     "blurb": "Beschreibung",
     "about": "Über das Buch",
     "dateStarted": "Begonnen am",
+    "acquisitionStatus": "Besitzstatus",
+    "selectAcquisitionStatus": "Besitzstatus auswählen...",
     "startDatePromptTitle": "Startdatum festlegen?",
     "startDatePromptMessage": "Dieses Buch hat kein Startdatum. Lege es auf heute fest oder wähle ein anderes Datum, bevor du es als gelesen markierst.",
     "startDatePromptSet": "Startdatum festlegen",
@@ -276,6 +278,12 @@
       "keepDesc": "Behält das Beendigungsdatum ({finishedDate}) und setzt kein Startdatum.",
       "clearDesc": "Entfernt das Beendigungsdatum und setzt heute ({newStartDate}) als Startdatum."
     }
+  },
+  "acquisition": {
+    "owned": "Im Besitz",
+    "borrowed": "Geliehen",
+    "digital_access": "Digital verfügbar",
+    "to_acquire": "Muss noch beschafft werden"
   },
   "search": {
     "resultsCount": "{count, plural, one {Ergebnis} other {Ergebnisse}} gefunden",

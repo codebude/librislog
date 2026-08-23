@@ -20,6 +20,7 @@ function mockBook(overrides?: Partial<Book>): Book {
 		blurb: null,
 		rating: 4,
 		reading_status: 'currently_reading',
+		acquisition_status: 'owned',
 		date_added: '2024-01-01T00:00:00.000Z',
 		date_started: null,
 		date_finished: null,
@@ -28,6 +29,16 @@ function mockBook(overrides?: Partial<Book>): Book {
 }
 
 describe('BookCard', () => {
+	it('shows an acquisition indicator only for books to acquire', () => {
+		render(BookCard, {
+			props: {
+				book: mockBook({ reading_status: 'want_to_read', acquisition_status: 'to_acquire' }),
+				onClick: vi.fn()
+			}
+		});
+
+		expect(screen.getByLabelText('Needs to be acquired')).toBeInTheDocument();
+	});
 	it('renders title and author', () => {
 		render(BookCard, { props: { book: mockBook(), onClick: vi.fn() } });
 

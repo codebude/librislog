@@ -59,6 +59,7 @@ function createMockBook(id: number, overrides?: Partial<Book>): Book {
 		blurb: null,
 		rating: null,
 		reading_status: 'want_to_read',
+		acquisition_status: 'owned',
 		date_added: '2025-01-01T00:00:00Z',
 		date_started: null,
 		date_finished: null,

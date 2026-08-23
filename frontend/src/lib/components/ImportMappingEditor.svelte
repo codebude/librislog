@@ -16,7 +16,7 @@
 		onChange: (mapping: Record<string, ImportFieldConfig>) => void;
 	} = $props();
 
-	const MANDATORY_FIELDS = ['title', 'author', 'page_count'];
+	const MANDATORY_FIELDS = ['title', 'author', 'page_count', 'acquisition_status'];
 	let transformOpen = $state<Record<string, boolean>>({});
 
 	function updateSource(target: string, source: string) {

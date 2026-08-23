@@ -1,4 +1,5 @@
 export type ReadingStatus = 'want_to_read' | 'currently_reading' | 'read' | 'did_not_finish';
+export type AcquisitionStatus = 'owned' | 'borrowed' | 'digital_access' | 'to_acquire';
 
 export interface Book {
 	id: number;
@@ -16,6 +17,7 @@ export interface Book {
 	blurb: string | null;
 	rating: number | null; // 1–5
 	reading_status: ReadingStatus;
+	acquisition_status: AcquisitionStatus;
 	date_added: string; // ISO datetime
 	date_started: string | null;
 	date_finished: string | null;

@@ -7,12 +7,12 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, func, or_, select
+from sqlmodel import Session, col, func, or_, select
 
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
+from app.models import AcquisitionStatus, Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -140,6 +140,7 @@ def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
 @router.get("", response_model=BookListResponse)
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
+    acquisition_status: Optional[AcquisitionStatus] = Query(default=None),
     q: Optional[str] = Query(default=None),
     has_cover: Optional[bool] = Query(default=None),
     sort: Literal["title", "date_added", "date_started", "date_finished", "rating"] = Query(
@@ -167,11 +168,14 @@ def list_books(
     if status is not None:
         base_statement = base_statement.where(Book.reading_status == status)
 
+    if acquisition_status is not None:
+        base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
+
     if q:
         pattern = f"%{q}%"
-        matching_tag_book_ids = select(BookTag.book_id).join(Tag, Tag.id == BookTag.tag_id).where(
+        matching_tag_book_ids = select(BookTag.book_id).join(Tag, col(Tag.id) == BookTag.tag_id).where(
             Tag.user_id == current_user.id,
-            Tag.name.ilike(pattern),
+            col(Tag.name).ilike(pattern),
         )
         base_statement = base_statement.where(
             or_(

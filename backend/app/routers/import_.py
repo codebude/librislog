@@ -153,6 +153,7 @@ async def import_book(
         language=_normalize_language(c.language),
         blurb=c.blurb,
         reading_status=body.reading_status,
+        acquisition_status=body.acquisition_status,
         user_id=current_user.id,
     )
     session.add(book)

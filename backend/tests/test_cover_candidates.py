@@ -14,6 +14,7 @@ def test_cover_candidates_search_requires_valid_isbn(client: TestClient) -> None
 def test_cover_candidates_search_returns_candidates(client: TestClient, monkeypatch) -> None:
     from app import config
     monkeypatch.setattr(config.settings, "thalia_cover_search_enabled", False)
+    monkeypatch.setattr(config.settings, "hardcover_app_api_token", "")
 
     requested_urls: list[str] = []
 

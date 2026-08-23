@@ -52,6 +52,7 @@ const mockBook = {
 	blurb: 'A long description that exceeds three hundred characters for testing truncation logic in the component. '.repeat(5),
 	rating: 4,
 	reading_status: 'currently_reading' as const,
+	acquisition_status: 'owned' as const,
 	date_added: '2024-01-01T00:00:00Z',
 	date_started: '2024-02-01T00:00:00Z',
 	date_finished: null,

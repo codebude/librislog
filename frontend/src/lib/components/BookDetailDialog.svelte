@@ -436,6 +436,10 @@
 					<div>{book.date_finished ? formatDate(book.date_finished, tz) : '-'}</div>
 				</div>
 				<div>
+					<div class="text-xs text-base-content/60">{$_('book.acquisitionStatus')}</div>
+					<div>{$_(`acquisition.${book.acquisition_status}`)}</div>
+				</div>
+				<div>
 					<div class="text-xs text-base-content/60">{$_('book.tags')}</div>
 					{#if splitTags(book.tags).length > 0}
 						<div class="flex flex-wrap gap-1">

@@ -143,6 +143,8 @@
     "blurb": "简介",
     "about": "关于本书",
     "dateStarted": "开始日期",
+    "acquisitionStatus": "可用性",
+    "selectAcquisitionStatus": "选择可用性...",
     "startDatePromptTitle": "设置开始日期？",
     "startDatePromptMessage": "此书没有开始日期。在将其标记为已读前，请设为今天或选择其他日期。",
     "startDatePromptSet": "设置开始日期",
@@ -276,6 +278,12 @@
       "keepDesc": "保留完成日期（{finishedDate}），不设置开始日期。",
       "clearDesc": "删除完成日期并将今天（{newStartDate}）设为开始日期。"
     }
+  },
+  "acquisition": {
+    "owned": "已拥有",
+    "borrowed": "借阅中",
+    "digital_access": "可数字访问",
+    "to_acquire": "需要获取"
   },
   "search": {
     "resultsCount": "找到 {count} 个结果",

@@ -143,6 +143,8 @@
     "blurb": "Description",
     "about": "About",
     "dateStarted": "Date started",
+    "acquisitionStatus": "Availability",
+    "selectAcquisitionStatus": "Select availability...",
     "startDatePromptTitle": "Set a start date?",
     "startDatePromptMessage": "This book has no start date. Set it to today or choose another date before marking it as read.",
     "startDatePromptSet": "Set start date",
@@ -276,6 +278,12 @@
       "keepDesc": "Keeps the finish date ({finishedDate}) and does not set a start date.",
       "clearDesc": "Removes the finish date and sets today ({newStartDate}) as the start date."
     }
+  },
+  "acquisition": {
+    "owned": "Owned",
+    "borrowed": "Borrowed",
+    "digital_access": "Digital access",
+    "to_acquire": "Needs to be acquired"
   },
   "search": {
     "resultsCount": "{count, plural, one {result} other {results}} found",

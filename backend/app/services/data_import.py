@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.config import settings
-from app.models import Book, ReadingProgress, ReadingStatus, User
+from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User
 from app.schemas import ImportFieldConfig
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "blurb",
     "rating",
     "reading_status",
+    "acquisition_status",
     "date_started",
     "date_finished",
     "cover_url",
@@ -74,6 +75,10 @@ _ALIASES: dict[str, str] = {
     "my rating": "rating",
     "status": "reading_status",
     "reading status": "reading_status",
+    "acquisition status": "acquisition_status",
+    "acquisition": "acquisition_status",
+    "availability": "acquisition_status",
+    "ownership": "acquisition_status",
     "date started": "date_started",
     "started": "date_started",
     "date finished": "date_finished",
@@ -278,6 +283,18 @@ def _parse_int(value: object, field: str) -> int | None:
         )
 
 
+def _parse_acquisition_status(value: object) -> AcquisitionStatus:
+    """Parse a required acquisition-status value from an import row."""
+    if value is None or not str(value).strip():
+        raise ValueError("Missing required field 'acquisition_status'")
+    normalized = str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    try:
+        return AcquisitionStatus(normalized)
+    except ValueError as exc:
+        choices = ", ".join(status.value for status in AcquisitionStatus)
+        raise ValueError(_format_value_error("acquisition_status", f"one of: {choices}", value)) from exc
+
+
 def _parse_year(value: object, field: str) -> int | None:
     """Parse a year value, accepting 4-digit integers and date strings."""
     if value is None or value == "":
@@ -411,15 +428,16 @@ def _mapped_row(
 
 
 def _validate_mapping(
-    mapping: dict[str, ImportFieldConfig], source_fields: set[str]
+    mapping: dict[str, ImportFieldConfig], source_fields: set[str], require_acquisition_status: bool = False
 ) -> tuple[list[str], list[str]]:
     """Validate an import mapping, returning (warnings, errors)."""
     warnings: list[str] = []
     errors: list[str] = []
     mapped_targets = [target for target in mapping.keys() if target]
 
-    if "title" not in mapped_targets:
-        errors.append("Mapping missing required field: title")
+    for field in (["title", "acquisition_status"] if require_acquisition_status else ["title"]):
+        if field not in mapped_targets:
+            errors.append(f"Mapping missing required field: {field}")
 
     invalid_targets = sorted({target for target in mapped_targets if target not in BOOK_IMPORT_FIELDS})
     for target in invalid_targets:
@@ -448,6 +466,7 @@ def validate_import(
     mapping: dict[str, ImportFieldConfig],
     session: Session,
     create_progress_for_read: bool = False,
+    require_acquisition_status: bool = False,
 ) -> dict:
     """Validate a parsed import file against the DB schema and existing data.
 
@@ -465,7 +484,7 @@ def validate_import(
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
 
-    warnings, errors = _validate_mapping(mapping, source_fields)
+    warnings, errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
 
     if errors:
         return {"valid": False, "row_count": len(rows), "warnings": warnings, "errors": errors}
@@ -495,6 +514,8 @@ def validate_import(
             _parse_year(row_data.get("published_year"), "published_year")
             _parse_int(row_data.get("page_count"), "page_count")
             reading_status = _parse_reading_status(row_data.get("reading_status"))
+            if require_acquisition_status:
+                _parse_acquisition_status(row_data.get("acquisition_status"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -564,6 +585,7 @@ def preview_import(
     user: User,
     mapping: dict[str, ImportFieldConfig],
     limit: int = 5,
+    require_acquisition_status: bool = False,
 ) -> dict:
     """Preview how a mapping and transforms will affect the first *limit* rows.
 
@@ -573,7 +595,7 @@ def preview_import(
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
 
-    _warnings, mapping_errors = _validate_mapping(mapping, source_fields)
+    _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
         return {"preview_rows": [], "row_count": len(rows), "errors": mapping_errors}
 
@@ -597,6 +619,8 @@ def preview_import(
             _parse_year(row_data.get("published_year"), "published_year")
             _parse_int(row_data.get("page_count"), "page_count")
             reading_status = _parse_reading_status(row_data.get("reading_status"))
+            if require_acquisition_status:
+                _parse_acquisition_status(row_data.get("acquisition_status"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -649,6 +673,7 @@ async def execute_import(
     session: Session,
     import_mode: str,
     create_progress_for_read: bool = False,
+    require_acquisition_status: bool = False,
 ):
     """Execute an import, yielding progress and result events.
 
@@ -675,7 +700,7 @@ async def execute_import(
     rollback_all = import_mode == "rollback_all"
 
     source_fields = set(parsed.get("source_fields", []))
-    _warnings, mapping_errors = _validate_mapping(mapping, source_fields)
+    _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
         yield {"event": "error", "message": "; ".join(mapping_errors)}
         return
@@ -699,6 +724,11 @@ async def execute_import(
                     rating = None
 
                 reading_status = _parse_reading_status(row_data.get("reading_status"))
+                acquisition_status = (
+                    _parse_acquisition_status(row_data.get("acquisition_status"))
+                    if require_acquisition_status
+                    else AcquisitionStatus.owned
+                )
 
                 language = _normalize_language(
                     None if row_data.get("language") is None else str(row_data.get("language"))
@@ -749,6 +779,7 @@ async def execute_import(
                     blurb=None if row_data.get("blurb") in (None, "") else str(row_data.get("blurb")),
                     rating=rating,
                     reading_status=reading_status,
+                    acquisition_status=acquisition_status,
                     date_started=date_started,
                     date_finished=date_finished,
                     user_id=user.id,

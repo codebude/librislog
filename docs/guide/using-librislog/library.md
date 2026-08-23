@@ -15,6 +15,10 @@ Books are categorized into four statuses:
 
 Each status has its own tab in the library view, making it easy to browse your collection by reading state.
 
+## Availability
+
+Availability is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the availability filter to narrow the list without changing its newest-first order.
+
 ![Library](/screenshots/library-read.png)
 
 ## Navigation

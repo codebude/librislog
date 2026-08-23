@@ -5,10 +5,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel
+from sqlmodel._compat import SQLModelConfig
 
-from app.models import ReadingStatus, UserRole
+from app.models import AcquisitionStatus, ReadingStatus, UserRole
 
 
 class ReadingProgressCreate(SQLModel):
@@ -52,6 +53,7 @@ class BookCreate(SQLModel):
     blurb: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = ReadingStatus.want_to_read
+    acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -72,6 +74,7 @@ class BookUpdate(SQLModel):
     blurb: Optional[str] = None
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: Optional[ReadingStatus] = None
+    acquisition_status: Optional[AcquisitionStatus] = None
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -118,6 +121,7 @@ class BookImportRequest(SQLModel):
     """Persists a BookImportCandidate into the local DB."""
     candidate: BookImportCandidate
     reading_status: ReadingStatus = ReadingStatus.want_to_read
+    acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
 
 
 class BookRead(SQLModel):
@@ -137,6 +141,7 @@ class BookRead(SQLModel):
     blurb: Optional[str]
     rating: Optional[int]
     reading_status: ReadingStatus
+    acquisition_status: AcquisitionStatus
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
@@ -315,7 +320,7 @@ class UserUpdate(SQLModel):
 
 class ProfileUpdate(SQLModel):
     """Profile update request (non-admin)."""
-    model_config = ConfigDict(extra="forbid")
+    model_config = SQLModelConfig(extra="forbid")
 
     firstname: Optional[str] = None
     lastname: Optional[str] = None

@@ -3,6 +3,7 @@ from collections.abc import Callable, Generator
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.auth import (
@@ -505,7 +506,9 @@ def test_users_delete_user_not_found(client: TestClient) -> None:
     assert resp.json()["detail"] == "User not found"
 
 
-def test_oidc_config_disabled_by_default(client: TestClient) -> None:
+def test_oidc_config_disabled_by_default(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    from app import config
+    monkeypatch.setattr(config.settings, "oidc_enabled", False)
     resp = client.get("/api/oidc/config")
     assert resp.status_code == 200
     assert resp.json()["enabled"] is False
