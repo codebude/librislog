@@ -175,3 +175,55 @@ class TestSecurity:
     def test_cannot_use_yield(self) -> None:
         with pytest.raises(ValueError):
             te.compile_transform("yield value")
+
+
+class TestGuardedImport:
+    def test_guarded_import_disallowed(self) -> None:
+        with pytest.raises(ImportError, match="not allowed"):
+            te._guarded_import("os")
+
+
+class TestImportFrom:
+    def test_forbidden_import_from_in_validate(self) -> None:
+        errors = te.validate_transform("from os import path")
+        assert any("Forbidden import" in e for e in errors)
+
+    def test_forbidden_import_from_in_compile(self) -> None:
+        with pytest.raises(ValueError):
+            te.compile_transform("from os import path")
+
+
+class TestRestrictedPythonRejection:
+    def test_compile_rejects_when_restricted_python_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(te, "compile_restricted", lambda *args, **kwargs: None)
+        with pytest.raises(ValueError, match="RestrictedPython rejected the code"):
+            te.compile_transform("return value")
+
+    def test_validate_reports_when_restricted_python_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(te, "compile_restricted", lambda *args, **kwargs: None)
+        errors = te.validate_transform("return value")
+        assert any("RestrictedPython rejected the code" in e for e in errors)
+
+    def test_validate_reports_compilation_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def _raise(*args: object, **kwargs: object) -> None:
+            raise ValueError("boom")
+
+        monkeypatch.setattr(te, "compile_restricted", _raise)
+        errors = te.validate_transform("return value")
+        assert any("Compilation error" in e for e in errors)
+
+
+class TestFailedFunctionDefinition:
+    def test_raises_when_transform_function_not_defined(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            te, "compile_restricted", lambda source, filename, mode: compile("", filename, mode)
+        )
+        with pytest.raises(ValueError, match="Failed to define transform function"):
+            te.compile_transform("return value")
+
+
+class TestExecuteTransformErrors:
+    def test_runtime_exception_becomes_transform_execution_error(self) -> None:
+        fn = te.compile_transform("return int(value)")
+        with pytest.raises(te.TransformExecutionError):
+            te.execute_transform(fn, "not-a-number", {}, {})

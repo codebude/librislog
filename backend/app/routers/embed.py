@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, Response
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import EMBED_TOKEN_SCOPE_STATS_READ, hash_embed_token
 from app.database import get_session
@@ -68,7 +68,7 @@ def _verify_embed_token(
     db_token = session.exec(
         select(EmbedToken).where(
             EmbedToken.token_hash == token_hash_val,
-            EmbedToken.revoked_at.is_(None),
+            col(EmbedToken.revoked_at).is_(None),
         )
     ).first()
 
@@ -270,14 +270,14 @@ def get_embed_stats(
         invalid = keys - VALID_STAT_KEYS
         if invalid:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Invalid stat keys: {', '.join(sorted(invalid))}. Valid: {', '.join(sorted(VALID_STAT_KEYS))}",
             )
         show_set = keys if keys else None
 
     if layout not in LAYOUT_MODES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid layout '{layout}'. Valid: {', '.join(sorted(LAYOUT_MODES))}",
         )
 

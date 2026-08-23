@@ -117,6 +117,7 @@ async def import_book(
     Checks for duplicate ISBNs, downloads cover images, and syncs tags.
     """
     c = body.candidate
+    assert current_user.id is not None
 
     # Reject duplicates by ISBN when an ISBN is present
     if c.isbn:
@@ -144,12 +145,12 @@ async def import_book(
     book = Book(
         title=c.title,
         subtitle=c.subtitle,
-        author=c.author,
+        author=c.author or "",
         isbn=c.isbn,
         cover_url=cover_url,
         publisher=c.publisher,
         published_year=c.published_year,
-        page_count=c.page_count,
+        page_count=c.page_count or 0,
         language=_normalize_language(c.language),
         blurb=c.blurb,
         reading_status=body.reading_status,

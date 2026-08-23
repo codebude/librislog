@@ -749,3 +749,53 @@ def test_restore_backup_single_file_size_check_during_extraction(valid_backup_zi
             covers_dir=covers_dir,
             import_temp_dir=import_temp_dir,
         )
+
+
+# ── _remove_wal_files ─────────────────────────────────────────────────────────
+
+def test_remove_wal_files_deletes_existing_files(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "test.db")
+    wal_path = f"{db_path}-wal"
+    shm_path = f"{db_path}-shm"
+    Path(wal_path).write_bytes(b"wal")
+    Path(shm_path).write_bytes(b"shm")
+    br._remove_wal_files(db_path)
+    assert not Path(wal_path).exists()
+    assert not Path(shm_path).exists()
+
+
+def test_remove_wal_files_ignores_missing_files(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "test.db")
+    br._remove_wal_files(db_path)  # should not raise
+
+
+# ── _stamp_alembic_head_if_fresh ──────────────────────────────────────────────
+
+def test_stamp_alembic_head_if_fresh_skips_when_version_table_has_rows(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    db_path = str(tmp_path / "test.db")
+    conn = sqlite3.connect(db_path)
+    conn.execute("CREATE TABLE alembic_version (version_num TEXT PRIMARY KEY)")
+    conn.execute("INSERT INTO alembic_version (version_num) VALUES ('abc123')")
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(br.settings, "database_url", f"sqlite:///{db_path}")
+
+    from alembic import command as alembic_command
+    from alembic.script import ScriptDirectory
+
+    stamp_called = False
+
+    def _fake_stamp(*args: Any, **kwargs: Any) -> None:
+        nonlocal stamp_called
+        stamp_called = True
+
+    mock_script = MagicMock()
+    mock_script.get_current_head.return_value = "head123"
+    monkeypatch.setattr(ScriptDirectory, "from_config", lambda cfg: mock_script)
+    monkeypatch.setattr(alembic_command, "stamp", _fake_stamp)
+
+    br._stamp_alembic_head_if_fresh()
+    assert stamp_called is False

@@ -1,9 +1,12 @@
 from collections import Counter
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
+from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.models import Book, ReadingProgress, ReadingStatus, UserSettings
@@ -197,6 +200,7 @@ def test_statistics_top_authors_no_covers(client: Any) -> None:
 
 def test_statistics_timezone_month_bucketing(client: Any, session: Session) -> None:
     settings = session.exec(select(UserSettings)).first()
+    assert settings is not None
     settings.timezone = "America/New_York"
     session.add(settings)
     session.commit()
@@ -237,6 +241,7 @@ def test_statistics_pages_wasted_ignores_non_dnf(client: Any) -> None:
 
 def test_statistics_invalid_timezone_falls_back_to_utc(client: Any, session: Session) -> None:
     settings = session.exec(select(UserSettings)).first()
+    assert settings is not None
     settings.timezone = "Mars/OlympusMons"
     session.add(settings)
     session.commit()
@@ -341,6 +346,8 @@ def test_pages_per_day_counts_single_log_when_started_and_finished_same_day(clie
 
     book = session.get(Book, created["id"])
     assert book is not None
+    assert book.id is not None
+    assert book.user_id is not None
     session.add(ReadingProgress(
         book_id=book.id, user_id=book.user_id, page=250,
         created_at=datetime(2026, 5, 1, 10, 0, tzinfo=timezone.utc),
@@ -362,9 +369,9 @@ def test_extract_book_level_skips_books_with_missing_fields() -> None:
     """Books without date_started, date_finished or page_count are skipped."""
     book = Book(
         title="Incomplete", reading_status=ReadingStatus.read,
-        date_started=None, date_finished=None, page_count=None, user_id=1,
+        date_started=None, date_finished=None, page_count=None, user_id=1,  # ty: ignore[invalid-argument-type]
     )
-    result = _extract_book_level_daily_pages([book], timezone.utc)
+    result = _extract_book_level_daily_pages([book], ZoneInfo("UTC"))
     assert result == Counter()
 
 
@@ -384,5 +391,274 @@ def test_extract_book_level_skips_non_positive_total_days() -> None:
     book.date_finished = FakeDateTime()
     book.page_count = 100
 
-    result = _extract_book_level_daily_pages([book], timezone.utc)
+    result = _extract_book_level_daily_pages([book], ZoneInfo("UTC"))
     assert result == Counter()
+
+
+# ── Window clamping tests ────────────────────────────────────────────────
+
+
+def test_clamp_window_entirely_before() -> None:
+    from app.routers.statistics import _clamp_window
+
+    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2025, 1, 5, tzinfo=timezone.utc)
+    window_start = datetime(2025, 1, 10, tzinfo=timezone.utc)
+    window_end = datetime(2025, 1, 20, tzinfo=timezone.utc)
+    assert _clamp_window(start, end, window_start, window_end) == (None, None)
+
+
+def test_clamp_window_start_before_window() -> None:
+    from app.routers.statistics import _clamp_window
+
+    start = datetime(2025, 1, 5, tzinfo=timezone.utc)
+    end = datetime(2025, 1, 15, tzinfo=timezone.utc)
+    window_start = datetime(2025, 1, 10, tzinfo=timezone.utc)
+    window_end = datetime(2025, 1, 20, tzinfo=timezone.utc)
+    result = _clamp_window(start, end, window_start, window_end)
+    assert result[0] == window_start
+    assert result[1] == end
+
+
+def test_clamp_window_entirely_after() -> None:
+    from app.routers.statistics import _clamp_window
+
+    start = datetime(2025, 1, 25, tzinfo=timezone.utc)
+    end = datetime(2025, 1, 30, tzinfo=timezone.utc)
+    window_start = datetime(2025, 1, 10, tzinfo=timezone.utc)
+    window_end = datetime(2025, 1, 20, tzinfo=timezone.utc)
+    assert _clamp_window(start, end, window_start, window_end) == (None, None)
+
+
+def test_clamp_window_end_after_window() -> None:
+    from app.routers.statistics import _clamp_window
+
+    start = datetime(2025, 1, 15, tzinfo=timezone.utc)
+    end = datetime(2025, 1, 25, tzinfo=timezone.utc)
+    window_start = datetime(2025, 1, 10, tzinfo=timezone.utc)
+    window_end = datetime(2025, 1, 20, tzinfo=timezone.utc)
+    result = _clamp_window(start, end, window_start, window_end)
+    assert result[0] == start
+    assert result[1] == window_end
+
+
+# ── Virtual entry skip for read books without date_finished ──────────────
+
+
+def test_pages_per_day_skips_virtual_entry_for_read_without_date_finished(client: Any, session: Session) -> None:
+    book = Book(
+        title="Read No Finish",
+        reading_status=ReadingStatus.read,
+        page_count=100,
+        date_started=datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc),
+        date_finished=None,
+        user_id=1,
+    )
+    session.add(book)
+    session.commit()
+    session.refresh(book)
+    assert book.id is not None
+
+    session.add(
+        ReadingProgress(
+            book_id=book.id,
+            user_id=1,
+            page=100,
+            created_at=datetime(2026, 1, 5, 10, 0, tzinfo=timezone.utc),
+        )
+    )
+    session.commit()
+
+    resp = client.get("/api/statistics/pages-per-day?days=730")
+    assert resp.status_code == 200
+    dates = {row["date"]: row["pages"] for row in resp.json()["data"]}
+    assert dates.get("2026-01-01") is None
+    assert dates.get("2026-01-05") is None
+
+
+def test_statistics_skips_virtual_entry_for_read_without_date_finished(client: Any, session: Session) -> None:
+    book = Book(
+        title="Read No Finish",
+        reading_status=ReadingStatus.read,
+        page_count=100,
+        date_started=datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc),
+        date_finished=None,
+        user_id=1,
+    )
+    session.add(book)
+    session.commit()
+    session.refresh(book)
+    assert book.id is not None
+
+    session.add(
+        ReadingProgress(
+            book_id=book.id,
+            user_id=1,
+            page=100,
+            created_at=datetime(2026, 1, 5, 10, 0, tzinfo=timezone.utc),
+        )
+    )
+    session.commit()
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    assert all(m["pages"] == 0 for m in resp.json()["pages_read_per_month"])
+
+
+def test_statistics_includes_virtual_entry_for_non_read_book_with_progress(client: Any, session: Session) -> None:
+    book = Book(
+        title="Currently Reading",
+        reading_status=ReadingStatus.currently_reading,
+        page_count=100,
+        date_started=datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc),
+        date_finished=None,
+        user_id=1,
+    )
+    session.add(book)
+    session.commit()
+    session.refresh(book)
+    assert book.id is not None
+
+    session.add(
+        ReadingProgress(
+            book_id=book.id,
+            user_id=1,
+            page=50,
+            created_at=datetime(2026, 1, 5, 10, 0, tzinfo=timezone.utc),
+        )
+    )
+    session.commit()
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    pages_by_month = {m["month"]: m["pages"] for m in resp.json()["pages_read_per_month"]}
+    assert pages_by_month.get("2026-01") == 50
+
+
+# ── _compute_pages_per_month edge cases ──────────────────────────────────
+
+
+def test_compute_pages_per_month_skips_non_positive_delta() -> None:
+    from app.routers.statistics import _compute_pages_per_month_from_progress
+
+    entries = [
+        SimpleNamespace(book_id=1, page=100, created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=50, created_at=datetime(2026, 1, 2, tzinfo=timezone.utc)),
+    ]
+    result = _compute_pages_per_month_from_progress(entries, ZoneInfo("UTC"))
+    assert result == {}
+
+
+def test_compute_pages_per_month_skips_non_positive_day_diff(monkeypatch: MonkeyPatch) -> None:
+    import builtins
+
+    from app.routers.statistics import _compute_pages_per_month_from_progress
+
+    # Bypass internal sorting so we can feed prev/curr in the order needed.
+    monkeypatch.setattr(builtins, "sorted", lambda iterable, **kwargs: list(iterable))
+
+    entries = [
+        SimpleNamespace(book_id=1, page=10, created_at=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=20, created_at=datetime(2026, 1, 2, 9, 0, tzinfo=timezone.utc)),
+    ]
+    result = _compute_pages_per_month_from_progress(entries, ZoneInfo("UTC"))
+    assert result == {}
+
+
+def test_compute_pages_per_month_from_books_skips_invalid() -> None:
+    from app.routers.statistics import _compute_pages_per_month_from_books
+
+    books = [
+        Book(id=1, title="No dates", reading_status=ReadingStatus.read, user_id=1),
+        Book(
+            id=2,
+            title="Inverted",
+            reading_status=ReadingStatus.read,
+            user_id=1,
+            date_started=datetime(2026, 1, 5, tzinfo=timezone.utc),
+            date_finished=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            page_count=100,
+        ),
+    ]
+    result = _compute_pages_per_month_from_books(books, ZoneInfo("UTC"))
+    assert result == {}
+
+
+def test_compute_pages_per_month_from_books_skips_non_positive_total_days() -> None:
+    """total_days <= 0 should be skipped even when date_finished is not < date_started."""
+    from app.routers.statistics import _compute_pages_per_month_from_books
+
+    class FakeDateTime:
+        def __lt__(self, other: object) -> bool:
+            return False
+
+        def __sub__(self, other: object) -> MagicMock:
+            mock_delta = MagicMock()
+            mock_delta.days = -1
+            return mock_delta
+
+    book = MagicMock()
+    book.date_started = FakeDateTime()
+    book.date_finished = FakeDateTime()
+    book.page_count = 100
+    book.reading_status = ReadingStatus.read
+
+    result = _compute_pages_per_month_from_books([book], ZoneInfo("UTC"))
+    assert result == {}
+
+
+# ── Window exclusion continue branches ───────────────────────────────────
+
+
+def test_extract_progress_daily_pages_skips_outside_window() -> None:
+    from app.routers.statistics import _extract_progress_daily_pages
+
+    entries = [
+        SimpleNamespace(book_id=1, page=0, created_at=datetime(2025, 1, 1, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=100, created_at=datetime(2025, 1, 5, tzinfo=timezone.utc)),
+    ]
+    result = _extract_progress_daily_pages(
+        entries,
+        ZoneInfo("UTC"),
+        window_start=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        window_end=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )
+    assert result == {}
+
+
+def test_extract_book_level_daily_pages_skips_outside_window() -> None:
+    from app.routers.statistics import _extract_book_level_daily_pages
+
+    book = Book(
+        title="Old",
+        reading_status=ReadingStatus.read,
+        user_id=1,
+        page_count=100,
+        date_started=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        date_finished=datetime(2025, 1, 5, tzinfo=timezone.utc),
+    )
+    result = _extract_book_level_daily_pages(
+        [book],
+        ZoneInfo("UTC"),
+        window_start=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        window_end=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )
+    assert result == {}
+
+
+# ── Rating stats ─────────────────────────────────────────────────────────
+
+
+def test_statistics_top_and_worst_rated_books(client: Any) -> None:
+    _create_book(client, title="Best", author="A", reading_status="read", rating=5)
+    _create_book(client, title="Good", author="A", reading_status="read", rating=4)
+    _create_book(client, title="Okay", author="A", reading_status="read", rating=3)
+    _create_book(client, title="Bad", author="A", reading_status="read", rating=2)
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["books_with_rating"] == 4
+    assert data["average_rating"] == 3.5
+    assert [b["title"] for b in data["top_rated_books"]] == ["Bad", "Okay", "Good", "Best"]
+    assert [b["title"] for b in data["worst_rated_books"]] == ["Best", "Good", "Okay", "Bad"]

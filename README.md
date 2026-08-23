@@ -16,7 +16,7 @@
   <a href="https://docs.librislog.app/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
   <img src="https://img.shields.io/badge/python-3.14-%233776AB?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte" alt="Svelte">
-  <img src="https://img.shields.io/badge/FastAPI-0.136-%23009688?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/FastAPI-0.141-%23009688?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 

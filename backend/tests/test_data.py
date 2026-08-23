@@ -573,3 +573,40 @@ def test_data_import_execute_unexpected_error(client: TestClient, monkeypatch: M
     )
     events = _parse_sse(resp.text)
     assert any(event.get("message") == "error.importExecutionFailed" for event in events)
+
+
+def test_data_import_mapping_get_predefined(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-1")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["is_predefined"] is True
+    assert data["id"] == -1
+    assert data["name"] == "Goodreads Export"
+
+
+def test_data_import_mapping_get_predefined_missing(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-999")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Predefined mapping not found."
+
+
+def test_data_import_mapping_delete_predefined_forbidden(client: TestClient) -> None:
+    resp = client.delete("/api/data/import/mappings/-1")
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Predefined mappings cannot be deleted."
+
+
+def test_data_import_preview_file_not_found(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    from app.routers import data as data_module
+
+    def fake_preview(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("Import file not found.")
+
+    monkeypatch.setattr(data_module, "preview_import", fake_preview)
+
+    resp = client.post(
+        "/api/data/import/preview",
+        json={"file_id": "missing", "mapping": {}},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Import file not found."

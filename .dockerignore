@@ -1,0 +1,21 @@
+# Exclude everything from the Docker context by default.
+# The backend image is built from the repository root because uv keeps the
+# workspace lockfile at the root level.
+*
+
+# Workspace dependency files
+!pyproject.toml
+!uv.lock
+
+# Backend source and config
+!backend/
+!backend/pyproject.toml
+!backend/alembic.ini
+!backend/alembic/
+!backend/alembic/**
+!backend/app/
+!backend/app/**
+!backend/entrypoint.sh
+
+# Do not ship test code in the image
+backend/tests/

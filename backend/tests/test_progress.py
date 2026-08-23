@@ -31,7 +31,7 @@ def test_create_progress_page_exceeds_page_count(client: TestClient) -> None:
 def test_create_progress_wrong_user_returns_404(client: TestClient, create_user_with_key: Callable[..., Any]) -> None:
     book = _create_book(client)
     _user2, key2 = create_user_with_key(email="other@example.com")
-    with TestClient(client.app) as c2:  # type: ignore[arg-type]
+    with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key2})
         resp = c2.post(f"/api/books/{book['id']}/progress", json={"page": 10})
         assert resp.status_code == 404
@@ -73,7 +73,7 @@ def test_delete_progress_entry_wrong_user_returns_404(client: TestClient, create
     book = _create_book(client)
     entry = client.post(f"/api/books/{book['id']}/progress", json={"page": 10}).json()
     _user2, key2 = create_user_with_key(email="other@example.com")
-    with TestClient(client.app) as c2:  # type: ignore[arg-type]
+    with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key2})
         resp = c2.delete(f"/api/books/{book['id']}/progress/{entry['id']}")
         assert resp.status_code == 404
@@ -149,7 +149,7 @@ def test_update_progress_entry_wrong_user_returns_404(client: TestClient, create
     book = _create_book(client)
     entry = client.post(f"/api/books/{book['id']}/progress", json={"page": 10}).json()
     _user2, key2 = create_user_with_key(email="other@example.com")
-    with TestClient(client.app) as c2:  # type: ignore[arg-type]
+    with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key2})
         resp = c2.patch(
             f"/api/books/{book['id']}/progress/{entry['id']}",

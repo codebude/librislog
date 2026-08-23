@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -24,7 +24,7 @@ _THALIA_SEMAPHORE: asyncio.Semaphore = asyncio.Semaphore(3)
 _THALIA_FETCHER_CLASS: object = None
 
 
-def _get_thalia_fetcher_class() -> object:
+def _get_thalia_fetcher_class() -> Any:
     """Lazily import and configure the Scrapling Fetcher for Thalia.de."""
     global _THALIA_FETCHER_CLASS
     if _THALIA_FETCHER_CLASS is None:
@@ -41,7 +41,7 @@ def _get_thalia_fetcher_class() -> object:
     return _THALIA_FETCHER_CLASS
 
 
-def _extract_css_adaptive(page: object, selector: str, attr: str | None = None) -> str | None:
+def _extract_css_adaptive(page: Any, selector: str, attr: str | None = None) -> str | None:
     """Extract a CSS value with adaptive fallback.
 
     First tries exact selector with ``auto_save`` (to refresh stored fingerprint).

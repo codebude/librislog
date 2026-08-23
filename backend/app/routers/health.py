@@ -40,7 +40,7 @@ async def health(db_session: Session = Depends(get_session)) -> dict:
     db_ok = True
     db_detail = None
     try:
-        db_session.execute(text("SELECT 1"))
+        db_session.connection().execute(text("SELECT 1"))
     except Exception as exc:
         db_ok = False
         db_detail = str(exc)
@@ -53,6 +53,8 @@ async def health(db_session: Session = Depends(get_session)) -> dict:
     schema_detail = None
     try:
         inspector = inspect(db_session.bind)
+        if inspector is None:
+            raise RuntimeError("Engine binding returned no inspector")
         existing = set(inspector.get_table_names())
         required = {"user", "book"}
         missing = required - existing

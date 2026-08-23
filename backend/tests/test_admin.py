@@ -55,6 +55,7 @@ def admin_client_with_file_db(tmp_path: Path, monkeypatch: MonkeyPatch) -> Gener
         session.add(user)
         session.commit()
         session.refresh(user)
+        assert user.id is not None
 
         session.add(UserSettings(user_id=user.id, language="en"))
 

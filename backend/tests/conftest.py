@@ -47,6 +47,7 @@ def client_fixture(session: Session) -> Generator[TestClient, None, None]:
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     session.add(UserSettings(user_id=user.id, language="en"))
     session.add(
@@ -92,6 +93,7 @@ def create_user_with_key_fixture(session: Session):
         session.add(user)
         session.commit()
         session.refresh(user)
+        assert user.id is not None
 
         session.add(UserSettings(user_id=user.id, language="en"))
         session.add(

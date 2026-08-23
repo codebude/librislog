@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.models import Book, BookTag, Tag
 from app.schemas import BookRead
@@ -57,7 +57,7 @@ def sync_book_tags(session: Session, user_id: int, book_id: int, raw_tags: str |
         return
 
     existing_tags = list(
-        session.exec(select(Tag).where(Tag.user_id == user_id, Tag.name.in_(parsed))).all()
+        session.exec(select(Tag).where(Tag.user_id == user_id, col(Tag.name).in_(parsed))).all()
     )
     name_to_tag = {tag.name: tag for tag in existing_tags}
 
@@ -69,7 +69,11 @@ def sync_book_tags(session: Session, user_id: int, book_id: int, raw_tags: str |
         session.flush()
         name_to_tag[name] = tag
 
-    target_tag_ids = {name_to_tag[name].id for name in parsed if name_to_tag[name].id is not None}
+    target_tag_ids: set[int] = set()
+    for name in parsed:
+        tag_id = name_to_tag[name].id
+        if tag_id is not None:
+            target_tag_ids.add(tag_id)
 
     for tag_id in target_tag_ids - existing_tag_ids:
         session.add(BookTag(book_id=book_id, tag_id=tag_id))
@@ -93,9 +97,9 @@ def tags_text_for_book(session: Session, book_id: int) -> str | None:
     names = list(
         session.exec(
             select(Tag.name)
-            .join(BookTag, BookTag.tag_id == Tag.id)
+            .join(BookTag, col(BookTag.tag_id) == col(Tag.id))
             .where(BookTag.book_id == book_id)
-            .order_by(Tag.name.asc())
+            .order_by(col(Tag.name).asc())
         ).all()
     )
     if not names:
@@ -112,9 +116,9 @@ def load_tags_batch(session: Session, book_ids: list[int]) -> dict[int, str | No
         return {}
     rows = session.exec(
         select(BookTag.book_id, Tag.name)
-        .join(Tag, Tag.id == BookTag.tag_id)
-        .where(BookTag.book_id.in_(book_ids))
-        .order_by(BookTag.book_id, Tag.name.asc())
+        .join(Tag, col(Tag.id) == col(BookTag.tag_id))
+        .where(col(BookTag.book_id).in_(book_ids))
+        .order_by(col(BookTag.book_id), col(Tag.name).asc())
     ).all()
     result: dict[int, list[str]] = {}
     for book_id, tag_name in rows:
