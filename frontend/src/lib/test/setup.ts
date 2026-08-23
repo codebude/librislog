@@ -57,6 +57,8 @@ vi.mock('$app/stores', async () => {
 
 vi.mock('$app/navigation', () => ({
 	goto: () => Promise.resolve(),
+	pushState: () => {},
+	replaceState: () => {},
 	beforeNavigate: () => {},
 	afterNavigate: () => {},
 	onNavigate: () => () => {}
