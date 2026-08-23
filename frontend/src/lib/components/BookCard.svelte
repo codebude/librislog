@@ -39,7 +39,7 @@
 	class="card bg-base-100 rounded-2xl {compact ? 'shadow-sm' : 'shadow-sm hover:shadow-md'} transition-shadow duration-300 cursor-pointer w-full text-left"
 	onclick={() => onClick(book)}
 >
-	<figure class="aspect-[2/3] bg-base-200 overflow-hidden {compact ? 'm-2 mb-0 rounded-lg' : 'm-4 mb-0 rounded-xl'}">
+	<figure class="aspect-[2/3] bg-base-200 overflow-hidden {compact ? 'm-2 mb-0 rounded-lg' : 'm-4 mb-0 rounded-xl'} relative">
 		{#if book.cover_url}
 			<img
 				src={book.cover_url}
@@ -51,6 +51,15 @@
 				<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
 				</svg>
+			</div>
+		{/if}
+		{#if book.acquisition_status === 'to_acquire'}
+			<div
+				class="absolute z-10 rounded-full bg-primary text-primary-content shadow-sm {compact ? 'top-1 right-1 p-1' : 'top-2 right-2 p-1.5'}"
+				aria-label={$_('acquisition.to_acquire')}
+				title={$_('acquisition.to_acquire')}
+			>
+				<ShoppingCart class={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
 			</div>
 		{/if}
 	</figure>

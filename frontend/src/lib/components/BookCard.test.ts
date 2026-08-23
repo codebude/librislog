@@ -37,7 +37,44 @@ describe('BookCard', () => {
 			}
 		});
 
-		expect(screen.getByLabelText('Needs to be acquired')).toBeInTheDocument();
+		expect(screen.getAllByLabelText('Needs to be acquired')).toHaveLength(2);
+	});
+
+	it('shows a cart badge on the cover for books to acquire', () => {
+		render(BookCard, {
+			props: {
+				book: mockBook({ reading_status: 'want_to_read', acquisition_status: 'to_acquire' }),
+				onClick: vi.fn()
+			}
+		});
+
+		const badges = screen.getAllByLabelText('Needs to be acquired');
+		expect(badges.some((el) => el.classList.contains('absolute'))).toBe(true);
+	});
+
+	it('uses a smaller cart badge in compact mode', () => {
+		render(BookCard, {
+			props: {
+				book: mockBook({ reading_status: 'want_to_read', acquisition_status: 'to_acquire' }),
+				onClick: vi.fn(),
+				compact: true
+			}
+		});
+
+		const badge = screen.getAllByLabelText('Needs to be acquired').find((el) => el.classList.contains('absolute'));
+		expect(badge).toBeInTheDocument();
+		expect(badge?.querySelector('svg')).toHaveClass('w-3.5');
+	});
+
+	it('does not show a cart badge for owned books', () => {
+		render(BookCard, {
+			props: {
+				book: mockBook({ reading_status: 'want_to_read', acquisition_status: 'owned' }),
+				onClick: vi.fn()
+			}
+		});
+
+		expect(screen.queryByLabelText('Needs to be acquired')).not.toBeInTheDocument();
 	});
 	it('renders title and author', () => {
 		render(BookCard, { props: { book: mockBook(), onClick: vi.fn() } });
