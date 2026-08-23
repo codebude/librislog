@@ -15,6 +15,7 @@ The most common way to add books is by searching external sources:
    - **Google Books** (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
    - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set — see [API Keys](/guide/api-keys))
 4. Select a result to import with full metadata and cover
+5. Choose an availability value (owned, borrowed, digital access, or to acquire) before saving
 
 ### ISBN Barcode Scan
 
@@ -22,10 +23,11 @@ On mobile devices:
 1. Tap the scan button in the import dialog
 2. Point the camera at an ISBN barcode
 3. The app detects the barcode and searches automatically
+4. Pick the search result and select an availability value before saving
 
 ### Manual Entry
 
-If no search results are found, enter book details manually. All fields are optional except title.
+If no search results are found, enter book details manually. Title, author, page count, and availability are required; all other fields are optional.
 
 ## Data Export
 
@@ -71,6 +73,8 @@ When importing CSV, map source columns to LibrisLog fields:
 - Source field dropdown shows all columns from the CSV
 - Target field shows available LibrisLog properties
 - Optional transform expressions (Python) for data conversion
+
+`acquisition_status` is required for imports. Map it to one of `owned`, `borrowed`, `digital_access`, or `to_acquire`; use a transform when the source file uses different names.
 
 ### Transform DSL
 

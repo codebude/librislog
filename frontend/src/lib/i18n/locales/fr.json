@@ -25,6 +25,7 @@
     "mostPopularLanguage": "Langue la plus fréquente",
     "languageDistribution": "Livres par langue",
     "statusDistribution": "Livres par statut",
+    "acquisitionStatusDistribution": "Livres par possession",
     "pageBuckets": "Statistiques de pages",
     "pagesToRead": "Pages à lire",
     "pagesRead": "Pages lues",
@@ -84,6 +85,7 @@
     "did_not_finish": "Abandonné"
   },
   "common": {
+    "all": "Tous",
     "optional": "optionnel",
     "search": "Rechercher",
     "searchBooks": "Rechercher des livres...",
@@ -143,6 +145,12 @@
     "blurb": "Description",
     "about": "À propos",
     "dateStarted": "Date de début",
+    "acquisitionStatus": "Disponibilité",
+    "selectAcquisitionStatus": "Choisir la disponibilité...",
+    "startDatePromptTitle": "Définir une date de début ?",
+    "startDatePromptMessage": "Ce livre n'a pas de date de début. Définissez-la à aujourd'hui ou choisissez une autre date avant de le marquer comme lu.",
+    "startDatePromptSet": "Définir la date de début",
+    "startDatePromptSkip": "Laisser vide",
     "dateFinished": "Date de fin",
     "cover": "Couverture",
     "coverForAuthor": "Couverture {index} de {author}",
@@ -272,6 +280,12 @@
       "keepDesc": "Conserve la date de fin ({finishedDate}) et ne définit pas de date de début.",
       "clearDesc": "Supprime la date de fin et définit aujourd'hui ({newStartDate}) comme date de début."
     }
+  },
+  "acquisition": {
+    "owned": "Possédé",
+    "borrowed": "Emprunté",
+    "digital_access": "Accès numérique",
+    "to_acquire": "À acquérir"
   },
   "search": {
     "resultsCount": "{count, plural, one {résultat} other {résultats}} trouvés",

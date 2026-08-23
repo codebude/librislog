@@ -14,8 +14,9 @@ from sqlmodel import Session, select
 
 from app.auth import require_user
 from app.database import get_session
-from app.models import Book, ReadingProgress, ReadingStatus, User, UserSettings
+from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User, UserSettings
 from app.schemas import (
+    AcquisitionStatusDistribution,
     DailyPages,
     DailyPagesResponse,
     LanguageDistribution,
@@ -357,6 +358,14 @@ def get_statistics(
         did_not_finish=status_counts.get(ReadingStatus.did_not_finish, 0),
     )
 
+    acquisition_counts = Counter(book.acquisition_status for book in books)
+    acquisition_status_distribution = AcquisitionStatusDistribution(
+        owned=acquisition_counts.get(AcquisitionStatus.owned, 0),
+        borrowed=acquisition_counts.get(AcquisitionStatus.borrowed, 0),
+        digital_access=acquisition_counts.get(AcquisitionStatus.digital_access, 0),
+        to_acquire=acquisition_counts.get(AcquisitionStatus.to_acquire, 0),
+    )
+
     page_values = [book.page_count for book in books if book.page_count is not None]
     avg_page_count = round(mean(page_values), 2) if page_values else None
 
@@ -584,6 +593,7 @@ def get_statistics(
         most_popular_language_count=most_popular_language_count,
         language_distribution=language_distribution,
         status_distribution=status_distribution,
+        acquisition_status_distribution=acquisition_status_distribution,
         page_buckets=page_buckets,
         pages_read_per_month=pages_read_per_month,
         books_finished_per_month=books_finished_per_month,

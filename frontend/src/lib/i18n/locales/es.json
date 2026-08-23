@@ -25,6 +25,7 @@
     "mostPopularLanguage": "Idioma más frecuente",
     "languageDistribution": "Libros por idioma",
     "statusDistribution": "Libros por estado",
+    "acquisitionStatusDistribution": "Libros por propiedad",
     "pageBuckets": "Estadísticas de páginas",
     "pagesToRead": "Páginas por leer",
     "pagesRead": "Páginas leídas",
@@ -84,6 +85,7 @@
     "did_not_finish": "Abandonado"
   },
   "common": {
+    "all": "Todos",
     "optional": "opcional",
     "search": "Buscar",
     "searchBooks": "Buscar libros...",
@@ -143,6 +145,12 @@
     "blurb": "Descripción",
     "about": "Acerca de",
     "dateStarted": "Fecha de inicio",
+    "acquisitionStatus": "Disponibilidad",
+    "selectAcquisitionStatus": "Selecciona disponibilidad...",
+    "startDatePromptTitle": "¿Establecer fecha de inicio?",
+    "startDatePromptMessage": "Este libro no tiene fecha de inicio. Establécela en hoy o elige otra fecha antes de marcarlo como leído.",
+    "startDatePromptSet": "Establecer fecha de inicio",
+    "startDatePromptSkip": "Mantener vacía",
     "dateFinished": "Fecha de finalización",
     "cover": "Portada",
     "coverForAuthor": "Portada {index} de {author}",
@@ -272,6 +280,12 @@
       "keepDesc": "Conserva la fecha de finalización ({finishedDate}) y no establece una fecha de inicio.",
       "clearDesc": "Elimina la fecha de finalización y establece hoy ({newStartDate}) como fecha de inicio."
     }
+  },
+  "acquisition": {
+    "owned": "En propiedad",
+    "borrowed": "Prestado",
+    "digital_access": "Acceso digital",
+    "to_acquire": "Necesita adquirirse"
   },
   "search": {
     "resultsCount": "{count, plural, one {resultado} other {resultados}} encontrados",

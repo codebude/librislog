@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Book, BookImportCandidate, ReadingStatus, SearchStage } from '$lib/types';
+	import type { AcquisitionStatus, Book, BookImportCandidate, ReadingStatus, SearchStage } from '$lib/types';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -31,6 +31,7 @@
 	let lastHandledScannedIsbn = $state<string | null>(null);
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
+	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
 	let hasOlResults = $derived(results.some((r) => r.source === 'open_library'));
 
 	onMount(async () => {
@@ -222,10 +223,11 @@
 	}
 
 	async function importBook(candidate: BookImportCandidate, status: ReadingStatus) {
+		if (!acquisitionStatus) return;
 		const key = candidate.isbn ?? candidate.title;
 		importing = key;
 		try {
-			const book = await api.import.importBook(candidate, status);
+			const book = await api.import.importBook(candidate, status, acquisitionStatus);
 			markAsImported(book);
 			onImport?.(book);
 		} catch (e: unknown) {
@@ -307,6 +309,17 @@
 		</p>
 	{/if}
 
+	<label class="flex flex-col gap-1 text-sm">
+		<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+		<select class="select select-bordered select-sm" name="acquisition_status" bind:value={acquisitionStatus}>
+			<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+			<option value="owned">{$_('acquisition.owned')}</option>
+			<option value="borrowed">{$_('acquisition.borrowed')}</option>
+			<option value="digital_access">{$_('acquisition.digital_access')}</option>
+			<option value="to_acquire">{$_('acquisition.to_acquire')}</option>
+		</select>
+	</label>
+
 	{#if results.length === 0 && !searching && stages.length === 0}
 		<p class="text-base-content/50 text-sm text-center py-4">{$_('import.noResultsYet')}</p>
 	{:else if results.length === 0 && !searching && stages.length > 0}
@@ -360,7 +373,7 @@
 				<div class="flex flex-col gap-1">
 					<button
 						class="btn btn-xs {alreadyImported ? 'btn-success btn-outline' : 'btn-primary'}"
-						disabled={alreadyImported || importing === key}
+						disabled={alreadyImported || importing === key || !acquisitionStatus}
 						title={alreadyImported ? $_('import.alreadyImported') : ''}
 						onclick={() => importBook(candidate, 'want_to_read')}
 					>

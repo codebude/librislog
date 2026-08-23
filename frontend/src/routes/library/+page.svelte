@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { Book, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
+	import type { AcquisitionStatus, Book, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { page } from '$app/stores';
@@ -70,6 +70,7 @@
 	}
 	let totalCount = $state(0);
 	let searchQuery = $state('');
+	let acquisitionFilter = $state<AcquisitionStatus | ''>('');
 	let smartSort = $state(true);
 	let sort = $state<SortField>('date_added');
 	let order = $state<SortOrder>('desc');
@@ -155,6 +156,7 @@
 		try {
 			const response = await api.books.list({
 				status: activeStatus,
+				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
 				sort,
@@ -188,6 +190,7 @@
 		try {
 			const response = await api.books.list({
 				status: activeStatus,
+				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
 				sort,
@@ -220,6 +223,7 @@
 		void smartSort;
 		void sort;
 		void order;
+		void acquisitionFilter;
 		fetchBooks();
 	});
 
@@ -255,6 +259,10 @@
 			books = books.map((b) => (b.id === updated.id ? updated : b));
 		}
 		void refreshStatusCounts();
+	}
+
+	function handleProgressChange(bookId: number, currentPage: number) {
+		progressMap = { ...progressMap, [bookId]: currentPage };
 	}
 
 	function handleDelete(id: number) {
@@ -317,6 +325,18 @@
 			</button>
 		{/each}
 	</div>
+	{#if activeStatus === 'want_to_read'}
+		<label class="flex items-center gap-2 text-sm">
+			<span>{$_('book.acquisitionStatus')}</span>
+			<select class="select select-bordered select-sm pr-8 min-w-fit" name="acquisition_filter" bind:value={acquisitionFilter}>
+				<option value="">{$_('common.all')}</option>
+				<option value="owned">{$_('acquisition.owned')}</option>
+				<option value="borrowed">{$_('acquisition.borrowed')}</option>
+				<option value="digital_access">{$_('acquisition.digital_access')}</option>
+				<option value="to_acquire">{$_('acquisition.to_acquire')}</option>
+			</select>
+		</label>
+	{/if}
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-4">
 		<h1 class="text-xl font-bold">{$_(STATUS_LABEL_KEYS[activeStatus])}</h1>
@@ -383,14 +403,14 @@
 				<span class="label-text text-xs">{$_('sort.smart')}</span>
 				<input type="checkbox" class="toggle toggle-xs" name="smart-sort" bind:checked={smartSort} />
 			</label>
-			<select class="select select-bordered select-xs" name="sort-field" bind:value={sort} disabled={smartSort}>
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-field" bind:value={sort} disabled={smartSort}>
 				<option value="date_added">{$_('common.dateAdded')}</option>
 				<option value="title">{$_('book.title')}</option>
 				<option value="date_started">{$_('book.dateStarted')}</option>
 				<option value="date_finished">{$_('book.dateFinished')}</option>
 				<option value="rating">{$_('common.rating')}</option>
 			</select>
-			<select class="select select-bordered select-xs" name="sort-order" bind:value={order} disabled={smartSort}>
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-order" bind:value={order} disabled={smartSort}>
 				<option value="desc">{$_('common.desc')}</option>
 				<option value="asc">{$_('common.asc')}</option>
 			</select>
@@ -441,7 +461,13 @@
 	{/if}
 </div>
 
-<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
+<BookDetailDialog
+	bind:book={selectedBook}
+	bind:open={detailOpen}
+	onEdit={openEditFromDetail}
+	onDelete={handleDelete}
+	onProgress={handleProgressChange}
+/>
 
 <BookDrawer
 	bind:book={selectedBook}

@@ -261,6 +261,7 @@ def validate_import_data(
         payload = validate_import(
             body.file_id, current_user, body.mapping, session,
             create_progress_for_read=body.create_progress_for_read,
+            require_acquisition_status=True,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -274,7 +275,7 @@ def preview_import_data(
 ) -> DataImportPreviewResponse:
     """Preview how a mapping and transforms will affect the first rows."""
     try:
-        payload = preview_import(body.file_id, current_user, body.mapping)
+        payload = preview_import(body.file_id, current_user, body.mapping, require_acquisition_status=True)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return DataImportPreviewResponse.model_validate(payload)
@@ -302,6 +303,7 @@ async def execute_import_data(
                     session=session,
                     import_mode=body.import_mode,
                     create_progress_for_read=body.create_progress_for_read,
+                    require_acquisition_status=True,
                 ):
                     if event.get("event") == "complete":
                         completed = True

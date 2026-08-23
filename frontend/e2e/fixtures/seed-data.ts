@@ -15,6 +15,7 @@ export interface SeedBook {
 	tags?: string;
 	date_started?: string;
 	date_finished?: string;
+	acquisition_status?: 'owned' | 'borrowed' | 'digital_access' | 'to_acquire';
 }
 
 export const SEED_BOOKS: SeedBook[] = [

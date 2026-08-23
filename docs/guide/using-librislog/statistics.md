@@ -29,6 +29,14 @@ A stacked bar showing how your library is divided among the four reading statuse
 - Read (green)
 - Did Not Finish (red)
 
+### Acquisition Status Distribution
+
+A stacked bar showing how your library is divided among the four acquisition (ownership) statuses:
+- Owned
+- Borrowed
+- Digital Access
+- Needs to be acquired
+
 ### Page Buckets
 
 A stacked bar showing:

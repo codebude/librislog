@@ -48,6 +48,7 @@ def test_create_book_with_all_fields(client: TestClient) -> None:
         "notes": "A classic",
         "rating": 5,
         "reading_status": "read",
+        "acquisition_status": "borrowed",
         "date_started": "2024-01-01",
         "date_finished": "2024-01-15",
     }
@@ -59,6 +60,15 @@ def test_create_book_with_all_fields(client: TestClient) -> None:
     assert data["language"] == "EN"
     assert data["rating"] == 5
     assert data["reading_status"] == "read"
+    assert data["acquisition_status"] == "borrowed"
+
+
+def test_create_book_invalid_acquisition_status_returns_422(client: TestClient) -> None:
+    resp = client.post(
+        "/api/books",
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "acquisition_status": "unknown"},
+    )
+    assert resp.status_code == 422
 
 
 def test_create_book_missing_title_returns_422(client: TestClient) -> None:
@@ -100,6 +110,16 @@ def test_list_books_filter_by_status(client: TestClient) -> None:
     body = resp.json()
     assert body["total"] == 1
     assert body["books"][0]["title"] == "Reading"
+
+
+def test_list_books_filter_by_acquisition_status(client: TestClient) -> None:
+    _create_book(client, title="Owned", acquisition_status="owned")
+    _create_book(client, title="To Acquire", acquisition_status="to_acquire")
+
+    resp = client.get("/api/books?acquisition_status=to_acquire")
+
+    assert resp.status_code == 200
+    assert [book["title"] for book in resp.json()["books"]] == ["To Acquire"]
 
 
 def test_list_books_search_by_title(client: TestClient) -> None:

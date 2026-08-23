@@ -267,9 +267,24 @@ def test_validate_mapping_transform_invalid() -> None:
 
 
 def test_validate_mapping_transform_valid() -> None:
-    mapping = {"title": ImportFieldConfig(source="A", transform="value.upper()")}
-    warnings, errors = di._validate_mapping(mapping, {"A"})
+    mapping = {
+        "title": ImportFieldConfig(source="A", transform="value.upper()"),
+        "acquisition_status": ImportFieldConfig(source="B"),
+    }
+    warnings, errors = di._validate_mapping(mapping, {"A", "B"})
     assert len(errors) == 0
+
+
+def test_validate_mapping_requires_acquisition_status() -> None:
+    _warnings, errors = di._validate_mapping(
+        {"title": ImportFieldConfig(source="A")}, {"A"}, require_acquisition_status=True
+    )
+    assert "Mapping missing required field: acquisition_status" in errors
+
+
+def test_parse_acquisition_status_rejects_invalid_value() -> None:
+    with pytest.raises(ValueError, match="acquisition_status"):
+        di._parse_acquisition_status("wishlist")
 
 
 # ── preview_import ────────────────────────────────────────────────────────────

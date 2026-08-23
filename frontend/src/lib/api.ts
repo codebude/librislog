@@ -31,6 +31,7 @@ import type {
 	StatusTransitionResponse,
 	ImportSearchMode,
 	ReadingStatus,
+	AcquisitionStatus,
 	SearchStage,
 	TagCloudEntry,
 	SortField,
@@ -329,6 +330,7 @@ export const api = {
 
 		list(params?: {
 			status?: ReadingStatus;
+			acquisition_status?: AcquisitionStatus;
 			q?: string;
 			has_cover?: boolean;
 			sort?: SortField;
@@ -339,6 +341,7 @@ export const api = {
 		}): Promise<BookListResponse> {
 			const qs = new URLSearchParams();
 			if (params?.status) qs.set('status', params.status);
+			if (params?.acquisition_status) qs.set('acquisition_status', params.acquisition_status);
 			if (params?.q) qs.set('q', params.q);
 			if (params?.has_cover !== undefined) qs.set('has_cover', String(params.has_cover));
 			if (params?.sort) qs.set('sort', params.sort);
@@ -465,10 +468,10 @@ export const api = {
 			);
 		},
 
-		importBook(candidate: BookImportCandidate, status: ReadingStatus = 'want_to_read'): Promise<Book> {
+		importBook(candidate: BookImportCandidate, status: ReadingStatus, acquisitionStatus: AcquisitionStatus): Promise<Book> {
 			return request<Book>('/import', {
 				method: 'POST',
-				body: JSON.stringify({ candidate, reading_status: status })
+				body: JSON.stringify({ candidate, reading_status: status, acquisition_status: acquisitionStatus })
 			});
 		},
 
