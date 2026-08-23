@@ -328,7 +328,7 @@
 	{#if activeStatus === 'want_to_read'}
 		<label class="flex items-center gap-2 text-sm">
 			<span>{$_('book.acquisitionStatus')}</span>
-			<select class="select select-bordered select-sm" name="acquisition_filter" bind:value={acquisitionFilter}>
+			<select class="select select-bordered select-sm pr-8 min-w-fit" name="acquisition_filter" bind:value={acquisitionFilter}>
 				<option value="">{$_('common.all')}</option>
 				<option value="owned">{$_('acquisition.owned')}</option>
 				<option value="borrowed">{$_('acquisition.borrowed')}</option>
@@ -403,14 +403,14 @@
 				<span class="label-text text-xs">{$_('sort.smart')}</span>
 				<input type="checkbox" class="toggle toggle-xs" name="smart-sort" bind:checked={smartSort} />
 			</label>
-			<select class="select select-bordered select-xs" name="sort-field" bind:value={sort} disabled={smartSort}>
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-field" bind:value={sort} disabled={smartSort}>
 				<option value="date_added">{$_('common.dateAdded')}</option>
 				<option value="title">{$_('book.title')}</option>
 				<option value="date_started">{$_('book.dateStarted')}</option>
 				<option value="date_finished">{$_('book.dateFinished')}</option>
 				<option value="rating">{$_('common.rating')}</option>
 			</select>
-			<select class="select select-bordered select-xs" name="sort-order" bind:value={order} disabled={smartSort}>
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-order" bind:value={order} disabled={smartSort}>
 				<option value="desc">{$_('common.desc')}</option>
 				<option value="asc">{$_('common.asc')}</option>
 			</select>
