@@ -38,6 +38,12 @@ def test_statistics_empty_library(client: Any) -> None:
         "read": 0,
         "did_not_finish": 0,
     }
+    assert data["acquisition_status_distribution"] == {
+        "owned": 0,
+        "borrowed": 0,
+        "digital_access": 0,
+        "to_acquire": 0,
+    }
     assert data["page_buckets"] == {"pages_to_read": 0, "pages_read": 0, "pages_wasted": 0}
     assert data["pages_read_per_month"] == []
     assert data["books_finished_per_month"] == []
@@ -113,6 +119,40 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert "/api/covers/a2.jpg" in top_a_cover_urls
     assert data["top_authors"][1]["author"] == "Author B"
     assert data["top_authors"][1]["book_count"] == 2
+
+
+def test_statistics_acquisition_status_distribution(client: Any) -> None:
+    _create_book(client, title="Owned 1", acquisition_status="owned")
+    _create_book(client, title="Owned 2", acquisition_status="owned")
+    _create_book(client, title="Borrowed 1", acquisition_status="borrowed")
+    _create_book(client, title="Digital 1", acquisition_status="digital_access")
+    _create_book(client, title="To Acquire 1", acquisition_status="to_acquire")
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["acquisition_status_distribution"] == {
+        "owned": 2,
+        "borrowed": 1,
+        "digital_access": 1,
+        "to_acquire": 1,
+    }
+
+
+def test_statistics_acquisition_status_defaults_to_owned(client: Any) -> None:
+    _create_book(client, title="Default 1")
+    _create_book(client, title="Default 2")
+    _create_book(client, title="Borrowed 1", acquisition_status="borrowed")
+
+    resp = client.get("/api/statistics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["acquisition_status_distribution"] == {
+        "owned": 2,
+        "borrowed": 1,
+        "digital_access": 0,
+        "to_acquire": 0,
+    }
 
 
 def test_statistics_top_authors_limit_and_tiebreaker(client: Any) -> None:

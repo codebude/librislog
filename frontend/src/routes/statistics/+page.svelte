@@ -125,6 +125,16 @@
 		].filter((item) => item.value > 0);
 	});
 
+	const acquisitionSegments = $derived.by<Segment[]>(() => {
+		if (!stats) return [];
+		return [
+			{ label: $_('acquisition.owned'), value: stats.acquisition_status_distribution.owned, className: 'bg-primary' },
+			{ label: $_('acquisition.borrowed'), value: stats.acquisition_status_distribution.borrowed, className: 'bg-secondary' },
+			{ label: $_('acquisition.digital_access'), value: stats.acquisition_status_distribution.digital_access, className: 'bg-info' },
+			{ label: $_('acquisition.to_acquire'), value: stats.acquisition_status_distribution.to_acquire, className: 'bg-warning' }
+		].filter((item) => item.value > 0);
+	});
+
 	const pageSegments = $derived.by<Segment[]>(() => {
 		if (!stats) return [];
 		return [
@@ -291,29 +301,52 @@
 					</div>
 				</div>
 			</div>
-		</div>
 
-		<div class="card bg-base-100 border border-base-200 shadow-sm">
-			<div class="card-body">
-				<h2 class="card-title text-base">{$_('statistics.pageBuckets')}</h2>
-				<div role="img" aria-label={$_('statistics.pageBuckets')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
-					{#if total(pageSegments) === 0}
-						<div class="w-full h-full"></div>
-					{:else}
-						{#each pageSegments as segment}
-							<div class={`h-full ${segment.className}`} style={`width:${safePercentage(segment.value, total(pageSegments))}%`}></div>
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body">
+					<h2 class="card-title text-base">{$_('statistics.acquisitionStatusDistribution')}</h2>
+					<div role="img" aria-label={$_('statistics.acquisitionStatusDistribution')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
+						{#if total(acquisitionSegments) === 0}
+							<div class="w-full h-full"></div>
+						{:else}
+							{#each acquisitionSegments as segment}
+								<div class={`h-full ${segment.className}`} style={`width:${safePercentage(segment.value, total(acquisitionSegments))}%`}></div>
+							{/each}
+						{/if}
+					</div>
+					<div class="flex flex-wrap gap-3 text-sm">
+						{#each acquisitionSegments as segment}
+							<div class="flex items-center gap-2">
+								<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
+								<span>{segment.label}: {formatNumber(segment.value, 0)}</span>
+							</div>
 						{/each}
-					{/if}
+					</div>
 				</div>
-				<div class="flex flex-wrap gap-3 text-sm">
-					{#each pageSegments as segment}
-						<div class="flex items-center gap-2">
-							<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
-							<span>{segment.label}: {formatNumber(segment.value, 0)}</span>
-						</div>
-					{/each}
+			</div>
+
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body">
+					<h2 class="card-title text-base">{$_('statistics.pageBuckets')}</h2>
+					<div role="img" aria-label={$_('statistics.pageBuckets')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
+						{#if total(pageSegments) === 0}
+							<div class="w-full h-full"></div>
+						{:else}
+							{#each pageSegments as segment}
+								<div class={`h-full ${segment.className}`} style={`width:${safePercentage(segment.value, total(pageSegments))}%`}></div>
+							{/each}
+						{/if}
+					</div>
+					<div class="flex flex-wrap gap-3 text-sm">
+						{#each pageSegments as segment}
+							<div class="flex items-center gap-2">
+								<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
+								<span>{segment.label}: {formatNumber(segment.value, 0)}</span>
+							</div>
+						{/each}
+					</div>
+					<p class="text-xs text-base-content/70">{$_('statistics.pagesWastedFootnote')}</p>
 				</div>
-				<p class="text-xs text-base-content/70">{$_('statistics.pagesWastedFootnote')}</p>
 			</div>
 		</div>
 

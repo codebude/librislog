@@ -113,6 +113,13 @@ export interface StatusDistribution {
 	did_not_finish: number;
 }
 
+export interface AcquisitionStatusDistribution {
+	owned: number;
+	borrowed: number;
+	digital_access: number;
+	to_acquire: number;
+}
+
 export interface PageBuckets {
 	pages_to_read: number;
 	pages_read: number;
@@ -165,6 +172,7 @@ export interface StatisticsResponse {
 	most_popular_language_count: number | null;
 	language_distribution: LanguageDistribution[];
 	status_distribution: StatusDistribution;
+	acquisition_status_distribution: AcquisitionStatusDistribution;
 	page_buckets: PageBuckets;
 	pages_read_per_month: MonthlyPages[];
 	books_finished_per_month: MonthlyBooks[];

@@ -193,6 +193,14 @@ class StatusDistribution(SQLModel):
     did_not_finish: int
 
 
+class AcquisitionStatusDistribution(SQLModel):
+    """Count of books per acquisition status."""
+    owned: int
+    borrowed: int
+    digital_access: int
+    to_acquire: int
+
+
 class PageBuckets(SQLModel):
     """Page count buckets for the statistics dashboard."""
     pages_to_read: int
@@ -253,6 +261,7 @@ class StatisticsResponse(SQLModel):
     most_popular_language_count: Optional[int]
     language_distribution: list[LanguageDistribution]
     status_distribution: StatusDistribution
+    acquisition_status_distribution: AcquisitionStatusDistribution
     page_buckets: PageBuckets
     pages_read_per_month: list[MonthlyPages]
     books_finished_per_month: list[MonthlyBooks]

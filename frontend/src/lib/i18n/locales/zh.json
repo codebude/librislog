@@ -25,6 +25,7 @@
     "mostPopularLanguage": "阅读最多的语言",
     "languageDistribution": "按语言分布",
     "statusDistribution": "按状态分布",
+    "acquisitionStatusDistribution": "按所有权分布",
     "pageBuckets": "页数统计",
     "pagesToRead": "待读页数",
     "pagesRead": "已读页数",

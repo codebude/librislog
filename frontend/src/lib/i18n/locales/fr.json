@@ -25,6 +25,7 @@
     "mostPopularLanguage": "Langue la plus fréquente",
     "languageDistribution": "Livres par langue",
     "statusDistribution": "Livres par statut",
+    "acquisitionStatusDistribution": "Livres par possession",
     "pageBuckets": "Statistiques de pages",
     "pagesToRead": "Pages à lire",
     "pagesRead": "Pages lues",

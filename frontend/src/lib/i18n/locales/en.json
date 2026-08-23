@@ -25,6 +25,7 @@
     "mostPopularLanguage": "Most Popular Language",
     "languageDistribution": "Books by Language",
     "statusDistribution": "Books by Status",
+    "acquisitionStatusDistribution": "Books by Ownership",
     "pageBuckets": "Page Statistics",
     "pagesToRead": "Pages to Read",
     "pagesRead": "Pages Read",
