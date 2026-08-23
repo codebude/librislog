@@ -12,7 +12,7 @@ from fastapi import Depends, Header, HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader
 from passlib.exc import UnknownHashError
 from passlib.context import CryptContext
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from itsdangerous import URLSafeTimedSerializer
 
@@ -27,7 +27,7 @@ if not hasattr(bcrypt, "__about__"):
         __version__: str = getattr(bcrypt, "__version__", "")
 
 
-    bcrypt.__about__ = _BcryptAbout()  # type: ignore[attr-defined]
+    bcrypt.__about__ = _BcryptAbout()  # ty: ignore[unresolved-attribute]
 
 bcrypt_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
 fallback_context: CryptContext = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -190,7 +190,7 @@ def require_user_by_api_key(
 
     key_hash = hash_api_key(x_api_key)
     key = session.exec(
-        select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.revoked_at.is_(None))
+        select(ApiKey).where(ApiKey.key_hash == key_hash, col(ApiKey.revoked_at).is_(None))
     ).first()
     if not key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")

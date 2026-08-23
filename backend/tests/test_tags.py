@@ -49,6 +49,7 @@ def test_sync_book_tags_adds_new_tags(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
 
     sync_book_tags(session, user_id, book.id, "fantasy, sci-fi")
 
@@ -67,6 +68,7 @@ def test_sync_book_tags_removes_removed_tags(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
 
     sync_book_tags(session, user_id, book.id, "fantasy, sci-fi")
     sync_book_tags(session, user_id, book.id, "fantasy")
@@ -86,6 +88,7 @@ def test_sync_book_tags_clears_all_when_empty(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
 
     sync_book_tags(session, user_id, book.id, "fantasy, sci-fi")
     sync_book_tags(session, user_id, book.id, None)
@@ -104,6 +107,7 @@ def test_sync_book_tags_reuses_existing_tags(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
 
     sync_book_tags(session, user_id, book.id, "fantasy")
 
@@ -133,6 +137,8 @@ def test_cleanup_orphan_tags_keeps_linked(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
+    assert tag.id is not None
     session.add(BookTag(book_id=book.id, tag_id=tag.id))
     session.flush()
 
@@ -148,6 +154,7 @@ def test_tags_text_for_book_returns_none_for_no_tags(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
 
     assert tags_text_for_book(session, book.id) is None
 
@@ -158,10 +165,12 @@ def test_tags_text_for_book_returns_comma_separated(session: Session) -> None:
     book = Book(title="Test", user_id=user_id)
     session.add(book)
     session.flush()
+    assert book.id is not None
     for name in ("fantasy", "sci-fi"):
         tag = Tag(user_id=user_id, name=name)
         session.add(tag)
         session.flush()
+        assert tag.id is not None
         session.add(BookTag(book_id=book.id, tag_id=tag.id))
     session.flush()
 

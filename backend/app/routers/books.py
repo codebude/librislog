@@ -179,20 +179,20 @@ def list_books(
         )
         base_statement = base_statement.where(
             or_(
-                Book.title.ilike(pattern),
-                Book.subtitle.ilike(pattern),
-                Book.author.ilike(pattern),
-                Book.blurb.ilike(pattern),
-                Book.id.in_(matching_tag_book_ids),
+                col(Book.title).ilike(pattern),
+                col(Book.subtitle).ilike(pattern),
+                col(Book.author).ilike(pattern),
+                col(Book.blurb).ilike(pattern),
+                col(Book.id).in_(matching_tag_book_ids),
             )
         )
 
     if has_cover is not None:
         if has_cover:
-            base_statement = base_statement.where(Book.cover_url.is_not(None), Book.cover_url != "")
+            base_statement = base_statement.where(col(Book.cover_url).is_not(None), Book.cover_url != "")
         else:
             base_statement = base_statement.where(
-                sa.or_(Book.cover_url.is_(None), Book.cover_url == "")
+                sa.or_(col(Book.cover_url).is_(None), col(Book.cover_url) == "")
             )
 
     total = session.exec(
@@ -218,7 +218,7 @@ def list_books(
         sort_col = Book.date_added
         sort_order = order
 
-    sort_expression = sort_col.desc() if sort_order == "desc" else sort_col.asc()
+    sort_expression = col(sort_col).desc() if sort_order == "desc" else col(sort_col).asc()
     if sort_col in (Book.date_started, Book.date_finished):
         sort_expression = sort_expression.nullslast()
 
@@ -306,13 +306,13 @@ def get_tag_cloud(
     session: Session = Depends(get_session),
 ) -> List[TagCloudEntry]:
     """Return tags sorted by usage count (descending) for the authenticated user."""
-    count_label = func.count(BookTag.book_id).label("cnt")
+    count_label = func.count(col(BookTag.book_id)).label("cnt")
     rows = session.exec(
         select(Tag.name, count_label)
-        .join(BookTag, BookTag.tag_id == Tag.id)
+        .join(BookTag, col(BookTag.tag_id) == col(Tag.id))
         .where(Tag.user_id == current_user.id)
-        .group_by(Tag.id)
-        .order_by(count_label.desc(), Tag.name.asc())
+        .group_by(col(Tag.id))
+        .order_by(count_label.desc(), col(Tag.name).asc())
         .limit(limit)
     ).all()
     return [TagCloudEntry(tag=name, count=count) for name, count in rows]
@@ -352,6 +352,7 @@ def suggest_authors(
     session: Session = Depends(get_session),
 ) -> SuggestionList:
     """Autocomplete author names from the user's existing books."""
+    assert current_user.id is not None
     suggestions = _suggest_field(session, current_user.id, "author", q, limit)
     return SuggestionList(suggestions=suggestions)
 
@@ -364,6 +365,7 @@ def suggest_publishers(
     session: Session = Depends(get_session),
 ) -> SuggestionList:
     """Autocomplete publisher names from the user's existing books."""
+    assert current_user.id is not None
     suggestions = _suggest_field(session, current_user.id, "publisher", q, limit)
     return SuggestionList(suggestions=suggestions)
 
@@ -383,7 +385,7 @@ def suggest_tags(
         select(Tag.name)
         .where(
             Tag.user_id == current_user.id,
-            Tag.name.ilike(pattern),
+            col(Tag.name).ilike(pattern),
         )
         .distinct()
         .order_by(Tag.name)
@@ -400,11 +402,12 @@ async def create_book(
 ) -> BookRead:
     """Create a new book, downloading the cover if an external URL is provided."""
     logger.debug("create_book — title=%r", book_in.title)
+    assert current_user.id is not None
 
     cover_url = book_in.cover_url
     if is_external_cover_url(cover_url):
         filename = await import_cover_from_url(
-            cover_url,
+            cover_url or "",
             settings.covers_dir,
             current_user.id,
             settings.cover_import_timeout_seconds,
@@ -464,6 +467,7 @@ async def update_book(
 ) -> BookRead:
     """Partially update a book, handling cover download and tag sync."""
     logger.debug("update_book — id=%s fields=%s", book_id, list(book_in.model_dump(exclude_unset=True)))
+    assert current_user.id is not None
     book = session.get(Book, book_id)
     if not book or book.user_id != current_user.id:
         logger.debug("update_book — id=%s not found", book_id)
@@ -516,6 +520,7 @@ async def update_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     if tags_provided:
+        assert book.id is not None
         sync_book_tags(session, current_user.id, book.id, tags_raw)
         cleanup_orphan_tags(session, current_user.id)
     try:
@@ -658,6 +663,7 @@ def delete_book(
 ) -> None:
     """Delete a book, its tags, progress entries, and orphaned cover files."""
     logger.debug("delete_book — id=%s", book_id)
+    assert current_user.id is not None
     book = session.get(Book, book_id)
     if not book or book.user_id != current_user.id:
         logger.debug("delete_book — id=%s not found", book_id)

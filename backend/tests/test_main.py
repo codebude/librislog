@@ -139,7 +139,7 @@ async def test_proxy_headers_middleware_sets_scheme_from_forwarded_proto() -> No
     async def scheme(request: Request):
         return {"scheme": request.url.scheme}
 
-    app.add_middleware(type(None), middleware=proxy_headers_middleware)  # noqa
+    app.add_middleware(type(None), middleware=proxy_headers_middleware)  # ty: ignore[invalid-argument-type]
 
     # We need to add the middleware as a pure "http" middleware, which isn't
     # directly doable via add_middleware. Instead, we test the logic directly.

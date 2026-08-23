@@ -29,7 +29,7 @@ def test_source_backend_error_without_status() -> None:
 
 def test_truncate_api_key_empty() -> None:
     assert bi._truncate_api_key("") == "<empty>"
-    assert bi._truncate_api_key(None) == "<empty>"
+    assert bi._truncate_api_key(None) == "<empty>"  # ty: ignore[invalid-argument-type]
 
 
 def test_truncate_api_key_short() -> None:
@@ -936,6 +936,7 @@ def test_map_hardcover_full() -> None:
         "contributions": [{"author": {"name": "Author"}}],
     }
     c = bi.map_hardcover(edition)
+    assert c is not None
     assert c.title == "Book"
     assert c.subtitle == "Subtitle"
     assert c.author == "Author"
@@ -960,6 +961,7 @@ def test_map_hardcover_invalid_release_date() -> None:
         "release_date": "not-a-date",
     }
     c = bi.map_hardcover(edition)
+    assert c is not None
     assert c.published_year is None
 
 
@@ -968,6 +970,7 @@ def test_map_hardcover_no_release_date() -> None:
         "title": "Book",
     }
     c = bi.map_hardcover(edition)
+    assert c is not None
     assert c.published_year is None
 
 
@@ -978,6 +981,7 @@ def test_map_hardcover_unsafe_cover_url(monkeypatch: pytest.MonkeyPatch) -> None
     }
     monkeypatch.setattr(bi, "is_safe_cover_import_url", lambda url: False)
     c = bi.map_hardcover(edition)
+    assert c is not None
     assert c.cover_url is None
 
 
@@ -987,6 +991,7 @@ def test_map_hardcover_no_author() -> None:
         "contributions": [{"author": {}}],
     }
     c = bi.map_hardcover(edition)
+    assert c is not None
     assert c.author is None
 
 

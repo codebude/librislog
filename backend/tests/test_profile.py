@@ -26,6 +26,7 @@ def test_get_settings_creates_default_when_missing(client: TestClient, session: 
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     key_plain = generate_api_key()
     session.add(ApiKey(user_id=user.id, key_prefix=get_api_key_prefix(key_plain),
@@ -51,6 +52,7 @@ def test_update_settings_creates_default_when_missing(client: TestClient, sessio
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     key_plain = generate_api_key()
     session.add(ApiKey(user_id=user.id, key_prefix=get_api_key_prefix(key_plain),

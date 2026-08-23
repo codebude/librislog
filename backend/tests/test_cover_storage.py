@@ -49,8 +49,8 @@ class _FakeCoverResponse:
         if not self.is_success:
             raise httpx.HTTPStatusError(
                 "error",
-                request=None,  # type: ignore[arg-type]
-                response=self,  # type: ignore[arg-type]
+                request=None,  # ty: ignore[invalid-argument-type]
+                response=self,  # ty: ignore[invalid-argument-type]
             )
 
 
@@ -73,7 +73,7 @@ async def test_download_cover_success(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert filename is not None
     assert filename.endswith(".jpg")
@@ -90,7 +90,7 @@ async def test_download_cover_dedup(tmp_path: Path) -> None:
     pre_existing.write_bytes(b"cached")
 
     client = _FakeCoverClient({})
-    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert filename == pre_existing.name
 
@@ -101,7 +101,7 @@ async def test_download_cover_too_small(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _SMALL_BODY)}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert result is None
     assert list(tmp_path.iterdir()) == []
@@ -113,7 +113,7 @@ async def test_download_cover_non_image_content_type(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, {"content-type": "text/html"}, _VALID_BODY)}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert result is None
     assert list(tmp_path.iterdir()) == []
@@ -125,7 +125,7 @@ async def test_download_cover_http_error(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(404, {}, b"")}
     )
-    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert result is None
 
@@ -137,7 +137,7 @@ async def test_download_cover_network_error(tmp_path: Path) -> None:
         async def get(self, url: str, **_kwargs: Any) -> None:
             raise httpx.ConnectError("connection refused")
 
-    result = await download_cover(_IMAGE_URL, tmp_path, _ErrorClient(), _USER_ID)  # type: ignore[arg-type]
+    result = await download_cover(_IMAGE_URL, tmp_path, _ErrorClient(), _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert result is None
 
@@ -148,7 +148,8 @@ async def test_download_cover_atomic_write(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, _IMAGE_HEADERS, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
+    assert filename is not None
 
     tmp_files = list(tmp_path.glob("*.tmp"))
     assert tmp_files == [], "Stale .tmp file found after successful download"
@@ -161,7 +162,7 @@ async def test_download_cover_correct_extension_jpeg(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {_IMAGE_URL: _FakeCoverResponse(200, {"content-type": "image/jpeg"}, _VALID_BODY)}
     )
-    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    filename = await download_cover(_IMAGE_URL, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert filename is not None
     assert filename.endswith(".jpg")
@@ -174,7 +175,7 @@ async def test_download_cover_correct_extension_png(tmp_path: Path) -> None:
     client = _FakeCoverClient(
         {png_url: _FakeCoverResponse(200, {"content-type": "image/png"}, _VALID_BODY)}
     )
-    filename = await download_cover(png_url, tmp_path, client, _USER_ID)  # type: ignore[arg-type]
+    filename = await download_cover(png_url, tmp_path, client, _USER_ID)  # ty: ignore[invalid-argument-type]
 
     assert filename is not None
     assert filename.endswith(".png")
@@ -260,7 +261,7 @@ def test_resolve_cover_path_none() -> None:
 def test_delete_cover_file_invalid_filename() -> None:
     """Invalid filename should return False without touching filesystem."""
     assert delete_cover_file("", "/tmp/covers") is False
-    assert delete_cover_file(None, "/tmp/covers") is False  # type: ignore[arg-type]
+    assert delete_cover_file(None, "/tmp/covers") is False  # ty: ignore[invalid-argument-type]
 
 
 def test_delete_cover_file_unlink_error(monkeypatch) -> None:
@@ -294,7 +295,7 @@ async def test_download_cover_oserror_on_write(tmp_path: Path, monkeypatch) -> N
 
     monkeypatch.setattr("app.services.cover_storage.Path.mkdir", _raise)
     result = await download_cover(
-        "https://example.com/img.jpg", tmp_path, _FakeClient(), 1
+        "https://example.com/img.jpg", tmp_path, _FakeClient(), 1  # ty: ignore[invalid-argument-type]
     )
     assert result is None
 

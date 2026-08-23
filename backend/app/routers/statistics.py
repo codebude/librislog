@@ -1,7 +1,7 @@
 """Statistics dashboard — full stats, pages-per-day breakdown, and book-level fallback."""
 
 import calendar
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from statistics import mean
 from types import SimpleNamespace
@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
@@ -105,14 +105,14 @@ def _naive_utc(dt: datetime) -> datetime:
 def _extract_progress_daily_pages(
     entries: list, tz: ZoneInfo,
     window_start: datetime | None = None, window_end: datetime | None = None,
-) -> Counter[str]:
+) -> dict[str, float]:
     """Distribute reading progress page-deltas across calendar days.
     
     When *window_start*/*window_end* are provided, only days within that
     window are emitted.  The daily average is still computed from the full
     span so the values stay correct.
     """
-    daily: Counter[str] = Counter()
+    daily: dict[str, float] = defaultdict(float)
     grouped: dict[int, list] = {}
     for entry in entries:
         grouped.setdefault(entry.book_id, []).append(entry)
@@ -127,7 +127,7 @@ def _extract_progress_daily_pages(
                 if day_diff > 0:
                     daily_avg = delta / day_diff
                     start, end = _clamp_window(prev.created_at, curr.created_at, window_start, window_end)
-                    if start is None:
+                    if start is None or end is None:
                         continue
                     while start <= end:
                         date_key = start.astimezone(tz).strftime("%Y-%m-%d")
@@ -140,14 +140,14 @@ def _extract_progress_daily_pages(
 def _extract_book_level_daily_pages(
     books: list[Book], tz: ZoneInfo,
     window_start: datetime | None = None, window_end: datetime | None = None,
-) -> Counter[str]:
+) -> dict[str, float]:
     """Distribute page counts across the reading period for books finished without progress entries.
     
     When *window_start*/*window_end* are provided, only days within that
     window are emitted.  The daily average is still computed from the full
     span so the values stay correct.
     """
-    daily: Counter[str] = Counter()
+    daily: dict[str, float] = defaultdict(float)
     for book in books:
         if not (book.date_started and book.date_finished and book.page_count):
             continue
@@ -158,7 +158,7 @@ def _extract_book_level_daily_pages(
             continue
         daily_avg = book.page_count / total_days
         start, end = _clamp_window(book.date_started, book.date_finished, window_start, window_end)
-        if start is None:
+        if start is None or end is None:
             continue
         while start <= end:
             date_key = start.astimezone(tz).strftime("%Y-%m-%d")
@@ -169,9 +169,9 @@ def _extract_book_level_daily_pages(
 
 def _allocate_daily_avg_across_months(
     daily_avg: float, start: datetime, end: datetime, tz: ZoneInfo
-) -> Counter[str]:
+) -> dict[str, float]:
     """Spread a per-day value proportionally across months from *start* to *end* inclusive."""
-    monthly: Counter[str] = Counter()
+    monthly: dict[str, float] = defaultdict(float)
     current = start
     while current <= end:
         _, last_dom = calendar.monthrange(current.year, current.month)
@@ -183,9 +183,9 @@ def _allocate_daily_avg_across_months(
     return monthly
 
 
-def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> Counter[str]:
+def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> dict[str, float]:
     """Compute pages read per month from reading progress entries."""
-    monthly: Counter[str] = Counter()
+    monthly: dict[str, float] = defaultdict(float)
     grouped: dict[int, list] = {}
     for entry in entries:
         grouped.setdefault(entry.book_id, []).append(entry)
@@ -204,9 +204,9 @@ def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> Count
     return monthly
 
 
-def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> Counter[str]:
+def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> dict[str, float]:
     """Compute pages read per month for finished books without progress entries."""
-    monthly: Counter[str] = Counter()
+    monthly: dict[str, float] = defaultdict(float)
     for book in books:
         if not (book.date_started and book.date_finished and book.page_count):
             continue
@@ -230,10 +230,8 @@ def get_pages_per_day(
     session: Session = Depends(get_session),
 ) -> DailyPagesResponse:
     """Return a daily page-count breakdown for the last N days.
-
-    Combines reading progress entries with book-level fallback for finished
-    books that have no fine-grained progress entries.
     """
+    assert current_user.id is not None
     tz = _user_timezone(session, current_user.id)
     end_date = datetime.now(tz)
     start_date = end_date - timedelta(days=days)
@@ -262,9 +260,9 @@ def get_pages_per_day(
                 select(ReadingProgress)
                 .where(
                     ReadingProgress.user_id == current_user.id,
-                    ReadingProgress.book_id.in_(book_ids_with_window_progress),
+                    col(ReadingProgress.book_id).in_(book_ids_with_window_progress),
                 )
-                .order_by(ReadingProgress.book_id, ReadingProgress.created_at)
+                .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
             ).all()
         )
     else:
@@ -316,7 +314,7 @@ def get_pages_per_day(
     ]
     fallback_daily = _extract_book_level_daily_pages(fallback_books, tz, start_date_utc, end_date_utc)
 
-    combined: Counter[str] = Counter()
+    combined: dict[str, float] = defaultdict(float)
     for k, v in progress_daily.items():
         combined[k] += v
     for k, v in fallback_daily.items():
@@ -344,6 +342,7 @@ def get_statistics(
     session: Session = Depends(get_session),
 ) -> StatisticsResponse:
     """Return the full statistics dashboard for the authenticated user."""
+    assert current_user.id is not None
     tz = _user_timezone(session, current_user.id)
     now = datetime.now(tz)
     current_month_key = f"{now.year:04d}-{now.month:02d}"
@@ -400,9 +399,9 @@ def get_statistics(
             select(ReadingProgress.book_id, func.max(ReadingProgress.page))
             .where(
                 ReadingProgress.user_id == current_user.id,
-                ReadingProgress.book_id.in_(dnf_book_ids),
+                col(ReadingProgress.book_id).in_(dnf_book_ids),
             )
-            .group_by(ReadingProgress.book_id)
+            .group_by(col(ReadingProgress.book_id))
         ).all()
         pages_wasted = int(sum((max_page or 0) for _, max_page in wasted_rows))
 
@@ -420,6 +419,7 @@ def get_statistics(
 
     finished_books_per_month: Counter[str] = Counter()
     for book in finished_books:
+        assert book.date_finished is not None
         month = _month_key(book.date_finished, tz)
         finished_books_per_month[month] += 1
 
@@ -427,7 +427,7 @@ def get_statistics(
         session.exec(
             select(ReadingProgress)
             .where(ReadingProgress.user_id == current_user.id)
-            .order_by(ReadingProgress.book_id, ReadingProgress.created_at)
+            .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
         ).all()
     )
 
@@ -528,9 +528,9 @@ def get_statistics(
                 .where(
                     Book.user_id == current_user.id,
                     Book.author == author_name,
-                    Book.cover_url.is_not(None),
+                    col(Book.cover_url).is_not(None),
                 )
-                .order_by(Book.id)
+                .order_by(col(Book.id))
                 .limit(max_slots)
             ).all()
             results = [
@@ -545,9 +545,9 @@ def get_statistics(
                     .where(
                         Book.user_id == current_user.id,
                         Book.author == author_name,
-                        Book.cover_url.is_(None),
+                        col(Book.cover_url).is_(None),
                     )
-                    .order_by(Book.id)
+                    .order_by(col(Book.id))
                     .limit(remaining)
                 ).all()
                 results.extend(
@@ -574,15 +574,25 @@ def get_statistics(
 
     rated_books = [b for b in books if b.rating is not None]
 
-    top_rated_books = [
-        TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
-        for b in sorted(rated_books, key=lambda x: (-x.rating, -(x.date_added or datetime.min).timestamp()))
-    ]
+    def _rating_sort_key(book: Book) -> tuple[int, float]:
+        assert book.rating is not None
+        return (book.rating, -(book.date_added or datetime.min).timestamp())
 
-    worst_rated_books = [
-        TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
-        for b in sorted(rated_books, key=lambda x: (x.rating, -(x.date_added or datetime.min).timestamp()))
-    ]
+    top_rated_books = []
+    for b in sorted(rated_books, key=_rating_sort_key):
+        assert b.id is not None
+        assert b.rating is not None
+        top_rated_books.append(
+            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+        )
+
+    worst_rated_books = []
+    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], -_rating_sort_key(x)[1])):
+        assert b.id is not None
+        assert b.rating is not None
+        worst_rated_books.append(
+            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+        )
 
     return StatisticsResponse(
         avg_books_per_month=avg_books_per_month,

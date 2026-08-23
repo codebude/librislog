@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, Response
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import EMBED_TOKEN_SCOPE_STATS_READ, hash_embed_token
 from app.database import get_session
@@ -68,7 +68,7 @@ def _verify_embed_token(
     db_token = session.exec(
         select(EmbedToken).where(
             EmbedToken.token_hash == token_hash_val,
-            EmbedToken.revoked_at.is_(None),
+            col(EmbedToken.revoked_at).is_(None),
         )
     ).first()
 

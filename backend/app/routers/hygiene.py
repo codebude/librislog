@@ -5,7 +5,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, or_
-from sqlmodel import Session, func, select, update as sqlmodel_update
+from sqlmodel import Session, col, func, select, update as sqlmodel_update
 
 from app.auth import require_user
 from app.config import settings
@@ -207,7 +207,7 @@ async def batch_update(
             filename = await import_cover_from_url(
                 url,
                 settings.covers_dir,
-                current_user.id,  # type: ignore[arg-type]
+                current_user.id,  # ty: ignore[invalid-argument-type]
                 settings.cover_import_timeout_seconds,
             )
             if filename:
@@ -218,7 +218,7 @@ async def batch_update(
 
     books = session.exec(
         select(Book).where(
-            Book.id.in_(req.book_ids),  # type: ignore[union-attr]
+            col(Book.id).in_(req.book_ids),
             Book.user_id == current_user.id,
         )
     ).all()
@@ -236,16 +236,16 @@ async def batch_update(
     for book in books:
         current_val = getattr(book, req.field.value)
         if current_val == req.value:
-            skipped_ids.append(book.id)  # type: ignore[arg-type]
+            skipped_ids.append(book.id)  # ty: ignore[invalid-argument-type]
         else:
-            to_update_ids.append(book.id)  # type: ignore[arg-type]
+            to_update_ids.append(book.id)  # ty: ignore[invalid-argument-type]
 
     updated = 0
     if to_update_ids:
         try:
             stmt = (
                 sqlmodel_update(Book)
-                .where(Book.id.in_(to_update_ids))  # type: ignore[union-attr]
+                .where(col(Book.id).in_(to_update_ids))
                 .values({req.field.value: req.value})
             )
             updated = len(to_update_ids)

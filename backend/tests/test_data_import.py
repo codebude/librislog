@@ -297,7 +297,7 @@ def test_preview_import_basic(session: Session, tmp_path: Path, monkeypatch: Mon
         "source_fields": ["title", "author"],
     }
     file_id = "test_preview"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -317,7 +317,7 @@ def test_preview_import_with_transform(session: Session, tmp_path: Path, monkeyp
         "source_fields": ["title", "author"],
     }
     file_id = "test_preview_transform"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -340,7 +340,7 @@ def test_preview_import_mapping_errors(session: Session, tmp_path: Path, monkeyp
         "source_fields": ["title"],
     }
     file_id = "test_preview_errors"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -364,6 +364,7 @@ def _create_test_user(session: Session) -> User:
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
     return user
 
 
@@ -375,7 +376,7 @@ def test_validate_import_rating_out_of_range(session: Session, tmp_path: Path, m
         "source_fields": ["title", "rating"],
     }
     file_id = "test_rating"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -391,7 +392,7 @@ def test_validate_import_date_started_after_finished(session: Session, tmp_path:
         "source_fields": ["title", "started", "finished"],
     }
     file_id = "test_dates"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -407,7 +408,7 @@ def test_validate_import_progress_warning_no_pages(session: Session, tmp_path: P
         "source_fields": ["title", "status"],
     }
     file_id = "test_progress"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -430,7 +431,7 @@ def test_validate_import_isbn_already_exists(session: Session, tmp_path: Path, m
         "source_fields": ["title", "isbn"],
     }
     file_id = "test_isbn"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -447,7 +448,7 @@ def test_validate_import_no_isbns(session: Session, tmp_path: Path, monkeypatch:
         "source_fields": ["title"],
     }
     file_id = "test_no_isbn"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -463,7 +464,7 @@ def test_validate_import_missing_title(session: Session, tmp_path: Path, monkeyp
         "source_fields": ["title"],
     }
     file_id = "test_missing_title"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -479,7 +480,7 @@ def test_validate_import_value_error_caught(session: Session, tmp_path: Path, mo
         "source_fields": ["title", "pages"],
     }
     file_id = "test_value_error"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -495,7 +496,7 @@ def test_validate_import_cover_url_warns_on_non_url(session: Session, tmp_path: 
         "source_fields": ["title", "cover"],
     }
     file_id = "test_cover_nonurl"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -513,7 +514,7 @@ def test_validate_import_cover_url_accepts_valid_url(session: Session, tmp_path:
         "source_fields": ["title", "cover"],
     }
     file_id = "test_cover_valid"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -534,7 +535,7 @@ async def test_execute_import_mapping_errors(session: Session, tmp_path: Path, m
         "source_fields": ["title"],
     }
     file_id = "test_exec_map"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -555,7 +556,7 @@ async def test_execute_import_rating_out_of_range_set_to_none(session: Session, 
         "source_fields": ["title", "rating"],
     }
     file_id = "test_exec_rating"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -577,7 +578,7 @@ async def test_execute_import_date_started_after_finished(session: Session, tmp_
         "source_fields": ["title", "started", "finished"],
     }
     file_id = "test_exec_dates"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -600,7 +601,7 @@ async def test_execute_import_cover_download(session: Session, tmp_path: Path, m
         "source_fields": ["title", "cover"],
     }
     file_id = "test_exec_cover"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -628,7 +629,7 @@ async def test_execute_import_progress_date_naive_tz_fix(session: Session, tmp_p
         "source_fields": ["title", "status", "pages", "finished"],
     }
     file_id = "test_exec_tz"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -654,7 +655,7 @@ async def test_execute_import_rollback_all_commit(session: Session, tmp_path: Pa
         "source_fields": ["title"],
     }
     file_id = "test_exec_rollback"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -676,7 +677,7 @@ async def test_execute_import_missing_title_row(session: Session, tmp_path: Path
         "source_fields": ["title"],
     }
     file_id = "test_exec_missing_title"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -698,7 +699,7 @@ async def test_execute_import_rollback_all_error(session: Session, tmp_path: Pat
         "source_fields": ["title"],
     }
     file_id = "test_exec_rollback_err"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 
@@ -730,7 +731,7 @@ async def test_execute_import_progress_naive_date_finished(session: Session, tmp
         "source_fields": ["title", "status", "pages", "finished"],
     }
     file_id = "test_exec_naive_dt"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, default=str))
 
@@ -757,7 +758,7 @@ async def test_execute_import_progress_naive_utcnow_fallback(session: Session, t
         "source_fields": ["title", "status", "pages", "finished"],
     }
     file_id = "test_exec_naive_utc"
-    path = di._temp_file_path(user.id, file_id)
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
 

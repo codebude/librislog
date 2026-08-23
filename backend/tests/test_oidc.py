@@ -277,6 +277,7 @@ def test_oidc_link_callback_rejects_sub_already_linked_to_another_user(
     _set_oidc_enabled(monkeypatch)
 
     other_user, _ = create_user_with_key(email="other-oidc@example.com")
+    assert other_user.id is not None
     session.add(
         OidcLink(
             user_id=other_user.id,

@@ -1,7 +1,7 @@
 """Admin user management endpoints — list, create, update, delete users."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import (
     ensure_password_complexity,
@@ -23,7 +23,7 @@ def list_users(
     session: Session = Depends(get_session),
 ) -> list[User]:
     """List all users (admin only)."""
-    users = session.exec(select(User).order_by(User.created_at)).all()
+    users = session.exec(select(User).order_by(col(User.created_at))).all()
     return list(users)
 
 
@@ -50,6 +50,7 @@ def create_user(
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     session.add(UserSettings(user_id=user.id, language="en"))
     session.commit()

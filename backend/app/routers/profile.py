@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.auth import (
     clear_browser_session,
@@ -89,6 +89,7 @@ def get_settings(
     session: Session = Depends(get_session),
 ) -> UserSettingsRead:
     """Return the current user's settings."""
+    assert current_user.id is not None
     settings = session.exec(
         select(UserSettings).where(UserSettings.user_id == current_user.id)
     ).first()
@@ -113,6 +114,7 @@ def update_settings(
     session: Session = Depends(get_session),
 ) -> UserSettingsRead:
     """Update the current user's settings."""
+    assert current_user.id is not None
     settings = session.exec(
         select(UserSettings).where(UserSettings.user_id == current_user.id)
     ).first()
@@ -146,6 +148,7 @@ def reset_data(
     Requires exact confirmation phrase.
     """
     _validate_confirmation(body.confirmation, RESET_DATA_PHRASE)
+    assert current_user.id is not None
 
     try:
         deleted = delete_user_reading_data(session, current_user.id, app_settings.covers_dir)
@@ -183,6 +186,7 @@ def delete_own_account(
     """
     _validate_confirmation(body.confirmation, DELETE_ACCOUNT_PHRASE)
     assert_not_last_admin(session, current_user)
+    assert current_user.id is not None
 
     try:
         delete_user_account_data(session, current_user, app_settings.covers_dir)
@@ -204,8 +208,8 @@ def list_api_keys(
     keys = session.exec(
         select(ApiKey).where(
             ApiKey.user_id == current_user.id,
-            ApiKey.revoked_at.is_(None),
-        ).order_by(ApiKey.created_at.desc())
+            col(ApiKey.revoked_at).is_(None),
+        ).order_by(col(ApiKey.created_at).desc())
     ).all()
     return [ApiKeyRead.model_validate(k) for k in keys]
 
@@ -217,6 +221,7 @@ def create_api_key(
     session: Session = Depends(get_session),
 ) -> ApiKeyCreateResponse:
     """Create a new API key for the current user."""
+    assert current_user.id is not None
     plain_key = generate_api_key()
     key = ApiKey(
         user_id=current_user.id,
@@ -255,8 +260,8 @@ def list_embed_tokens(
     tokens = session.exec(
         select(EmbedToken).where(
             EmbedToken.user_id == current_user.id,
-            EmbedToken.revoked_at.is_(None),
-        ).order_by(EmbedToken.created_at.desc())
+            col(EmbedToken.revoked_at).is_(None),
+        ).order_by(col(EmbedToken.created_at).desc())
     ).all()
     return [EmbedTokenRead.model_validate(t) for t in tokens]
 
@@ -268,6 +273,7 @@ def create_embed_token(
     session: Session = Depends(get_session),
 ) -> EmbedTokenCreateResponse:
     """Create a new embed token for the current user."""
+    assert current_user.id is not None
     plain_token = generate_embed_token()
     token = EmbedToken(
         user_id=current_user.id,

@@ -5,10 +5,10 @@ import io
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app._build_info import __git_sha__, __version__
 from app.models import Book, BookTag, ReadingProgress, Tag, User
@@ -106,7 +106,7 @@ def _dump_csv(rows: list[dict], fields: list[str]) -> str:
 def build_export_zip(
     session: Session,
     user: User,
-    datasets: list[str],
+    datasets: Sequence[str],
     export_format: str,
     covers_dir: str,
 ) -> tuple[bytes, str]:
@@ -130,7 +130,7 @@ def build_export_zip(
     progress_entries = list(
         session.exec(
             select(ReadingProgress)
-            .join(Book, Book.id == ReadingProgress.book_id)
+            .join(Book, col(Book.id) == col(ReadingProgress.book_id))
             .where(ReadingProgress.user_id == user.id, Book.user_id == user.id)
         ).all()
     )
@@ -138,8 +138,8 @@ def build_export_zip(
     tag_counts_rows = list(
         session.exec(
             select(BookTag.tag_id, BookTag.book_id)
-            .join(Tag, Tag.id == BookTag.tag_id)
-            .join(Book, Book.id == BookTag.book_id)
+            .join(Tag, col(Tag.id) == col(BookTag.tag_id))
+            .join(Book, col(Book.id) == col(BookTag.book_id))
             .where(Tag.user_id == user.id, Book.user_id == user.id)
         ).all()
     )

@@ -1073,7 +1073,7 @@ def test_probe_thalia_rejects_unsafe_url(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.cover_candidates.is_safe_cover_import_url", lambda url: False)
 
     async def run() -> None:
-        candidate = await _probe_thalia_candidate("9783426440087", None, 1000, 10)
+        candidate = await _probe_thalia_candidate("9783426440087", None, 1000, 10)  # ty: ignore[invalid-argument-type]
         assert candidate.available is False
         assert candidate.url == ""
 
@@ -1090,6 +1090,6 @@ def test_probe_source_candidates_empty_urls() -> None:
 
     async def run() -> None:
         with pytest.raises(IndexError):
-            await _probe_source_candidates("abebooks", [], None, 1000)
+            await _probe_source_candidates("abebooks", [], None, 1000)  # ty: ignore[invalid-argument-type]
 
     asyncio.run(run())

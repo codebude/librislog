@@ -3,6 +3,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select
 
@@ -197,6 +198,7 @@ def test_statistics_top_authors_no_covers(client: Any) -> None:
 
 def test_statistics_timezone_month_bucketing(client: Any, session: Session) -> None:
     settings = session.exec(select(UserSettings)).first()
+    assert settings is not None
     settings.timezone = "America/New_York"
     session.add(settings)
     session.commit()
@@ -237,6 +239,7 @@ def test_statistics_pages_wasted_ignores_non_dnf(client: Any) -> None:
 
 def test_statistics_invalid_timezone_falls_back_to_utc(client: Any, session: Session) -> None:
     settings = session.exec(select(UserSettings)).first()
+    assert settings is not None
     settings.timezone = "Mars/OlympusMons"
     session.add(settings)
     session.commit()
@@ -341,6 +344,8 @@ def test_pages_per_day_counts_single_log_when_started_and_finished_same_day(clie
 
     book = session.get(Book, created["id"])
     assert book is not None
+    assert book.id is not None
+    assert book.user_id is not None
     session.add(ReadingProgress(
         book_id=book.id, user_id=book.user_id, page=250,
         created_at=datetime(2026, 5, 1, 10, 0, tzinfo=timezone.utc),
@@ -362,9 +367,9 @@ def test_extract_book_level_skips_books_with_missing_fields() -> None:
     """Books without date_started, date_finished or page_count are skipped."""
     book = Book(
         title="Incomplete", reading_status=ReadingStatus.read,
-        date_started=None, date_finished=None, page_count=None, user_id=1,
+        date_started=None, date_finished=None, page_count=None, user_id=1,  # ty: ignore[invalid-argument-type]
     )
-    result = _extract_book_level_daily_pages([book], timezone.utc)
+    result = _extract_book_level_daily_pages([book], ZoneInfo("UTC"))
     assert result == Counter()
 
 
@@ -384,5 +389,5 @@ def test_extract_book_level_skips_non_positive_total_days() -> None:
     book.date_finished = FakeDateTime()
     book.page_count = 100
 
-    result = _extract_book_level_daily_pages([book], timezone.utc)
+    result = _extract_book_level_daily_pages([book], ZoneInfo("UTC"))
     assert result == Counter()

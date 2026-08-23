@@ -252,6 +252,7 @@ class TestEmbedStatsEndpoint:
         session.add(user2)
         session.commit()
         session.refresh(user2)
+        assert user2.id is not None
         session.add(UserSettings(user_id=user2.id, language="en"))
         key2 = generate_api_key()
         session.add(ApiKey(user_id=user2.id, key_prefix=get_api_key_prefix(key2),

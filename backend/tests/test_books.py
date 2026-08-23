@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlalchemy.exc import IntegrityError as SQLAIntegrityError
-from sqlmodel import Session
+from sqlmodel import Session, col
 
 from app.config import settings
 from app.models import Book, User
@@ -285,7 +285,7 @@ def test_list_books_filter_has_cover_excludes_empty_string(client: TestClient, s
 
     # Bypass the model validator by setting cover_url to "" via raw SQL
     from sqlalchemy import update as sa_update
-    session.exec(sa_update(Book).where(Book.id == book["id"]).values(cover_url=""))
+    session.exec(sa_update(Book).where(col(Book.id) == book["id"]).values(cover_url=""))
     session.commit()
 
     _create_book(client, title="Real Cover", cover_url="http://example.com/real.jpg")

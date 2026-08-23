@@ -63,6 +63,7 @@ def setup(
     session.add(user)
     session.commit()
     session.refresh(user)
+    assert user.id is not None
 
     session.add(UserSettings(user_id=user.id, language="en"))
     session.commit()
@@ -81,6 +82,7 @@ def login(
     user = session.exec(select(User).where(User.email == credentials.email)).first()
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+    assert user.id is not None
 
     start_browser_session(http_request, user.id, user.credentials_version)
     return {"user": UserRead.model_validate(user)}

@@ -12,7 +12,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.config import settings
 from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User
@@ -480,6 +480,7 @@ def validate_import(
     Returns:
         A dict with keys: valid, row_count, warnings, errors.
     """
+    assert user.id is not None
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
@@ -562,7 +563,7 @@ def validate_import(
     existing_isbns: set[str] = set()
     if isbns_in_file:
         results = session.exec(
-            select(Book.isbn).where(Book.user_id == user.id, Book.isbn.in_(isbns_in_file))
+            select(Book.isbn).where(Book.user_id == user.id, col(Book.isbn).in_(isbns_in_file))
         ).all()
         existing_isbns = set(results)
 
@@ -591,6 +592,7 @@ def preview_import(
 
     Returns a dict with keys: preview_rows, row_count, errors.
     """
+    assert user.id is not None
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
@@ -688,6 +690,7 @@ async def execute_import(
     Yields:
         Dicts with event type and data.
     """
+    assert user.id is not None
     parsed = load_parsed_upload(file_id, user.id)
     rows: list[dict] = parsed.get("rows", [])
     total = len(rows)
@@ -768,12 +771,12 @@ async def execute_import(
                 book = Book(
                     title=title,
                     subtitle=None if row_data.get("subtitle") in (None, "") else str(row_data.get("subtitle")),
-                    author=None if row_data.get("author") in (None, "") else str(row_data.get("author")),
+                    author=None if row_data.get("author") in (None, "") else str(row_data.get("author")),  # ty: ignore[invalid-argument-type]
                     isbn=None if row_data.get("isbn") in (None, "") else str(row_data.get("isbn")),
                     cover_url=cover_url,
                     publisher=None if row_data.get("publisher") in (None, "") else str(row_data.get("publisher")),
                     published_year=_parse_year(row_data.get("published_year"), "published_year"),
-                    page_count=page_count,
+                    page_count=page_count,  # ty: ignore[invalid-argument-type]
                     language=language,
                     notes=None if row_data.get("notes") in (None, "") else str(row_data.get("notes")),
                     blurb=None if row_data.get("blurb") in (None, "") else str(row_data.get("blurb")),
@@ -786,6 +789,7 @@ async def execute_import(
                 )
                 session.add(book)
                 session.flush()
+                assert book.id is not None
 
                 if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None and date_finished is not None:
                     log_date = date_finished

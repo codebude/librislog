@@ -554,6 +554,7 @@ def test_profile_delete_account_deletes_regular_user_data(
     session: Session,
 ) -> None:
     user, key = create_user_with_key(email="danger@example.com", role=UserRole.user)
+    assert user.id is not None
     with TestClient(client.app) as c2:
         c2.headers.update({"X-API-Key": key})
 

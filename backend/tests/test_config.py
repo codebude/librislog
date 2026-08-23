@@ -19,4 +19,4 @@ def test_api_key_encryption_key_validation(invalid_settings_kwargs: tuple[dict[s
     from app.config import Settings
 
     with pytest.raises(ValueError, match=expected_error):
-        Settings(**kwargs)
+        Settings(**kwargs)  # ty: ignore[invalid-argument-type]
