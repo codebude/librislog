@@ -13,6 +13,7 @@
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 	import AddBookModal from '$lib/components/AddBookModal.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
+	import SearchHelp from '$lib/components/SearchHelp.svelte';
 	import { BookOpen as BookOpenIcon, Book as BookIcon, Check, X } from '@lucide/svelte';
 
 	type Tab = {
@@ -347,6 +348,7 @@
 				placeholder={$_('common.searchBooks')}
 				onSearch={(q) => (searchQuery = q)}
 			/>
+			<SearchHelp />
 			{#if searchQuery}
 				<span class="text-sm text-base-content/50 whitespace-nowrap shrink-0">
 					{totalCount} {totalCount === 1 ? $_('common.result') : $_('common.results')}

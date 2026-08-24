@@ -47,6 +47,21 @@ test.describe('Dashboard', () => {
 		await expect(page.locator('body')).toContainText(/The Great Gatsby/i);
 	});
 
+	test('2.7 prefixed dashboard search navigates to filtered search page', async ({ page }) => {
+		await seedBooks(page, SEED_BOOKS);
+		await page.reload();
+		await page.waitForSelector('h1');
+
+		const searchInput = page.locator('input[type="text"]');
+		await searchInput.fill('author:Dittert');
+		await page.waitForTimeout(1000);
+
+		await searchInput.press('Enter');
+		await expect(page).toHaveURL(/\/search\?q=author%3ADittert/);
+		await page.waitForTimeout(1000);
+		await expect(page.locator('body')).toContainText(/Die Fragezeichen/i);
+	});
+
 	test('2.6 arrow key navigation in dropdown opens book detail dialog on Enter', async ({ page }) => {
 		await seedBooks(page, SEED_BOOKS);
 		await page.reload();

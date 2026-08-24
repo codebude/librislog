@@ -142,6 +142,167 @@ def test_list_books_search_by_author(client: TestClient) -> None:
     assert body["books"][0]["title"] == "Foundation"
 
 
+def test_list_books_search_by_publisher(client: TestClient) -> None:
+    _create_book(client, title="Dune", publisher="Ace Books")
+    _create_book(client, title="Foundation", publisher="Gnome Press")
+    resp = client.get("/api/books?q=publisher:gnome")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Foundation"
+
+
+def test_list_books_search_by_notes(client: TestClient) -> None:
+    _create_book(client, title="Dune", notes="spice mining")
+    _create_book(client, title="Foundation", notes="psychohistory")
+    resp = client.get("/api/books?q=notes:spice")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Dune"
+
+
+def test_list_books_search_by_description(client: TestClient) -> None:
+    _create_book(client, title="Dune", blurb="A desert planet saga.")
+    _create_book(client, title="Foundation", blurb="A galactic empire collapses.")
+    resp = client.get("/api/books?q=description:desert")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Dune"
+
+
+def test_list_books_search_by_language(client: TestClient) -> None:
+    _create_book(client, title="Dune", language="de")
+    _create_book(client, title="Foundation", language="en")
+    resp = client.get("/api/books?q=language:de")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Dune"
+
+
+def test_list_books_search_by_availability(client: TestClient) -> None:
+    _create_book(client, title="Borrowed", acquisition_status="borrowed")
+    _create_book(client, title="Owned", acquisition_status="owned")
+    resp = client.get("/api/books?q=availability:borrowed")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Borrowed"
+
+
+def test_list_books_search_by_availability_invalid_value(client: TestClient) -> None:
+    _create_book(client, title="Borrowed", acquisition_status="borrowed")
+    resp = client.get("/api/books?q=availability:not-a-status")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 0
+
+
+def test_list_books_search_by_tag(client: TestClient) -> None:
+    _create_book(client, title="Dune", tags="science fiction")
+    _create_book(client, title="Foundation", tags="classic")
+    resp = client.get("/api/books?q=tag:fiction")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Dune"
+
+
+def test_list_books_search_combined_field_and_unprefixed(client: TestClient) -> None:
+    _create_book(client, title="Die Fragezeichen", author="Christoph Dittert")
+    _create_book(client, title="Die Fragezeichen", author="Someone Else")
+    resp = client.get("/api/books?q=fragezeichen author:Dittert")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "Die Fragezeichen"
+    assert body["books"][0]["author"] == "Christoph Dittert"
+
+
+def test_list_books_search_quoted_author(client: TestClient) -> None:
+    _create_book(client, title="Die Fragezeichen", author="Christoph Dittert")
+    _create_book(client, title="Die Fragezeichen", author="Christoph Other")
+    resp = client.get('/api/books?q=author:"Christoph Dittert"')
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["author"] == "Christoph Dittert"
+
+
+def test_list_books_search_unknown_prefix_falls_back_to_unprefixed(client: TestClient) -> None:
+    _create_book(client, title="foo:bar special")
+    resp = client.get("/api/books?q=foo:bar")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["books"][0]["title"] == "foo:bar special"
+
+
+def test_list_books_search_negated_quoted_unprefixed(client: TestClient) -> None:
+    _create_book(client, title="Mercedes Cars", author="A")
+    _create_book(client, title="Cars Only", author="B")
+    resp = client.get('/api/books?q="cars" -"mercedes"')
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Cars Only"]
+
+
+def test_list_books_search_negated_field_term(client: TestClient) -> None:
+    _create_book(client, title="Car Book", tags="cars")
+    _create_book(client, title="Audi Book", tags="cars,audi")
+    _create_book(client, title="Audi Only", tags="audi")
+    resp = client.get("/api/books?q=tag:cars%20-tag:audi")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Car Book"]
+
+
+def test_list_books_search_negated_only(client: TestClient) -> None:
+    _create_book(client, title="Audi Book", tags="audi")
+    _create_book(client, title="Plain Book", tags="other")
+    resp = client.get("/api/books?q=-tag:audi")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Plain Book"]
+
+
+def test_list_books_search_lone_dash_returns_all(client: TestClient) -> None:
+    _create_book(client, title="One")
+    _create_book(client, title="Two")
+    resp = client.get("/api/books?q=-")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+
+
+def test_list_books_search_percent_is_literal(client: TestClient) -> None:
+    _create_book(client, title="100% Pure")
+    _create_book(client, title="100 Miles")
+    resp = client.get("/api/books?q=title:100%25")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["100% Pure"]
+
+
+def test_list_books_search_negation_includes_nullable_field_rows(client: TestClient) -> None:
+    _create_book(client, title="Plain")
+    _create_book(client, title="Mercedes")
+    resp = client.get("/api/books?q=-mercedes")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Plain"]
+
+
+def test_list_books_search_availability_quoted_multiword(client: TestClient) -> None:
+    _create_book(client, title="Wanted", acquisition_status="to_acquire")
+    _create_book(client, title="Owned", acquisition_status="owned")
+    resp = client.get('/api/books?q=availability:"to acquire"')
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Wanted"]
+
+
 def test_list_books_sort_by_rating(client: TestClient) -> None:
     _create_book(client, title="Low", rating=2)
     _create_book(client, title="High", rating=5)

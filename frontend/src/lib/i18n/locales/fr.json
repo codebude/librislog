@@ -291,7 +291,15 @@
     "resultsCount": "{count, plural, one {résultat} other {résultats}} trouvés",
     "noResults": "Aucun résultat trouvé",
     "noResultsFor": "Aucun résultat trouvé pour \"{query}\"",
-    "tryDifferentQuery": "Essaie un autre terme de recherche"
+    "tryDifferentQuery": "Essaie un autre terme de recherche",
+    "help": {
+      "title": "Syntaxe de recherche",
+      "intro": "Utilise des préfixes de champ pour rechercher dans un champ précis. Les préfixes sont toujours en anglais.",
+      "multiWord": "Place les valeurs multi-mots entre guillemets doubles, p. ex. author:\"Marlen Haushofer\".",
+      "combine": "Tu peux combiner plusieurs préfixes ; les résultats doivent correspondre à tous.",
+      "negate": "Préfixe tout terme par - pour l'exclure, p. ex. tag:cars -tag:audi.",
+      "availabilityValues": "valeurs de disponibilité : owned, borrowed, digital_access, to_acquire"
+    }
   },
   "languages": {
     "en": "Anglais",

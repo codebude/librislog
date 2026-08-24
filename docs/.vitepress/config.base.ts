@@ -61,6 +61,7 @@ export default defineConfig({
           items: [
             { text: 'Dashboard', link: '/guide/using-librislog/dashboard' },
             { text: 'Library', link: '/guide/using-librislog/library' },
+            { text: 'Search', link: '/guide/using-librislog/search' },
             { text: 'Profile', link: '/guide/using-librislog/profile' },
             { text: 'Progress Tracking', link: '/guide/using-librislog/progress' },
             { text: 'Statistics', link: '/guide/using-librislog/statistics' },

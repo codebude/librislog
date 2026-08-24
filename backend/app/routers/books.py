@@ -7,7 +7,7 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, col, func, or_, select
+from sqlmodel import Session, col, func, select
 
 from app.auth import require_user
 from app.config import settings
@@ -32,6 +32,7 @@ from app.services.cover_storage import (
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
+from app.services.search import _escape_like, apply_search_filter
 from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
 
@@ -141,7 +142,15 @@ def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
     acquisition_status: Optional[AcquisitionStatus] = Query(default=None),
-    q: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(
+        default=None,
+        description=(
+            "Search phrase. Use <field>:<value> to restrict a term to a single field "
+            "(author, publisher, title, tag, language, availability, notes, description). "
+            "Wrap multi-word values in double quotes (e.g. author:\"Marlen Haushofer\") and "
+            "prefix any term with - to negate it (e.g. tag:cars -tag:audi)."
+        ),
+    ),
     has_cover: Optional[bool] = Query(default=None),
     sort: Literal["title", "date_added", "date_started", "date_finished", "rating"] = Query(
         default="date_added"
@@ -172,20 +181,8 @@ def list_books(
         base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
 
     if q:
-        pattern = f"%{q}%"
-        matching_tag_book_ids = select(BookTag.book_id).join(Tag, col(Tag.id) == BookTag.tag_id).where(
-            Tag.user_id == current_user.id,
-            col(Tag.name).ilike(pattern),
-        )
-        base_statement = base_statement.where(
-            or_(
-                col(Book.title).ilike(pattern),
-                col(Book.subtitle).ilike(pattern),
-                col(Book.author).ilike(pattern),
-                col(Book.blurb).ilike(pattern),
-                col(Book.id).in_(matching_tag_book_ids),
-            )
-        )
+        assert current_user.id is not None
+        base_statement = apply_search_filter(base_statement, q, current_user.id)
 
     if has_cover is not None:
         if has_cover:
@@ -328,17 +325,17 @@ def _suggest_field(
     """Return distinct values for a Book column matching the query."""
     if not q.strip():
         return []
-    pattern = f"%{q}%"
-    col = getattr(Book, column)
+    pattern = f"%{_escape_like(q)}%"
+    column_expr = getattr(Book, column)
     rows = session.exec(
-        select(col)
+        select(column_expr)
         .where(
             Book.user_id == user_id,
-            col.isnot(None),
-            col.ilike(pattern),
+            column_expr.isnot(None),
+            column_expr.ilike(pattern, escape="\\"),
         )
         .distinct()
-        .order_by(col)
+        .order_by(column_expr)
         .limit(limit)
     ).all()
     return list(rows)

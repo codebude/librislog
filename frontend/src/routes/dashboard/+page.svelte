@@ -11,6 +11,7 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import SearchHelp from '$lib/components/SearchHelp.svelte';
 import { Search, X } from '@lucide/svelte';
 
 	let loading = $state(true);
@@ -311,8 +312,9 @@ import { Search, X } from '@lucide/svelte';
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-3">
 			<h2 class="card-title text-base">{$_('dashboard.searchAllBooks')}</h2>
-			<div class="relative w-full">
-				<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50 pointer-events-none z-10" />
+			<div class="flex items-start gap-2">
+				<div class="relative w-full">
+					<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50 pointer-events-none z-10" />
 				<input
 					type="text"
 					class="input input-bordered w-full pl-10 pr-10 scroll-mt-20"
@@ -389,6 +391,8 @@ import { Search, X } from '@lucide/svelte';
 					{/if}
 					</div>
 				{/if}
+				</div>
+				<SearchHelp />
 			</div>
 		</div>
 	</div>

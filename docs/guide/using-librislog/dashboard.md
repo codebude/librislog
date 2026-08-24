@@ -6,7 +6,9 @@ The dashboard is the first page you see after logging in. It gives you an overvi
 
 ## Search
 
-The search bar at the top of the dashboard lets you find books by title, author, or tags. The result count updates as you type and matching books appear in a dropdown below the bar.
+The search bar at the top of the dashboard lets you find books by title, author, or tags. It also supports field-specific queries such as `author:Murakami` and negation such as `Haushofer -"Die Wand"`. See the [search syntax reference](/guide/using-librislog/search) for the full list of supported prefixes and examples.
+
+The result count updates as you type and matching books appear in a dropdown below the bar.
 
 - **Arrow keys** to navigate the dropdown
 - **Enter** opens the selected book's detail view; if no item is selected, it navigates to the dedicated search results page (`/search`) showing all matches
