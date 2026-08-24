@@ -95,6 +95,7 @@ Downloaded covers are cached locally in the `COVERS_DIR` directory to avoid repe
 ## Search
 
 - Search books by title, author, or tags using the search bar — the result count updates as you type
+- Field-specific queries are supported, e.g. `author:Murakami`, `availability:owned`, or `tag:fantasy`. See the [search syntax reference](/guide/using-librislog/search) for the full list of prefixes and examples.
 - Press **Enter** to open the dedicated search results page with a full results grid, load-more pagination, and the same book detail interaction as the library
 - From any page, navigate directly to `/search?q=your+query` for quick access
 

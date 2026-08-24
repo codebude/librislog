@@ -291,7 +291,15 @@
     "resultsCount": "{count, plural, one {result} other {results}} found",
     "noResults": "No results found",
     "noResultsFor": "No results found for \"{query}\"",
-    "tryDifferentQuery": "Try a different search term"
+    "tryDifferentQuery": "Try a different search term",
+    "help": {
+      "title": "Search syntax",
+      "intro": "Use field prefixes to search in a specific field. Prefixes are always English.",
+      "multiWord": "Wrap multi-word values in double quotes, e.g. author:\"Marlen Haushofer\".",
+      "combine": "You can combine multiple prefixes; results must match all of them.",
+      "negate": "Prefix any term with - to exclude it, e.g. tag:cars -tag:audi.",
+      "availabilityValues": "availability values: owned, borrowed, digital_access, to_acquire"
+    }
   },
   "languages": {
     "en": "English",

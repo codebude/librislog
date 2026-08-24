@@ -77,4 +77,28 @@ test.describe('Search Page', () => {
 
 		await expect(page).toHaveURL('/dashboard');
 	});
+
+	test('4.7 field-prefixed search filters by author', async ({ page }) => {
+		await page.goto('/search?q=author:Dittert');
+		await page.waitForTimeout(1500);
+
+		await expect(page.locator('body')).toContainText(/Die Fragezeichen/i);
+		await expect(page.locator('body')).not.toContainText(/The Great Gatsby/i);
+	});
+
+	test('4.8 negated quoted phrase excludes matching books', async ({ page }) => {
+		await page.goto('/search?q=%22cars%22%20-%22mercedes%22');
+		await page.waitForTimeout(1500);
+
+		await expect(page.locator('body')).toContainText(/Cars Only/i);
+		await expect(page.locator('body')).not.toContainText(/Cars & Mercedes/i);
+	});
+
+	test('4.9 negated tag excludes books tagged audi', async ({ page }) => {
+		await page.goto('/search?q=tag%3Acars%20-tag%3Aaudi');
+		await page.waitForTimeout(1500);
+
+		await expect(page.locator('body')).toContainText(/Cars Only/i);
+		await expect(page.locator('body')).not.toContainText(/Cars & Mercedes/i);
+	});
 });
