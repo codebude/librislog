@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
@@ -88,9 +88,13 @@ def export_data(
 @router.post("/import/parse", response_model=DataImportParseResponse)
 async def parse_import_file(
     file: UploadFile = File(...),
+    delimiter: str = Form(","),
     current_user: User = Depends(require_user),
 ) -> DataImportParseResponse:
-    """Parse an uploaded CSV or JSON import file and return field info and samples."""
+    """Parse an uploaded CSV or JSON import file and return field info and samples.
+
+    ``delimiter`` is the single-character CSV field separator (ignored for JSON).
+    """
     assert current_user.id is not None
     allowed_content_types = {
         "text/csv",
@@ -102,7 +106,7 @@ async def parse_import_file(
     if file.content_type and file.content_type not in allowed_content_types:
         raise HTTPException(status_code=415, detail="Unsupported upload content type. Use CSV or JSON files.")
     try:
-        payload = parse_upload(await file.read(), file.filename or "upload", current_user.id)
+        payload = parse_upload(await file.read(), file.filename or "upload", current_user.id, delimiter)
     except (ValueError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return DataImportParseResponse.model_validate(payload)

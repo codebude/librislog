@@ -453,7 +453,8 @@
     "exportNoDatasets": "Wähle mindestens einen Datensatz zum Exportieren aus.",
     "importMappingNameConflict": "Ein Mapping mit diesem Namen existiert bereits.",
     "importMappingNotFound": "Import-Mapping nicht gefunden.",
-    "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch."
+    "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch.",
+    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",
@@ -620,7 +621,8 @@
         "previewFailed": "Vorschau konnte nicht geladen werden.",
         "executeFailed": "Import fehlgeschlagen."
       },
-      "authorsHint": "Ein einzelner Autor (getrennt mit ;, & oder und) oder ein Array mit Namen — jeder Eintrag wird ein Autor."
+      "authorsHint": "Ein einzelner Autor (getrennt mit ;, & oder und) oder ein Array mit Namen — jeder Eintrag wird ein Autor.",
+      "delimiterLabel": "CSV-Trennzeichen"
     }
   },
   "dataHygiene": {

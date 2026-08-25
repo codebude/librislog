@@ -453,7 +453,8 @@
     "tooManyBooksSelected": "选择的图书过多。一次最多选择 {max} 本。",
     "importMappingNameConflict": "同名映射已存在。",
     "importMappingNotFound": "未找到导入映射。",
-    "importFileNotFound": "未找到导入文件。请重新上传文件。"
+    "importFileNotFound": "未找到导入文件。请重新上传文件。",
+    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。"
   },
   "oidc": {
     "orContinueWith": "或继续使用",
@@ -620,7 +621,8 @@
         "previewFailed": "加载预览失败。",
         "executeFailed": "导入失败。"
       },
-      "authorsHint": "映射单个作者字符串（用 ;、& 或 和 分隔）或名称数组 — 每个条目成为一个作者。"
+      "authorsHint": "映射单个作者字符串（用 ;、& 或 和 分隔）或名称数组 — 每个条目成为一个作者。",
+      "delimiterLabel": "CSV 分隔符"
     }
   },
   "dataHygiene": {

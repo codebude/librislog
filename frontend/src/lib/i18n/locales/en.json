@@ -453,7 +453,8 @@
     "tooManyBooksSelected": "Too many books selected. Please select at most {max} at a time.",
     "importMappingNameConflict": "A mapping with this name already exists.",
     "importMappingNotFound": "Import mapping not found.",
-    "importFileNotFound": "Import file not found. Please upload the file again."
+    "importFileNotFound": "Import file not found. Please upload the file again.",
+    "importInvalidDelimiter": "CSV delimiter must be a single character."
   },
   "oidc": {
     "orContinueWith": "or continue with",
@@ -545,6 +546,7 @@
     "import": {
       "title": "Import",
       "description": "Upload one CSV or JSON file, map fields, validate, then import.",
+      "delimiterLabel": "CSV delimiter",
       "parse": "Parse file",
       "parsing": "Parsing...",
       "fileSummary": "Rows: {rows}, fields: {fields}",

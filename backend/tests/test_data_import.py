@@ -90,6 +90,21 @@ def test_parse_upload_csv_missing_header() -> None:
         di.parse_upload(b"\n", "test.csv", 1)
 
 
+def test_parse_upload_csv_custom_delimiter(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    csv = "Title;Author\nDune;Frank Herbert\n"
+    result = di.parse_upload(csv.encode(), "test.csv", 1, delimiter=";")
+    assert result["format"] == "csv"
+    assert result["source_fields"] == ["Title", "Author"]
+    assert result["sample_rows"][0] == {"Title": "Dune", "Author": "Frank Herbert"}
+
+
+def test_parse_upload_csv_invalid_delimiter(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    with pytest.raises(ValueError, match="error.importInvalidDelimiter"):
+        di.parse_upload(b"Title\nDune\n", "test.csv", 1, delimiter=";;")
+
+
 def test_parse_upload_json_not_array() -> None:
     payload = json.dumps({"key": "value"}).encode()
     with pytest.raises(ValueError, match="error.importJsonMustBeArray"):

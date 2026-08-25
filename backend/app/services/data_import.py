@@ -143,13 +143,15 @@ def _to_flat_row(row: dict) -> dict[str, object]:
     return flat
 
 
-def parse_upload(content: bytes, filename: str, user_id: int) -> dict:
+def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = ",") -> dict:
     """Parse an uploaded CSV or JSON file and persist the parsed result to disk.
 
     Args:
         content: Raw file bytes.
         filename: Original filename (used to detect format).
         user_id: Owner of the upload.
+        delimiter: Single-character field separator used for CSV files
+            (ignored for JSON).
 
     Returns:
         A dict with file_id, format, source_fields, sample_rows, and row_count.
@@ -164,9 +166,11 @@ def parse_upload(content: bytes, filename: str, user_id: int) -> dict:
 
     lower = filename.lower()
     if lower.endswith(".csv"):
+        if len(delimiter) != 1:
+            raise ValueError("error.importInvalidDelimiter")
         parsed_format = "csv"
         text = content.decode("utf-8-sig")
-        reader = csv.DictReader(text.splitlines())
+        reader = csv.DictReader(text.splitlines(), delimiter=delimiter)
         if not reader.fieldnames:
             raise ValueError("error.importMissingHeader")
         rows = [_to_flat_row(row) for row in reader]

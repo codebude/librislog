@@ -75,6 +75,8 @@ Import data from external sources:
 
 The JSON export mirrors the API shape: `author` is the joined string (separated with `; `), `authors` is the list of names, and `tags` is a list of tag names. All three round-trip through the adaptive import.
 
+For CSV files, a **delimiter** field appears once a `.csv` file is selected (default `,`). Enter the character your file uses to separate columns (e.g. `;` for German/Excel exports) before clicking **Parse file**.
+
 ### Field Mapping
 
 When importing CSV, map source columns to LibrisLog fields:

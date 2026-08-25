@@ -453,7 +453,8 @@
     "tooManyBooksSelected": "Trop de livres sélectionnés. Sélectionne au maximum {max} à la fois.",
     "importMappingNameConflict": "Un mappage avec ce nom existe déjà.",
     "importMappingNotFound": "Mappage d'importation introuvable.",
-    "importFileNotFound": "Fichier d'importation introuvable. Veuillez téléverser le fichier à nouveau."
+    "importFileNotFound": "Fichier d'importation introuvable. Veuillez téléverser le fichier à nouveau.",
+    "importInvalidDelimiter": "Le séparateur CSV doit être un seul caractère."
   },
   "oidc": {
     "orContinueWith": "ou continuer avec",
@@ -620,7 +621,8 @@
         "previewFailed": "Échec du chargement de l'aperçu.",
         "executeFailed": "Échec de l'importation."
       },
-      "authorsHint": "Mappez une chaîne d'auteur unique (séparée par ;, & ou et) ou un tableau de noms — chaque entrée devient un auteur."
+      "authorsHint": "Mappez une chaîne d'auteur unique (séparée par ;, & ou et) ou un tableau de noms — chaque entrée devient un auteur.",
+      "delimiterLabel": "Séparateur CSV"
     }
   },
   "dataHygiene": {

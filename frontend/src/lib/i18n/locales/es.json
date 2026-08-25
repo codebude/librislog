@@ -453,7 +453,8 @@
     "tooManyBooksSelected": "Demasiados libros seleccionados. Selecciona como máximo {max} a la vez.",
     "importMappingNameConflict": "Ya existe una asignación con este nombre.",
     "importMappingNotFound": "Asignación de importación no encontrada.",
-    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo."
+    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo.",
+    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter."
   },
   "oidc": {
     "orContinueWith": "o continuar con",
@@ -620,7 +621,8 @@
         "previewFailed": "Error al cargar la vista previa.",
         "executeFailed": "Importación fallida."
       },
-      "authorsHint": "Asigna una sola cadena de autor (separada por ;, & o y) o un array de nombres: cada entrada se convierte en un autor."
+      "authorsHint": "Asigna una sola cadena de autor (separada por ;, & o y) o un array de nombres: cada entrada se convierte en un autor.",
+      "delimiterLabel": "Delimitador CSV"
     }
   },
   "dataHygiene": {
