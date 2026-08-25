@@ -133,7 +133,7 @@ def _validate_ast(source: str) -> list[str]:
     return errors
 
 
-def compile_transform(code: str) -> Callable[..., str]:
+def compile_transform(code: str) -> Callable[..., Any]:
     """Compile a Python code block into a restricted callable.
 
     The user's code is wrapped in a function definition:
@@ -196,17 +196,23 @@ def execute_transform(
     value: str,
     row: dict[str, str],
     context: dict[str, Any],
-) -> str:
-    """Execute a compiled transform and enforce string return."""
+) -> Any:
+    """Execute a compiled transform and return its result.
+
+    ``None`` results are coerced to the empty string. A ``list`` result is
+    passed through untouched so transforms on the adaptive ``authors``/``tags``
+    targets can return an array (e.g. ``value.split(';')``); every other
+    non-string value is stringified, as before.
+    """
     try:
         result = fn(value=value, row=row, context=context)
     except Exception as exc:
         raise TransformExecutionError(str(exc)) from exc
     if result is None:
         return ""
-    if not isinstance(result, str):
-        return str(result)
-    return result
+    if isinstance(result, list):
+        return result
+    return str(result)
 
 
 def validate_transform(code: str) -> list[str]:

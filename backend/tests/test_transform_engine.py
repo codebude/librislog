@@ -135,10 +135,12 @@ class TestExecuteTransform:
         result = te.execute_transform(fn, "x", {}, {})
         assert result == "True"
 
-    def test_list_return_becomes_string(self) -> None:
+    def test_list_return_is_preserved(self) -> None:
+        """Non-string results (e.g. lists for the adaptive authors/tags targets)
+        are passed through untouched; scalar fields stringify in the caller."""
         fn = te.compile_transform("return [1, 2, 3]")
         result = te.execute_transform(fn, "x", {}, {})
-        assert result == "[1, 2, 3]"
+        assert result == [1, 2, 3]
 
     def test_no_return_statement(self) -> None:
         fn = te.compile_transform("x = value.strip()")
