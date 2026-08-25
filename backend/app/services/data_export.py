@@ -55,9 +55,9 @@ def _book_to_dict(session: Session, book: Book, export_format: str) -> dict:
 
     JSON exports mirror the API shape: ``author`` is the joined string (using
     ``; `` so it round-trips through the adaptive import), ``authors`` is the
-    name list, and ``tags`` is a list of tag names. CSV has no list type: the
-    ``author`` column carries the legacy comma-joined string, ``authors`` uses
-    ``; `` (so it round-trips), and ``tags`` is a comma-separated string.
+    name list, and ``tags`` is a list of tag names. CSV has no list type: both
+    the ``author`` and ``authors`` columns use ``; `` (so they round-trip
+    through ``parse_authors``), and ``tags`` is a comma-separated string.
     """
     authors = authors_list_for_book(session, book.id)
     tags = tags_list_for_book(session, book.id)

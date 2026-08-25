@@ -86,7 +86,7 @@ When importing CSV, map source columns to LibrisLog fields:
 
 #### Authors are adaptive
 
-The `author` / `authors` field adapts to the source value:
+The import target field is **`authors`**. Its source value adapts:
 
 - **Array value** (e.g. a JSON `authors` list) → each array entry becomes a separate author.
 - **String value** (e.g. a CSV cell) → normally becomes **one** author, and commas inside the name are preserved, so `"Asimov, Isaac"` stays a single author. To encode several authors in a single cell, separate them with `;`, ` & `, or ` and ` (e.g. `"Frank Herbert; Brian Herbert"`). This is how the CSV export writes the dedicated `authors` column, so exports round-trip losslessly.
