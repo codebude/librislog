@@ -41,7 +41,8 @@ class BookCreate(SQLModel):
     """Request body to create a new book."""
     title: str
     subtitle: Optional[str] = None
-    author: str
+    author: Optional[str] = None
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -63,6 +64,7 @@ class BookUpdate(SQLModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
     author: Optional[str] = None
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -84,6 +86,7 @@ class BookImportCandidate(SQLModel):
     title: str
     subtitle: Optional[str] = None
     author: Optional[str] = None
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -130,6 +133,7 @@ class BookRead(SQLModel):
     title: str
     subtitle: Optional[str]
     author: Optional[str]
+    authors: list[str] = []
     isbn: Optional[str]
     cover_url: Optional[str]
     publisher: Optional[str]
@@ -246,6 +250,7 @@ class TopRatedBook(SQLModel):
     book_id: int
     title: str
     author: Optional[str]
+    authors: list[str] = []
     rating: int
     reading_status: ReadingStatus
     cover_url: Optional[str]
@@ -385,6 +390,7 @@ class DataResetDeleted(SQLModel):
     """Counts of deleted items after a data reset."""
     books: int
     tags: int
+    authors: int
     progress_entries: int
 
 
@@ -482,6 +488,7 @@ class HygieneMissingBook(SQLModel):
     id: int
     title: str
     author: str | None
+    authors: list[str] = []
     isbn: str | None
     publisher: str | None
     published_year: int | None

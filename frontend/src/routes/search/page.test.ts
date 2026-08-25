@@ -48,6 +48,7 @@ function createMockBook(id: number, overrides?: Partial<Book>): Book {
 		title: `Book ${id}`,
 		subtitle: null,
 		author: 'Test Author',
+		authors: ['Test Author'],
 		isbn: null,
 		cover_url: null,
 		publisher: null,
@@ -122,7 +123,7 @@ describe('SearchPage', () => {
 
 		mockBooksList.mockResolvedValue({
 			total: 1,
-			books: [createMockBook(1, { title: 'Dune', author: 'Frank Herbert' })]
+			books: [createMockBook(1, { title: 'Dune', author: 'Frank Herbert', authors: ['Frank Herbert'] })]
 		});
 
 		render(SearchPage);

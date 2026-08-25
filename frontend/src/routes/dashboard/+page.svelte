@@ -8,6 +8,7 @@
 	import { toasts } from '$lib/toasts';
 	import { shouldShowActionToast } from '$lib/errors';
 	import { isQuoteServiceEnabled } from '$lib/stores/timezone';
+	import { formatAuthors } from '$lib/utils/authors';
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
@@ -378,7 +379,7 @@ import { Search, X } from '@lucide/svelte';
 										<div class="min-w-0 flex-1">
 											<p class="font-medium text-sm line-clamp-2">{book.title}</p>
 											{#if book.author}
-												<p class="text-xs text-base-content/60 truncate">{book.author}</p>
+												<p class="text-xs text-base-content/60 truncate">{formatAuthors(book.authors, book.author)}</p>
 											{/if}
 											<span class="badge badge-xs mt-1 {STATUS_BADGE[book.reading_status]}">
 												{$_(STATUS_LABEL_KEYS[book.reading_status])}

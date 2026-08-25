@@ -3,6 +3,7 @@
 	import { _ } from '$lib/i18n';
 	import StarRating from './StarRating.svelte';
 	import { ShoppingCart } from '@lucide/svelte';
+	import { formatAuthors } from '$lib/utils/authors';
 
 	let {
 		book,
@@ -66,7 +67,7 @@
 	<div class="card-body {compact ? 'p-3 gap-1' : 'p-5 gap-2'} overflow-hidden">
 		<h2 class="card-title {compact ? 'text-xs' : 'text-sm'} leading-tight line-clamp-2">{book.title}</h2>
 		{#if book.author}
-			<p class="text-xs text-base-content/50 truncate">{book.author}</p>
+			<p class="text-xs text-base-content/50 truncate">{formatAuthors(book.authors, book.author)}</p>
 		{/if}
 		{#if book.reading_status === 'want_to_read' && book.acquisition_status === 'to_acquire'}
 			<span class="inline-flex items-center gap-1 text-xs text-base-content/50" aria-label={$_('acquisition.to_acquire')}>

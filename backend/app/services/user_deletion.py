@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlmodel import Session, col, func, select
 
-from app.models import ApiKey, Book, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
+from app.models import ApiKey, Author, Book, BookAuthor, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
 from app.time_utils import utcnow
 from app.services.cover_storage import delete_cover_file, local_cover_filename
 
@@ -16,6 +16,7 @@ class ReadingDataDeletionCounts:
     """Counts of items deleted during a reading-data or account deletion."""
     books: int
     tags: int
+    authors: int
     progress_entries: int
 
 
@@ -47,6 +48,9 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
     tags_count = session.exec(
         select(func.count()).select_from(Tag).where(Tag.user_id == user_id)
     ).one()
+    authors_count = session.exec(
+        select(func.count()).select_from(Author).where(Author.user_id == user_id)
+    ).one()
 
     if book_ids:
         for cover_url in {book.cover_url for book in user_books if book.cover_url}:
@@ -62,11 +66,17 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
         for link in session.exec(select(BookTag).where(col(BookTag.book_id).in_(book_ids))).all():
             session.delete(link)
 
+        for link in session.exec(select(BookAuthor).where(col(BookAuthor.book_id).in_(book_ids))).all():
+            session.delete(link)
+
     for entry in session.exec(select(ReadingProgress).where(ReadingProgress.user_id == user_id)).all():
         session.delete(entry)
 
     for tag in session.exec(select(Tag).where(Tag.user_id == user_id)).all():
         session.delete(tag)
+
+    for author in session.exec(select(Author).where(Author.user_id == user_id)).all():
+        session.delete(author)
 
     for book in user_books:
         session.delete(book)
@@ -74,6 +84,7 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
     return ReadingDataDeletionCounts(
         books=len(user_books),
         tags=tags_count,
+        authors=authors_count,
         progress_entries=progress_count,
     )
 

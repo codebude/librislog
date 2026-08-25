@@ -6,6 +6,7 @@ from sqlmodel import Session, col, select
 
 from app.models import Book, BookTag, Tag
 from app.schemas import BookRead
+from app.services.authors import authors_list_for_book, join_authors
 from app.time_utils import utcnow
 
 
@@ -131,4 +132,7 @@ def build_book_read(session: Session, book: Book) -> BookRead:
     payload = book.model_dump()
     payload.pop("user_id", None)
     payload["tags"] = tags_text_for_book(session, book.id) if book.id is not None else None
+    authors = authors_list_for_book(session, book.id)
+    payload["authors"] = authors
+    payload["author"] = join_authors(authors)
     return BookRead.model_validate(payload)

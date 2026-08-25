@@ -158,8 +158,8 @@ def reset_data(
         raise
 
     logger.warning(
-        "User %s reset personal data: books=%s tags=%s progress_entries=%s",
-        current_user.id, deleted.books, deleted.tags, deleted.progress_entries,
+        "User %s reset personal data: books=%s tags=%s authors=%s progress_entries=%s",
+        current_user.id, deleted.books, deleted.tags, deleted.authors, deleted.progress_entries,
     )
 
     return DataResetResponse(
@@ -167,6 +167,7 @@ def reset_data(
         deleted=DataResetDeleted(
             books=deleted.books,
             tags=deleted.tags,
+            authors=deleted.authors,
             progress_entries=deleted.progress_entries,
         ),
     )

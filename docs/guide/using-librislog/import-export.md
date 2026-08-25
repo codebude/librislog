@@ -29,6 +29,12 @@ On mobile devices:
 
 If no search results are found, enter book details manually. Title, author, page count, and availability are required; all other fields are optional.
 
+Authors can be added as multiple values: type a name and press **Enter** (or pick a suggestion) to add a chip. A book can have any number of authors. Commas inside an author name (e.g. `Asimov, Isaac`) are preserved — they are not treated as separators.
+
+### Search Import
+
+When a search source returns multiple authors for a book (e.g. Open Library, Google Books, or Hardcover), the app keeps them as a list and creates one author per entry. Sources that return a single combined string are split only on `;`, ` & `, or ` and ` — never on commas.
+
 ## Data Export
 
 Export your entire library or subsets of data:
@@ -75,6 +81,15 @@ When importing CSV, map source columns to LibrisLog fields:
 - Optional transform expressions (Python) for data conversion
 
 `acquisition_status` is required for imports. Map it to one of `owned`, `borrowed`, `digital_access`, or `to_acquire`; use a transform when the source file uses different names.
+
+#### Authors are adaptive
+
+The `author` / `authors` field adapts to the source value:
+
+- **Array value** (e.g. a JSON `authors` list) → each array entry becomes a separate author.
+- **String value** (e.g. a CSV cell) → normally becomes **one** author, and commas inside the name are preserved, so `"Asimov, Isaac"` stays a single author. To encode several authors in a single cell, separate them with `;`, ` & `, or ` and ` (e.g. `"Frank Herbert; Brian Herbert"`). This is how the CSV export writes the dedicated `authors` column, so exports round-trip losslessly.
+
+The import preview shows how each row's author value will be interpreted before you import.
 
 ### Transform DSL
 

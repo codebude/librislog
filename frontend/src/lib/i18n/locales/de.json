@@ -60,7 +60,7 @@
     "topRated": "Am besten bewertet",
     "worstRated": "Am schlechtesten bewertet",
     "showMore": "Mehr anzeigen"
-    },
+  },
   "dashboard": {
     "title": "Lese-Dashboard",
     "subtitle": "Ein schneller Überblick über dein Lesen",
@@ -180,7 +180,10 @@
     "progressPromptTitle": "Lesefortschritt setzen?",
     "progressPromptMessage": "Lesefortschritt für \"{title}\" auf 100% setzen?",
     "progressPromptSet": "Auf 100% setzen",
-    "progressPromptSkip": "Überspringen"
+    "progressPromptSkip": "Überspringen",
+    "authorsPlaceholder": "Autor eingeben und Enter drücken",
+    "authorsHint": "Enter fügt einen Autor hinzu. Mit Rücktaste entfernt man den letzten.",
+    "authorsLabel": "Autor(en)"
   },
   "addModal": {
     "manual": "Manuell",
@@ -617,8 +620,8 @@
       }
     }
   },
-    "dataHygiene": {
-        "authorRequired": "Autor darf nicht leer sein.",
+  "dataHygiene": {
+    "authorRequired": "Autor darf nicht leer sein.",
     "pageCountPositive": "Seitenzahl muss größer als 0 sein.",
     "title": "Datenpflege",
     "description": "Finde und korrigiere Bücher mit fehlenden Metadaten in deiner Bibliothek.",
@@ -710,7 +713,7 @@
     "allDoneSub": "Jedes Buch in deiner Bibliothek hat jetzt ein Cover.",
     "loadingBook": "Nächstes Buch wird geladen...",
     "loadingCandidates": "Cover-Quellen werden durchsucht...",
-    "keyboardHint": "Tipp: Drücke 1\u20139, um ein Cover auszuwählen, \u2192 zum Überspringen",
+    "keyboardHint": "Tipp: Drücke 1–9, um ein Cover auszuwählen, → zum Überspringen",
     "candidatesError": "Cover-Suche fehlgeschlagen. Du kannst weiterhin den manuellen Import verwenden.",
     "retry": "Wiederholen"
   }

@@ -6,6 +6,7 @@ export interface Book {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -32,6 +33,7 @@ export interface BookImportCandidate {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[] | null;
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -158,6 +160,7 @@ export interface TopRatedBook {
 	book_id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	rating: number;
 	reading_status: ReadingStatus;
 	cover_url: string | null;
@@ -245,6 +248,7 @@ export interface DataResetResponse {
 	deleted: {
 		books: number;
 		tags: number;
+		authors: number;
 		progress_entries: number;
 	};
 }
@@ -377,6 +381,7 @@ export interface HygieneMissingBook {
 	id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	publisher: string | null;
 	published_year: number | null;

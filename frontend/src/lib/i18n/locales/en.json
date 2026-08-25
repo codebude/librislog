@@ -180,7 +180,10 @@
     "progressPromptTitle": "Set Reading Progress?",
     "progressPromptMessage": "Set the reading progress for \"{title}\" to 100%?",
     "progressPromptSet": "Set to 100%",
-    "progressPromptSkip": "Skip"
+    "progressPromptSkip": "Skip",
+    "authorsPlaceholder": "Type an author and press Enter",
+    "authorsLabel": "Author(s)",
+    "authorsHint": "Press Enter to add authors. Backspace removes the last author."
   },
   "addModal": {
     "manual": "Manual",
@@ -617,10 +620,10 @@
       }
     }
   },
-    "dataHygiene": {
-        "authorRequired": "Author cannot be empty.",
-        "pageCountPositive": "Page count must be greater than 0.",
-        "title": "Data Hygiene",
+  "dataHygiene": {
+    "authorRequired": "Author cannot be empty.",
+    "pageCountPositive": "Page count must be greater than 0.",
+    "title": "Data Hygiene",
     "description": "Find and fix books with missing metadata in your library.",
     "attributes": {
       "author": "Author",
@@ -710,7 +713,7 @@
     "allDoneSub": "Every book in your library now has a cover image.",
     "loadingBook": "Loading next book...",
     "loadingCandidates": "Searching cover sources...",
-    "keyboardHint": "Tip: Press 1\u20139 to select a cover, \u2192 to skip",
+    "keyboardHint": "Tip: Press 1–9 to select a cover, → to skip",
     "candidatesError": "Cover search failed. You can still use manual import.",
     "retry": "Retry"
   }

@@ -19,6 +19,8 @@ Use `<field>:<value>` to search in a single field. The field prefixes are always
 
 Use quotes for values that contain spaces: `title:"The Silmarillion"`.
 
+The `author:` prefix matches **any** author assigned to a book — a book with multiple authors matches if any of them contains the search value.
+
 ### Availability values
 
 The `availability` prefix matches the exact acquisition status. Accepted values include:

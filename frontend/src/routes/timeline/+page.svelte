@@ -7,6 +7,7 @@
 	import { toasts } from '$lib/toasts';
 	import { shouldShowActionToast } from '$lib/errors';
 	import { getTimezone } from '$lib/stores/timezone';
+	import { formatAuthors } from '$lib/utils/authors';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 
@@ -259,7 +260,7 @@
 								<div class="min-w-0">
 									<p class="font-medium break-words">{item.book.title}</p>
 									{#if item.book.author}
-										<p class="text-sm text-base-content/70 break-words">{item.book.author}</p>
+										<p class="text-sm text-base-content/70 break-words">{formatAuthors(item.book.authors, item.book.author)}</p>
 									{/if}
 									{#if item.book.rating}
 										<p class="text-warning text-sm">{stars(item.book.rating)}</p>

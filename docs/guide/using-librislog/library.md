@@ -54,6 +54,8 @@ Clicking a book opens the detail dialog/drawer showing:
 
 Use the "Add Book" button to manually enter book details. Fill in title, author, and optional fields like ISBN, publisher, page count, etc.
 
+A book can have **multiple authors**: type a name and press **Enter** to add it as a chip. Authors are shown joined with "; " throughout the app, so names written last-name-first (e.g. `"Doe, Jane"`) stay unambiguous.
+
 ### Import Search
 
 Search external sources for book metadata:

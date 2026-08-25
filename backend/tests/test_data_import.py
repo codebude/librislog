@@ -50,9 +50,10 @@ def test_to_flat_row_nested_dict_raises() -> None:
         di._to_flat_row({"key": {"nested": 1}})
 
 
-def test_to_flat_row_nested_list_raises() -> None:
-    with pytest.raises(ValueError, match="error.importNestedValuesNotSupported"):
-        di._to_flat_row({"key": [1, 2]})
+def test_to_flat_row_list_is_preserved() -> None:
+    """List values are kept as-is so JSON author arrays survive flattening."""
+    flat = di._to_flat_row({"author": ["Asimov, Isaac", "Robert Heinlein"]})
+    assert flat["author"] == ["Asimov, Isaac", "Robert Heinlein"]
 
 
 # ── parse_upload ──────────────────────────────────────────────────────────────

@@ -70,7 +70,6 @@ class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     subtitle: Optional[str] = None
-    author: str = Field(default="", index=True)
     isbn: Optional[str] = Field(default=None)
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -126,6 +125,30 @@ class BookTag(SQLModel, table=True):
 
     book_id: int = Field(foreign_key="book.id", primary_key=True)
     tag_id: int = Field(foreign_key="tag.id", primary_key=True, index=True)
+
+
+class Author(SQLModel, table=True):
+    """A user-specific author name that can be associated with books."""
+
+    __tablename__: str = "author"
+    __table_args__ = (sa.UniqueConstraint("user_id", "name", name="uq_author_user_id_name"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(index=True)
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+
+
+class BookAuthor(SQLModel, table=True):
+    """Many-to-many association between books and authors."""
+
+    __tablename__: str = "book_author"
+
+    book_id: int = Field(foreign_key="book.id", primary_key=True)
+    author_id: int = Field(foreign_key="author.id", primary_key=True, index=True)
 
 
 class User(SQLModel, table=True):

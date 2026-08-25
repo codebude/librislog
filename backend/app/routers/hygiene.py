@@ -10,7 +10,7 @@ from sqlmodel import Session, col, func, select, update as sqlmodel_update
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import Book, User
+from app.models import Book, BookAuthor, User
 from app.schemas import (
     HygieneAttribute,
     HygieneBatchUpdateRequest,
@@ -18,8 +18,9 @@ from app.schemas import (
     HygieneMissingBook,
     HygieneMissingResponse,
 )
+from app.services.authors import cleanup_orphan_authors, join_authors, load_authors_batch, sync_book_authors
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
-from app.services.tags import build_book_read
+from app.services.tags import load_tags_batch
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +31,24 @@ _MAX_BATCH_SIZE = 500
 
 def _missing_condition(attr: HygieneAttribute):
     """Return a SQLAlchemy filter condition for a given attribute being missing."""
-    col = getattr(Book, attr.value)
     if attr == HygieneAttribute.author:
-        return or_(col == "", col.is_(None))
+        return ~col(Book.id).in_(
+            select(BookAuthor.book_id).where(BookAuthor.book_id == col(Book.id))
+        )
+    col_expr = getattr(Book, attr.value)
     if attr == HygieneAttribute.page_count:
-        return or_(col == 0, col.is_(None))
-    return col.is_(None)
+        return or_(col_expr == 0, col_expr.is_(None))
+    return col_expr.is_(None)
 
 
-def _compute_missing_attributes(book: Book) -> list[HygieneAttribute]:
+def _compute_missing_attributes(book: Book, author_names: list[str]) -> list[HygieneAttribute]:
     """Return the list of hygiene attributes that are missing for a given book."""
     missing: list[HygieneAttribute] = []
     for attr in HygieneAttribute:
+        if attr == HygieneAttribute.author:
+            if not author_names:
+                missing.append(attr)
+            continue
         val = getattr(book, attr.value)
         is_missing = val is None or val == "" or val == 0
         if is_missing:
@@ -102,21 +109,26 @@ def list_missing(
     ).all()
 
     hygiene_books = []
+    book_ids = [book.id for book in books if book.id is not None]
+    tags_map = load_tags_batch(session, book_ids)
+    authors_map = load_authors_batch(session, book_ids)
     for book in books:
-        br = build_book_read(session, book)
-        missing_attrs = _compute_missing_attributes(book)
+        assert book.id is not None
+        author_names = authors_map.get(book.id, [])
+        missing_attrs = _compute_missing_attributes(book, author_names)
         hygiene_books.append(HygieneMissingBook(
-            id=br.id,
-            title=br.title,
-            author=br.author,
-            isbn=br.isbn,
-            publisher=br.publisher,
-            published_year=br.published_year,
-            blurb=br.blurb,
-            language=br.language,
-            subtitle=br.subtitle,
-            page_count=br.page_count or 0,
-            cover_url=br.cover_url,
+            id=book.id,
+            title=book.title,
+            author=join_authors(author_names),
+            authors=author_names,
+            isbn=book.isbn,
+            publisher=book.publisher,
+            published_year=book.published_year,
+            blurb=book.blurb,
+            language=book.language,
+            subtitle=book.subtitle,
+            page_count=book.page_count or 0,
+            cover_url=book.cover_url,
             missing_attributes=[a for a in requested if a in missing_attrs],
         ))
 
@@ -233,8 +245,18 @@ async def batch_update(
 
     skipped_ids: list[int] = []
     to_update_ids: list[int] = []
+    current_authors_map = (
+        load_authors_batch(session, [b.id for b in books if b.id is not None])
+        if req.field == HygieneAttribute.author
+        else {}
+    )
     for book in books:
-        current_val = getattr(book, req.field.value)
+        if req.field == HygieneAttribute.author:
+            # Compare against the current author set so multi-author books are
+            # only skipped when they already contain exactly the target author.
+            current_val = ", ".join(current_authors_map.get(book.id, [])) or None
+        else:
+            current_val = getattr(book, req.field.value)
         if current_val == req.value:
             skipped_ids.append(book.id)  # ty: ignore[invalid-argument-type]
         else:
@@ -242,19 +264,36 @@ async def batch_update(
 
     updated = 0
     if to_update_ids:
-        try:
-            stmt = (
-                sqlmodel_update(Book)
-                .where(col(Book.id).in_(to_update_ids))
-                .values({req.field.value: req.value})
-            )
-            updated = len(to_update_ids)
-            session.exec(stmt)
-            session.commit()
-        except Exception:
-            session.rollback()
-            logger.exception("Batch update failed for %d books", len(to_update_ids))
-            raise HTTPException(status_code=500, detail="Batch update failed due to a database error")
+        if req.field == HygieneAttribute.author:
+            # Authors live in a relation table; a bulk SQL update does not work.
+            assert current_user.id is not None
+            for book in books:
+                if book.id not in set(to_update_ids):
+                    continue
+                assert book.id is not None
+                sync_book_authors(session, current_user.id, book.id, [str(req.value)])
+                updated += 1
+            cleanup_orphan_authors(session, current_user.id)
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                logger.exception("Batch author update failed for %d books", len(to_update_ids))
+                raise HTTPException(status_code=500, detail="Batch update failed due to a database error")
+        else:
+            try:
+                stmt = (
+                    sqlmodel_update(Book)
+                    .where(col(Book.id).in_(to_update_ids))
+                    .values({req.field.value: req.value})
+                )
+                updated = len(to_update_ids)
+                session.exec(stmt)
+                session.commit()
+            except Exception:
+                session.rollback()
+                logger.exception("Batch update failed for %d books", len(to_update_ids))
+                raise HTTPException(status_code=500, detail="Batch update failed due to a database error")
 
     return HygieneBatchUpdateResponse(
         updated=updated,

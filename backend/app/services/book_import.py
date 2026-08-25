@@ -364,7 +364,7 @@ async def _search_open_library(
 def map_open_library(doc: dict) -> BookImportCandidate:
     """Map a single Open Library search doc to BookImportCandidate."""
     # Authors: list of strings
-    authors = doc.get("author_name") or []
+    authors = [a for a in (doc.get("author_name") or []) if a]
     author = ", ".join(authors) if authors else None
 
     # ISBN: first entry of the list, prefer ISBN-13 (length 13)
@@ -391,6 +391,7 @@ def map_open_library(doc: dict) -> BookImportCandidate:
         title=doc["title"],
         subtitle=doc.get("subtitle") or None,
         author=author,
+        authors=authors,
         isbn=isbn,
         cover_url=cover_url,
         publisher=publisher,
@@ -561,7 +562,7 @@ def map_google_books(item: dict) -> BookImportCandidate:
     vi = item.get("volumeInfo", {})
 
     # Authors
-    authors: list[str] = vi.get("authors") or []
+    authors: list[str] = [a for a in (vi.get("authors") or []) if a]
     author = ", ".join(authors) if authors else None
 
     # ISBN: prefer ISBN_13
@@ -596,6 +597,7 @@ def map_google_books(item: dict) -> BookImportCandidate:
         title=vi["title"],
         subtitle=vi.get("subtitle") or None,
         author=author,
+        authors=authors,
         isbn=isbn,
         cover_url=cover_url,
         publisher=vi.get("publisher"),
@@ -770,12 +772,12 @@ def map_hardcover(edition: dict) -> BookImportCandidate | None:
         return None
 
     contributions = edition.get("contributions") or []
-    author = None
+    authors: list[str] = []
     for c in contributions:
-        author_name = c.get("author", {}).get("name")
+        author_name = (c.get("author") or {}).get("name")
         if author_name:
-            author = author_name
-            break
+            authors.append(author_name)
+    author = ", ".join(authors) if authors else None
 
     isbn = edition.get("isbn_13") or None
 
@@ -811,6 +813,7 @@ def map_hardcover(edition: dict) -> BookImportCandidate | None:
         title=title,
         subtitle=edition.get("subtitle") or None,
         author=author,
+        authors=authors,
         isbn=isbn,
         cover_url=cover_url,
         publisher=publisher,

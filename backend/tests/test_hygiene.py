@@ -3,17 +3,22 @@
 import pytest
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
-from app.models import Book, ReadingStatus, User
+from app.models import Author, Book, BookAuthor, ReadingStatus, User
 from app.routers import hygiene as hygiene_router
+from app.services.authors import normalize_author_list
 
 
 def _create_book(session: Session, user_id: int, **overrides: object) -> Book:
-    """Create a test book with sensible defaults."""
+    """Create a test book with sensible defaults.
+
+    The ``author`` override is applied through the author relation table, so an
+    empty string or None leaves the book without authors.
+    """
+    raw_author: object = overrides.pop("author", "Test Author")
     defaults: dict = {
         "title": "Test Book",
-        "author": "Test Author",
         "isbn": None,
         "publisher": "Test Publisher",
         "published_year": 2020,
@@ -30,6 +35,25 @@ def _create_book(session: Session, user_id: int, **overrides: object) -> Book:
     session.add(book)
     session.commit()
     session.refresh(book)
+
+    names: list[str] = (
+        [str(raw_author).strip()]
+        if isinstance(raw_author, str) and str(raw_author).strip()
+        else []
+    )
+    if names and book.id is not None:
+        for name in names:
+            author = session.exec(
+                select(Author).where(Author.user_id == user_id, Author.name == name)
+            ).first()
+            if author is None:
+                author = Author(user_id=user_id, name=name)
+                session.add(author)
+                session.flush()
+            assert author.id is not None
+            session.add(BookAuthor(book_id=book.id, author_id=author.id))
+        session.commit()
+        session.refresh(book)
     return book
 
 
@@ -154,8 +178,22 @@ class TestBatchUpdate:
 
         session.refresh(b1)
         session.refresh(b2)
-        assert b1.author == "New Author"
-        assert b2.author == "New Author"
+        author_names = list(
+            session.exec(
+                select(Author.name)
+                .join(BookAuthor, col(BookAuthor.author_id) == col(Author.id))
+                .where(BookAuthor.book_id == b1.id)
+            ).all()
+        )
+        assert author_names == ["New Author"]
+        author_names = list(
+            session.exec(
+                select(Author.name)
+                .join(BookAuthor, col(BookAuthor.author_id) == col(Author.id))
+                .where(BookAuthor.book_id == b2.id)
+            ).all()
+        )
+        assert author_names == ["New Author"]
 
     def test_batch_update_too_many_ids(self, client: TestClient, session: Session) -> None:
         """Rejects more than 500 book IDs."""
@@ -393,7 +431,7 @@ class TestBatchUpdate:
         """A database error during the update should return 500."""
         from sqlalchemy.sql.dml import Update
 
-        b1 = _create_book(session, 1, title="B1", author="Old")
+        b1 = _create_book(session, 1, title="B1", published_year=2020)
         original_exec = session.exec
 
         def fake_exec(statement, *args, **kwargs):
@@ -405,8 +443,8 @@ class TestBatchUpdate:
 
         resp = client.post("/api/hygiene/batch-update", json={
             "book_ids": [b1.id],
-            "field": "author",
-            "value": "New",
+            "field": "published_year",
+            "value": 2021,
         })
         assert resp.status_code == 500
         assert resp.json()["detail"] == "Batch update failed due to a database error"

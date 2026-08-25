@@ -180,4 +180,99 @@ test.describe('Data Import', () => {
 		expect(books).toHaveLength(1);
 		expect(books[0].acquisition_status).toBe('to_acquire');
 	});
+
+	test('9.6 JSON author array maps to multiple authors', async ({ page }) => {
+		await deleteAllBooks(page);
+		await page.goto('/data?tab=import');
+		await page.waitForTimeout(1000);
+
+		const JSON_DATA = JSON.stringify([
+			{
+				title: 'Good Omens',
+				authors: ['Terry Pratchett', 'Neil Gaiman'],
+				isbn: '9780060853983',
+				pages: 288,
+				status: 'want_to_read',
+				availability: 'owned',
+			},
+		]);
+
+		await page.locator('input[type="file"]').setInputFiles({
+			name: 'test-books.json',
+			mimeType: 'application/json',
+			buffer: Buffer.from(JSON_DATA),
+		});
+
+		await page.locator('button').filter({ hasText: 'Parse file' }).click();
+		await page.waitForTimeout(2000);
+
+		await page.locator('select[name="mapping-target-title"]').selectOption('title');
+		await page.locator('select[name="mapping-target-author"]').selectOption('authors');
+		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
+		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
+		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
+		await page.locator('select[name="mapping-target-acquisition_status"]').selectOption('availability');
+
+		await page.locator('button').filter({ hasText: 'Generate' }).click();
+		await page.waitForTimeout(2000);
+
+		await page.locator('button').filter({ hasText: 'Simulate' }).click();
+		await page.waitForTimeout(2000);
+
+		await expect(page.locator('body')).toContainText('Validation passed.', { timeout: 10000 });
+
+		await page.locator('button.btn-secondary.btn-sm').filter({ hasText: 'Import now' }).click();
+		await page.locator('dialog.modal-open .btn-secondary').filter({ hasText: 'Import now' }).waitFor({ state: 'visible', timeout: 5000 });
+		await page.locator('dialog.modal-open .btn-secondary').filter({ hasText: 'Import now' }).click();
+		await page.waitForTimeout(2000);
+
+		const response = await page.request.get('/api/books?q=Good%20Omens');
+		const books = (await response.json()).books;
+		expect(books).toHaveLength(1);
+		expect(books[0].authors).toEqual(['Neil Gaiman', 'Terry Pratchett']);
+	});
+
+	test('9.7 CSV author cell with a comma stays a single author', async ({ page }) => {
+		await deleteAllBooks(page);
+		await page.goto('/data?tab=import');
+		await page.waitForTimeout(1000);
+
+		const CSV_COMMA = `title,author,isbn,pages,status,availability
+"Fahrenheit 451","Bradbury, Ray","9781451673319",249,want_to_read,owned`;
+
+		await page.locator('input[type="file"]').setInputFiles({
+			name: 'test-books.csv',
+			mimeType: 'text/csv',
+			buffer: Buffer.from(CSV_COMMA),
+		});
+
+		await page.locator('button').filter({ hasText: 'Parse file' }).click();
+		await page.waitForTimeout(2000);
+
+		await page.locator('select[name="mapping-target-title"]').selectOption('title');
+		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
+		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
+		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
+		await page.locator('select[name="mapping-target-acquisition_status"]').selectOption('availability');
+
+		await page.locator('button').filter({ hasText: 'Generate' }).click();
+		await page.waitForTimeout(2000);
+
+		await page.locator('button').filter({ hasText: 'Simulate' }).click();
+		await page.waitForTimeout(2000);
+
+		await expect(page.locator('body')).toContainText('Validation passed.', { timeout: 10000 });
+
+		await page.locator('button.btn-secondary.btn-sm').filter({ hasText: 'Import now' }).click();
+		await page.locator('dialog.modal-open .btn-secondary').filter({ hasText: 'Import now' }).waitFor({ state: 'visible', timeout: 5000 });
+		await page.locator('dialog.modal-open .btn-secondary').filter({ hasText: 'Import now' }).click();
+		await page.waitForTimeout(2000);
+
+		const response = await page.request.get('/api/books?q=Fahrenheit');
+		const books = (await response.json()).books;
+		expect(books).toHaveLength(1);
+		expect(books[0].authors).toEqual(['Bradbury, Ray']);
+		expect(books[0].author).toBe('Bradbury, Ray');
+	});
 });

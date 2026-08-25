@@ -20,6 +20,7 @@ from app.schemas import ImportFieldConfig
 
 logger = logging.getLogger(__name__)
 from app.time_utils import utcnow
+from app.services.authors import parse_authors, sync_book_authors
 from app.services.cover_storage import download_cover
 from app.services.tags import sync_book_tags
 from app.services.isbn_utils import normalize_isbn
@@ -128,11 +129,15 @@ def delete_parsed_upload(file_id: str, user_id: int) -> None:
     _temp_file_path(user_id, file_id).unlink(missing_ok=True)
 
 
-def _to_flat_row(row: dict) -> dict[str, str | int | float | bool | None]:
-    """Flatten a row dict, rejecting nested values."""
-    flat: dict[str, str | int | float | bool | None] = {}
+def _to_flat_row(row: dict) -> dict[str, object]:
+    """Flatten a row dict, rejecting nested dict values.
+
+    List values (e.g. a JSON ``authors`` array) are kept as-is so the adaptive
+    author handling can turn each entry into a separate author.
+    """
+    flat: dict[str, object] = {}
     for key, value in row.items():
-        if isinstance(value, (dict, list)):
+        if isinstance(value, dict):
             raise ValueError("error.importNestedValuesNotSupported")
         flat[str(key)] = value
     return flat
@@ -411,6 +416,10 @@ def _mapped_row(
         if not source:
             continue
         value = row.get(source, "")
+        if target == "author" and isinstance(value, list):
+            # Adaptive author handling: an array contributes one author per entry.
+            mapped[target] = value
+            continue
         value_str = "" if value is None else str(value)
         if target in transform_cache:
             from app.services.transform_engine import TransformExecutionError, execute_transform
@@ -655,9 +664,9 @@ def preview_import(
             )
 
         # Convert raw values to strings for display
-        source_display = {k: str(v) if v is not None else "" for k, v in row.items()}
+        source_display = {k: (", ".join(v) if isinstance(v, list) else str(v)) if v is not None else "" for k, v in row.items()}
         # Convert transformed values to strings for display
-        transformed_display = {k: str(v) if v is not None else "" for k, v in row_data.items()}
+        transformed_display = {k: (", ".join(v) if isinstance(v, list) else str(v)) if v is not None else "" for k, v in row_data.items()}
 
         preview_rows.append({
             "row_number": idx,
@@ -772,7 +781,6 @@ async def execute_import(
                 book = Book(
                     title=title,
                     subtitle=None if row_data.get("subtitle") in (None, "") else str(row_data.get("subtitle")),
-                    author=None if row_data.get("author") in (None, "") else str(row_data.get("author")),  # ty: ignore[invalid-argument-type]
                     isbn=None if row_data.get("isbn") in (None, "") else str(row_data.get("isbn")),
                     cover_url=cover_url,
                     publisher=None if row_data.get("publisher") in (None, "") else str(row_data.get("publisher")),
@@ -791,6 +799,13 @@ async def execute_import(
                 session.add(book)
                 session.flush()
                 assert book.id is not None
+
+                sync_book_authors(
+                    session,
+                    user.id,
+                    book.id,
+                    parse_authors(row_data.get("author")),
+                )
 
                 if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None and date_finished is not None:
                     log_date = date_finished

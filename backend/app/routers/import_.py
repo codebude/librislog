@@ -16,6 +16,7 @@ from app.database import get_session
 from app.models import Book, User
 from app.schemas import BookImportCandidate, BookImportRequest, BookRead
 from app.services import book_import
+from app.services.authors import resolve_authors_payload, sync_book_authors
 from app.services.cover_storage import download_cover
 from app.services.tags import build_book_read, sync_book_tags
 
@@ -145,7 +146,6 @@ async def import_book(
     book = Book(
         title=c.title,
         subtitle=c.subtitle,
-        author=c.author or "",
         isbn=c.isbn,
         cover_url=cover_url,
         publisher=c.publisher,
@@ -164,6 +164,8 @@ async def import_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     sync_book_tags(session, current_user.id, book.id or 0, c.tags)
+    names = resolve_authors_payload(c.author, c.authors) or []
+    sync_book_authors(session, current_user.id, book.id or 0, names)
     try:
         session.commit()
     except IntegrityError as exc:

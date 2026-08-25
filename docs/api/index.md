@@ -46,8 +46,18 @@ curl -H "X-API-Key: YOUR_KEY_HERE" \
 curl -X POST \
   -H "X-API-Key: YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
-  -d '{"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"}' \
+  -d '{"title": "The Great Gatsby", "authors": ["F. Scott Fitzgerald"]}' \
   http://localhost:8000/api/books
+```
+
+### Book author fields
+
+Book responses contain two author fields:
+
+- `author` — the **joined** string of all authors (e.g. `"Neil Gaiman, Terry Pratchett"`). Kept for backward compatibility with existing consumers.
+- `authors` — the **list** of individual author names (e.g. `["Neil Gaiman", "Terry Pratchett"]`).
+
+When creating or updating a book you may send `authors` as a list, or the legacy `author` string (which is parsed on commas, tag-style). If both are sent, `authors` takes precedence.
 
 # Update reading status
 curl -X POST \

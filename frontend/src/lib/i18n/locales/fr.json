@@ -180,7 +180,10 @@
     "progressPromptTitle": "Définir la progression ?",
     "progressPromptMessage": "Définir la progression de \"{title}\" à 100 % ?",
     "progressPromptSet": "Définir à 100 %",
-    "progressPromptSkip": "Passer"
+    "progressPromptSkip": "Passer",
+    "authorsPlaceholder": "Saisis un auteur et appuie sur Entrée",
+    "authorsHint": "Entrée pour ajouter des auteurs. Retour arrière supprime le dernier.",
+    "authorsLabel": "Auteur(s)"
   },
   "addModal": {
     "manual": "Manuel",
@@ -710,7 +713,7 @@
     "allDoneSub": "Chaque livre de ta bibliothèque a maintenant une image de couverture.",
     "loadingBook": "Chargement du livre suivant...",
     "loadingCandidates": "Recherche de sources de couvertures...",
-    "keyboardHint": "Astuce : appuie sur 1\u20139 pour sélectionner une couverture, \u2192 pour passer",
+    "keyboardHint": "Astuce : appuie sur 1–9 pour sélectionner une couverture, → pour passer",
     "candidatesError": "Recherche de couverture échouée. Tu peux toujours utiliser l'importation manuelle.",
     "retry": "Réessayer"
   }

@@ -180,7 +180,10 @@
     "progressPromptTitle": "设置阅读进度？",
     "progressPromptMessage": "将 \"{title}\" 的阅读进度设置为 100%？",
     "progressPromptSet": "设为 100%",
-    "progressPromptSkip": "跳过"
+    "progressPromptSkip": "跳过",
+    "authorsPlaceholder": "输入作者并按回车",
+    "authorsHint": "按回车添加作者。按退格键删除上一个。",
+    "authorsLabel": "作者"
   },
   "addModal": {
     "manual": "手动添加",
@@ -710,7 +713,7 @@
     "allDoneSub": "你书库中的每本书现在都有封面。",
     "loadingBook": "正在加载下一本书...",
     "loadingCandidates": "正在搜索封面来源...",
-    "keyboardHint": "提示：按 1\u20139 选择封面，按 \u2192 跳过",
+    "keyboardHint": "提示：按 1–9 选择封面，按 → 跳过",
     "candidatesError": "封面搜索失败。你仍可使用手动导入。",
     "retry": "重试"
   }
