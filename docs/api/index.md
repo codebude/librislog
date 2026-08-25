@@ -54,8 +54,10 @@ curl -X POST \
 
 Book responses contain two author fields:
 
-- `author` — the **joined** string of all authors (e.g. `"Neil Gaiman, Terry Pratchett"`). Kept for backward compatibility with existing consumers.
+- `author` — **deprecated**. The **joined** string of all authors (e.g. `"Neil Gaiman, Terry Pratchett"`). Kept for backward compatibility with existing consumers; use `authors` instead.
 - `authors` — the **list** of individual author names (e.g. `["Neil Gaiman", "Terry Pratchett"]`).
+
+The `author` field is marked as **deprecated** in the OpenAPI spec (visible in Swagger UI) on all book schemas. It still works but may be removed in a future release.
 
 When creating or updating a book you may send `authors` as a list, or the legacy `author` string. If both are sent, `authors` takes precedence.
 

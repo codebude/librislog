@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, field_validator
+import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
@@ -41,7 +42,7 @@ class BookCreate(SQLModel):
     """Request body to create a new book."""
     title: str
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
     authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
@@ -63,7 +64,7 @@ class BookUpdate(SQLModel):
     """Request body to partially update a book."""
     title: Optional[str] = None
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
     authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
@@ -85,7 +86,7 @@ class BookImportCandidate(SQLModel):
     """A book result from an external API, not yet persisted locally."""
     title: str
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
     authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
@@ -132,7 +133,7 @@ class BookRead(SQLModel):
     id: int
     title: str
     subtitle: Optional[str]
-    author: Optional[str]
+    author: Optional[str] = pydantic.Field(deprecated=True)
     authors: list[str] = []
     isbn: Optional[str]
     cover_url: Optional[str]
@@ -249,7 +250,7 @@ class TopRatedBook(SQLModel):
     """A book appearing in top/worst rated lists."""
     book_id: int
     title: str
-    author: Optional[str]
+    author: Optional[str] = pydantic.Field(deprecated=True)
     authors: list[str] = []
     rating: int
     reading_status: ReadingStatus
@@ -487,7 +488,7 @@ class HygieneMissingBook(SQLModel):
     """A single book in the data-hygiene listing with its missing fields annotated."""
     id: int
     title: str
-    author: str | None
+    author: str | None = pydantic.Field(deprecated=True)
     authors: list[str] = []
     isbn: str | None
     publisher: str | None
