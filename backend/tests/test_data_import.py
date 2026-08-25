@@ -61,6 +61,17 @@ def test_to_flat_row_list_is_preserved() -> None:
     assert flat["author"] == ["Asimov, Isaac", "Robert Heinlein"]
 
 
+def test_canonicalize_mapping_renames_author_target() -> None:
+    """Legacy 'author' targets map to the canonical 'authors' field."""
+    from app.schemas import ImportFieldConfig
+
+    canonical = di.canonicalize_mapping(
+        {"title": ImportFieldConfig(source="Title"), "author": ImportFieldConfig(source="Author")}
+    )
+    assert set(canonical) == {"title", "authors"}
+    assert canonical["authors"].source == "Author"
+
+
 # ── parse_upload ──────────────────────────────────────────────────────────────
 
 def test_parse_upload_empty_file() -> None:
@@ -247,6 +258,60 @@ def test_mapped_row_skips_empty_source() -> None:
     assert result == {"author": ""}  # row.get("B") returns None -> ""
 
 
+def test_mapped_row_array_authors_skips_transform() -> None:
+    """A list source mapped to `authors` bypasses the transform (scalar-only)."""
+    result = di._mapped_row(
+        {"A": ["Neil Gaiman", "Terry Pratchett"]},
+        {"authors": ImportFieldConfig(source="A", transform="value.upper()")},
+        {},
+        {},
+    )
+    assert result == {"authors": ["Neil Gaiman", "Terry Pratchett"]}
+
+
+def test_mapped_row_transform_returning_list_kept_for_authors() -> None:
+    """A transform that returns a list (e.g. value.split(';')) stays a list for
+    the adaptive `authors` target, so the preview renders a JSON array."""
+    transform_cache = di._build_transform_cache(
+        {"authors": ImportFieldConfig(source="A", transform="value.split(';')")}
+    )
+    result = di._mapped_row(
+        {"A": "Doe, Jane; Mike; mansarde"},
+        {"authors": ImportFieldConfig(source="A", transform="value.split(';')")},
+        transform_cache,
+        {},
+    )
+    assert result == {"authors": ["Doe, Jane", " Mike", " mansarde"]}
+
+
+def test_mapped_row_transform_returning_list_kept_for_tags() -> None:
+    """Same list pass-through applies to the adaptive `tags` target."""
+    transform_cache = di._build_transform_cache(
+        {"tags": ImportFieldConfig(source="A", transform="value.split(',')")}
+    )
+    result = di._mapped_row(
+        {"A": "fantasy,humor"},
+        {"tags": ImportFieldConfig(source="A", transform="value.split(',')")},
+        transform_cache,
+        {},
+    )
+    assert result == {"tags": ["fantasy", "humor"]}
+
+
+def test_mapped_row_transform_returning_list_stringified_for_scalar_target() -> None:
+    """A list result on a non-adaptive target (e.g. title) is stringified."""
+    transform_cache = di._build_transform_cache(
+        {"title": ImportFieldConfig(source="A", transform="value.split(' ')")}
+    )
+    result = di._mapped_row(
+        {"A": "Dune Messiah"},
+        {"title": ImportFieldConfig(source="A", transform="value.split(' ')")},
+        transform_cache,
+        {},
+    )
+    assert result == {"title": "['Dune', 'Messiah']"}
+
+
 # ── _validate_mapping ─────────────────────────────────────────────
 
 def test_validate_mapping_empty_mapping() -> None:
@@ -294,6 +359,47 @@ def test_parse_acquisition_status_rejects_invalid_value() -> None:
 
 
 # ── preview_import ────────────────────────────────────────────────────────────
+
+def test_preview_import_json_lists_render_as_arrays(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """JSON `authors`/`tags` arrays stay arrays in the preview, and the
+    canonical `authors` target (not legacy `author`) is shown."""
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [
+            {
+                "title": "Good Omens",
+                "author": "Neil Gaiman; Terry Pratchett",
+                "authors": ["Neil Gaiman", "Terry Pratchett"],
+                "tags": ["fantasy", "humor"],
+                "page_count": 288,
+                "reading_status": "want_to_read",
+            }
+        ],
+        "source_fields": ["title", "author", "authors", "tags", "page_count", "reading_status"],
+    }
+    file_id = "test_preview_lists"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    mapping = di.suggest_mapping(list(payload["source_fields"]))
+    result = di.preview_import(file_id, user, mapping)
+    assert len(result["preview_rows"]) == 1
+    row = result["preview_rows"][0]
+
+    # Source keeps raw file values: author string stays a string, lists stay lists.
+    assert row["source"]["author"] == "Neil Gaiman; Terry Pratchett"
+    assert row["source"]["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert row["source"]["tags"] == ["fantasy", "humor"]
+
+    # Transformed shows only the canonical `authors` target, as an array.
+    assert "author" not in row["transformed"]
+    assert row["transformed"]["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert row["transformed"]["tags"] == ["fantasy", "humor"]
+
 
 def test_preview_import_basic(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))

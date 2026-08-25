@@ -205,7 +205,7 @@ def test_data_import_parse_and_suggest_mapping(client: TestClient, monkeypatch: 
     assert suggest_resp.status_code == 200
     suggested = suggest_resp.json()["suggested_mapping"]
     assert suggested["title"]["source"] == "Title"
-    assert suggested["author"]["source"] == "Author"
+    assert suggested["authors"]["source"] == "Author"
     assert suggested["rating"]["source"] == "My Rating"
 
 

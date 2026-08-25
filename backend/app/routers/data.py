@@ -34,6 +34,7 @@ from app.services.data_export import build_export_zip
 from app.services.data_import import (
     BOOK_IMPORT_FIELDS,
     PREDEFINED_MAPPINGS,
+    canonicalize_mapping,
     compute_schema_fingerprint,
     execute_import,
     get_predefined_mapping,
@@ -54,7 +55,7 @@ def _mapping_read(model: ImportMapping) -> DataImportMappingRead:
         id=model.id or 0,
         name=model.name,
         source_fields=json.loads(model.source_fields_json),
-        mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
+        mapping=canonicalize_mapping({k: ImportFieldConfig(**v) for k, v in raw_mapping.items()}),
         created_at=model.created_at,
         updated_at=model.updated_at,
         is_predefined=False,
@@ -143,7 +144,7 @@ def save_import_mapping(
         )
     ).first()
 
-    mapping_dict = {k: v.model_dump() for k, v in body.mapping.items()}
+    mapping_dict = {k: v.model_dump() for k, v in canonicalize_mapping(body.mapping).items()}
     if existing:
         existing.source_fields_json = json.dumps(body.source_fields)
         existing.mapping_json = json.dumps(mapping_dict)
@@ -226,7 +227,7 @@ def get_import_mapping(
             id=mapping_id,
             name=str(pm.get("name", "")),
             source_fields=list(raw_sources),
-            mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
+            mapping=canonicalize_mapping({k: ImportFieldConfig(**v) for k, v in raw_mapping.items()}),
             created_at=datetime(2000, 1, 1),
             updated_at=datetime(2000, 1, 1),
             is_predefined=True,

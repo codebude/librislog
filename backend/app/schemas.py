@@ -641,8 +641,8 @@ class DataImportValidateResponse(SQLModel):
 class DataImportPreviewRow(SQLModel):
     """A single row in the import preview."""
     row_number: int
-    source: dict[str, str]
-    transformed: dict[str, Optional[str]]
+    source: dict[str, Any]
+    transformed: dict[str, Any]
     errors: list[str]
 
 

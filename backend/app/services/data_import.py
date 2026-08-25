@@ -28,7 +28,7 @@ from app.services.isbn_utils import normalize_isbn
 BOOK_IMPORT_FIELDS: list[str] = [
     "title",
     "subtitle",
-    "author",
+    "authors",
     "isbn",
     "publisher",
     "published_year",
@@ -51,9 +51,9 @@ _ALIASES: dict[str, str] = {
     "name": "title",
     "subtitle": "subtitle",
     "book subtitle": "subtitle",
-    "author": "author",
-    "authors": "author",
-    "author name": "author",
+    "author": "authors",
+    "authors": "authors",
+    "author name": "authors",
     "isbn": "isbn",
     "isbn13": "isbn",
     "isbn10": "isbn",
@@ -391,21 +391,39 @@ def _parse_reading_status(value: object) -> ReadingStatus:
 
 def _build_transform_cache(
     mapping: dict[str, "ImportFieldConfig"],
-) -> dict[str, Callable[..., str]]:
+) -> dict[str, Callable[..., Any]]:
     """Compile all transform expressions into a cache of callables."""
     from app.services.transform_engine import compile_transform
 
-    cache: dict[str, Callable[..., str]] = {}
+    cache: dict[str, Callable[..., Any]] = {}
     for target, config in mapping.items():
         if config.transform:
             cache[target] = compile_transform(config.transform)
     return cache
 
 
+def canonicalize_mapping(
+    mapping: dict[str, ImportFieldConfig],
+) -> dict[str, ImportFieldConfig]:
+    """Normalize a mapping dict, renaming the legacy ``author`` target to ``authors``.
+
+    Both spellings refer to the same per-book author relation; saved mappings
+    created before the rename may still use ``author`` as the target key. If
+    both keys are present, the first occurrence in iteration order wins.
+    """
+    result: dict[str, ImportFieldConfig] = {}
+    for target, config in mapping.items():
+        canonical = "authors" if target == "author" else target
+        if canonical in result:
+            continue
+        result[canonical] = config
+    return result
+
+
 def _mapped_row(
     row: dict,
     mapping: dict[str, "ImportFieldConfig"],
-    transform_cache: dict[str, Callable[..., str]],
+    transform_cache: dict[str, Callable[..., Any]],
     context: dict[str, Any],
     errors: list[str] | None = None,
 ) -> dict:
@@ -416,12 +434,15 @@ def _mapped_row(
         if not source:
             continue
         value = row.get(source, "")
-        if target == "author" and isinstance(value, list):
-            # Adaptive author handling: an array contributes one author per entry.
+        if target == "authors" and isinstance(value, list):
+            # Adaptive authors handling: an array contributes one author per
+            # entry. Transforms are skipped for array values (they operate on
+            # scalars); apply them in the source file or use the string form.
             mapped[target] = value
             continue
         if target == "tags" and isinstance(value, list):
             # Adaptive tags handling: an array contributes one tag per entry.
+            # Like authors, transforms are skipped for array values.
             mapped[target] = value
             continue
         value_str = "" if value is None else str(value)
@@ -429,13 +450,19 @@ def _mapped_row(
             from app.services.transform_engine import TransformExecutionError, execute_transform
 
             try:
-                value_str = execute_transform(
+                transform_result = execute_transform(
                     transform_cache[target], value_str, row, context
                 )
             except TransformExecutionError as exc:
                 if errors is not None:
                     errors.append(f"\x1f{target}\x1f{exc}")
                 continue
+            if target in ("authors", "tags") and isinstance(transform_result, list):
+                # A transform may return a list (e.g. value.split(';')) for the
+                # adaptive authors/tags targets; keep it so each entry is used.
+                mapped[target] = transform_result
+                continue
+            value_str = str(transform_result)
         mapped[target] = value_str
     return mapped
 
@@ -497,6 +524,7 @@ def validate_import(
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
 
     warnings, errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
 
@@ -609,6 +637,7 @@ def preview_import(
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
 
     _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
@@ -667,10 +696,10 @@ def preview_import(
                 "without a finish date the book will not count toward monthly statistics"
             )
 
-        # Convert raw values to strings for display
-        source_display = {k: (", ".join(v) if isinstance(v, list) else str(v)) if v is not None else "" for k, v in row.items()}
-        # Convert transformed values to strings for display
-        transformed_display = {k: (", ".join(v) if isinstance(v, list) else str(v)) if v is not None else "" for k, v in row_data.items()}
+        # Keep list values (e.g. JSON `authors`/`tags` arrays) as lists so the
+        # preview renders them as JSON arrays; None is shown as an empty string.
+        source_display = {k: v if v is not None else "" for k, v in row.items()}
+        transformed_display = {k: v if v is not None else "" for k, v in row_data.items()}
 
         preview_rows.append({
             "row_number": idx,
@@ -717,6 +746,7 @@ async def execute_import(
     rollback_all = import_mode == "rollback_all"
 
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
     _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
         yield {"event": "error", "message": "; ".join(mapping_errors)}
@@ -808,7 +838,7 @@ async def execute_import(
                     session,
                     user.id,
                     book.id,
-                    parse_authors(row_data.get("author")),
+                    parse_authors(row_data.get("authors")),
                 )
 
                 if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None and date_finished is not None:
@@ -878,7 +908,7 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
         "mapping": {
             "title": {"source": "Title", "transform": None},
             "subtitle": {"source": "", "transform": None},
-            "author": {"source": "Author", "transform": None},
+            "authors": {"source": "Author", "transform": None},
             "isbn": {"source": "ISBN13", "transform": "value.replace('=', '').replace('\"', '').strip() if value else None"},
             "publisher": {"source": "Publisher", "transform": None},
             "published_year": {
