@@ -31,6 +31,8 @@ def test_statistics_empty_library(client: Any) -> None:
     resp = client.get("/api/statistics")
     assert resp.status_code == 200
     data = resp.json()
+    assert data["total_books"] == 0
+    assert data["total_authors"] == 0
     assert data["avg_books_per_month"] is None
     assert data["busiest_month"] is None
     assert data["avg_page_count"] is None
@@ -83,6 +85,8 @@ def test_statistics_core_metrics_and_distributions(client: Any) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert data["avg_books_per_month"] == 1.5
+    assert data["total_books"] == 5
+    assert data["total_authors"] == 2
     assert data["busiest_month"] == "2026-01"
     assert data["busiest_month_count"] == 2
     assert data["avg_page_count"] == 164.0

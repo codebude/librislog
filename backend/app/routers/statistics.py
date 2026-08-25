@@ -350,6 +350,10 @@ def get_statistics(
     current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == current_user.id)).all())
 
+    total_authors = session.exec(
+        select(func.count()).select_from(Author).where(Author.user_id == current_user.id)
+    ).one()
+
     status_counts = Counter(book.reading_status for book in books)
     status_distribution = StatusDistribution(
         want_to_read=status_counts.get(ReadingStatus.want_to_read, 0),
@@ -612,6 +616,8 @@ def get_statistics(
         )
 
     return StatisticsResponse(
+        total_books=len(books),
+        total_authors=total_authors,
         avg_books_per_month=avg_books_per_month,
         busiest_month=busiest_month,
         busiest_month_count=busiest_month_count,

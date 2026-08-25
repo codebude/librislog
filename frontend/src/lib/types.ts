@@ -167,6 +167,8 @@ export interface TopRatedBook {
 }
 
 export interface StatisticsResponse {
+	total_books: number;
+	total_authors: number;
 	avg_books_per_month: number | null;
 	busiest_month: string | null;
 	busiest_month_count: number | null;

@@ -59,7 +59,9 @@
     "noRating": "Keine Bewertung",
     "topRated": "Am besten bewertet",
     "worstRated": "Am schlechtesten bewertet",
-    "showMore": "Mehr anzeigen"
+    "showMore": "Mehr anzeigen",
+    "totalBooksAndAuthors": "Bücher insgesamt",
+    "booksFromAuthors": "von {authors} {authors, plural, one {Autor} other {Autoren}}"
   },
   "dashboard": {
     "title": "Lese-Dashboard",

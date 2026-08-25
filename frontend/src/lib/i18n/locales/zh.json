@@ -59,7 +59,9 @@
     "noRating": "暂无评分",
     "topRated": "评分最高",
     "worstRated": "评分最低",
-    "showMore": "显示更多"
+    "showMore": "显示更多",
+    "totalBooksAndAuthors": "书籍总数",
+    "booksFromAuthors": "来自 {authors} 位不同的作者"
   },
   "dashboard": {
     "title": "阅读仪表盘",

@@ -23,6 +23,8 @@
     "busiestMonth": "Busiest Month",
     "avgPageCount": "Avg Pages/Book",
     "mostPopularLanguage": "Most Popular Language",
+    "totalBooksAndAuthors": "Total Books",
+    "booksFromAuthors": "from {authors} {authors, plural, one {author} other {authors}}",
     "languageDistribution": "Books by Language",
     "statusDistribution": "Books by Status",
     "acquisitionStatusDistribution": "Books by Ownership",

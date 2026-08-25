@@ -330,7 +330,7 @@
 								/>
 							</th>
 							<th>{$_('book.title')}</th>
-							<th class="hidden lg:table-cell">{$_('book.author')}</th>
+							<th class="hidden lg:table-cell">{$_('book.authorsLabel')}</th>
 							<th class="hidden lg:table-cell">{$_('book.isbn')}</th>
 							<th class="hidden xl:table-cell">{$_('book.publisher')}</th>
 							<th>{$_('dataHygiene.tableHeaderMissing')}</th>

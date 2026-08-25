@@ -59,7 +59,9 @@
     "noRating": "Aucune note",
     "topRated": "Les mieux notés",
     "worstRated": "Les moins bien notés",
-    "showMore": "Afficher plus"
+    "showMore": "Afficher plus",
+    "totalBooksAndAuthors": "Livres au total",
+    "booksFromAuthors": "de {authors} {authors, plural, one {auteur} other {auteurs}}"
   },
   "dashboard": {
     "title": "Tableau de bord de lecture",

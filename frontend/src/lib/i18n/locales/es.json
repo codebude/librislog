@@ -59,7 +59,9 @@
     "noRating": "Sin valoración",
     "topRated": "Mejor valorados",
     "worstRated": "Peor valorados",
-    "showMore": "Mostrar más"
+    "showMore": "Mostrar más",
+    "totalBooksAndAuthors": "Libros en total",
+    "booksFromAuthors": "de {authors} {authors, plural, one {autor} other {autores}}"
   },
   "dashboard": {
     "title": "Panel de lectura",

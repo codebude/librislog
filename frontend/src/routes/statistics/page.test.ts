@@ -16,6 +16,8 @@ vi.mock('$lib/api', () => ({
 
 function createMockStats(overrides?: Partial<StatisticsResponse>): StatisticsResponse {
 	return {
+		total_books: 3,
+		total_authors: 2,
 		avg_books_per_month: 1,
 		busiest_month: '2026-01',
 		busiest_month_count: 2,

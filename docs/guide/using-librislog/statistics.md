@@ -4,7 +4,7 @@ The statistics page provides insights into your reading habits with charts, tota
 
 ## Overview Cards
 
-At the top of the statistics page, four key metrics are displayed:
+At the top of the statistics page, five key metrics are displayed:
 
 ![Statistics Overview](/screenshots/statistics.png)
 
@@ -14,6 +14,7 @@ At the top of the statistics page, four key metrics are displayed:
 | **Busiest Month** | The month with the most books finished |
 | **Avg Page Count** | Average number of pages across all books |
 | **Most Popular Language** | The language you read most (based on book count) |
+| **Total Books** | Total number of books, plus how many different authors they're from |
 
 ## Distribution Charts
 

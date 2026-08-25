@@ -277,6 +277,8 @@ class TopRatedBook(SQLModel):
 
 class StatisticsResponse(SQLModel):
     """Full statistics dashboard response."""
+    total_books: int
+    total_authors: int
     avg_books_per_month: Optional[float]
     busiest_month: Optional[str]
     busiest_month_count: Optional[int]
