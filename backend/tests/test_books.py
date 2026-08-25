@@ -115,12 +115,15 @@ def test_create_book_authors_takes_precedence_over_author(client: TestClient) ->
     assert data["authors"] == ["Frank Herbert"]
 
 
-def test_create_book_no_author_returns_empty_list(client: TestClient) -> None:
+def test_create_book_no_author_returns_422(client: TestClient) -> None:
     resp = client.post("/api/books", json={"title": "No Author", "page_count": 100})
-    assert resp.status_code == 201
-    data = resp.json()
-    assert data["authors"] == []
-    assert data["author"] is None
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert any(
+        "at least one author" in item.get("msg", "").lower()
+        for item in detail
+        if isinstance(item, dict)
+    )
 
 
 def test_update_book_authors_replaces(client: TestClient) -> None:

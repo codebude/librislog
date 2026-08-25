@@ -1,11 +1,11 @@
 """Pydantic / SQLModel request and response schemas for the API."""
 
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
@@ -40,6 +40,24 @@ class ReadingProgressLatest(SQLModel):
 
 class BookCreate(SQLModel):
     """Request body to create a new book."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_author(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        author = data.get("author")
+        authors = data.get("authors")
+        has_author = bool(
+            (isinstance(author, str) and author.strip())
+            or (isinstance(authors, list) and any(isinstance(a, str) and a.strip() for a in authors))
+        )
+        if not has_author:
+            raise ValueError(
+                "A book must have at least one author: provide either 'author' or 'authors'."
+            )
+        return data
+
     title: str
     subtitle: Optional[str] = None
     author: Optional[str] = pydantic.Field(default=None, deprecated=True)
