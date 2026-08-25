@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginViaUi } from '../fixtures/auth.fixture';
-import { deleteAllBooks } from '../fixtures/seed.api';
+import { deleteAllBooks, seedBooks } from '../fixtures/seed.api';
 import { SEED_USER } from '../fixtures/seed-data';
 
 test.describe('Data Hygiene', () => {
@@ -9,23 +9,34 @@ test.describe('Data Hygiene', () => {
 		await deleteAllBooks(page);
 
 		// Seed books with missing attributes.
-		// author, title, page_count are mandatory in BookCreate, so
-		// "missing" means empty string for author / 0 for page_count.
+		// title and page_count are mandatory in BookCreate, so "missing"
+		// means 0 for page_count. Author is mandatory at creation too,
+		// so the "Missing Author" book starts with a placeholder author
+		// whose authors list is cleared afterwards via PATCH (updates
+		// allow emptying the authors list).
 		const books = [
 			{ title: 'Complete Book', author: 'Test Author', isbn: '9780000000001', publisher: 'Test Pub', page_count: 200, reading_status: 'want_to_read' as const },
-			{ title: 'Missing Author', author: '', isbn: '9780000000002', publisher: 'Test Pub', page_count: 150, reading_status: 'want_to_read' as const },
+			{ title: 'Missing Author', author: 'Placeholder Author', isbn: '9780000000002', publisher: 'Test Pub', page_count: 150, reading_status: 'want_to_read' as const },
 			{ title: 'Missing ISBN', author: 'No ISBN', page_count: 300, reading_status: 'want_to_read' as const },
 			{ title: 'Missing Page Count', author: 'Page Author', page_count: 0, reading_status: 'want_to_read' as const },
 			{ title: 'Missing Publisher', author: 'Pub Missing', isbn: '9780000000003', page_count: 250, reading_status: 'want_to_read' as const },
 		];
+		await seedBooks(page, books);
 
-		for (const book of books) {
-			const csrfResp = await page.request.get('/api/auth/csrf');
-			const { csrf_token } = await csrfResp.json();
-			await page.request.post('/api/books', {
-				data: book,
-				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf_token },
-			});
+		const csrfResp = await page.request.get('/api/auth/csrf');
+		const { csrf_token } = await csrfResp.json();
+		const listResp = await page.request.get('/api/books?limit=200');
+		const { books: created } = await listResp.json();
+		const missingAuthor = (created as Array<{ id: number; title: string }>).find(
+			(book) => book.title === 'Missing Author'
+		);
+		if (!missingAuthor) throw new Error('Seeded book "Missing Author" not found.');
+		const patchResp = await page.request.patch(`/api/books/${missingAuthor.id}`, {
+			data: { authors: [] },
+			headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf_token },
+		});
+		if (!patchResp.ok()) {
+			throw new Error(`Clearing authors failed: ${patchResp.status()} ${await patchResp.text()}`);
 		}
 	});
 
