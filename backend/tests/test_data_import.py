@@ -1,7 +1,9 @@
 """Unit tests for app.services.data_import module."""
 
+import io
 import json
 import os
+import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -11,12 +13,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pytest import MonkeyPatch
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.config import settings
-from app.models import Book, ReadingStatus, User, UserRole
+from app.models import AcquisitionStatus, Book, ReadingStatus, User, UserRole
 from app.schemas import ImportFieldConfig
 from app.services import data_import as di
+from app.services.authors import authors_list_for_book, sync_book_authors
+from app.services.data_export import _serialize_datetime, build_export_zip
+from app.services.tags import sync_book_tags, tags_list_for_book
 
 
 # ── _display_value / _format_value_error ──────────────────────────────────────
@@ -352,6 +357,11 @@ def test_preview_import_mapping_errors(session: Session, tmp_path: Path, monkeyp
 
 # ── validate_import ───────────────────────────────────────────────────────────
 
+def _require(value: int | None) -> int:
+    assert value is not None
+    return value
+
+
 def _create_test_user(session: Session) -> User:
     """Create and return a test user for import tests."""
     from app.auth import get_password_hash
@@ -546,6 +556,194 @@ async def test_execute_import_mapping_errors(session: Session, tmp_path: Path, m
     ):
         events.append(event)
     assert any("Invalid mapping target" in e.get("message", "") for e in events)
+
+
+@pytest.mark.anyio
+async def test_execute_import_tags_list_and_multi_author(session: Session, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    """A JSON backup with list tags and list authors (as exported) round-trips."""
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [
+            {
+                "title": "Good Omens",
+                "author": "Neil Gaiman; Terry Pratchett",
+                "tags": ["fantasy", "humor"],
+                "page_count": "288",
+                "reading_status": "want_to_read",
+            }
+        ],
+        "source_fields": ["title", "author", "tags", "page_count", "reading_status"],
+    }
+    file_id = "test_exec_tags_list"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    mapping = {
+        "title": ImportFieldConfig(source="title"),
+        "author": ImportFieldConfig(source="author"),
+        "tags": ImportFieldConfig(source="tags"),
+        "page_count": ImportFieldConfig(source="page_count"),
+        "reading_status": ImportFieldConfig(source="reading_status"),
+    }
+    events = []
+    async for event in di.execute_import(file_id, user, mapping, session, "continue_on_error"):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["imported"] == 1
+
+    book = session.exec(select(Book).where(Book.user_id == user.id)).one()
+    assert authors_list_for_book(session, book.id) == ["Neil Gaiman", "Terry Pratchett"]
+    assert tags_list_for_book(session, book.id) == ["fantasy", "humor"]
+
+
+@pytest.mark.anyio
+async def test_execute_import_full_library_json_round_trip(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Export a full library as JSON and re-import it, verifying every field.
+
+    Covers a fully-populated book, a multi-author/tagged book, and a minimal
+    book. ``date_added`` is excluded: the import assigns a fresh timestamp.
+    """
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    user_id = _require(user.id)
+
+    # ── Source library ──────────────────────────────────────────────────────
+    full = Book(
+        title="Dune",
+        subtitle="A sci-fi classic",
+        isbn="9780441013593",
+        publisher="Ace Books",
+        published_year=1965,
+        page_count=412,
+        language="EN",
+        notes="Spice must flow.",
+        blurb="A desert planet, a young duke, and a spice that grants prescience.",
+        rating=5,
+        reading_status=ReadingStatus.read,
+        acquisition_status=AcquisitionStatus.owned,
+        date_started=datetime(2025, 1, 10, 9, 30, tzinfo=timezone.utc),
+        date_finished=datetime(2025, 1, 20, 21, 45, tzinfo=timezone.utc),
+        user_id=user.id,
+    )
+    multi = Book(
+        title="Good Omens",
+        subtitle=None,
+        isbn="9780060853983",
+        publisher="William Morrow",
+        published_year=1990,
+        page_count=288,
+        language="EN",
+        notes=None,
+        blurb="An angel, a demon, and an approaching apocalypse.",
+        rating=4,
+        reading_status=ReadingStatus.want_to_read,
+        acquisition_status=AcquisitionStatus.digital_access,
+        date_started=None,
+        date_finished=None,
+        user_id=user.id,
+    )
+    minimal = Book(
+        title="Minimal",
+        page_count=100,
+        reading_status=ReadingStatus.want_to_read,
+        acquisition_status=AcquisitionStatus.owned,
+        user_id=user.id,
+    )
+    session.add_all([full, multi, minimal])
+    session.flush()
+    full_id = _require(full.id)
+    multi_id = _require(multi.id)
+    minimal_id = _require(minimal.id)
+
+    sync_book_authors(session, user_id, full_id, ["Frank Herbert"])
+    sync_book_tags(session, user_id, full_id, "sci-fi,classic")
+    sync_book_authors(session, user_id, multi_id, ["Neil Gaiman", "Terry Pratchett"])
+    sync_book_tags(session, user_id, multi_id, ["fantasy", "humor"])
+    session.commit()
+
+    # ── Export ───────────────────────────────────────────────────────────────
+    zip_bytes, _ = build_export_zip(session, user, ["books"], "json", settings.covers_dir)
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        exported_rows = json.loads(zf.read("books.json"))
+    assert len(exported_rows) == 3
+    exported_by_title = {row["title"]: row for row in exported_rows}
+
+    # Exported multi-author author string must be the "; "-joined form.
+    assert exported_by_title["Good Omens"]["author"] == "Neil Gaiman; Terry Pratchett"
+    assert exported_by_title["Good Omens"]["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert exported_by_title["Good Omens"]["tags"] == ["fantasy", "humor"]
+
+    # Remove the source library so only the imported copies remain.
+    for book in (full, multi, minimal):
+        session.delete(book)
+    session.commit()
+
+    # ── Re-import the exported rows ──────────────────────────────────────────
+    file_id = "roundtrip_full"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"rows": exported_rows, "source_fields": list(exported_rows[0].keys())})
+    )
+
+    mapping = {
+        field: ImportFieldConfig(source=field)
+        for field in (
+            "title",
+            "subtitle",
+            "author",
+            "isbn",
+            "publisher",
+            "published_year",
+            "page_count",
+            "language",
+            "tags",
+            "notes",
+            "blurb",
+            "rating",
+            "reading_status",
+            "acquisition_status",
+            "date_started",
+            "date_finished",
+            "cover_url",
+        )
+    }
+    events = []
+    async for event in di.execute_import(
+        file_id, user, mapping, session, "continue_on_error", require_acquisition_status=True
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["imported"] == 3
+    assert complete["failed"] == 0
+
+    imported = {
+        b.title: b for b in session.exec(select(Book).where(Book.user_id == user.id)).all()
+    }
+    assert set(imported) == {"Dune", "Good Omens", "Minimal"}
+
+    for title, row in exported_by_title.items():
+        book = imported[title]
+        assert book.subtitle == row["subtitle"]
+        assert book.isbn == row["isbn"]
+        assert book.publisher == row["publisher"]
+        assert book.published_year == row["published_year"]
+        assert book.page_count == row["page_count"]
+        assert book.language == row["language"]
+        assert book.notes == row["notes"]
+        assert book.blurb == row["blurb"]
+        assert book.rating == row["rating"]
+        assert book.reading_status.value == row["reading_status"]
+        assert book.acquisition_status.value == row["acquisition_status"]
+        assert book.cover_url == row["cover_url"]
+        assert _serialize_datetime(book.date_started) == row["date_started"]
+        assert _serialize_datetime(book.date_finished) == row["date_finished"]
+        assert authors_list_for_book(session, book.id) == row["authors"]
+        assert tags_list_for_book(session, book.id) == row["tags"]
 
 
 @pytest.mark.anyio

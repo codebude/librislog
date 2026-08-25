@@ -73,6 +73,8 @@ Import data from external sources:
 - **JSON** — LibrisLog export format
 - **CSV** — Custom field mapping supported
 
+The JSON export mirrors the API shape: `author` is the joined string (separated with `; `), `authors` is the list of names, and `tags` is a list of tag names. All three round-trip through the adaptive import.
+
 ### Field Mapping
 
 When importing CSV, map source columns to LibrisLog fields:
@@ -90,6 +92,8 @@ The `author` / `authors` field adapts to the source value:
 - **String value** (e.g. a CSV cell) → normally becomes **one** author, and commas inside the name are preserved, so `"Asimov, Isaac"` stays a single author. To encode several authors in a single cell, separate them with `;`, ` & `, or ` and ` (e.g. `"Frank Herbert; Brian Herbert"`). This is how the CSV export writes the dedicated `authors` column, so exports round-trip losslessly.
 
 The import preview shows how each row's author value will be interpreted before you import.
+
+The `tags` field is adaptive too: a JSON `tags` array contributes one tag per entry, while a comma-separated string (CSV) is split on commas.
 
 ### Transform DSL
 

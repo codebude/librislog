@@ -420,6 +420,10 @@ def _mapped_row(
             # Adaptive author handling: an array contributes one author per entry.
             mapped[target] = value
             continue
+        if target == "tags" and isinstance(value, list):
+            # Adaptive tags handling: an array contributes one tag per entry.
+            mapped[target] = value
+            continue
         value_str = "" if value is None else str(value)
         if target in transform_cache:
             from app.services.transform_engine import TransformExecutionError, execute_transform
@@ -823,7 +827,7 @@ async def execute_import(
                     session,
                     user.id,
                     book.id,
-                    None if row_data.get("tags") in (None, "") else str(row_data.get("tags")),
+                    None if row_data.get("tags") in (None, "") else row_data.get("tags"),
                 )
 
                 if not rollback_all:

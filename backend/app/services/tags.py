@@ -10,11 +10,11 @@ from app.services.authors import authors_list_for_book, join_authors
 from app.time_utils import utcnow
 
 
-def parse_tags(raw_tags: str | None) -> list[str]:
-    """Parse and deduplicate a comma-separated tag string.
+def parse_tags(raw_tags: str | list[str] | None) -> list[str]:
+    """Parse and deduplicate tag names.
 
-    Args:
-        raw_tags: Comma-separated tag names or None.
+    Accepts a comma-separated string (legacy/CSV) or a list of names (JSON
+    export/import). A list contributes one tag per entry.
 
     Returns:
         A list of normalized, unique tag name strings.
@@ -22,10 +22,12 @@ def parse_tags(raw_tags: str | None) -> list[str]:
     if not raw_tags:
         return []
 
+    pieces: list[str] = raw_tags if isinstance(raw_tags, list) else raw_tags.split(",")
+
     seen: set[str] = set()
     parsed: list[str] = []
-    for piece in raw_tags.split(","):
-        normalized = " ".join(piece.strip().split())
+    for piece in pieces:
+        normalized = " ".join(str(piece).strip().split())
         if not normalized:
             continue
         key = normalized.lower()
@@ -36,7 +38,9 @@ def parse_tags(raw_tags: str | None) -> list[str]:
     return parsed
 
 
-def sync_book_tags(session: Session, user_id: int, book_id: int, raw_tags: str | None) -> None:
+def sync_book_tags(
+    session: Session, user_id: int, book_id: int, raw_tags: str | list[str] | None
+) -> None:
     """Synchronize the tag associations for a book to match *raw_tags*.
 
     Creates new tags as needed and removes stale BookTag links.
@@ -45,7 +49,7 @@ def sync_book_tags(session: Session, user_id: int, book_id: int, raw_tags: str |
         session: Active database session.
         user_id: Owner of the tags.
         book_id: Target book.
-        raw_tags: Comma-separated tag names or None (clears all tags).
+        raw_tags: Comma-separated tag names, a list of names, or None (clears all tags).
     """
     parsed = parse_tags(raw_tags)
 
@@ -93,9 +97,11 @@ def cleanup_orphan_tags(session: Session, user_id: int) -> None:
             session.delete(tag)
 
 
-def tags_text_for_book(session: Session, book_id: int) -> str | None:
-    """Return a comma-separated tag string for a given book, or None."""
-    names = list(
+def tags_list_for_book(session: Session, book_id: int | None) -> list[str]:
+    """Return the sorted tag names for a given book, or an empty list."""
+    if book_id is None:
+        return []
+    return list(
         session.exec(
             select(Tag.name)
             .join(BookTag, col(BookTag.tag_id) == col(Tag.id))
@@ -103,6 +109,11 @@ def tags_text_for_book(session: Session, book_id: int) -> str | None:
             .order_by(col(Tag.name).asc())
         ).all()
     )
+
+
+def tags_text_for_book(session: Session, book_id: int) -> str | None:
+    """Return a comma-separated tag string for a given book, or None."""
+    names = tags_list_for_book(session, book_id)
     if not names:
         return None
     return ", ".join(names)
