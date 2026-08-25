@@ -619,7 +619,8 @@
         "validateFailed": "验证失败。",
         "previewFailed": "加载预览失败。",
         "executeFailed": "导入失败。"
-      }
+      },
+      "authorsHint": "映射单个作者字符串（用 ;、& 或 和 分隔）或名称数组 — 每个条目成为一个作者。"
     }
   },
   "dataHygiene": {

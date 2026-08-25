@@ -619,7 +619,8 @@
         "validateFailed": "Échec de la validation.",
         "previewFailed": "Échec du chargement de l'aperçu.",
         "executeFailed": "Échec de l'importation."
-      }
+      },
+      "authorsHint": "Mappez une chaîne d'auteur unique (séparée par ;, & ou et) ou un tableau de noms — chaque entrée devient un auteur."
     }
   },
   "dataHygiene": {

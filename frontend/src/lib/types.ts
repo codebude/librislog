@@ -350,8 +350,8 @@ export interface ImportFieldConfig {
 
 export interface DataImportPreviewRow {
 	row_number: number;
-	source: Record<string, string>;
-	transformed: Record<string, string | null>;
+	source: Record<string, unknown>;
+	transformed: Record<string, unknown>;
 	errors: string[];
 }
 

@@ -39,7 +39,7 @@ test.describe('Data Import', () => {
 		await expect(page.locator('select[name="mapping-target-title"]')).toBeVisible({ timeout: 10000 });
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('author');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
@@ -95,7 +95,7 @@ test.describe('Data Import', () => {
 		await expect(page.locator('select[name="mapping-target-title"]')).toBeVisible({ timeout: 10000 });
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('author');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
@@ -124,7 +124,7 @@ test.describe('Data Import', () => {
 		await page.waitForTimeout(2000);
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('author');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
@@ -153,7 +153,7 @@ test.describe('Data Import', () => {
 		await page.waitForTimeout(2000);
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('author');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
@@ -207,7 +207,7 @@ test.describe('Data Import', () => {
 		await page.waitForTimeout(2000);
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('authors');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('authors');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');
@@ -250,7 +250,7 @@ test.describe('Data Import', () => {
 		await page.waitForTimeout(2000);
 
 		await page.locator('select[name="mapping-target-title"]').selectOption('title');
-		await page.locator('select[name="mapping-target-author"]').selectOption('author');
+		await page.locator('select[name="mapping-target-authors"]').selectOption('author');
 		await page.locator('select[name="mapping-target-isbn"]').selectOption('isbn');
 		await page.locator('select[name="mapping-target-page_count"]').selectOption('pages');
 		await page.locator('select[name="mapping-target-reading_status"]').selectOption('status');

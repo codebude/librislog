@@ -578,6 +578,7 @@
       "requiredField": "= required field",
       "changeFile": "Change file",
       "coverUrlHint": "Expects an HTTP(S) URL to an image. Local file paths and base64 data are not supported.",
+      "authorsHint": "Map a single author string (separated with ;, & or and) or an array of names — each entry becomes one author.",
       "transformHelp": "Available parameters and examples",
       "transformHelpValue": "The raw value of the mapped source field",
       "transformHelpRow": "All source fields as a dict, e.g. row['title']",

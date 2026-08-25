@@ -619,7 +619,8 @@
         "validateFailed": "Validación fallida.",
         "previewFailed": "Error al cargar la vista previa.",
         "executeFailed": "Importación fallida."
-      }
+      },
+      "authorsHint": "Asigna una sola cadena de autor (separada por ;, & o y) o un array de nombres: cada entrada se convierte en un autor."
     }
   },
   "dataHygiene": {

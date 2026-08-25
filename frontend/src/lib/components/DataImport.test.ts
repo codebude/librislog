@@ -11,8 +11,8 @@ const mockParseImportFile = vi.fn(async (_file: File) => ({
 	row_count: 1
 }));
 const mockSuggestMapping = vi.fn(async (_fileId: string) => ({
-	suggested_mapping: { title: 'Book Title', author: 'Author Name', isbn: 'ISBN' },
-	db_fields: ['title', 'author', 'isbn', 'publisher', 'page_count']
+	suggested_mapping: { title: 'Book Title', authors: 'Author Name', isbn: 'ISBN' },
+	db_fields: ['title', 'authors', 'isbn', 'publisher', 'page_count']
 }));
 const mockValidateImport = vi.fn(async (_params: unknown) => ({
 	valid: true,

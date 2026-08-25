@@ -619,7 +619,8 @@
         "validateFailed": "Validierung fehlgeschlagen.",
         "previewFailed": "Vorschau konnte nicht geladen werden.",
         "executeFailed": "Import fehlgeschlagen."
-      }
+      },
+      "authorsHint": "Ein einzelner Autor (getrennt mit ;, & oder und) oder ein Array mit Namen — jeder Eintrag wird ein Autor."
     }
   },
   "dataHygiene": {
