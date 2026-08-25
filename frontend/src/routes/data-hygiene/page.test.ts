@@ -31,6 +31,7 @@ function mockBook(id: number, overrides?: Partial<HygieneMissingBook>): HygieneM
 		id,
 		title: `Book ${id}`,
 		author: id % 2 === 0 ? `Author ${id}` : null,
+		authors: id % 2 === 0 ? [`Author ${id}`] : [],
 		isbn: id % 3 === 0 ? `978${String(id).padStart(10, '0')}` : null,
 		publisher: id % 2 === 0 ? 'Publisher' : null,
 		published_year: null,

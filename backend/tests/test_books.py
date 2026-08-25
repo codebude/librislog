@@ -81,6 +81,105 @@ def test_create_book_invalid_rating_returns_422(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
+# ── authors (multiple) ─────────────────────────────────────────────────────────
+
+def test_create_book_with_authors_list(client: TestClient) -> None:
+    resp = client.post("/api/books", json={
+        "title": "Good Omens",
+        "authors": ["Terry Pratchett", "Neil Gaiman"],
+        "page_count": 288,
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert data["author"] == "Neil Gaiman, Terry Pratchett"
+
+
+def test_create_book_legacy_author_comma_separated(client: TestClient) -> None:
+    resp = client.post("/api/books", json={"title": "Dune", "author": "Frank Herbert", "page_count": 412})
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["authors"] == ["Frank Herbert"]
+    assert data["author"] == "Frank Herbert"
+
+
+def test_create_book_authors_takes_precedence_over_author(client: TestClient) -> None:
+    resp = client.post("/api/books", json={
+        "title": "Dune",
+        "author": "Wrong Author",
+        "authors": ["Frank Herbert"],
+        "page_count": 412,
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["authors"] == ["Frank Herbert"]
+
+
+def test_create_book_no_author_returns_422(client: TestClient) -> None:
+    resp = client.post("/api/books", json={"title": "No Author", "page_count": 100})
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert any(
+        "at least one author" in item.get("msg", "").lower()
+        for item in detail
+        if isinstance(item, dict)
+    )
+
+
+def test_update_book_authors_replaces(client: TestClient) -> None:
+    book = _create_book(client, title="Dune", author="Frank Herbert")
+    resp = client.patch(f"/api/books/{book['id']}", json={"authors": ["Frank Herbert", "Brian Herbert"]})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authors"] == ["Brian Herbert", "Frank Herbert"]
+    assert data["author"] == "Brian Herbert, Frank Herbert"
+
+
+def test_update_book_authors_empty_clears(client: TestClient) -> None:
+    book = _create_book(client, title="Dune", author="Frank Herbert")
+    resp = client.patch(f"/api/books/{book['id']}", json={"authors": []})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authors"] == []
+    assert data["author"] is None
+
+
+def test_update_book_without_authors_keeps_them(client: TestClient) -> None:
+    book = _create_book(client, title="Dune", author="Frank Herbert")
+    resp = client.patch(f"/api/books/{book['id']}", json={"title": "Dune 2"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authors"] == ["Frank Herbert"]
+
+
+def test_update_book_legacy_author_parses(client: TestClient) -> None:
+    book = _create_book(client, title="Dune", author="Frank Herbert")
+    resp = client.patch(f"/api/books/{book['id']}", json={"author": "Isaac Asimov"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authors"] == ["Isaac Asimov"]
+
+
+def test_list_books_joins_authors(client: TestClient) -> None:
+    _create_book(client, title="Good Omens", authors=["Terry Pratchett", "Neil Gaiman"])
+    resp = client.get("/api/books")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    book = body["books"][0]
+    assert book["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert book["author"] == "Neil Gaiman, Terry Pratchett"
+
+
+def test_get_book_returns_authors_list(client: TestClient) -> None:
+    book = _create_book(client, title="Good Omens", authors=["Terry Pratchett", "Neil Gaiman"])
+    resp = client.get(f"/api/books/{book['id']}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+    assert data["author"] == "Neil Gaiman, Terry Pratchett"
+
+
 # ── list ──────────────────────────────────────────────────────────────────────
 
 def test_list_books_empty(client: TestClient) -> None:
@@ -1135,6 +1234,32 @@ def test_suggest_authors_deduplication(client: TestClient) -> None:
     resp = client.get("/api/books/suggestions/authors?q=herbert")
     assert resp.status_code == 200
     assert resp.json()["suggestions"] == ["Frank Herbert"]
+
+
+def test_search_author_prefix_matches_any_author(client: TestClient) -> None:
+    _create_book(client, title="Good Omens", authors=["Terry Pratchett", "Neil Gaiman"])
+    _create_book(client, title="Hogfather", author="Terry Pratchett")
+    resp = client.get("/api/books?q=author:Gaiman")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Good Omens"]
+
+
+def test_search_unprefixed_matches_author(client: TestClient) -> None:
+    _create_book(client, title="Good Omens", authors=["Terry Pratchett", "Neil Gaiman"])
+    resp = client.get("/api/books?q=Pratchett")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Good Omens"]
+
+
+def test_search_negated_author_excludes(client: TestClient) -> None:
+    _create_book(client, title="Good Omens", authors=["Terry Pratchett", "Neil Gaiman"])
+    _create_book(client, title="Hogfather", author="Terry Pratchett")
+    resp = client.get("/api/books?q=-author:Gaiman")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [b["title"] for b in body["books"]] == ["Hogfather"]
 
 
 def test_suggest_publishers_returns_matching(client: TestClient) -> None:

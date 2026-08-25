@@ -16,6 +16,7 @@ export class AddBookModalPage {
 	async fillAuthor(author: string) {
 		const input = this.page.locator('[role="dialog"] input[name="author"], [role="dialog"] input[placeholder*="Author"]').first();
 		await input.fill(author);
+		await input.press('Enter');
 	}
 
 	async clickSave() {

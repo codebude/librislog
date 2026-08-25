@@ -529,13 +529,14 @@ export const api = {
 			return res.blob();
 		},
 
-		async parseImportFile(file: File): Promise<DataImportParseResponse> {
+		async parseImportFile(file: File, delimiter = ','): Promise<DataImportParseResponse> {
 			const headers: Record<string, string> = { ...authHeaders() };
 			const csrf = get(csrfToken);
 			if (csrf) headers['X-CSRF-Token'] = csrf;
 
 			const form = new FormData();
 			form.append('file', file);
+			form.append('delimiter', delimiter);
 			const res = await fetch(`${BASE}/data/import/parse`, {
 				method: 'POST',
 				headers,

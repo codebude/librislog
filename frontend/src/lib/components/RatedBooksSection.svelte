@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
 	import { _ } from '$lib/i18n';
+	import { formatAuthors } from '$lib/utils/authors';
 	import BookDetailDialog from './BookDetailDialog.svelte';
 
 	let { title, books }: { title: string; books: TopRatedBook[] } = $props();
@@ -60,7 +61,7 @@
 						</button>
 						<div class="text-center mt-1 w-full min-w-0">
 							<p class="text-xs sm:text-sm font-semibold truncate" title={book.title}>{book.title}</p>
-							<p class="text-xs text-base-content/70 truncate" title={book.author ?? undefined}>{book.author ?? '-'}</p>
+							<p class="text-xs text-base-content/70 truncate" title={book.author ?? undefined}>{formatAuthors(book.authors, book.author ?? '-')}</p>
 							<div class="flex items-center justify-center gap-0.5 text-warning">
 								{#each Array(maxRating) as _, i}
 									<span class="text-xs sm:text-sm">{i < book.rating ? '★' : '☆'}</span>

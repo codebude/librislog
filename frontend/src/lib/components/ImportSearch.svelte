@@ -5,6 +5,7 @@
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import { ScanBarcode } from '@lucide/svelte';
+	import { formatAuthors } from '$lib/utils/authors';
 
 	let {
 		onImport,
@@ -115,14 +116,18 @@
 		return normalize(value).replaceAll('-', '').replaceAll(' ', '');
 	}
 
+	function authorKey(authors: string[] | null | undefined): string {
+		return (authors ?? []).slice().sort().join('|');
+	}
+
 	function candidateKey(candidate: BookImportCandidate): string {
 		const isbn = normalizeIsbn(candidate.isbn);
 		if (isbn) return `isbn:${isbn}`;
-		return `ta:${normalize(candidate.title)}|${normalize(candidate.author)}`;
+		return `ta:${normalize(candidate.title)}|${authorKey(candidate.authors)}`;
 	}
 
-	function titleAuthorKey(title: string | null | undefined, author: string | null | undefined): string {
-		return `${normalize(title)}|${normalize(author)}`;
+	function titleAuthorKey(title: string | null | undefined, authors: string[]): string {
+		return `${normalize(title)}|${authorKey(authors)}`;
 	}
 
 	function updateImportedLookups(books: Book[]) {
@@ -131,7 +136,7 @@
 		for (const book of books) {
 			const isbn = normalizeIsbn(book.isbn);
 			if (isbn) isbnSet.add(isbn);
-			if (book.author) titleAuthorSet.add(titleAuthorKey(book.title, book.author));
+			if (book.authors?.length) titleAuthorSet.add(titleAuthorKey(book.title, book.authors));
 		}
 		importedIsbns = isbnSet;
 		importedTitleAuthors = titleAuthorSet;
@@ -151,7 +156,7 @@
 		const nextTitleAuthors = new Set(importedTitleAuthors);
 		const isbn = normalizeIsbn(book.isbn);
 		if (isbn) nextIsbns.add(isbn);
-		if (book.author) nextTitleAuthors.add(titleAuthorKey(book.title, book.author));
+		if (book.authors?.length) nextTitleAuthors.add(titleAuthorKey(book.title, book.authors));
 		importedIsbns = nextIsbns;
 		importedTitleAuthors = nextTitleAuthors;
 	}
@@ -159,8 +164,8 @@
 	function isAlreadyImported(candidate: BookImportCandidate): boolean {
 		const isbn = normalizeIsbn(candidate.isbn);
 		if (isbn && importedIsbns.has(isbn)) return true;
-		if (!candidate.author) return false;
-		return importedTitleAuthors.has(titleAuthorKey(candidate.title, candidate.author));
+		if (!candidate.authors?.length) return false;
+		return importedTitleAuthors.has(titleAuthorKey(candidate.title, candidate.authors));
 	}
 
 	function mergeCandidates(
@@ -347,7 +352,7 @@
 				<div class="flex-1 min-w-0">
 					<p class="font-medium text-sm line-clamp-2">{candidate.title}</p>
 					{#if candidate.author}
-						<p class="text-xs text-base-content/60">{candidate.author}</p>
+						<p class="text-xs text-base-content/60">{formatAuthors(candidate.authors, candidate.author)}</p>
 					{/if}
 					<div class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/40">
 						<span>{candidate.source}</span>

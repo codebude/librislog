@@ -123,9 +123,9 @@ describe('AddBookModal', () => {
 	});
 
 	function fillAuthorAndPages(value: string) {
-		const searchboxes = screen.getAllByRole('searchbox');
-		const authorInput = searchboxes[0];
+		const authorInput = screen.getByLabelText(/Author/);
 		fireEvent.input(authorInput, { target: { value } });
+		fireEvent.keyDown(authorInput, { key: 'Enter' });
 		const pagesInput = screen.getByLabelText(/Pages/);
 		fireEvent.input(pagesInput, { target: { value: '412' } });
 		fireEvent.change(screen.getByRole('combobox', { name: /Availability/ }), { target: { value: 'owned' } });
@@ -148,7 +148,7 @@ describe('AddBookModal', () => {
 			expect(mockBooksCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					title: 'Test Book',
-					author: 'Frank Herbert',
+					authors: ['Frank Herbert'],
 					page_count: 412,
 					reading_status: 'want_to_read'
 				})
@@ -227,8 +227,9 @@ describe('AddBookModal', () => {
 
 		const titleInput = screen.getByLabelText(/Title/);
 		await fireEvent.input(titleInput, { target: { value: 'Test Book' } });
-		const searchboxes = screen.getAllByRole('searchbox');
-		await fireEvent.input(searchboxes[0], { target: { value: 'Author' } });
+		const authorInput = screen.getByLabelText(/Author/);
+		await fireEvent.input(authorInput, { target: { value: 'Author' } });
+		await fireEvent.keyDown(authorInput, { key: 'Enter' });
 		const pagesInput = screen.getByLabelText(/Pages/);
 		await fireEvent.input(pagesInput, { target: { value: '412' } });
 

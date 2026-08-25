@@ -18,13 +18,17 @@ async function getCsrfToken(page: Page): Promise<string> {
 export async function seedBooks(page: Page, books: SeedBook[]): Promise<void> {
 	for (const book of books) {
 		const csrf = await getCsrfToken(page);
-		await page.request.post(bookApiPath(), {
+		const resp = await page.request.post(bookApiPath(), {
 			data: book,
 			headers: {
 				'Content-Type': 'application/json',
 				'X-CSRF-Token': csrf,
 			},
 		});
+		// 409 = book already seeded by an earlier test in this suite; that's fine.
+		if (!resp.ok() && resp.status() !== 409) {
+			throw new Error(`Seeding book "${book.title}" failed: ${resp.status()} ${await resp.text()}`);
+		}
 	}
 }
 

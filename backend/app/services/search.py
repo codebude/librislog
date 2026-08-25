@@ -16,12 +16,11 @@ from typing import Any
 import sqlalchemy as sa
 from sqlmodel import col, or_, select
 
-from app.models import AcquisitionStatus, Book, BookTag, Tag
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Tag
 
 # Fields that can be targeted with a prefix. The keys are the canonical,
 # always-English prefix names; the values are the book model columns.
 FIELD_COLUMNS: dict[str, Any] = {
-    "author": Book.author,
     "title": Book.title,
     "publisher": Book.publisher,
     "language": Book.language,
@@ -32,14 +31,15 @@ FIELD_COLUMNS: dict[str, Any] = {
 # Availability is a special case: it maps to an exact enum comparison.
 AVAILABILITY_PREFIX = "availability"
 TAG_PREFIX = "tag"
+AUTHOR_PREFIX = "author"
 
 SUPPORTED_PREFIXES: frozenset[str] = frozenset(
-    [*FIELD_COLUMNS.keys(), AVAILABILITY_PREFIX, TAG_PREFIX]
+    [*FIELD_COLUMNS.keys(), AVAILABILITY_PREFIX, TAG_PREFIX, AUTHOR_PREFIX]
 )
 
 # Default fields searched by an unprefixed term (unchanged from the previous
-# single-pattern search).
-DEFAULT_SEARCH_COLUMNS: tuple[str, ...] = ("title", "subtitle", "author", "blurb")
+# single-pattern search, minus the removed Book.author column).
+DEFAULT_SEARCH_COLUMNS: tuple[str, ...] = ("title", "subtitle", "blurb")
 
 # ``<field>:value`` — value is either a quoted string or a non-space token.
 _FIELD_TERM_RE = re.compile(r"^([a-zA-Z_]+):(\"(?:\\.|[^\"\\])*\"|\S+)")
@@ -148,11 +148,23 @@ def _tag_condition(value: str, user_id: int) -> Any:
     return col(Book.id).in_(matching_tag_book_ids)
 
 
+def _author_condition(value: str, user_id: int) -> Any:
+    """Return a condition matching books that have an author containing *value*."""
+    escaped = _escape_like(value)
+    matching_author_book_ids = (
+        select(BookAuthor.book_id)
+        .join(Author, col(Author.id) == BookAuthor.author_id)
+        .where(Author.user_id == user_id, col(Author.name).ilike(f"%{escaped}%", escape="\\"))
+    )
+    return col(Book.id).in_(matching_author_book_ids)
+
+
 def _unprefixed_condition(value: str, user_id: int) -> Any:
     """Build the cross-field substring condition for an unprefixed term."""
     return or_(
         *[_ilike(getattr(Book, column), value) for column in DEFAULT_SEARCH_COLUMNS],
         _tag_condition(value, user_id),
+        _author_condition(value, user_id),
     )
 
 
@@ -172,6 +184,8 @@ def _field_condition(field: str, value: str, user_id: int) -> Any | None:
         return _availability_condition(value)
     if field == TAG_PREFIX:
         return _tag_condition(value, user_id)
+    if field == AUTHOR_PREFIX:
+        return _author_condition(value, user_id)
     column = FIELD_COLUMNS[field]
     return _ilike(column, value)
 

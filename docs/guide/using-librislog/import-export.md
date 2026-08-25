@@ -29,6 +29,12 @@ On mobile devices:
 
 If no search results are found, enter book details manually. Title, author, page count, and availability are required; all other fields are optional.
 
+Authors can be added as multiple values: type a name and press **Enter** (or pick a suggestion) to add a chip. A book can have any number of authors. Commas inside an author name (e.g. `Asimov, Isaac`) are preserved — they are not treated as separators.
+
+### Search Import
+
+When a search source returns multiple authors for a book (e.g. Open Library, Google Books, or Hardcover), the app keeps them as a list and creates one author per entry. Sources that return a single combined string are split only on `;`, ` & `, or ` and ` — never on commas.
+
 ## Data Export
 
 Export your entire library or subsets of data:
@@ -67,6 +73,10 @@ Import data from external sources:
 - **JSON** — LibrisLog export format
 - **CSV** — Custom field mapping supported
 
+The JSON export mirrors the API shape: `author` is the joined string (separated with `; `), `authors` is the list of names, and `tags` is a list of tag names. All three round-trip through the adaptive import.
+
+For CSV files, a **delimiter** field appears once a `.csv` file is selected (default `,`). Enter the character your file uses to separate columns (e.g. `;` for German/Excel exports) before clicking **Parse file**.
+
 ### Field Mapping
 
 When importing CSV, map source columns to LibrisLog fields:
@@ -75,6 +85,19 @@ When importing CSV, map source columns to LibrisLog fields:
 - Optional transform expressions (Python) for data conversion
 
 `acquisition_status` is required for imports. Map it to one of `owned`, `borrowed`, `digital_access`, or `to_acquire`; use a transform when the source file uses different names.
+
+`date_added` is importable too — useful when migrating from another tool so the original "added to library" dates are preserved (the LibrisLog JSON export includes it, so exports round-trip losslessly). If a row has no `date_added`, the import timestamp is used.
+
+#### Authors are adaptive
+
+The import target field is **`authors`**. Its source value adapts:
+
+- **Array value** (e.g. a JSON `authors` list) → each array entry becomes a separate author.
+- **String value** (e.g. a CSV cell) → normally becomes **one** author, and commas inside the name are preserved, so `"Asimov, Isaac"` stays a single author. To encode several authors in a single cell, separate them with `;`, ` & `, or ` and ` (e.g. `"Frank Herbert; Brian Herbert"`). This is how the CSV export writes the dedicated `authors` column, so exports round-trip losslessly.
+
+The import preview shows how each row's author value will be interpreted before you import.
+
+The `tags` field is adaptive too: a JSON `tags` array contributes one tag per entry, while a comma-separated string (CSV) is split on commas.
 
 ### Transform DSL
 

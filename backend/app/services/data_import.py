@@ -20,6 +20,7 @@ from app.schemas import ImportFieldConfig
 
 logger = logging.getLogger(__name__)
 from app.time_utils import utcnow
+from app.services.authors import parse_authors, sync_book_authors
 from app.services.cover_storage import download_cover
 from app.services.tags import sync_book_tags
 from app.services.isbn_utils import normalize_isbn
@@ -27,7 +28,7 @@ from app.services.isbn_utils import normalize_isbn
 BOOK_IMPORT_FIELDS: list[str] = [
     "title",
     "subtitle",
-    "author",
+    "authors",
     "isbn",
     "publisher",
     "published_year",
@@ -39,6 +40,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "rating",
     "reading_status",
     "acquisition_status",
+    "date_added",
     "date_started",
     "date_finished",
     "cover_url",
@@ -50,9 +52,9 @@ _ALIASES: dict[str, str] = {
     "name": "title",
     "subtitle": "subtitle",
     "book subtitle": "subtitle",
-    "author": "author",
-    "authors": "author",
-    "author name": "author",
+    "author": "authors",
+    "authors": "authors",
+    "author name": "authors",
     "isbn": "isbn",
     "isbn13": "isbn",
     "isbn10": "isbn",
@@ -79,6 +81,8 @@ _ALIASES: dict[str, str] = {
     "acquisition": "acquisition_status",
     "availability": "acquisition_status",
     "ownership": "acquisition_status",
+    "date added": "date_added",
+    "added": "date_added",
     "date started": "date_started",
     "started": "date_started",
     "date finished": "date_finished",
@@ -128,23 +132,29 @@ def delete_parsed_upload(file_id: str, user_id: int) -> None:
     _temp_file_path(user_id, file_id).unlink(missing_ok=True)
 
 
-def _to_flat_row(row: dict) -> dict[str, str | int | float | bool | None]:
-    """Flatten a row dict, rejecting nested values."""
-    flat: dict[str, str | int | float | bool | None] = {}
+def _to_flat_row(row: dict) -> dict[str, object]:
+    """Flatten a row dict, rejecting nested dict values.
+
+    List values (e.g. a JSON ``authors`` array) are kept as-is so the adaptive
+    author handling can turn each entry into a separate author.
+    """
+    flat: dict[str, object] = {}
     for key, value in row.items():
-        if isinstance(value, (dict, list)):
+        if isinstance(value, dict):
             raise ValueError("error.importNestedValuesNotSupported")
         flat[str(key)] = value
     return flat
 
 
-def parse_upload(content: bytes, filename: str, user_id: int) -> dict:
+def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = ",") -> dict:
     """Parse an uploaded CSV or JSON file and persist the parsed result to disk.
 
     Args:
         content: Raw file bytes.
         filename: Original filename (used to detect format).
         user_id: Owner of the upload.
+        delimiter: Single-character field separator used for CSV files
+            (ignored for JSON).
 
     Returns:
         A dict with file_id, format, source_fields, sample_rows, and row_count.
@@ -159,9 +169,11 @@ def parse_upload(content: bytes, filename: str, user_id: int) -> dict:
 
     lower = filename.lower()
     if lower.endswith(".csv"):
+        if len(delimiter) != 1:
+            raise ValueError("error.importInvalidDelimiter")
         parsed_format = "csv"
         text = content.decode("utf-8-sig")
-        reader = csv.DictReader(text.splitlines())
+        reader = csv.DictReader(text.splitlines(), delimiter=delimiter)
         if not reader.fieldnames:
             raise ValueError("error.importMissingHeader")
         rows = [_to_flat_row(row) for row in reader]
@@ -386,21 +398,39 @@ def _parse_reading_status(value: object) -> ReadingStatus:
 
 def _build_transform_cache(
     mapping: dict[str, "ImportFieldConfig"],
-) -> dict[str, Callable[..., str]]:
+) -> dict[str, Callable[..., Any]]:
     """Compile all transform expressions into a cache of callables."""
     from app.services.transform_engine import compile_transform
 
-    cache: dict[str, Callable[..., str]] = {}
+    cache: dict[str, Callable[..., Any]] = {}
     for target, config in mapping.items():
         if config.transform:
             cache[target] = compile_transform(config.transform)
     return cache
 
 
+def canonicalize_mapping(
+    mapping: dict[str, ImportFieldConfig],
+) -> dict[str, ImportFieldConfig]:
+    """Normalize a mapping dict, renaming the legacy ``author`` target to ``authors``.
+
+    Both spellings refer to the same per-book author relation; saved mappings
+    created before the rename may still use ``author`` as the target key. If
+    both keys are present, the first occurrence in iteration order wins.
+    """
+    result: dict[str, ImportFieldConfig] = {}
+    for target, config in mapping.items():
+        canonical = "authors" if target == "author" else target
+        if canonical in result:
+            continue
+        result[canonical] = config
+    return result
+
+
 def _mapped_row(
     row: dict,
     mapping: dict[str, "ImportFieldConfig"],
-    transform_cache: dict[str, Callable[..., str]],
+    transform_cache: dict[str, Callable[..., Any]],
     context: dict[str, Any],
     errors: list[str] | None = None,
 ) -> dict:
@@ -411,18 +441,35 @@ def _mapped_row(
         if not source:
             continue
         value = row.get(source, "")
+        if target == "authors" and isinstance(value, list):
+            # Adaptive authors handling: an array contributes one author per
+            # entry. Transforms are skipped for array values (they operate on
+            # scalars); apply them in the source file or use the string form.
+            mapped[target] = value
+            continue
+        if target == "tags" and isinstance(value, list):
+            # Adaptive tags handling: an array contributes one tag per entry.
+            # Like authors, transforms are skipped for array values.
+            mapped[target] = value
+            continue
         value_str = "" if value is None else str(value)
         if target in transform_cache:
             from app.services.transform_engine import TransformExecutionError, execute_transform
 
             try:
-                value_str = execute_transform(
+                transform_result = execute_transform(
                     transform_cache[target], value_str, row, context
                 )
             except TransformExecutionError as exc:
                 if errors is not None:
                     errors.append(f"\x1f{target}\x1f{exc}")
                 continue
+            if target in ("authors", "tags") and isinstance(transform_result, list):
+                # A transform may return a list (e.g. value.split(';')) for the
+                # adaptive authors/tags targets; keep it so each entry is used.
+                mapped[target] = transform_result
+                continue
+            value_str = str(transform_result)
         mapped[target] = value_str
     return mapped
 
@@ -484,6 +531,7 @@ def validate_import(
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
 
     warnings, errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
 
@@ -527,6 +575,12 @@ def validate_import(
             errors.append(f"Row {idx}: {exc}")
             continue
 
+        date_added: datetime | None = None
+        try:
+            date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+        except ValueError as exc:
+            errors.append(f"Row {idx}: {exc}")
+
         date_started: datetime | None = None
         try:
             date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -547,6 +601,12 @@ def validate_import(
             warnings.append(
                 f"Row {idx}: marked as 'read' but has no finished date; "
                 "without a finish date the book will not count toward monthly statistics"
+            )
+
+        if date_added and date_finished and date_added > date_finished:
+            warnings.append(
+                f"Row {idx}: date_added is after date_finished; the book will appear "
+                "as added after it was finished"
             )
 
         if create_progress_for_read and reading_status == ReadingStatus.read and not row_data.get("page_count"):
@@ -596,6 +656,7 @@ def preview_import(
     parsed = load_parsed_upload(file_id, user.id)
     rows = parsed.get("rows", [])
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
 
     _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
@@ -633,6 +694,12 @@ def preview_import(
         except ValueError as exc:
             row_errors.append(str(exc))
 
+        date_added: datetime | None = None
+        try:
+            date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+        except ValueError as exc:
+            row_errors.append(str(exc))
+
         date_started: datetime | None = None
         try:
             date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -648,16 +715,22 @@ def preview_import(
         if date_started and date_finished and date_started > date_finished:
             row_errors.append("date_started is after date_finished")
 
+        if date_added and date_finished and date_added > date_finished:
+            row_errors.append(
+                "date_added is after date_finished; the book will appear "
+                "as added after it was finished"
+            )
+
         if reading_status == ReadingStatus.read and not date_finished:
             row_errors.append(
                 "Marked as 'read' but has no finished date; "
                 "without a finish date the book will not count toward monthly statistics"
             )
 
-        # Convert raw values to strings for display
-        source_display = {k: str(v) if v is not None else "" for k, v in row.items()}
-        # Convert transformed values to strings for display
-        transformed_display = {k: str(v) if v is not None else "" for k, v in row_data.items()}
+        # Keep list values (e.g. JSON `authors`/`tags` arrays) as lists so the
+        # preview renders them as JSON arrays; None is shown as an empty string.
+        source_display = {k: v if v is not None else "" for k, v in row.items()}
+        transformed_display = {k: v if v is not None else "" for k, v in row_data.items()}
 
         preview_rows.append({
             "row_number": idx,
@@ -704,6 +777,7 @@ async def execute_import(
     rollback_all = import_mode == "rollback_all"
 
     source_fields = set(parsed.get("source_fields", []))
+    mapping = canonicalize_mapping(mapping)
     _warnings, mapping_errors = _validate_mapping(mapping, source_fields, require_acquisition_status)
     if mapping_errors:
         yield {"event": "error", "message": "; ".join(mapping_errors)}
@@ -738,6 +812,12 @@ async def execute_import(
                     None if row_data.get("language") is None else str(row_data.get("language"))
                 )
                 date_errors: list[str] = []
+                date_added: datetime | None = None
+                try:
+                    date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+                except ValueError as exc:
+                    date_errors.append(str(exc))
+
                 date_started: datetime | None = None
                 try:
                     date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -756,6 +836,12 @@ async def execute_import(
                 if date_started and date_finished and date_started > date_finished:
                     raise ValueError("date_started is after date_finished")
 
+                if date_added and date_finished and date_added > date_finished:
+                    raise ValueError(
+                        "date_added is after date_finished; the book would appear "
+                        "as added after it was finished"
+                    )
+
                 if reading_status == ReadingStatus.read and not date_finished:
                     raise ValueError("Marked as 'read' but has no finished date")
 
@@ -772,7 +858,6 @@ async def execute_import(
                 book = Book(
                     title=title,
                     subtitle=None if row_data.get("subtitle") in (None, "") else str(row_data.get("subtitle")),
-                    author=None if row_data.get("author") in (None, "") else str(row_data.get("author")),  # ty: ignore[invalid-argument-type]
                     isbn=None if row_data.get("isbn") in (None, "") else str(row_data.get("isbn")),
                     cover_url=cover_url,
                     publisher=None if row_data.get("publisher") in (None, "") else str(row_data.get("publisher")),
@@ -784,6 +869,7 @@ async def execute_import(
                     rating=rating,
                     reading_status=reading_status,
                     acquisition_status=acquisition_status,
+                    date_added=date_added or utcnow(),
                     date_started=date_started,
                     date_finished=date_finished,
                     user_id=user.id,
@@ -791,6 +877,13 @@ async def execute_import(
                 session.add(book)
                 session.flush()
                 assert book.id is not None
+
+                sync_book_authors(
+                    session,
+                    user.id,
+                    book.id,
+                    parse_authors(row_data.get("authors")),
+                )
 
                 if create_progress_for_read and reading_status == ReadingStatus.read and page_count is not None and date_finished is not None:
                     log_date = date_finished
@@ -808,7 +901,7 @@ async def execute_import(
                     session,
                     user.id,
                     book.id,
-                    None if row_data.get("tags") in (None, "") else str(row_data.get("tags")),
+                    None if row_data.get("tags") in (None, "") else row_data.get("tags"),
                 )
 
                 if not rollback_all:
@@ -859,7 +952,7 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
         "mapping": {
             "title": {"source": "Title", "transform": None},
             "subtitle": {"source": "", "transform": None},
-            "author": {"source": "Author", "transform": None},
+            "authors": {"source": "Author", "transform": None},
             "isbn": {"source": "ISBN13", "transform": "value.replace('=', '').replace('\"', '').strip() if value else None"},
             "publisher": {"source": "Publisher", "transform": None},
             "published_year": {

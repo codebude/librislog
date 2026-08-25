@@ -23,6 +23,8 @@
     "busiestMonth": "Busiest Month",
     "avgPageCount": "Avg Pages/Book",
     "mostPopularLanguage": "Most Popular Language",
+    "totalBooksAndAuthors": "Total Books",
+    "booksFromAuthors": "from {authors} {authors, plural, one {author} other {authors}}",
     "languageDistribution": "Books by Language",
     "statusDistribution": "Books by Status",
     "acquisitionStatusDistribution": "Books by Ownership",
@@ -180,7 +182,10 @@
     "progressPromptTitle": "Set Reading Progress?",
     "progressPromptMessage": "Set the reading progress for \"{title}\" to 100%?",
     "progressPromptSet": "Set to 100%",
-    "progressPromptSkip": "Skip"
+    "progressPromptSkip": "Skip",
+    "authorsPlaceholder": "Type an author and press Enter",
+    "authorsLabel": "Author(s)",
+    "authorsHint": "Press Enter to add authors. Backspace removes the last author."
   },
   "addModal": {
     "manual": "Manual",
@@ -448,7 +453,8 @@
     "tooManyBooksSelected": "Too many books selected. Please select at most {max} at a time.",
     "importMappingNameConflict": "A mapping with this name already exists.",
     "importMappingNotFound": "Import mapping not found.",
-    "importFileNotFound": "Import file not found. Please upload the file again."
+    "importFileNotFound": "Import file not found. Please upload the file again.",
+    "importInvalidDelimiter": "CSV delimiter must be a single character."
   },
   "oidc": {
     "orContinueWith": "or continue with",
@@ -540,6 +546,7 @@
     "import": {
       "title": "Import",
       "description": "Upload one CSV or JSON file, map fields, validate, then import.",
+      "delimiterLabel": "CSV delimiter",
       "parse": "Parse file",
       "parsing": "Parsing...",
       "fileSummary": "Rows: {rows}, fields: {fields}",
@@ -573,6 +580,7 @@
       "requiredField": "= required field",
       "changeFile": "Change file",
       "coverUrlHint": "Expects an HTTP(S) URL to an image. Local file paths and base64 data are not supported.",
+      "authorsHint": "Map a single author string (separated with ;, & or and) or an array of names — each entry becomes one author.",
       "transformHelp": "Available parameters and examples",
       "transformHelpValue": "The raw value of the mapped source field",
       "transformHelpRow": "All source fields as a dict, e.g. row['title']",
@@ -617,10 +625,10 @@
       }
     }
   },
-    "dataHygiene": {
-        "authorRequired": "Author cannot be empty.",
-        "pageCountPositive": "Page count must be greater than 0.",
-        "title": "Data Hygiene",
+  "dataHygiene": {
+    "authorRequired": "Author cannot be empty.",
+    "pageCountPositive": "Page count must be greater than 0.",
+    "title": "Data Hygiene",
     "description": "Find and fix books with missing metadata in your library.",
     "attributes": {
       "author": "Author",
@@ -710,7 +718,7 @@
     "allDoneSub": "Every book in your library now has a cover image.",
     "loadingBook": "Loading next book...",
     "loadingCandidates": "Searching cover sources...",
-    "keyboardHint": "Tip: Press 1\u20139 to select a cover, \u2192 to skip",
+    "keyboardHint": "Tip: Press 1–9 to select a cover, → to skip",
     "candidatesError": "Cover search failed. You can still use manual import.",
     "retry": "Retry"
   }

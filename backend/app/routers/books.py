@@ -12,7 +12,7 @@ from sqlmodel import Session, col, func, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -25,6 +25,13 @@ from app.schemas import (
     StatusTransitionResponse,
     SuggestionList,
     TagCloudEntry,
+)
+from app.services.authors import (
+    cleanup_orphan_authors,
+    join_authors,
+    load_authors_batch,
+    resolve_authors_payload,
+    sync_book_authors,
 )
 from app.services.cover_storage import (
     delete_cover_file,
@@ -130,11 +137,14 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     raise
 
 
-def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
-    """Build a BookRead from a Book model with a pre-resolved tags string."""
+def _build_book_read_with_tags(book: Book, tags_text: str | None, authors: list[str] | None = None) -> BookRead:
+    """Build a BookRead from a Book model with pre-resolved tags and authors."""
     payload = book.model_dump()
     payload.pop("user_id", None)
     payload["tags"] = tags_text
+    authors = authors or []
+    payload["authors"] = authors
+    payload["author"] = join_authors(authors)
     return BookRead.model_validate(payload)
 
 
@@ -227,9 +237,10 @@ def list_books(
     logger.debug("list_books — returning %d/%d book(s)", len(books), total)
     book_ids = [b.id for b in books if b.id is not None]
     book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
+    book_authors_map = load_authors_batch(session, book_ids) if book_ids else {}
     return BookListResponse(
         books=[
-            _build_book_read_with_tags(book, book_tags_map.get(book.id))
+            _build_book_read_with_tags(book, book_tags_map.get(book.id), book_authors_map.get(book.id))
             for book in books
         ],
         total=total,
@@ -348,10 +359,22 @@ def suggest_authors(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> SuggestionList:
-    """Autocomplete author names from the user's existing books."""
+    """Autocomplete author names from the user's existing authors."""
     assert current_user.id is not None
-    suggestions = _suggest_field(session, current_user.id, "author", q, limit)
-    return SuggestionList(suggestions=suggestions)
+    if not q.strip():
+        return SuggestionList(suggestions=[])
+    pattern = f"%{_escape_like(q)}%"
+    rows = session.exec(
+        select(Author.name)
+        .where(
+            Author.user_id == current_user.id,
+            col(Author.name).ilike(pattern, escape="\\"),
+        )
+        .distinct()
+        .order_by(Author.name)
+        .limit(limit)
+    ).all()
+    return SuggestionList(suggestions=list(rows))
 
 
 @router.get("/suggestions/publishers", response_model=SuggestionList)
@@ -420,6 +443,8 @@ async def create_book(
     book_data["language"] = _normalize_language(book_data.get("language"))
     book_data["cover_url"] = cover_url
     book_data.pop("tags", None)
+    book_data.pop("author", None)
+    book_data.pop("authors", None)
     book_data["user_id"] = current_user.id
     _validate_dates(book_data)
     book = Book.model_validate(book_data)
@@ -430,6 +455,8 @@ async def create_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     sync_book_tags(session, current_user.id, book.id or 0, book_in.tags)
+    names = resolve_authors_payload(book_in.author, book_in.authors) or []
+    sync_book_authors(session, current_user.id, book.id or 0, names)
     try:
         session.commit()
     except IntegrityError as exc:
@@ -475,6 +502,10 @@ async def update_book(
         update_data["language"] = _normalize_language(update_data.get("language"))
     tags_provided = "tags" in update_data
     tags_raw = update_data.pop("tags", None) if tags_provided else None
+    authors_payload = resolve_authors_payload(
+        update_data.pop("author", None), update_data.pop("authors", None)
+    )
+    authors_provided = authors_payload is not None
     target_status = update_data.get("reading_status", book.reading_status)
 
     # Download external cover URL -> local file.
@@ -520,6 +551,10 @@ async def update_book(
         assert book.id is not None
         sync_book_tags(session, current_user.id, book.id, tags_raw)
         cleanup_orphan_tags(session, current_user.id)
+    if authors_provided:
+        assert book.id is not None
+        sync_book_authors(session, current_user.id, book.id, authors_payload)
+        cleanup_orphan_authors(session, current_user.id)
     try:
         session.commit()
     except IntegrityError as exc:
@@ -676,11 +711,14 @@ def delete_book(
 
     for link in session.exec(select(BookTag).where(BookTag.book_id == book.id)).all():
         session.delete(link)
+    for link in session.exec(select(BookAuthor).where(BookAuthor.book_id == book.id)).all():
+        session.delete(link)
     for entry in session.exec(
         select(ReadingProgress).where(ReadingProgress.book_id == book.id)
     ).all():
         session.delete(entry)
     session.delete(book)
     cleanup_orphan_tags(session, current_user.id)
+    cleanup_orphan_authors(session, current_user.id)
     session.commit()
     logger.info("Deleted book id=%s", book_id)

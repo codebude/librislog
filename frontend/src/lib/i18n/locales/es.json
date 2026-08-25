@@ -59,7 +59,9 @@
     "noRating": "Sin valoración",
     "topRated": "Mejor valorados",
     "worstRated": "Peor valorados",
-    "showMore": "Mostrar más"
+    "showMore": "Mostrar más",
+    "totalBooksAndAuthors": "Libros en total",
+    "booksFromAuthors": "de {authors} {authors, plural, one {autor} other {autores}}"
   },
   "dashboard": {
     "title": "Panel de lectura",
@@ -180,7 +182,10 @@
     "progressPromptTitle": "¿Establecer progreso de lectura?",
     "progressPromptMessage": "¿Establecer el progreso de \"{title}\" al 100%?",
     "progressPromptSet": "Establecer al 100%",
-    "progressPromptSkip": "Saltar"
+    "progressPromptSkip": "Saltar",
+    "authorsPlaceholder": "Escribe un autor y pulsa Enter",
+    "authorsHint": "Pulsa Enter para añadir autores. Retroceso elimina el último.",
+    "authorsLabel": "Autor(es)"
   },
   "addModal": {
     "manual": "Manual",
@@ -448,7 +453,8 @@
     "tooManyBooksSelected": "Demasiados libros seleccionados. Selecciona como máximo {max} a la vez.",
     "importMappingNameConflict": "Ya existe una asignación con este nombre.",
     "importMappingNotFound": "Asignación de importación no encontrada.",
-    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo."
+    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo.",
+    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter."
   },
   "oidc": {
     "orContinueWith": "o continuar con",
@@ -614,7 +620,9 @@
         "validateFailed": "Validación fallida.",
         "previewFailed": "Error al cargar la vista previa.",
         "executeFailed": "Importación fallida."
-      }
+      },
+      "authorsHint": "Asigna una sola cadena de autor (separada por ;, & o y) o un array de nombres: cada entrada se convierte en un autor.",
+      "delimiterLabel": "Delimitador CSV"
     }
   },
   "dataHygiene": {
@@ -710,7 +718,7 @@
     "allDoneSub": "Todos los libros de tu biblioteca tienen ahora una imagen de portada.",
     "loadingBook": "Cargando siguiente libro...",
     "loadingCandidates": "Buscando fuentes de portadas...",
-    "keyboardHint": "Consejo: pulsa 1\u20139 para seleccionar una portada, \u2192 para saltar",
+    "keyboardHint": "Consejo: pulsa 1–9 para seleccionar una portada, → para saltar",
     "candidatesError": "Búsqueda de portadas fallida. Aún puedes usar la importación manual.",
     "retry": "Reintentar"
   }

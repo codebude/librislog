@@ -47,7 +47,7 @@
 	// Editable fields
 	let title = $state('');
 	let subtitle = $state('');
-	let author = $state('');
+	let authors = $state<string[]>([]);
 	let isbn = $state('');
 	let notes = $state('');
 	let blurb = $state('');
@@ -87,7 +87,7 @@
 		if (book) {
 			title = book.title;
 			subtitle = book.subtitle ?? '';
-			author = book.author ?? '';
+			authors = [...(book.authors ?? [])];
 			isbn = book.isbn ?? '';
 			notes = book.notes ?? '';
 			blurb = book.blurb ?? '';
@@ -112,7 +112,7 @@
 		const payload: Partial<Book> = {
 			title,
 			subtitle: subtitle || null,
-			author: author.trim(),
+			authors,
 			isbn: isbn || null,
 			publisher: publisher || null,
 			published_year: published_year ? parseInt(published_year, 10) : null,
@@ -208,7 +208,7 @@
 
 	async function save({ skipAutoDateStarted = false } = {}) {
 		if (!book) return;
-		if (!author.trim()) {
+		if (authors.length === 0) {
 			toasts.add($_('error.authorRequired'), 'error');
 			return;
 		}
@@ -333,7 +333,7 @@
 	];
 
 	const coverSearchUrl = $derived.by(() => {
-		const query = `${title} ${author}`.trim();
+		const query = `${title} ${authors.join(' ')}`.trim();
 		return `https://www.google.com/search?q=${encodeURIComponent(query)}&udm=2&tbs=isz:l`;
 	});
 
@@ -416,11 +416,12 @@
 				<input class="input input-bordered input-sm" name="subtitle" bind:value={subtitle} />
 			</label>
 
-			<SuggestionInput
-				bind:value={author}
+			<TagInput
+				bind:values={authors}
 				name="author"
-				label={$_('book.author') + ' *'}
-				placeholder={$_('book.author')}
+				label={$_('book.authorsLabel') + ' *'}
+				placeholder={$_('book.authorsPlaceholder')}
+				hint={$_('book.authorsHint')}
 				fetchSuggestions={(q) => api.books.suggestions.authors(q)}
 			/>
 

@@ -78,7 +78,10 @@ test.describe('Library Browsing', () => {
 		await expect(availability).toHaveValue('');
 
 		await modal.getByLabel('Title *').fill('Digital E2E Book');
-		await modal.getByRole('searchbox', { name: /Author/ }).fill('E2E Author');
+		// The author field is a chip input: type and press Enter to add the author.
+		const authorInput = modal.getByRole('textbox', { name: /Author/ });
+		await authorInput.fill('E2E Author');
+		await authorInput.press('Enter');
 		await modal.getByLabel(/Pages/).fill('200');
 		await availability.selectOption('digital_access');
 		await modal.getByRole('button', { name: 'Add Book' }).click();

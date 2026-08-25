@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
@@ -34,6 +34,7 @@ from app.services.data_export import build_export_zip
 from app.services.data_import import (
     BOOK_IMPORT_FIELDS,
     PREDEFINED_MAPPINGS,
+    canonicalize_mapping,
     compute_schema_fingerprint,
     execute_import,
     get_predefined_mapping,
@@ -54,7 +55,7 @@ def _mapping_read(model: ImportMapping) -> DataImportMappingRead:
         id=model.id or 0,
         name=model.name,
         source_fields=json.loads(model.source_fields_json),
-        mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
+        mapping=canonicalize_mapping({k: ImportFieldConfig(**v) for k, v in raw_mapping.items()}),
         created_at=model.created_at,
         updated_at=model.updated_at,
         is_predefined=False,
@@ -87,9 +88,13 @@ def export_data(
 @router.post("/import/parse", response_model=DataImportParseResponse)
 async def parse_import_file(
     file: UploadFile = File(...),
+    delimiter: str = Form(","),
     current_user: User = Depends(require_user),
 ) -> DataImportParseResponse:
-    """Parse an uploaded CSV or JSON import file and return field info and samples."""
+    """Parse an uploaded CSV or JSON import file and return field info and samples.
+
+    ``delimiter`` is the single-character CSV field separator (ignored for JSON).
+    """
     assert current_user.id is not None
     allowed_content_types = {
         "text/csv",
@@ -101,7 +106,7 @@ async def parse_import_file(
     if file.content_type and file.content_type not in allowed_content_types:
         raise HTTPException(status_code=415, detail="Unsupported upload content type. Use CSV or JSON files.")
     try:
-        payload = parse_upload(await file.read(), file.filename or "upload", current_user.id)
+        payload = parse_upload(await file.read(), file.filename or "upload", current_user.id, delimiter)
     except (ValueError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return DataImportParseResponse.model_validate(payload)
@@ -143,7 +148,7 @@ def save_import_mapping(
         )
     ).first()
 
-    mapping_dict = {k: v.model_dump() for k, v in body.mapping.items()}
+    mapping_dict = {k: v.model_dump() for k, v in canonicalize_mapping(body.mapping).items()}
     if existing:
         existing.source_fields_json = json.dumps(body.source_fields)
         existing.mapping_json = json.dumps(mapping_dict)
@@ -226,7 +231,7 @@ def get_import_mapping(
             id=mapping_id,
             name=str(pm.get("name", "")),
             source_fields=list(raw_sources),
-            mapping={k: ImportFieldConfig(**v) for k, v in raw_mapping.items()},
+            mapping=canonicalize_mapping({k: ImportFieldConfig(**v) for k, v in raw_mapping.items()}),
             created_at=datetime(2000, 1, 1),
             updated_at=datetime(2000, 1, 1),
             is_predefined=True,

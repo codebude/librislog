@@ -33,4 +33,24 @@ test.describe('Statistics', () => {
 		await expect(page.getByText('The Great Gatsby').first()).toBeVisible();
 		await expect(page.getByText('Brave New World').first()).toBeVisible();
 	});
+
+	test('8.3 top authors reflect multi-author books', async ({ page }) => {
+		// Give Frank Herbert more books (Good Omens already counts Pratchett/Gaiman).
+		await seedBooks(page, [
+			{ title: 'Children of Dune', author: 'Frank Herbert', reading_status: 'read', rating: 4, page_count: 408, date_started: '2024-01-01', date_finished: '2024-01-20' },
+			{ title: 'God Emperor of Dune', author: 'Frank Herbert', reading_status: 'read', rating: 4, page_count: 496, date_started: '2024-02-01', date_finished: '2024-02-20' },
+		]);
+
+		await page.goto('/statistics');
+		await page.waitForTimeout(2000);
+
+		// Frank Herbert now has the most books and must be the top author.
+		await expect(page.getByText(/Top Authors|Beliebteste Autoren/i)).toBeVisible();
+		const topAuthorsCard = page
+			.locator('.card')
+			.filter({ has: page.getByRole('heading', { name: /Top Authors|Beliebteste Autoren/i }) });
+		const frankCard = topAuthorsCard.locator('.rounded-xl').filter({ hasText: 'Frank Herbert' }).first();
+		await expect(frankCard).toBeVisible({ timeout: 5000 });
+		await expect(frankCard.getByText('#1', { exact: true })).toBeVisible();
+	});
 });

@@ -15,6 +15,8 @@
 	} from '$lib/types';
 
 	let selectedFile = $state<File | null>(null);
+	let delimiter = $state(',');
+	const isCsvFile = $derived(selectedFile?.name.toLowerCase().endsWith('.csv') ?? false);
 	let parsing = $state(false);
 	let parsed = $state<DataImportParseResponse | null>(null);
 	let mapping = $state<Record<string, ImportFieldConfig>>({});
@@ -88,13 +90,14 @@
 		validation = null;
 		importResult = null;
 		try {
-			parsed = await api.data.parseImportFile(selectedFile);
+			parsed = await api.data.parseImportFile(selectedFile, delimiter);
 			const suggest = await api.data.suggestMapping(parsed.file_id);
 			mapping = suggest.suggested_mapping;
 			dbFields = suggest.db_fields;
 			await refreshMappings();
 		} catch (err: unknown) {
-			toasts.add(err instanceof Error ? err.message : $_('data.import.errors.parseFailed'), 'error');
+			const message = err instanceof Error ? err.message : $_('data.import.errors.parseFailed');
+			toasts.add(message.startsWith('error.') ? $_(message) : message, 'error');
 		} finally {
 			parsing = false;
 		}
@@ -351,6 +354,23 @@
 					{parsing ? $_('data.import.parsing') : $_('data.import.parse')}
 				</button>
 			</div>
+			{#if isCsvFile}
+				<label class="form-control w-full max-w-xs">
+					<span class="label-text text-xs">{$_('data.import.delimiterLabel')}</span>
+					<input
+						class="input input-bordered input-sm"
+						name="import-delimiter"
+						value={delimiter}
+						maxlength={1}
+						aria-label={$_('data.import.delimiterLabel')}
+						placeholder=","
+						oninput={(e) => {
+							const next = e.currentTarget.value;
+							delimiter = next.length === 1 ? next : ',';
+						}}
+					/>
+				</label>
+			{/if}
 			{#if parsed}
 				<p class="text-xs text-base-content/60 flex items-center gap-2">
 					<span>{$_('data.import.fileSummary', { values: { rows: parsed.row_count, fields: parsed.source_fields.length } })}</span>

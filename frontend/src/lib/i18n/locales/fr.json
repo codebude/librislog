@@ -59,7 +59,9 @@
     "noRating": "Aucune note",
     "topRated": "Les mieux notés",
     "worstRated": "Les moins bien notés",
-    "showMore": "Afficher plus"
+    "showMore": "Afficher plus",
+    "totalBooksAndAuthors": "Livres au total",
+    "booksFromAuthors": "de {authors} {authors, plural, one {auteur} other {auteurs}}"
   },
   "dashboard": {
     "title": "Tableau de bord de lecture",
@@ -180,7 +182,10 @@
     "progressPromptTitle": "Définir la progression ?",
     "progressPromptMessage": "Définir la progression de \"{title}\" à 100 % ?",
     "progressPromptSet": "Définir à 100 %",
-    "progressPromptSkip": "Passer"
+    "progressPromptSkip": "Passer",
+    "authorsPlaceholder": "Saisis un auteur et appuie sur Entrée",
+    "authorsHint": "Entrée pour ajouter des auteurs. Retour arrière supprime le dernier.",
+    "authorsLabel": "Auteur(s)"
   },
   "addModal": {
     "manual": "Manuel",
@@ -448,7 +453,8 @@
     "tooManyBooksSelected": "Trop de livres sélectionnés. Sélectionne au maximum {max} à la fois.",
     "importMappingNameConflict": "Un mappage avec ce nom existe déjà.",
     "importMappingNotFound": "Mappage d'importation introuvable.",
-    "importFileNotFound": "Fichier d'importation introuvable. Veuillez téléverser le fichier à nouveau."
+    "importFileNotFound": "Fichier d'importation introuvable. Veuillez téléverser le fichier à nouveau.",
+    "importInvalidDelimiter": "Le séparateur CSV doit être un seul caractère."
   },
   "oidc": {
     "orContinueWith": "ou continuer avec",
@@ -614,7 +620,9 @@
         "validateFailed": "Échec de la validation.",
         "previewFailed": "Échec du chargement de l'aperçu.",
         "executeFailed": "Échec de l'importation."
-      }
+      },
+      "authorsHint": "Mappez une chaîne d'auteur unique (séparée par ;, & ou et) ou un tableau de noms — chaque entrée devient un auteur.",
+      "delimiterLabel": "Séparateur CSV"
     }
   },
   "dataHygiene": {
@@ -710,7 +718,7 @@
     "allDoneSub": "Chaque livre de ta bibliothèque a maintenant une image de couverture.",
     "loadingBook": "Chargement du livre suivant...",
     "loadingCandidates": "Recherche de sources de couvertures...",
-    "keyboardHint": "Astuce : appuie sur 1\u20139 pour sélectionner une couverture, \u2192 pour passer",
+    "keyboardHint": "Astuce : appuie sur 1–9 pour sélectionner une couverture, → pour passer",
     "candidatesError": "Recherche de couverture échouée. Tu peux toujours utiliser l'importation manuelle.",
     "retry": "Réessayer"
   }

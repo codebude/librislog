@@ -230,7 +230,7 @@
 				</div>
 			</div>
 		{:else}
-		<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+		<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
 			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
 				<div class="stat-title">{$_('statistics.avgBooksPerMonth')}</div>
 				<div class="stat-value text-primary text-2xl">{formatNumber(stats.avg_books_per_month, 2, 1)}</div>
@@ -250,6 +250,11 @@
 					{stats.most_popular_language ? formatLanguageCode(stats.most_popular_language, appLocale) : '-'}
 				</div>
 				<div class="stat-desc">{formatNumber(stats.most_popular_language_count, 0)}</div>
+			</div>
+			<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
+				<div class="stat-title">{$_('statistics.totalBooksAndAuthors')}</div>
+				<div class="stat-value text-accent text-2xl">{formatNumber(stats.total_books, 0)}</div>
+				<div class="stat-desc">{$_('statistics.booksFromAuthors', { values: { authors: stats.total_authors } })}</div>
 			</div>
 		</div>
 

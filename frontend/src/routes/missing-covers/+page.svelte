@@ -6,6 +6,7 @@
 	import type { Book, CoverCandidate } from '$lib/types';
 	import { ArrowLeft, ExternalLink, SkipForward } from '@lucide/svelte';
 	import CoverCandidateGrid from '$lib/components/CoverCandidateGrid.svelte';
+	import { formatAuthors } from '$lib/utils/authors';
 
 	let loading = $state(true);
 	let advancing = $state(false);
@@ -26,7 +27,7 @@
 	const hasMoreBooks = $derived(currentIndex < totalMissing);
 	const googleSearchUrl = $derived.by(() => {
 		if (!currentBook) return '';
-		const parts = [currentBook.title, currentBook.author].filter(Boolean);
+		const parts = [currentBook.title, formatAuthors(currentBook.authors, currentBook.author)].filter(Boolean);
 		return `https://www.google.com/search?q=${encodeURIComponent(parts.join(' '))}&udm=2&tbs=isz:l`;
 	});
 
@@ -221,7 +222,7 @@
 				{:else}
 					<div class="mt-4">
 						<p class="text-lg font-semibold">{currentBook.title}</p>
-						<p class="text-sm text-base-content/70">{currentBook.author}</p>
+						<p class="text-sm text-base-content/70">{formatAuthors(currentBook.authors, currentBook.author)}</p>
 						<p class="text-xs text-base-content/50 mt-1">
 							{currentBook.isbn ? $_('missingCovers.isbnLabel', { values: { isbn: currentBook.isbn } }) : $_('missingCovers.noIsbn')}
 						</p>

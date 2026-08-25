@@ -6,6 +6,7 @@ export interface Book {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -32,6 +33,7 @@ export interface BookImportCandidate {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[] | null;
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -158,12 +160,15 @@ export interface TopRatedBook {
 	book_id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	rating: number;
 	reading_status: ReadingStatus;
 	cover_url: string | null;
 }
 
 export interface StatisticsResponse {
+	total_books: number;
+	total_authors: number;
 	avg_books_per_month: number | null;
 	busiest_month: string | null;
 	busiest_month_count: number | null;
@@ -245,6 +250,7 @@ export interface DataResetResponse {
 	deleted: {
 		books: number;
 		tags: number;
+		authors: number;
 		progress_entries: number;
 	};
 }
@@ -344,8 +350,8 @@ export interface ImportFieldConfig {
 
 export interface DataImportPreviewRow {
 	row_number: number;
-	source: Record<string, string>;
-	transformed: Record<string, string | null>;
+	source: Record<string, unknown>;
+	transformed: Record<string, unknown>;
 	errors: string[];
 }
 
@@ -377,6 +383,7 @@ export interface HygieneMissingBook {
 	id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	publisher: string | null;
 	published_year: number | null;

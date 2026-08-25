@@ -59,7 +59,9 @@
     "noRating": "暂无评分",
     "topRated": "评分最高",
     "worstRated": "评分最低",
-    "showMore": "显示更多"
+    "showMore": "显示更多",
+    "totalBooksAndAuthors": "书籍总数",
+    "booksFromAuthors": "来自 {authors} 位不同的作者"
   },
   "dashboard": {
     "title": "阅读仪表盘",
@@ -180,7 +182,10 @@
     "progressPromptTitle": "设置阅读进度？",
     "progressPromptMessage": "将 \"{title}\" 的阅读进度设置为 100%？",
     "progressPromptSet": "设为 100%",
-    "progressPromptSkip": "跳过"
+    "progressPromptSkip": "跳过",
+    "authorsPlaceholder": "输入作者并按回车",
+    "authorsHint": "按回车添加作者。按退格键删除上一个。",
+    "authorsLabel": "作者"
   },
   "addModal": {
     "manual": "手动添加",
@@ -448,7 +453,8 @@
     "tooManyBooksSelected": "选择的图书过多。一次最多选择 {max} 本。",
     "importMappingNameConflict": "同名映射已存在。",
     "importMappingNotFound": "未找到导入映射。",
-    "importFileNotFound": "未找到导入文件。请重新上传文件。"
+    "importFileNotFound": "未找到导入文件。请重新上传文件。",
+    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。"
   },
   "oidc": {
     "orContinueWith": "或继续使用",
@@ -614,7 +620,9 @@
         "validateFailed": "验证失败。",
         "previewFailed": "加载预览失败。",
         "executeFailed": "导入失败。"
-      }
+      },
+      "authorsHint": "映射单个作者字符串（用 ;、& 或 和 分隔）或名称数组 — 每个条目成为一个作者。",
+      "delimiterLabel": "CSV 分隔符"
     }
   },
   "dataHygiene": {
@@ -710,7 +718,7 @@
     "allDoneSub": "你书库中的每本书现在都有封面。",
     "loadingBook": "正在加载下一本书...",
     "loadingCandidates": "正在搜索封面来源...",
-    "keyboardHint": "提示：按 1\u20139 选择封面，按 \u2192 跳过",
+    "keyboardHint": "提示：按 1–9 选择封面，按 → 跳过",
     "candidatesError": "封面搜索失败。你仍可使用手动导入。",
     "retry": "重试"
   }

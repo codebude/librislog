@@ -14,7 +14,8 @@ from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
-from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, ReadingProgress, ReadingStatus, User, UserSettings
+from app.services.authors import join_authors, load_authors_batch
 from app.schemas import (
     AcquisitionStatusDistribution,
     DailyPages,
@@ -349,6 +350,10 @@ def get_statistics(
     current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == current_user.id)).all())
 
+    total_authors = session.exec(
+        select(func.count()).select_from(Author).where(Author.user_id == current_user.id)
+    ).one()
+
     status_counts = Counter(book.reading_status for book in books)
     status_distribution = StatusDistribution(
         want_to_read=status_counts.get(ReadingStatus.want_to_read, 0),
@@ -509,25 +514,37 @@ def get_statistics(
     else:
         books_finished_per_year = []
 
-    author_counts: Counter[str] = Counter()
-    for book in books:
-        if book.author and book.author.strip():
-            author_counts[book.author.strip()] += 1
+    author_count_label = func.count(func.distinct(BookAuthor.book_id)).label("cnt")
+    author_count_rows = session.exec(
+        select(Author.name, author_count_label)
+        .join(BookAuthor, col(BookAuthor.author_id) == col(Author.id))
+        .join(Book, col(Book.id) == col(BookAuthor.book_id))
+        .where(Book.user_id == current_user.id)
+        .group_by(col(Author.id))
+        .order_by(author_count_label.desc(), col(Author.name).asc())
+        .limit(3)
+    ).all()
+    author_counts = Counter({name: count for name, count in author_count_rows})
 
     top_authors: list[TopAuthor] = []
     if author_counts:
-        author_items = sorted(author_counts.items(), key=lambda item: item[0].lower())
-        top_author_counts = sorted(author_items, key=lambda item: item[1], reverse=True)[:3]
+        top_author_counts = author_counts.most_common(3)
         top_author_names = [name for name, _ in top_author_counts]
 
         covers_by_author: dict[str, list[TopAuthorCover]] = {}
         for author_name in top_author_names:
             max_slots = min(5, author_counts[author_name])
+            book_ids_with_author = select(BookAuthor.book_id).join(
+                Author, col(Author.id) == col(BookAuthor.author_id)
+            ).where(
+                Author.user_id == current_user.id,
+                Author.name == author_name,
+            )
             cover_rows = session.exec(
                 select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                 .where(
                     Book.user_id == current_user.id,
-                    Book.author == author_name,
+                    col(Book.id).in_(book_ids_with_author),
                     col(Book.cover_url).is_not(None),
                 )
                 .order_by(col(Book.id))
@@ -544,7 +561,7 @@ def get_statistics(
                     select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                     .where(
                         Book.user_id == current_user.id,
-                        Book.author == author_name,
+                        col(Book.id).in_(book_ids_with_author),
                         col(Book.cover_url).is_(None),
                     )
                     .order_by(col(Book.id))
@@ -573,28 +590,36 @@ def get_statistics(
     average_rating = round(mean(rating_values), 2) if rating_values else None
 
     rated_books = [b for b in books if b.rating is not None]
+    rated_book_ids = [b.id for b in rated_books if b.id is not None]
+    rated_authors_map = load_authors_batch(session, rated_book_ids)
 
     def _rating_sort_key(book: Book) -> tuple[int, float]:
         assert book.rating is not None
         return (book.rating, -(book.date_added or datetime.min).timestamp())
 
+    # Top rated: highest rating first; ties broken by newest-added first.
     top_rated_books = []
+    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], _rating_sort_key(x)[1])):
+        assert b.id is not None
+        assert b.rating is not None
+        author_names = rated_authors_map.get(b.id, [])
+        top_rated_books.append(
+            TopRatedBook(book_id=b.id, title=b.title or "", author=join_authors(author_names), authors=author_names, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+        )
+
+    # Worst rated: lowest rating first; ties broken by newest-added first.
+    worst_rated_books = []
     for b in sorted(rated_books, key=_rating_sort_key):
         assert b.id is not None
         assert b.rating is not None
-        top_rated_books.append(
-            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
-        )
-
-    worst_rated_books = []
-    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], -_rating_sort_key(x)[1])):
-        assert b.id is not None
-        assert b.rating is not None
+        author_names = rated_authors_map.get(b.id, [])
         worst_rated_books.append(
-            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+            TopRatedBook(book_id=b.id, title=b.title or "", author=join_authors(author_names), authors=author_names, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
         )
 
     return StatisticsResponse(
+        total_books=len(books),
+        total_authors=total_authors,
         avg_books_per_month=avg_books_per_month,
         busiest_month=busiest_month,
         busiest_month_count=busiest_month_count,
