@@ -40,6 +40,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "rating",
     "reading_status",
     "acquisition_status",
+    "date_added",
     "date_started",
     "date_finished",
     "cover_url",
@@ -80,6 +81,8 @@ _ALIASES: dict[str, str] = {
     "acquisition": "acquisition_status",
     "availability": "acquisition_status",
     "ownership": "acquisition_status",
+    "date added": "date_added",
+    "added": "date_added",
     "date started": "date_started",
     "started": "date_started",
     "date finished": "date_finished",
@@ -572,6 +575,12 @@ def validate_import(
             errors.append(f"Row {idx}: {exc}")
             continue
 
+        date_added: datetime | None = None
+        try:
+            date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+        except ValueError as exc:
+            errors.append(f"Row {idx}: {exc}")
+
         date_started: datetime | None = None
         try:
             date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -592,6 +601,12 @@ def validate_import(
             warnings.append(
                 f"Row {idx}: marked as 'read' but has no finished date; "
                 "without a finish date the book will not count toward monthly statistics"
+            )
+
+        if date_added and date_finished and date_added > date_finished:
+            warnings.append(
+                f"Row {idx}: date_added is after date_finished; the book will appear "
+                "as added after it was finished"
             )
 
         if create_progress_for_read and reading_status == ReadingStatus.read and not row_data.get("page_count"):
@@ -679,6 +694,12 @@ def preview_import(
         except ValueError as exc:
             row_errors.append(str(exc))
 
+        date_added: datetime | None = None
+        try:
+            date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+        except ValueError as exc:
+            row_errors.append(str(exc))
+
         date_started: datetime | None = None
         try:
             date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -693,6 +714,12 @@ def preview_import(
 
         if date_started and date_finished and date_started > date_finished:
             row_errors.append("date_started is after date_finished")
+
+        if date_added and date_finished and date_added > date_finished:
+            row_errors.append(
+                "date_added is after date_finished; the book will appear "
+                "as added after it was finished"
+            )
 
         if reading_status == ReadingStatus.read and not date_finished:
             row_errors.append(
@@ -785,6 +812,12 @@ async def execute_import(
                     None if row_data.get("language") is None else str(row_data.get("language"))
                 )
                 date_errors: list[str] = []
+                date_added: datetime | None = None
+                try:
+                    date_added = _parse_datetime(row_data.get("date_added"), "date_added")
+                except ValueError as exc:
+                    date_errors.append(str(exc))
+
                 date_started: datetime | None = None
                 try:
                     date_started = _parse_datetime(row_data.get("date_started"), "date_started")
@@ -802,6 +835,12 @@ async def execute_import(
 
                 if date_started and date_finished and date_started > date_finished:
                     raise ValueError("date_started is after date_finished")
+
+                if date_added and date_finished and date_added > date_finished:
+                    raise ValueError(
+                        "date_added is after date_finished; the book would appear "
+                        "as added after it was finished"
+                    )
 
                 if reading_status == ReadingStatus.read and not date_finished:
                     raise ValueError("Marked as 'read' but has no finished date")
@@ -830,6 +869,7 @@ async def execute_import(
                     rating=rating,
                     reading_status=reading_status,
                     acquisition_status=acquisition_status,
+                    date_added=date_added or utcnow(),
                     date_started=date_started,
                     date_finished=date_finished,
                     user_id=user.id,

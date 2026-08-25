@@ -726,7 +726,7 @@ async def test_execute_import_full_library_json_round_trip(
     """Export a full library as JSON and re-import it, verifying every field.
 
     Covers a fully-populated book, a multi-author/tagged book, and a minimal
-    book. ``date_added`` is excluded: the import assigns a fresh timestamp.
+    book, including ``date_added``.
     """
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
     user = _create_test_user(session)
@@ -746,6 +746,7 @@ async def test_execute_import_full_library_json_round_trip(
         rating=5,
         reading_status=ReadingStatus.read,
         acquisition_status=AcquisitionStatus.owned,
+        date_added=datetime(2024, 12, 1, 8, 0, tzinfo=timezone.utc),
         date_started=datetime(2025, 1, 10, 9, 30, tzinfo=timezone.utc),
         date_finished=datetime(2025, 1, 20, 21, 45, tzinfo=timezone.utc),
         user_id=user.id,
@@ -828,6 +829,7 @@ async def test_execute_import_full_library_json_round_trip(
             "rating",
             "reading_status",
             "acquisition_status",
+            "date_added",
             "date_started",
             "date_finished",
             "cover_url",
@@ -861,10 +863,54 @@ async def test_execute_import_full_library_json_round_trip(
         assert book.reading_status.value == row["reading_status"]
         assert book.acquisition_status.value == row["acquisition_status"]
         assert book.cover_url == row["cover_url"]
+        assert _serialize_datetime(book.date_added) == row["date_added"]
         assert _serialize_datetime(book.date_started) == row["date_started"]
         assert _serialize_datetime(book.date_finished) == row["date_finished"]
         assert authors_list_for_book(session, book.id) == row["authors"]
         assert tags_list_for_book(session, book.id) == row["tags"]
+
+
+@pytest.mark.anyio
+async def test_execute_import_preserves_date_added(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """A mapped ``date_added`` is used instead of the import timestamp."""
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    payload = {
+        "rows": [
+            {
+                "title": "Old Book",
+                "date_added": "2020-06-01T10:00:00Z",
+                "page_count": "100",
+                "reading_status": "want_to_read",
+                "acquisition_status": "owned",
+            }
+        ],
+        "source_fields": ["title", "date_added", "page_count", "reading_status", "acquisition_status"],
+    }
+    file_id = "test_exec_date_added"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+    mapping = {
+        "title": ImportFieldConfig(source="title"),
+        "date_added": ImportFieldConfig(source="date_added"),
+        "page_count": ImportFieldConfig(source="page_count"),
+        "reading_status": ImportFieldConfig(source="reading_status"),
+        "acquisition_status": ImportFieldConfig(source="acquisition_status"),
+    }
+    events = []
+    async for event in di.execute_import(
+        file_id, user, mapping, session, "continue_on_error", require_acquisition_status=True
+    ):
+        events.append(event)
+    complete = [e for e in events if e["event"] == "complete"][0]
+    assert complete["imported"] == 1
+
+    book = session.exec(select(Book).where(Book.user_id == user.id)).one()
+    assert _serialize_datetime(book.date_added) == "2020-06-01T10:00:00Z"
 
 
 @pytest.mark.anyio

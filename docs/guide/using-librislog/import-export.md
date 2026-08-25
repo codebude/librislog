@@ -86,6 +86,8 @@ When importing CSV, map source columns to LibrisLog fields:
 
 `acquisition_status` is required for imports. Map it to one of `owned`, `borrowed`, `digital_access`, or `to_acquire`; use a transform when the source file uses different names.
 
+`date_added` is importable too — useful when migrating from another tool so the original "added to library" dates are preserved (the LibrisLog JSON export includes it, so exports round-trip losslessly). If a row has no `date_added`, the import timestamp is used.
+
 #### Authors are adaptive
 
 The import target field is **`authors`**. Its source value adapts:
