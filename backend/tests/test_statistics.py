@@ -664,5 +664,5 @@ def test_statistics_top_and_worst_rated_books(client: Any) -> None:
     data = resp.json()
     assert data["books_with_rating"] == 4
     assert data["average_rating"] == 3.5
-    assert [b["title"] for b in data["top_rated_books"]] == ["Bad", "Okay", "Good", "Best"]
-    assert [b["title"] for b in data["worst_rated_books"]] == ["Best", "Good", "Okay", "Bad"]
+    assert [b["title"] for b in data["top_rated_books"]] == ["Best", "Good", "Okay", "Bad"]
+    assert [b["title"] for b in data["worst_rated_books"]] == ["Bad", "Okay", "Good", "Best"]

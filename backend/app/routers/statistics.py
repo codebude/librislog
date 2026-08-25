@@ -597,8 +597,9 @@ def get_statistics(
         assert book.rating is not None
         return (book.rating, -(book.date_added or datetime.min).timestamp())
 
+    # Top rated: highest rating first; ties broken by newest-added first.
     top_rated_books = []
-    for b in sorted(rated_books, key=_rating_sort_key):
+    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], _rating_sort_key(x)[1])):
         assert b.id is not None
         assert b.rating is not None
         author_names = rated_authors_map.get(b.id, [])
@@ -606,8 +607,9 @@ def get_statistics(
             TopRatedBook(book_id=b.id, title=b.title or "", author=join_authors(author_names), authors=author_names, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
         )
 
+    # Worst rated: lowest rating first; ties broken by newest-added first.
     worst_rated_books = []
-    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], -_rating_sort_key(x)[1])):
+    for b in sorted(rated_books, key=_rating_sort_key):
         assert b.id is not None
         assert b.rating is not None
         author_names = rated_authors_map.get(b.id, [])
