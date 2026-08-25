@@ -57,7 +57,9 @@ Book responses contain two author fields:
 - `author` — the **joined** string of all authors (e.g. `"Neil Gaiman, Terry Pratchett"`). Kept for backward compatibility with existing consumers.
 - `authors` — the **list** of individual author names (e.g. `["Neil Gaiman", "Terry Pratchett"]`).
 
-When creating or updating a book you may send `authors` as a list, or the legacy `author` string (which is parsed on commas, tag-style). If both are sent, `authors` takes precedence.
+When creating or updating a book you may send `authors` as a list, or the legacy `author` string. If both are sent, `authors` takes precedence.
+
+The legacy `author` string is **parsed on commas, tag-style** (e.g. `"Isaac Asimov, Frank Herbert"` becomes two authors). This only applies to the API create/update path. It differs from **file import** (CSV/JSON), where a single author string is split on `;`, ` & `, or ` and ` — never on commas — so a name like `"Asimov, Isaac"` stays one author. See [Import & Export](../guide/using-librislog/import-export.md) for the import behaviour.
 
 # Update reading status
 curl -X POST \
