@@ -12,14 +12,16 @@ from sqlmodel import Session, col, select
 
 from app._build_info import __git_sha__, __version__
 from app.models import Book, BookTag, ReadingProgress, Tag, User
+from app.services.authors import authors_list_for_book
 from app.time_utils import utcnow
 from app.services.cover_storage import local_cover_filename, resolve_cover_path
-from app.services.tags import tags_text_for_book
+from app.services.tags import tags_list_for_book
 
 BOOK_CSV_FIELDS: list[str] = [
     "title",
     "subtitle",
     "author",
+    "authors",
     "isbn",
     "publisher",
     "published_year",
@@ -48,18 +50,31 @@ def _serialize_datetime(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _book_to_dict(session: Session, book: Book) -> dict:
-    """Convert a Book model to a flat export dict."""
+def _book_to_dict(session: Session, book: Book, export_format: str) -> dict:
+    """Convert a Book model to a flat export dict.
+
+    JSON exports mirror the API shape: ``author`` is the joined string (using
+    ``; `` so it round-trips through the adaptive import), ``authors`` is the
+    name list, and ``tags`` is a list of tag names. CSV has no list type: both
+    the ``author`` and ``authors`` columns use ``; `` (so they round-trip
+    through ``parse_authors``), and ``tags`` is a comma-separated string.
+    """
+    authors = authors_list_for_book(session, book.id)
+    tags = tags_list_for_book(session, book.id)
+    author_value = "; ".join(authors) if authors else None
+    tags_value = tags if export_format == "json" else (", ".join(tags) if tags else None)
+    authors_value = authors if export_format == "json" else ("; ".join(authors) if authors else None)
     return {
         "title": book.title,
         "subtitle": book.subtitle,
-        "author": book.author,
+        "author": author_value,
+        "authors": authors_value,
         "isbn": book.isbn,
         "publisher": book.publisher,
         "published_year": book.published_year,
         "page_count": book.page_count,
         "language": book.language,
-        "tags": tags_text_for_book(session, book.id) if book.id else None,
+        "tags": tags_value,
         "notes": book.notes,
         "blurb": book.blurb,
         "rating": book.rating,
@@ -150,7 +165,7 @@ def build_export_zip(
 
     book_titles = {book.id: book.title for book in books if book.id is not None}
 
-    books_rows = [_book_to_dict(session, book) for book in books]
+    books_rows = [_book_to_dict(session, book, export_format) for book in books]
     progress_rows = [_progress_to_dict(entry, book_titles) for entry in progress_entries]
     tag_rows = [_tag_to_dict(tag, tag_counts) for tag in tags]
 

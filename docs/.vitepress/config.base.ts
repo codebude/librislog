@@ -10,6 +10,12 @@ export default defineConfig({
       __GIT_SHA__: JSON.stringify(gitSha),
       __GIT_SHA_SHORT__: JSON.stringify(gitSha.slice(0, 7)),
     },
+    optimizeDeps: {
+      // fastdom is a CJS/UMD dependency of mermaid; without pre-bundling,
+      // Vite's dev server fails to expose its `default` export ("does not
+      // provide an export named 'default'"), which renders the dev site blank.
+      include: ['fastdom', 'fastdom/extensions/fastdom-promised.js'],
+    },
     server: {
       host: true,
       port: 5174,
@@ -34,6 +40,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'API', link: '/api/' },
+      { text: 'Releases', link: '/releases' },
       { text: 'About', link: '/about' },
     ],
     sidebar: {
@@ -54,6 +61,7 @@ export default defineConfig({
               ],
             },
             { text: 'Integrations 🔗', link: '/api/integrations/' },
+            { text: 'Release Notes', link: '/releases' },
           ],
         },
         {
@@ -61,6 +69,7 @@ export default defineConfig({
           items: [
             { text: 'Dashboard', link: '/guide/using-librislog/dashboard' },
             { text: 'Library', link: '/guide/using-librislog/library' },
+            { text: 'Search', link: '/guide/using-librislog/search' },
             { text: 'Profile', link: '/guide/using-librislog/profile' },
             { text: 'Progress Tracking', link: '/guide/using-librislog/progress' },
             { text: 'Statistics', link: '/guide/using-librislog/statistics' },

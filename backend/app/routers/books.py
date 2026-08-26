@@ -7,12 +7,12 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, col, func, or_, select
+from sqlmodel import Session, col, func, select
 
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Book, BookTag, ReadingProgress, ReadingStatus, Tag, User
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -26,12 +26,20 @@ from app.schemas import (
     SuggestionList,
     TagCloudEntry,
 )
+from app.services.authors import (
+    cleanup_orphan_authors,
+    join_authors,
+    load_authors_batch,
+    resolve_authors_payload,
+    sync_book_authors,
+)
 from app.services.cover_storage import (
     delete_cover_file,
     local_cover_filename,
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
+from app.services.search import _escape_like, apply_search_filter
 from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
 
@@ -129,11 +137,14 @@ def _raise_integrity_conflict(exc: IntegrityError) -> None:
     raise
 
 
-def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
-    """Build a BookRead from a Book model with a pre-resolved tags string."""
+def _build_book_read_with_tags(book: Book, tags_text: str | None, authors: list[str] | None = None) -> BookRead:
+    """Build a BookRead from a Book model with pre-resolved tags and authors."""
     payload = book.model_dump()
     payload.pop("user_id", None)
     payload["tags"] = tags_text
+    authors = authors or []
+    payload["authors"] = authors
+    payload["author"] = join_authors(authors)
     return BookRead.model_validate(payload)
 
 
@@ -141,7 +152,15 @@ def _build_book_read_with_tags(book: Book, tags_text: str | None) -> BookRead:
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
     acquisition_status: Optional[AcquisitionStatus] = Query(default=None),
-    q: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(
+        default=None,
+        description=(
+            "Search phrase. Use <field>:<value> to restrict a term to a single field "
+            "(author, publisher, title, tag, language, possession, notes, description). "
+            "Wrap multi-word values in double quotes (e.g. author:\"Marlen Haushofer\") and "
+            "prefix any term with - to negate it (e.g. tag:cars -tag:audi)."
+        ),
+    ),
     has_cover: Optional[bool] = Query(default=None),
     sort: Literal["title", "date_added", "date_started", "date_finished", "rating"] = Query(
         default="date_added"
@@ -172,20 +191,8 @@ def list_books(
         base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
 
     if q:
-        pattern = f"%{q}%"
-        matching_tag_book_ids = select(BookTag.book_id).join(Tag, col(Tag.id) == BookTag.tag_id).where(
-            Tag.user_id == current_user.id,
-            col(Tag.name).ilike(pattern),
-        )
-        base_statement = base_statement.where(
-            or_(
-                col(Book.title).ilike(pattern),
-                col(Book.subtitle).ilike(pattern),
-                col(Book.author).ilike(pattern),
-                col(Book.blurb).ilike(pattern),
-                col(Book.id).in_(matching_tag_book_ids),
-            )
-        )
+        assert current_user.id is not None
+        base_statement = apply_search_filter(base_statement, q, current_user.id)
 
     if has_cover is not None:
         if has_cover:
@@ -230,9 +237,10 @@ def list_books(
     logger.debug("list_books — returning %d/%d book(s)", len(books), total)
     book_ids = [b.id for b in books if b.id is not None]
     book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
+    book_authors_map = load_authors_batch(session, book_ids) if book_ids else {}
     return BookListResponse(
         books=[
-            _build_book_read_with_tags(book, book_tags_map.get(book.id))
+            _build_book_read_with_tags(book, book_tags_map.get(book.id), book_authors_map.get(book.id))
             for book in books
         ],
         total=total,
@@ -328,17 +336,17 @@ def _suggest_field(
     """Return distinct values for a Book column matching the query."""
     if not q.strip():
         return []
-    pattern = f"%{q}%"
-    col = getattr(Book, column)
+    pattern = f"%{_escape_like(q)}%"
+    column_expr = getattr(Book, column)
     rows = session.exec(
-        select(col)
+        select(column_expr)
         .where(
             Book.user_id == user_id,
-            col.isnot(None),
-            col.ilike(pattern),
+            column_expr.isnot(None),
+            column_expr.ilike(pattern, escape="\\"),
         )
         .distinct()
-        .order_by(col)
+        .order_by(column_expr)
         .limit(limit)
     ).all()
     return list(rows)
@@ -351,10 +359,22 @@ def suggest_authors(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> SuggestionList:
-    """Autocomplete author names from the user's existing books."""
+    """Autocomplete author names from the user's existing authors."""
     assert current_user.id is not None
-    suggestions = _suggest_field(session, current_user.id, "author", q, limit)
-    return SuggestionList(suggestions=suggestions)
+    if not q.strip():
+        return SuggestionList(suggestions=[])
+    pattern = f"%{_escape_like(q)}%"
+    rows = session.exec(
+        select(Author.name)
+        .where(
+            Author.user_id == current_user.id,
+            col(Author.name).ilike(pattern, escape="\\"),
+        )
+        .distinct()
+        .order_by(Author.name)
+        .limit(limit)
+    ).all()
+    return SuggestionList(suggestions=list(rows))
 
 
 @router.get("/suggestions/publishers", response_model=SuggestionList)
@@ -423,6 +443,8 @@ async def create_book(
     book_data["language"] = _normalize_language(book_data.get("language"))
     book_data["cover_url"] = cover_url
     book_data.pop("tags", None)
+    book_data.pop("author", None)
+    book_data.pop("authors", None)
     book_data["user_id"] = current_user.id
     _validate_dates(book_data)
     book = Book.model_validate(book_data)
@@ -433,6 +455,8 @@ async def create_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     sync_book_tags(session, current_user.id, book.id or 0, book_in.tags)
+    names = resolve_authors_payload(book_in.author, book_in.authors) or []
+    sync_book_authors(session, current_user.id, book.id or 0, names)
     try:
         session.commit()
     except IntegrityError as exc:
@@ -478,6 +502,10 @@ async def update_book(
         update_data["language"] = _normalize_language(update_data.get("language"))
     tags_provided = "tags" in update_data
     tags_raw = update_data.pop("tags", None) if tags_provided else None
+    authors_payload = resolve_authors_payload(
+        update_data.pop("author", None), update_data.pop("authors", None)
+    )
+    authors_provided = authors_payload is not None
     target_status = update_data.get("reading_status", book.reading_status)
 
     # Download external cover URL -> local file.
@@ -523,6 +551,10 @@ async def update_book(
         assert book.id is not None
         sync_book_tags(session, current_user.id, book.id, tags_raw)
         cleanup_orphan_tags(session, current_user.id)
+    if authors_provided:
+        assert book.id is not None
+        sync_book_authors(session, current_user.id, book.id, authors_payload)
+        cleanup_orphan_authors(session, current_user.id)
     try:
         session.commit()
     except IntegrityError as exc:
@@ -679,11 +711,14 @@ def delete_book(
 
     for link in session.exec(select(BookTag).where(BookTag.book_id == book.id)).all():
         session.delete(link)
+    for link in session.exec(select(BookAuthor).where(BookAuthor.book_id == book.id)).all():
+        session.delete(link)
     for entry in session.exec(
         select(ReadingProgress).where(ReadingProgress.book_id == book.id)
     ).all():
         session.delete(entry)
     session.delete(book)
     cleanup_orphan_tags(session, current_user.id)
+    cleanup_orphan_authors(session, current_user.id)
     session.commit()
     logger.info("Deleted book id=%s", book_id)

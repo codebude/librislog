@@ -13,10 +13,11 @@
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 	import AddBookModal from '$lib/components/AddBookModal.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
-	import { BookOpen as BookOpenIcon, Book as BookIcon, Check, X } from '@lucide/svelte';
+	import SearchHelp from '$lib/components/SearchHelp.svelte';
+	import { BookOpen as BookOpenIcon, Book as BookIcon, Check, Library, X } from '@lucide/svelte';
 
 	type Tab = {
-		status: ReadingStatus;
+		status: ReadingStatus | 'all';
 		labelKey: string;
 		Icon: typeof BookOpenIcon;
 	};
@@ -25,20 +26,22 @@
 		{ status: 'want_to_read', labelKey: 'status.want_to_read', Icon: BookOpenIcon },
 		{ status: 'currently_reading', labelKey: 'status.currently_reading', Icon: BookIcon },
 		{ status: 'read', labelKey: 'status.read', Icon: Check },
-		{ status: 'did_not_finish', labelKey: 'status.did_not_finish', Icon: X }
+		{ status: 'did_not_finish', labelKey: 'status.did_not_finish', Icon: X },
+		{ status: 'all', labelKey: 'status.all', Icon: Library }
 	];
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
 		currently_reading: 'status.currently_reading',
 		read: 'status.read',
-		did_not_finish: 'status.did_not_finish'
+		did_not_finish: 'status.did_not_finish',
+		all: 'status.all'
 	};
 
 	const PAGE_SIZE = 40;
 
-	let activeStatus = $derived<ReadingStatus>(
-		($page.url.searchParams.get('status') as ReadingStatus) ?? 'want_to_read'
+	let activeStatus = $derived<ReadingStatus | 'all'>(
+		($page.url.searchParams.get('status') as ReadingStatus | 'all') ?? 'want_to_read'
 	);
 	let requestedBookId = $derived.by(() => {
 		const raw = $page.url.searchParams.get('bookId');
@@ -84,7 +87,7 @@
 		return numberFormatter.format(value);
 	}
 
-	function getStatusCount(status: ReadingStatus): number | null {
+	function getStatusCount(status: ReadingStatus | 'all'): number | null {
 		if (!statusCounts) return null;
 		switch (status) {
 			case 'want_to_read':
@@ -95,6 +98,8 @@
 				return statusCounts.books_read;
 			case 'did_not_finish':
 				return statusCounts.books_did_not_finish;
+			case 'all':
+				return statusCounts.total_books;
 		}
 	}
 
@@ -111,7 +116,7 @@
 	let drawerOpen = $state(false);
 	let addBookOpen = $state(false);
 
-	function changeTab(status: ReadingStatus) {
+	function changeTab(status: ReadingStatus | 'all') {
 		if (status === activeStatus) return;
 		void goto(`/library?status=${status}`);
 	}
@@ -155,7 +160,7 @@
 		loading = true;
 		try {
 			const response = await api.books.list({
-				status: activeStatus,
+				status: activeStatus === 'all' ? undefined : activeStatus,
 				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
@@ -189,7 +194,7 @@
 		loadingMore = true;
 		try {
 			const response = await api.books.list({
-				status: activeStatus,
+				status: activeStatus === 'all' ? undefined : activeStatus,
 				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
@@ -251,7 +256,7 @@
 
 	function handleSave(updated: Book) {
 		selectedBook = updated;
-		if (updated.reading_status !== activeStatus) {
+		if (activeStatus !== 'all' && updated.reading_status !== activeStatus) {
 			detailOpen = false;
 			drawerOpen = false;
 			books = books.filter((b) => b.id !== updated.id);
@@ -273,7 +278,7 @@
 	}
 
 	function handleAdded(book: Book) {
-		if (book.reading_status === activeStatus) {
+		if (activeStatus === 'all' || book.reading_status === activeStatus) {
 			books = [book, ...books];
 		}
 		addBookOpen = false;
@@ -347,6 +352,7 @@
 				placeholder={$_('common.searchBooks')}
 				onSearch={(q) => (searchQuery = q)}
 			/>
+			<SearchHelp />
 			{#if searchQuery}
 				<span class="text-sm text-base-content/50 whitespace-nowrap shrink-0">
 					{totalCount} {totalCount === 1 ? $_('common.result') : $_('common.results')}
@@ -399,18 +405,20 @@
 			</button>
 		</div>
 		<div class="flex items-center gap-2 text-sm">
-			<label class="label cursor-pointer gap-2">
-				<span class="label-text text-xs">{$_('sort.smart')}</span>
-				<input type="checkbox" class="toggle toggle-xs" name="smart-sort" bind:checked={smartSort} />
-			</label>
-			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-field" bind:value={sort} disabled={smartSort}>
+			{#if activeStatus !== 'all'}
+				<label class="label cursor-pointer gap-2">
+					<span class="label-text text-xs">{$_('sort.smart')}</span>
+					<input type="checkbox" class="toggle toggle-xs" name="smart-sort" bind:checked={smartSort} />
+				</label>
+			{/if}
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-field" bind:value={sort} disabled={smartSort && activeStatus !== 'all'}>
 				<option value="date_added">{$_('common.dateAdded')}</option>
 				<option value="title">{$_('book.title')}</option>
 				<option value="date_started">{$_('book.dateStarted')}</option>
 				<option value="date_finished">{$_('book.dateFinished')}</option>
 				<option value="rating">{$_('common.rating')}</option>
 			</select>
-			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-order" bind:value={order} disabled={smartSort}>
+			<select class="select select-bordered select-xs pr-8 min-w-fit" name="sort-order" bind:value={order} disabled={smartSort && activeStatus !== 'all'}>
 				<option value="desc">{$_('common.desc')}</option>
 				<option value="asc">{$_('common.asc')}</option>
 			</select>
@@ -477,6 +485,6 @@
 
 <AddBookModal
 	bind:open={addBookOpen}
-	defaultStatus={activeStatus}
+	defaultStatus={activeStatus === 'all' ? 'want_to_read' : activeStatus}
 	onAdded={handleAdded}
 />

@@ -104,6 +104,15 @@ def get_settings(
         timezone=settings.timezone,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
+        goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
+        goal_pages_per_day=settings.goal_pages_per_day,
+        goal_pages_per_month_enabled=settings.goal_pages_per_month_enabled,
+        goal_pages_per_month=settings.goal_pages_per_month,
+        goal_books_per_month_enabled=settings.goal_books_per_month_enabled,
+        goal_books_per_month=settings.goal_books_per_month,
+        goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
+        goal_books_per_year=settings.goal_books_per_year,
+        gamification_enabled=settings.gamification_enabled,
     )
 
 
@@ -133,6 +142,15 @@ def update_settings(
         timezone=settings.timezone,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
+        goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
+        goal_pages_per_day=settings.goal_pages_per_day,
+        goal_pages_per_month_enabled=settings.goal_pages_per_month_enabled,
+        goal_pages_per_month=settings.goal_pages_per_month,
+        goal_books_per_month_enabled=settings.goal_books_per_month_enabled,
+        goal_books_per_month=settings.goal_books_per_month,
+        goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
+        goal_books_per_year=settings.goal_books_per_year,
+        gamification_enabled=settings.gamification_enabled,
     )
 
 
@@ -158,8 +176,8 @@ def reset_data(
         raise
 
     logger.warning(
-        "User %s reset personal data: books=%s tags=%s progress_entries=%s",
-        current_user.id, deleted.books, deleted.tags, deleted.progress_entries,
+        "User %s reset personal data: books=%s tags=%s authors=%s progress_entries=%s",
+        current_user.id, deleted.books, deleted.tags, deleted.authors, deleted.progress_entries,
     )
 
     return DataResetResponse(
@@ -167,6 +185,7 @@ def reset_data(
         deleted=DataResetDeleted(
             books=deleted.books,
             tags=deleted.tags,
+            authors=deleted.authors,
             progress_entries=deleted.progress_entries,
         ),
     )

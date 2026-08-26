@@ -70,7 +70,6 @@ class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     subtitle: Optional[str] = None
-    author: str = Field(default="", index=True)
     isbn: Optional[str] = Field(default=None)
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -128,6 +127,30 @@ class BookTag(SQLModel, table=True):
     tag_id: int = Field(foreign_key="tag.id", primary_key=True, index=True)
 
 
+class Author(SQLModel, table=True):
+    """A user-specific author name that can be associated with books."""
+
+    __tablename__: str = "author"
+    __table_args__ = (sa.UniqueConstraint("user_id", "name", name="uq_author_user_id_name"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(index=True)
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+
+
+class BookAuthor(SQLModel, table=True):
+    """Many-to-many association between books and authors."""
+
+    __tablename__: str = "book_author"
+
+    book_id: int = Field(foreign_key="book.id", primary_key=True)
+    author_id: int = Field(foreign_key="author.id", primary_key=True, index=True)
+
+
 class User(SQLModel, table=True):
     """A user account."""
 
@@ -160,6 +183,15 @@ class UserSettings(SQLModel, table=True):
     timezone: str = Field(default="UTC", max_length=64)
     theme: str = Field(default="light", max_length=20)
     custom_theme: Optional[str] = Field(default=None, max_length=30)
+    goal_pages_per_day_enabled: bool = Field(default=False)
+    goal_pages_per_day: int = Field(default=20, ge=1)
+    goal_pages_per_month_enabled: bool = Field(default=False)
+    goal_pages_per_month: int = Field(default=300, ge=1)
+    goal_books_per_month_enabled: bool = Field(default=False)
+    goal_books_per_month: int = Field(default=2, ge=1)
+    goal_books_per_year_enabled: bool = Field(default=False)
+    goal_books_per_year: int = Field(default=25, ge=1)
+    gamification_enabled: bool = Field(default=True)
 
 
 class ApiKey(SQLModel, table=True):

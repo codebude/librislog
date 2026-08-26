@@ -141,6 +141,12 @@ def test_data_export_with_progress_and_tags(client: TestClient) -> None:
     assert export_resp.status_code == 200
 
     with zipfile.ZipFile(io.BytesIO(export_resp.content), "r") as zf:
+        books = json.loads(zf.read("books.json"))
+        assert len(books) == 1
+        assert books[0]["author"] == "Frank Herbert"
+        assert books[0]["authors"] == ["Frank Herbert"]
+        assert books[0]["tags"] == ["Sci-Fi"]
+
         progress = json.loads(zf.read("progress.json"))
         assert len(progress) == 1
         assert progress[0]["page"] == 100
@@ -150,6 +156,33 @@ def test_data_export_with_progress_and_tags(client: TestClient) -> None:
         assert len(tags) == 1
         assert tags[0]["name"] == "Sci-Fi"
         assert tags[0]["book_count"] == 1
+
+
+def test_data_export_json_author_string_and_tags_list(client: TestClient) -> None:
+    create_resp = client.post(
+        "/api/books",
+        json={
+            "title": "Good Omens",
+            "authors": ["Terry Pratchett", "Neil Gaiman"],
+            "tags": "fantasy,humor",
+            "page_count": 288,
+            "reading_status": "read",
+        },
+    )
+    assert create_resp.status_code == 201
+
+    export_resp = client.post(
+        "/api/data/export",
+        json={"datasets": ["books"], "format": "json"},
+    )
+    assert export_resp.status_code == 200
+
+    with zipfile.ZipFile(io.BytesIO(export_resp.content), "r") as zf:
+        books = json.loads(zf.read("books.json"))
+        assert len(books) == 1
+        assert books[0]["author"] == "Neil Gaiman; Terry Pratchett"
+        assert books[0]["authors"] == ["Neil Gaiman", "Terry Pratchett"]
+        assert books[0]["tags"] == ["fantasy", "humor"]
 
 
 def test_data_import_parse_and_suggest_mapping(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -172,7 +205,7 @@ def test_data_import_parse_and_suggest_mapping(client: TestClient, monkeypatch: 
     assert suggest_resp.status_code == 200
     suggested = suggest_resp.json()["suggested_mapping"]
     assert suggested["title"]["source"] == "Title"
-    assert suggested["author"]["source"] == "Author"
+    assert suggested["authors"]["source"] == "Author"
     assert suggested["rating"]["source"] == "My Rating"
 
 

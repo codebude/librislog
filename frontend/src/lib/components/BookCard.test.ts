@@ -9,6 +9,7 @@ function mockBook(overrides?: Partial<Book>): Book {
 		title: 'The Test Book',
 		subtitle: null,
 		author: 'Jane Tester',
+		authors: ['Jane Tester'],
 		isbn: '9781234567890',
 		cover_url: 'http://localhost/cover.jpg',
 		publisher: null,

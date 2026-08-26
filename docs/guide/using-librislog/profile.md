@@ -26,6 +26,23 @@ Set your preferred timezone for date/time displays (e.g., for the calendar heatm
 
 Choose a custom DaisyUI theme from the dropdown. The theme previews in real-time as you browse the dropdown, and the selection is saved to your profile so it persists across sessions.
 
+## Reading Goals
+
+Set personal reading targets that are tracked on the dashboard's **Reading Streaks & Goals** section:
+
+| Goal | Default target |
+|---|---|
+| Pages per Day | 20 |
+| Pages per Month | 300 |
+| Books per Month | 2 |
+| Books per Year | 25 |
+
+Every goal is **disabled by default**. Toggle a goal on and set its target (at least 1) — enabled goals then appear as progress cards on the dashboard. Saving shows a confirmation notification like the other settings sections.
+
+The **"Show reading streaks & goals on dashboard"** switch above the goals disables or re-enables the entire streaks & goals section on the dashboard.
+
+See [Dashboard → Reading Streaks & Goals](/guide/using-librislog/dashboard#reading-streaks-goals) for details on how streaks and goal progress are calculated.
+
 ## API Keys
 
 Create and manage API keys for headless access to the REST API. Each key can have an optional description. Keys are shown once at creation — copy it immediately, as it cannot be retrieved later.

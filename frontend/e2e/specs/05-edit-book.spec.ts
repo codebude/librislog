@@ -88,4 +88,41 @@ test.describe('Edit Book', () => {
 		const checkedStar = page.locator('[role="dialog"] input[type="radio"]:checked');
 		await expect(checkedStar).toHaveAttribute('aria-label', /2 (star|Stern)/);
 	});
+
+	test('5.4 add a second author in the edit drawer', async ({ page }) => {
+		const library = new LibraryPage(page);
+		await library.goto();
+		await page.waitForTimeout(1000);
+
+		await library.switchTab('want to read');
+		await page.waitForTimeout(500);
+
+		const cards = library.getBookCards();
+		await expect(cards.first()).toBeVisible({ timeout: 5000 });
+
+		// Pick the Dune card (author: Frank Herbert).
+		const duneCard = cards.filter({ hasText: 'Dune' }).first();
+		await expect(duneCard).toBeVisible({ timeout: 5000 });
+		await duneCard.click();
+		await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+
+		const editBtn = page.locator('[role="dialog"] button').filter({ hasText: 'Edit' });
+		await editBtn.first().click();
+		await page.waitForTimeout(500);
+
+		const authorInput = page.locator('input[name="author"]');
+		await expect(authorInput).toBeVisible({ timeout: 5000 });
+
+		// Add a second author chip by typing and pressing Enter.
+		await authorInput.fill('Brian Herbert');
+		await authorInput.press('Enter');
+		await expect(page.locator('text=Brian Herbert')).toBeVisible({ timeout: 5000 });
+
+		await page.locator('button[type="submit"]').click();
+		await page.waitForTimeout(800);
+
+		// Verify the joined author string appears in the library detail.
+		// Authors are returned sorted alphabetically: Brian Herbert, Frank Herbert.
+		await expect(page.getByText(/Brian Herbert; Frank Herbert/i)).toBeVisible({ timeout: 5000 });
+	});
 });

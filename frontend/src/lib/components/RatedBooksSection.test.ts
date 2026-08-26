@@ -65,6 +65,7 @@ function makeBook(id: number, rating: number, title?: string): TopRatedBook {
 		book_id: id,
 		title: title ?? `Book ${id}`,
 		author: `Author ${id}`,
+		authors: [`Author ${id}`],
 		rating,
 		reading_status: 'read',
 		cover_url: `http://example.com/cover${id}.jpg`

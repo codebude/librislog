@@ -15,6 +15,7 @@ export class BookDrawerPage {
 	async fillAuthor(author: string) {
 		const input = this.page.locator('input[name="author"], input[placeholder*="Author"]').first();
 		await input.fill(author);
+		await input.press('Enter');
 	}
 
 	async clickSave() {

@@ -1,11 +1,12 @@
 """Pydantic / SQLModel request and response schemas for the API."""
 
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
@@ -39,9 +40,28 @@ class ReadingProgressLatest(SQLModel):
 
 class BookCreate(SQLModel):
     """Request body to create a new book."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_author(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        author = data.get("author")
+        authors = data.get("authors")
+        has_author = bool(
+            (isinstance(author, str) and author.strip())
+            or (isinstance(authors, list) and any(isinstance(a, str) and a.strip() for a in authors))
+        )
+        if not has_author:
+            raise ValueError(
+                "A book must have at least one author: provide either 'author' or 'authors'."
+            )
+        return data
+
     title: str
     subtitle: Optional[str] = None
-    author: str
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -62,7 +82,8 @@ class BookUpdate(SQLModel):
     """Request body to partially update a book."""
     title: Optional[str] = None
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -83,7 +104,8 @@ class BookImportCandidate(SQLModel):
     """A book result from an external API, not yet persisted locally."""
     title: str
     subtitle: Optional[str] = None
-    author: Optional[str] = None
+    author: Optional[str] = pydantic.Field(default=None, deprecated=True)
+    authors: Optional[list[str]] = None
     isbn: Optional[str] = None
     cover_url: Optional[str] = None
     publisher: Optional[str] = None
@@ -129,7 +151,8 @@ class BookRead(SQLModel):
     id: int
     title: str
     subtitle: Optional[str]
-    author: Optional[str]
+    author: Optional[str] = pydantic.Field(deprecated=True)
+    authors: list[str] = []
     isbn: Optional[str]
     cover_url: Optional[str]
     publisher: Optional[str]
@@ -245,7 +268,8 @@ class TopRatedBook(SQLModel):
     """A book appearing in top/worst rated lists."""
     book_id: int
     title: str
-    author: Optional[str]
+    author: Optional[str] = pydantic.Field(deprecated=True)
+    authors: list[str] = []
     rating: int
     reading_status: ReadingStatus
     cover_url: Optional[str]
@@ -253,6 +277,8 @@ class TopRatedBook(SQLModel):
 
 class StatisticsResponse(SQLModel):
     """Full statistics dashboard response."""
+    total_books: int
+    total_authors: int
     avg_books_per_month: Optional[float]
     busiest_month: Optional[str]
     busiest_month_count: Optional[int]
@@ -272,6 +298,32 @@ class StatisticsResponse(SQLModel):
     average_rating: Optional[float]
     top_rated_books: list[TopRatedBook]
     worst_rated_books: list[TopRatedBook]
+
+
+class GoalType(str, Enum):
+    """Reading goal types tracked on the dashboard."""
+    pages_per_day = "pages_per_day"
+    pages_per_month = "pages_per_month"
+    books_per_month = "books_per_month"
+    books_per_year = "books_per_year"
+
+
+class GoalProgress(SQLModel):
+    """Progress toward a single reading goal (enabled goals only)."""
+    type: GoalType
+    target: int
+    current: int
+    reached: bool
+
+
+class GamificationResponse(SQLModel):
+    """Dashboard gamification data — reading streaks and goal progress."""
+    enabled: bool
+    current_streak: int
+    longest_streak: int
+    longest_streak_start: Optional[str] = None
+    longest_streak_end: Optional[str] = None
+    goals: list[GoalProgress]
 
 
 class UserLogin(SQLModel):
@@ -352,6 +404,15 @@ class UserSettingsRead(SQLModel):
     timezone: str
     theme: str
     custom_theme: Optional[str] = None
+    goal_pages_per_day_enabled: bool
+    goal_pages_per_day: int
+    goal_pages_per_month_enabled: bool
+    goal_pages_per_month: int
+    goal_books_per_month_enabled: bool
+    goal_books_per_month: int
+    goal_books_per_year_enabled: bool
+    goal_books_per_year: int
+    gamification_enabled: bool
 
 
 class UserSettingsUpdate(SQLModel):
@@ -360,6 +421,15 @@ class UserSettingsUpdate(SQLModel):
     timezone: Optional[str] = None
     theme: Optional[str] = None
     custom_theme: Optional[str] = None
+    goal_pages_per_day_enabled: Optional[bool] = None
+    goal_pages_per_day: Optional[int] = Field(default=None, ge=1)
+    goal_pages_per_month_enabled: Optional[bool] = None
+    goal_pages_per_month: Optional[int] = Field(default=None, ge=1)
+    goal_books_per_month_enabled: Optional[bool] = None
+    goal_books_per_month: Optional[int] = Field(default=None, ge=1)
+    goal_books_per_year_enabled: Optional[bool] = None
+    goal_books_per_year: Optional[int] = Field(default=None, ge=1)
+    gamification_enabled: Optional[bool] = None
 
     @field_validator('theme')
     @classmethod
@@ -385,6 +455,7 @@ class DataResetDeleted(SQLModel):
     """Counts of deleted items after a data reset."""
     books: int
     tags: int
+    authors: int
     progress_entries: int
 
 
@@ -481,7 +552,8 @@ class HygieneMissingBook(SQLModel):
     """A single book in the data-hygiene listing with its missing fields annotated."""
     id: int
     title: str
-    author: str | None
+    author: str | None = pydantic.Field(deprecated=True)
+    authors: list[str] = []
     isbn: str | None
     publisher: str | None
     published_year: int | None
@@ -613,8 +685,8 @@ class DataImportValidateResponse(SQLModel):
 class DataImportPreviewRow(SQLModel):
     """A single row in the import preview."""
     row_number: int
-    source: dict[str, str]
-    transformed: dict[str, Optional[str]]
+    source: dict[str, Any]
+    transformed: dict[str, Any]
     errors: list[str]
 
 

@@ -46,8 +46,24 @@ curl -H "X-API-Key: YOUR_KEY_HERE" \
 curl -X POST \
   -H "X-API-Key: YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
-  -d '{"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"}' \
+  -d '{"title": "The Great Gatsby", "authors": ["F. Scott Fitzgerald"]}' \
   http://localhost:8000/api/books
+```
+
+### Book author fields
+
+Book responses contain two author fields:
+
+- `author` — **deprecated**. The **joined** string of all authors (e.g. `"Neil Gaiman, Terry Pratchett"`). Kept for backward compatibility with existing consumers; use `authors` instead.
+- `authors` — the **list** of individual author names (e.g. `["Neil Gaiman", "Terry Pratchett"]`).
+
+The `author` field is marked as **deprecated** in the OpenAPI spec (visible in Swagger UI) on all book schemas. It still works but may be removed in a future release.
+
+When creating a book you must provide at least one author — either `authors` as a list, or the legacy `author` string. If both are sent, `authors` takes precedence. A request with neither (or with an empty `authors` list) is rejected with a `422` validation error.
+
+For updates, `author`/`authors` are optional; if you send an empty `authors` list the book's authors are cleared.
+
+The legacy `author` string is **parsed on commas, tag-style** (e.g. `"Isaac Asimov, Frank Herbert"` becomes two authors). This only applies to the API create/update path. It differs from **file import** (CSV/JSON), where a single author string is split on `;`, ` & `, or ` and ` — never on commas — so a name like `"Asimov, Isaac"` stays one author. See [Import & Export](../guide/using-librislog/import-export.md) for the import behaviour.
 
 # Update reading status
 curl -X POST \

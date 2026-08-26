@@ -3,17 +3,27 @@
 
 	let {
 		value = $bindable(''),
+		values = $bindable<string[] | undefined>(undefined),
 		name = '',
 		disabled = false,
 		maxTagsCount,
-		fetchSuggestions
+		fetchSuggestions,
+		label,
+		placeholder,
+		hint
 	}: {
 		value?: string;
+		values?: string[];
 		name?: string;
 		disabled?: boolean;
 		maxTagsCount?: number;
 		fetchSuggestions?: (query: string) => Promise<string[]>;
+		label?: string;
+		placeholder?: string;
+		hint?: string;
 	} = $props();
+
+	const listMode = $derived(values !== undefined);
 
 	let inputValue = $state('');
 	let inputEl: HTMLInputElement | undefined = $state();
@@ -24,48 +34,82 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined = $state();
 	let dropdownStyle = $state('');
 
-	const tags = $derived.by(() =>
-		value
+	const chips = $derived.by(() => {
+		if (listMode) return values ?? [];
+		return value
 			.split(',')
 			.map((tag) => tag.trim())
-			.filter(Boolean)
-	);
+			.filter(Boolean);
+	});
 
-	function setTags(nextTags: string[]) {
-		value = nextTags.join(', ');
+	function setChips(next: string[]) {
+		if (listMode) {
+			values = next;
+		} else {
+			value = next.join(', ');
+		}
 	}
 
-	function addCurrentTag() {
+	function addCurrentChip() {
 		if (disabled) return;
 		const next = inputValue.trim();
 		if (!next) return;
 
-		if (tags.some((existing) => existing.toLowerCase() === next.toLowerCase())) {
+		if (chips.some((existing) => existing.toLowerCase() === next.toLowerCase())) {
 			inputValue = '';
 			return;
 		}
 
-		if (typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount) {
+		if (typeof maxTagsCount === 'number' && maxTagsCount > 0 && chips.length >= maxTagsCount) {
 			inputValue = '';
 			return;
 		}
 
-		setTags([...tags, next]);
+		setChips([...chips, next]);
 		inputValue = '';
 	}
 
-	function removeTag(tag: string) {
+	function removeChip(chip: string) {
 		if (disabled) return;
-		setTags(tags.filter((entry) => entry !== tag));
+		setChips(chips.filter((entry) => entry !== chip));
 	}
 
 	function handleInput() {
+		// In list mode commas are literal characters (author names may contain
+		// them); only Enter/Tab/suggestion add a chip.
+		if (listMode) {
+			if (!fetchSuggestions) return;
+			clearTimeout(debounceTimer);
+			const trimmed = inputValue.trim();
+			if (!trimmed) {
+				suggestions = [];
+				isOpen = false;
+				highlightedIndex = -1;
+				return;
+			}
+			isLoading = true;
+			debounceTimer = setTimeout(async () => {
+				try {
+					const results = await fetchSuggestions(trimmed);
+					suggestions = results;
+					isOpen = results.length > 0;
+					highlightedIndex = -1;
+				} catch {
+					suggestions = [];
+					isOpen = false;
+				} finally {
+					isLoading = false;
+				}
+			}, 250);
+			return;
+		}
+
 		const commaIdx = inputValue.lastIndexOf(',');
 		if (commaIdx >= 0) {
 			const before = inputValue.slice(0, commaIdx).trim();
-			if (before && !tags.some((t) => t.toLowerCase() === before.toLowerCase())) {
-				if (!(typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount)) {
-					setTags([...tags, before]);
+			if (before && !chips.some((t) => t.toLowerCase() === before.toLowerCase())) {
+				if (!(typeof maxTagsCount === 'number' && maxTagsCount > 0 && chips.length >= maxTagsCount)) {
+					setChips([...chips, before]);
 				}
 			}
 			inputValue = inputValue.slice(commaIdx + 1).trimStart();
@@ -100,18 +144,18 @@
 		}, 250);
 	}
 
-	function selectSuggestion(tag: string) {
+	function selectSuggestion(chip: string) {
 		if (disabled) return;
-		if (tags.some((existing) => existing.toLowerCase() === tag.toLowerCase())) {
+		if (chips.some((existing) => existing.toLowerCase() === chip.toLowerCase())) {
 			inputValue = '';
 			suggestions = [];
 			isOpen = false;
 			return;
 		}
-		if (typeof maxTagsCount === 'number' && maxTagsCount > 0 && tags.length >= maxTagsCount) {
+		if (typeof maxTagsCount === 'number' && maxTagsCount > 0 && chips.length >= maxTagsCount) {
 			return;
 		}
-		setTags([...tags, tag]);
+		setChips([...chips, chip]);
 		inputValue = '';
 		suggestions = [];
 		isOpen = false;
@@ -143,21 +187,21 @@
 			}
 		}
 
-		if (event.key === 'Enter' || event.key === 'Tab' || event.key === ',') {
+		if (event.key === 'Enter' || event.key === 'Tab' || (!listMode && event.key === ',')) {
 			event.preventDefault();
-			addCurrentTag();
+			addCurrentChip();
 			return;
 		}
 
-		if (event.key === 'Backspace' && inputValue === '' && tags.length > 0) {
+		if (event.key === 'Backspace' && inputValue === '' && chips.length > 0) {
 			event.preventDefault();
-			setTags(tags.slice(0, -1));
+			setChips(chips.slice(0, -1));
 		}
 	}
 
 	function handleBlur() {
 		if (!fetchSuggestions) {
-			addCurrentTag();
+			addCurrentChip();
 			return;
 		}
 		setTimeout(() => {
@@ -190,20 +234,20 @@
 </script>
 
 <div class="flex flex-col gap-1" role="combobox" aria-expanded={isOpen} aria-controls="suggestion-list">
-	<span class="label label-text">{$_('book.tags')}</span>
+	<span class="label label-text">{label ?? $_('book.tags')}</span>
 
 	<div class="relative">
 		<div
 			class="min-h-10 w-full rounded-lg border border-base-300 bg-base-100 px-2 py-1.5 flex flex-wrap items-center gap-1.5 cursor-text focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 {disabled ? 'opacity-60 cursor-not-allowed' : ''}"
 		>
-			{#each tags as tag (tag)}
+			{#each chips as chip (chip)}
 				<span class="inline-flex items-center gap-1.5 rounded-lg border border-base-300 bg-base-200/70 text-base-content px-2 py-1 text-xs max-w-full shadow-sm">
-					<span class="break-all">{tag}</span>
+					<span class="break-all">{chip}</span>
 					{#if !disabled}
 						<button
 							type="button"
 							class="h-4 w-4 inline-flex items-center justify-center rounded text-base-content/70 hover:text-base-content hover:bg-base-300/80"
-							onclick={() => removeTag(tag)}
+							onclick={() => removeChip(chip)}
 							aria-label={$_('common.remove')}
 						>
 							×
@@ -216,8 +260,9 @@
 				bind:this={inputEl}
 				type="text"
 				name={name || 'tags'}
+				aria-label={label}
 				class="flex-1 min-w-28 bg-transparent border-0 outline-none text-sm px-1 py-0.5"
-				placeholder={tags.length === 0 ? $_('book.tagsPlaceholder') : ''}
+				placeholder={chips.length === 0 ? (placeholder ?? $_('book.tagsPlaceholder')) : ''}
 				bind:value={inputValue}
 				{disabled}
 				oninput={handleInput}
@@ -256,7 +301,7 @@
 		{/if}
 	</div>
 
-	{#if !fetchSuggestions}
-		<p class="text-xs text-base-content/60">{$_('book.tagsHint')}</p>
+	{#if hint !== undefined || !fetchSuggestions}
+		<p class="text-xs text-base-content/60">{hint ?? $_('book.tagsHint')}</p>
 	{/if}
 </div>

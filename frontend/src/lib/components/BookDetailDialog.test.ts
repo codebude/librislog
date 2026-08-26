@@ -42,6 +42,7 @@ const mockBook = {
 	title: 'Test Book',
 	subtitle: 'A subtitle',
 	author: 'Test Author',
+	authors: ['Test Author'],
 	isbn: '9781234567890',
 	publisher: 'Test Publisher',
 	published_year: 2024,

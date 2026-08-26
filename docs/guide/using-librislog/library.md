@@ -13,11 +13,11 @@ Books are categorized into four statuses:
 | **Read** | Books you've finished |
 | **Did Not Finish** | Books you started but abandoned |
 
-Each status has its own tab in the library view, making it easy to browse your collection by reading state.
+Each status has its own tab in the library view, making it easy to browse your collection by reading state. A fifth **All Books** tab shows every book regardless of status; like the other tabs it supports search and sorting (smart sort is disabled there, since it's based on per-status defaults).
 
-## Availability
+## Possession
 
-Availability is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the availability filter to narrow the list without changing its newest-first order.
+Possession is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the possession filter to narrow the list without changing its newest-first order.
 
 ![Library](/screenshots/library-read.png)
 
@@ -53,6 +53,8 @@ Clicking a book opens the detail dialog/drawer showing:
 ### Manual Entry
 
 Use the "Add Book" button to manually enter book details. Fill in title, author, and optional fields like ISBN, publisher, page count, etc.
+
+A book can have **multiple authors**: type a name and press **Enter** to add it as a chip. Authors are shown joined with "; " throughout the app, so names written last-name-first (e.g. `"Doe, Jane"`) stay unambiguous.
 
 ### Import Search
 
@@ -95,6 +97,7 @@ Downloaded covers are cached locally in the `COVERS_DIR` directory to avoid repe
 ## Search
 
 - Search books by title, author, or tags using the search bar — the result count updates as you type
+- Field-specific queries are supported, e.g. `author:Murakami`, `availability:owned`, or `tag:fantasy`. See the [search syntax reference](/guide/using-librislog/search) for the full list of prefixes and examples.
 - Press **Enter** to open the dedicated search results page with a full results grid, load-more pagination, and the same book detail interaction as the library
 - From any page, navigate directly to `/search?q=your+query` for quick access
 

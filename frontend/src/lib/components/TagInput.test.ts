@@ -383,3 +383,63 @@ describe('TagInput', () => {
 		expect(style).toContain('width:');
 	});
 });
+
+describe('TagInput (list mode)', () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		cleanup();
+	});
+
+	it('renders chips from values prop', () => {
+		render(TagInput, { props: { values: ['Frank Herbert', 'Neil Gaiman'] } });
+
+		expect(screen.getByText('Frank Herbert')).toBeInTheDocument();
+		expect(screen.getByText('Neil Gaiman')).toBeInTheDocument();
+	});
+
+	it('does not split on commas in list mode', async () => {
+		render(TagInput, { props: { values: [] } });
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: 'Asimov, Isaac' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		expect(screen.getByText('Asimov, Isaac')).toBeInTheDocument();
+		expect(screen.queryByText('Asimov')).not.toBeInTheDocument();
+	});
+
+	it('emits the list via bindable values on Enter', async () => {
+		const { component } = render(TagInput, { props: { values: ['Frank Herbert'] } });
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: 'Brian Herbert' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		expect(screen.getByText('Brian Herbert')).toBeInTheDocument();
+	});
+
+	it('prevents duplicate chips case-insensitively', async () => {
+		render(TagInput, { props: { values: ['Frank Herbert'] } });
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: 'frank herbert' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		expect(screen.getAllByText(/Frank Herbert/i)).toHaveLength(1);
+		expect(input).toHaveValue('');
+	});
+
+	it('removes a chip via its remove button', async () => {
+		render(TagInput, { props: { values: ['Frank Herbert', 'Brian Herbert'] } });
+
+		const removeButtons = screen.getAllByLabelText('Remove');
+		await fireEvent.click(removeButtons[0]);
+
+		expect(screen.queryByText('Frank Herbert')).not.toBeInTheDocument();
+		expect(screen.getByText('Brian Herbert')).toBeInTheDocument();
+	});
+});

@@ -5,6 +5,7 @@ LibrisLog is a **multi-user book tracking web application** designed for readers
 ## Features
 
 - **Library Management**: Organize books into four reading statuses — Want to Read, Currently Reading, Read, and Did Not Finish
+- **Advanced Search**: Find books by title, author, tags, publisher, language, availability, notes, and description using field prefixes and negation
 - **Book Import**: Search Open Library, Google Books, and Hardcover.app. Scan ISBN barcodes for quick lookup
 - **Reading Progress**: Track pages read over time with a visual timeline and calendar heatmap
 - **Statistics Dashboard**: Charts showing pages read per month, books finished, language distribution, and more

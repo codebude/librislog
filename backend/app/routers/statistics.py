@@ -2,7 +2,7 @@
 
 import calendar
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from statistics import mean
 from types import SimpleNamespace
 from typing import Optional
@@ -14,11 +14,15 @@ from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
-from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, ReadingProgress, ReadingStatus, User, UserSettings
+from app.services.authors import join_authors, load_authors_batch
 from app.schemas import (
     AcquisitionStatusDistribution,
     DailyPages,
     DailyPagesResponse,
+    GamificationResponse,
+    GoalProgress,
+    GoalType,
     LanguageDistribution,
     MonthlyBooks,
     MonthlyPages,
@@ -34,14 +38,18 @@ from app.schemas import (
 router = APIRouter(prefix="/api/statistics", tags=["statistics"])
 
 
+def _zone_from_name(timezone_name: str | None) -> ZoneInfo:
+    """Return a ZoneInfo for *timezone_name*, falling back to UTC."""
+    try:
+        return ZoneInfo(timezone_name or "UTC")
+    except ZoneInfoNotFoundError:
+        return ZoneInfo("UTC")
+
+
 def _user_timezone(session: Session, user_id: int) -> ZoneInfo:
     """Return the user's configured timezone, falling back to UTC."""
     settings = session.exec(select(UserSettings).where(UserSettings.user_id == user_id)).first()
-    timezone_name = settings.timezone if settings and settings.timezone else "UTC"
-    try:
-        return ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError:
-        return ZoneInfo("UTC")
+    return _zone_from_name(settings.timezone if settings else None)
 
 
 def _month_key(dt: datetime, tz: ZoneInfo) -> str:
@@ -223,6 +231,253 @@ def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> dict
     return monthly
 
 
+def _day_key(dt: datetime, tz: ZoneInfo) -> str:
+    """Return the ``YYYY-MM-DD`` calendar day of *dt* in *tz*."""
+    return dt.astimezone(tz).strftime("%Y-%m-%d")
+
+
+def current_streak(active_dates: set[str], today: date) -> int:
+    """Return the number of consecutive active days ending at *today*.
+
+    Today counts as the first day when it is active; otherwise the streak
+    starts at yesterday, so a not-yet-logged today does not break an ongoing
+    streak.  The streak is 0 when neither today nor yesterday are active.
+    """
+    streak = 0
+    day = today
+    first = True
+    while True:
+        if day.isoformat() in active_dates:
+            streak += 1
+        elif not first:
+            break
+        first = False
+        day -= timedelta(days=1)
+    return streak
+
+
+def longest_streak(active_dates: set[str]) -> tuple[int, Optional[str], Optional[str]]:
+    """Return the longest consecutive run of active dates.
+
+    Returns ``(length, start, end)`` with ``YYYY-MM-DD`` keys.  Ties are
+    broken in favour of the most recent run.  When there is no activity at
+    all the result is ``(0, None, None)``.
+    """
+    if not active_dates:
+        return 0, None, None
+    ordered = sorted(active_dates)
+    best_len, best_start, best_end = 0, None, None
+    run_start = ordered[0]
+    run_len = 1
+    prev = ordered[0]
+    for current in ordered[1:]:
+        if (date.fromisoformat(current) - date.fromisoformat(prev)).days == 1:
+            run_len += 1
+        else:
+            if run_len >= best_len:
+                best_len, best_start, best_end = run_len, run_start, prev
+            run_start, run_len = current, 1
+        prev = current
+    if run_len >= best_len:
+        best_len, best_start, best_end = run_len, run_start, prev
+    return best_len, best_start, best_end
+
+
+def _pages_logged_on_day(entries: list, tz: ZoneInfo, day_key: str) -> int:
+    """Sum the positive page-deltas logged on *day_key*.
+
+    A delta is the page gain between two consecutive progress entries of the
+    same book, attributed to the calendar day (in *tz*) of the later entry.
+    """
+    grouped: dict[int, list] = {}
+    for entry in entries:
+        grouped.setdefault(entry.book_id, []).append(entry)
+    total = 0
+    for book_entries in grouped.values():
+        book_entries.sort(key=lambda e: (e.created_at, e.page))
+        for prev, curr in zip(book_entries, book_entries[1:]):
+            delta = curr.page - prev.page
+            if delta > 0 and _day_key(curr.created_at, tz) == day_key:
+                total += delta
+    return total
+
+
+def _compute_goal_progress(
+    tz: ZoneInfo,
+    settings: UserSettings,
+    today: datetime,
+    entries: list,
+    books: list,
+    book_ids_with_progress: set[int],
+) -> list[GoalProgress]:
+    """Compute current progress for every enabled reading goal.
+
+    Disabled goals are omitted from the response; the dashboard only shows
+    goals the user opted into.
+    """
+    today_key = today.strftime("%Y-%m-%d")
+    current_month_key = today.strftime("%Y-%m")
+    current_year = today.year
+
+    fallback_books = [
+        b
+        for b in books
+        if b.id not in book_ids_with_progress
+        and b.reading_status == ReadingStatus.read
+        and b.date_started
+        and b.date_finished
+        and b.page_count
+    ]
+
+    # Mirror get_statistics: anchor every book with progress at page 0 on its
+    # start date so the first progress delta is attributed to the reading span,
+    # keeping the pages-per-month goal consistent with the statistics chart.
+    virtual_entries = [
+        SimpleNamespace(book_id=b.id, page=0, created_at=b.date_started)
+        for b in books
+        if b.id in book_ids_with_progress
+        and b.date_started
+        and not (b.reading_status == ReadingStatus.read and not b.date_finished)
+    ]
+
+    goals_spec = [
+        (GoalType.pages_per_day, settings.goal_pages_per_day_enabled, settings.goal_pages_per_day),
+        (GoalType.pages_per_month, settings.goal_pages_per_month_enabled, settings.goal_pages_per_month),
+        (GoalType.books_per_month, settings.goal_books_per_month_enabled, settings.goal_books_per_month),
+        (GoalType.books_per_year, settings.goal_books_per_year_enabled, settings.goal_books_per_year),
+    ]
+
+    results: list[GoalProgress] = []
+    for goal_type, enabled, target in goals_spec:
+        if not enabled:
+            continue
+        current = _goal_current_value(
+            goal_type, tz, today_key, current_month_key, current_year,
+            entries, books, fallback_books, virtual_entries,
+        )
+        results.append(
+            GoalProgress(type=goal_type, target=target, current=current, reached=current >= target)
+        )
+    return results
+
+
+def _goal_current_value(
+    goal_type: GoalType,
+    tz: ZoneInfo,
+    today_key: str,
+    current_month_key: str,
+    current_year: int,
+    entries: list,
+    books: list,
+    fallback_books: list,
+    virtual_entries: list,
+) -> int:
+    """Return the current value for a single reading goal."""
+    if goal_type == GoalType.pages_per_day:
+        total = _pages_logged_on_day(entries, tz, today_key)
+        for b in fallback_books:
+            if _day_key(b.date_finished, tz) == today_key:
+                total += b.page_count
+        return total
+
+    if goal_type == GoalType.pages_per_month:
+        monthly = _compute_pages_per_month_from_progress(entries + virtual_entries, tz)
+        for k, v in _compute_pages_per_month_from_books(fallback_books, tz).items():
+            monthly[k] += v
+        return int(round(monthly.get(current_month_key, 0)))
+
+    if goal_type == GoalType.books_per_month:
+        return sum(
+            1
+            for b in books
+            if b.reading_status == ReadingStatus.read
+            and b.date_finished is not None
+            and _month_key(b.date_finished, tz) == current_month_key
+        )
+
+    if goal_type == GoalType.books_per_year:
+        return sum(
+            1
+            for b in books
+            if b.reading_status == ReadingStatus.read
+            and b.date_finished is not None
+            and b.date_finished.astimezone(tz).year == current_year
+        )
+
+    return 0
+
+
+@router.get("/gamification", response_model=GamificationResponse)
+def get_gamification(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> GamificationResponse:
+    """Return dashboard gamification data — reading streaks and goal progress."""
+    assert current_user.id is not None
+
+    settings = session.exec(
+        select(UserSettings).where(UserSettings.user_id == current_user.id)
+    ).first()
+    tz = _zone_from_name(settings.timezone if settings else None)
+    today = datetime.now(tz)
+    if not settings:
+        settings = UserSettings(user_id=current_user.id, language="en")
+
+    if not settings.gamification_enabled:
+        return GamificationResponse(
+            enabled=False,
+            current_streak=0,
+            longest_streak=0,
+            longest_streak_start=None,
+            longest_streak_end=None,
+            goals=[],
+        )
+
+    # Only the columns needed for streaks and goal progress are loaded; the
+    # per-request cost still grows with lifetime library size, which is
+    # acceptable for typical personal-library volumes.
+    entries = list(
+        session.exec(
+            select(ReadingProgress)
+            .where(ReadingProgress.user_id == current_user.id)
+            .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
+        ).all()
+    )
+    books = list(
+        session.exec(
+            select(Book)
+            .where(Book.user_id == current_user.id)
+            .order_by(col(Book.id))
+        ).all()
+    )
+    book_ids_with_progress = {entry.book_id for entry in entries}
+
+    active_dates = {_day_key(entry.created_at, tz) for entry in entries}
+    for book in books:
+        if (
+            book.id not in book_ids_with_progress
+            and book.reading_status == ReadingStatus.read
+            and book.date_finished is not None
+        ):
+            active_dates.add(_day_key(book.date_finished, tz))
+
+    current = current_streak(active_dates, today.date())
+    longest, longest_start, longest_end = longest_streak(active_dates)
+
+    goals = _compute_goal_progress(
+        tz, settings, today, entries, books, book_ids_with_progress
+    )
+
+    return GamificationResponse(
+        enabled=True,
+        current_streak=current,
+        longest_streak=longest,
+        longest_streak_start=longest_start,
+        longest_streak_end=longest_end,
+        goals=goals,
+    )
+
+
 @router.get("/pages-per-day", response_model=DailyPagesResponse)
 def get_pages_per_day(
     days: int = Query(default=365, ge=1, le=730),
@@ -348,6 +603,10 @@ def get_statistics(
     current_month_key = f"{now.year:04d}-{now.month:02d}"
     current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == current_user.id)).all())
+
+    total_authors = session.exec(
+        select(func.count()).select_from(Author).where(Author.user_id == current_user.id)
+    ).one()
 
     status_counts = Counter(book.reading_status for book in books)
     status_distribution = StatusDistribution(
@@ -509,25 +768,37 @@ def get_statistics(
     else:
         books_finished_per_year = []
 
-    author_counts: Counter[str] = Counter()
-    for book in books:
-        if book.author and book.author.strip():
-            author_counts[book.author.strip()] += 1
+    author_count_label = func.count(func.distinct(BookAuthor.book_id)).label("cnt")
+    author_count_rows = session.exec(
+        select(Author.name, author_count_label)
+        .join(BookAuthor, col(BookAuthor.author_id) == col(Author.id))
+        .join(Book, col(Book.id) == col(BookAuthor.book_id))
+        .where(Book.user_id == current_user.id)
+        .group_by(col(Author.id))
+        .order_by(author_count_label.desc(), col(Author.name).asc())
+        .limit(3)
+    ).all()
+    author_counts = Counter({name: count for name, count in author_count_rows})
 
     top_authors: list[TopAuthor] = []
     if author_counts:
-        author_items = sorted(author_counts.items(), key=lambda item: item[0].lower())
-        top_author_counts = sorted(author_items, key=lambda item: item[1], reverse=True)[:3]
+        top_author_counts = author_counts.most_common(3)
         top_author_names = [name for name, _ in top_author_counts]
 
         covers_by_author: dict[str, list[TopAuthorCover]] = {}
         for author_name in top_author_names:
             max_slots = min(5, author_counts[author_name])
+            book_ids_with_author = select(BookAuthor.book_id).join(
+                Author, col(Author.id) == col(BookAuthor.author_id)
+            ).where(
+                Author.user_id == current_user.id,
+                Author.name == author_name,
+            )
             cover_rows = session.exec(
                 select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                 .where(
                     Book.user_id == current_user.id,
-                    Book.author == author_name,
+                    col(Book.id).in_(book_ids_with_author),
                     col(Book.cover_url).is_not(None),
                 )
                 .order_by(col(Book.id))
@@ -544,7 +815,7 @@ def get_statistics(
                     select(Book.id, Book.title, Book.reading_status, Book.cover_url)
                     .where(
                         Book.user_id == current_user.id,
-                        Book.author == author_name,
+                        col(Book.id).in_(book_ids_with_author),
                         col(Book.cover_url).is_(None),
                     )
                     .order_by(col(Book.id))
@@ -573,28 +844,36 @@ def get_statistics(
     average_rating = round(mean(rating_values), 2) if rating_values else None
 
     rated_books = [b for b in books if b.rating is not None]
+    rated_book_ids = [b.id for b in rated_books if b.id is not None]
+    rated_authors_map = load_authors_batch(session, rated_book_ids)
 
     def _rating_sort_key(book: Book) -> tuple[int, float]:
         assert book.rating is not None
         return (book.rating, -(book.date_added or datetime.min).timestamp())
 
+    # Top rated: highest rating first; ties broken by newest-added first.
     top_rated_books = []
+    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], _rating_sort_key(x)[1])):
+        assert b.id is not None
+        assert b.rating is not None
+        author_names = rated_authors_map.get(b.id, [])
+        top_rated_books.append(
+            TopRatedBook(book_id=b.id, title=b.title or "", author=join_authors(author_names), authors=author_names, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+        )
+
+    # Worst rated: lowest rating first; ties broken by newest-added first.
+    worst_rated_books = []
     for b in sorted(rated_books, key=_rating_sort_key):
         assert b.id is not None
         assert b.rating is not None
-        top_rated_books.append(
-            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
-        )
-
-    worst_rated_books = []
-    for b in sorted(rated_books, key=lambda x: (-_rating_sort_key(x)[0], -_rating_sort_key(x)[1])):
-        assert b.id is not None
-        assert b.rating is not None
+        author_names = rated_authors_map.get(b.id, [])
         worst_rated_books.append(
-            TopRatedBook(book_id=b.id, title=b.title or "", author=b.author, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
+            TopRatedBook(book_id=b.id, title=b.title or "", author=join_authors(author_names), authors=author_names, rating=b.rating, reading_status=b.reading_status, cover_url=b.cover_url)
         )
 
     return StatisticsResponse(
+        total_books=len(books),
+        total_authors=total_authors,
         avg_books_per_month=avg_books_per_month,
         busiest_month=busiest_month,
         busiest_month_count=busiest_month_count,

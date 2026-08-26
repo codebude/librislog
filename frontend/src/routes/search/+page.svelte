@@ -10,6 +10,7 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import SearchHelp from '$lib/components/SearchHelp.svelte';
 	import { Search, ArrowLeft, X } from '@lucide/svelte';
 
 	const PAGE_SIZE = 40;
@@ -216,6 +217,8 @@
 				</button>
 			{/if}
 		</div>
+
+		<SearchHelp />
 	</div>
 
 	<!-- Results Info -->

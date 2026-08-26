@@ -28,7 +28,7 @@
 	// Manual form state
 	let title = $state('');
 	let subtitle = $state('');
-	let author = $state('');
+	let authors = $state<string[]>([]);
 	let isbn = $state('');
 	let publisher = $state('');
 	let published_year = $state('');
@@ -46,7 +46,7 @@
 	function reset() {
 		title = '';
 		subtitle = '';
-		author = '';
+		authors = [];
 		isbn = '';
 		publisher = '';
 		published_year = '';
@@ -64,7 +64,7 @@
 
 	async function submitManual() {
 		if (!title.trim()) return;
-		if (!author.trim()) return;
+		if (authors.length === 0) return;
 		if (!page_count) return;
 		if (!acquisitionStatus) return;
 		submitting = true;
@@ -72,7 +72,7 @@
 			const book = await api.books.create({
 				title: title.trim(),
 				subtitle: subtitle || null,
-				author: author.trim(),
+				authors,
 				isbn: isbn || null,
 				publisher: publisher || null,
 				published_year: published_year ? parseInt(published_year) : null,
@@ -149,11 +149,12 @@
 						<input class="input input-bordered" name="subtitle" bind:value={subtitle} />
 					</label>
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						<SuggestionInput
-							bind:value={author}
+						<TagInput
+							bind:values={authors}
 							name="author"
-							label={$_('book.author') + ' *'}
-							placeholder={$_('book.author')}
+							label={$_('book.authorsLabel') + ' *'}
+							placeholder={$_('book.authorsPlaceholder')}
+							hint={$_('book.authorsHint')}
 							fetchSuggestions={(q) => api.books.suggestions.authors(q)}
 						/>
 						<label class="flex flex-col gap-1">

@@ -48,6 +48,7 @@ function createMockBook(id: number, overrides?: Partial<Book>): Book {
 		title: `Book ${id}`,
 		subtitle: null,
 		author: 'Test Author',
+		authors: ['Test Author'],
 		isbn: null,
 		cover_url: null,
 		publisher: null,
@@ -99,12 +100,30 @@ describe('SearchPage', () => {
 		});
 	});
 
+	it('passes prefixed query from URL to the API unchanged', async () => {
+		mockPage.setUrl('http://localhost:5173/search?q=author%3A%22Marlen%20Haushofer%22%20-tag%3Acars');
+
+		mockBooksList.mockResolvedValue({ total: 0, books: [] });
+
+		render(SearchPage);
+
+		await waitFor(() => {
+			expect(mockBooksList).toHaveBeenCalledWith(
+				expect.objectContaining({
+					q: 'author:"Marlen Haushofer" -tag:cars',
+					offset: 0,
+					limit: 40
+				})
+			);
+		});
+	});
+
 	it('displays search results', async () => {
 		mockPage.setUrl('http://localhost:5173/search?q=Dune');
 
 		mockBooksList.mockResolvedValue({
 			total: 1,
-			books: [createMockBook(1, { title: 'Dune', author: 'Frank Herbert' })]
+			books: [createMockBook(1, { title: 'Dune', author: 'Frank Herbert', authors: ['Frank Herbert'] })]
 		});
 
 		render(SearchPage);

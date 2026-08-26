@@ -59,8 +59,10 @@
     "noRating": "Keine Bewertung",
     "topRated": "Am besten bewertet",
     "worstRated": "Am schlechtesten bewertet",
-    "showMore": "Mehr anzeigen"
-    },
+    "showMore": "Mehr anzeigen",
+    "totalBooksAndAuthors": "Bücher insgesamt",
+    "booksFromAuthors": "von {authors} {authors, plural, one {Autor} other {Autoren}}"
+  },
   "dashboard": {
     "title": "Lese-Dashboard",
     "subtitle": "Ein schneller Überblick über dein Lesen",
@@ -76,13 +78,26 @@
     "noSearchResults": "Keine Bücher gefunden",
     "noCurrentlyReading": "Du liest aktuell kein Buch.",
     "noNextToRead": "Noch keine Bücher in deiner Wunschliste.",
-    "popularTags": "Beliebte Tags"
+    "popularTags": "Beliebte Tags",
+    "gamificationTitle": "Streaks & Ziele",
+    "currentStreak": "Aktueller Streak",
+    "currentStreakHint": "Aufeinanderfolgende Tage mit Leseaktivität",
+    "longestStreak": "Längster Streak",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "Seiten pro Tag",
+    "goalPagesPerMonth": "Seiten pro Monat",
+    "goalBooksPerMonth": "Bücher pro Monat",
+    "goalBooksPerYear": "Bücher pro Jahr",
+    "goalReached": "Ziel erreicht",
+    "goalOf": "von {target}",
+    "goalProgress": "{current} von {target}"
   },
   "status": {
     "want_to_read": "Möchte ich lesen",
     "currently_reading": "Lese ich gerade",
     "read": "Gelesen",
-    "did_not_finish": "Abgebrochen"
+    "did_not_finish": "Abgebrochen",
+    "all": "Alle Bücher"
   },
   "common": {
     "all": "Alle",
@@ -180,7 +195,10 @@
     "progressPromptTitle": "Lesefortschritt setzen?",
     "progressPromptMessage": "Lesefortschritt für \"{title}\" auf 100% setzen?",
     "progressPromptSet": "Auf 100% setzen",
-    "progressPromptSkip": "Überspringen"
+    "progressPromptSkip": "Überspringen",
+    "authorsPlaceholder": "Autor eingeben und Enter drücken",
+    "authorsHint": "Enter fügt einen Autor hinzu. Mit Rücktaste entfernt man den letzten.",
+    "authorsLabel": "Autor(en)"
   },
   "addModal": {
     "manual": "Manuell",
@@ -291,7 +309,15 @@
     "resultsCount": "{count, plural, one {Ergebnis} other {Ergebnisse}} gefunden",
     "noResults": "Keine Ergebnisse gefunden",
     "noResultsFor": "Keine Ergebnisse für \"{query}\" gefunden",
-    "tryDifferentQuery": "Versuche einen anderen Suchbegriff"
+    "tryDifferentQuery": "Versuche einen anderen Suchbegriff",
+    "help": {
+      "title": "Suchsyntax",
+      "intro": "Verwende Feld-Präfixe, um in einem bestimmten Feld zu suchen. Präfixe sind immer auf Englisch.",
+      "multiWord": "Setze mehrteilige Werte in doppelte Anführungszeichen, z. B. author:\"Marlen Haushofer\".",
+      "combine": "Du kannst mehrere Präfixe kombinieren; die Ergebnisse müssen allen entsprechen.",
+      "negate": "Stelle einem Begriff ein - voran, um ihn auszuschließen, z. B. tag:cars -tag:audi.",
+      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire"
+    }
   },
   "languages": {
     "en": "Englisch",
@@ -440,7 +466,8 @@
     "exportNoDatasets": "Wähle mindestens einen Datensatz zum Exportieren aus.",
     "importMappingNameConflict": "Ein Mapping mit diesem Namen existiert bereits.",
     "importMappingNotFound": "Import-Mapping nicht gefunden.",
-    "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch."
+    "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch.",
+    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",
@@ -463,6 +490,22 @@
     "profileSaveFailed": "Profil konnte nicht gespeichert werden",
     "passwordChangeSuccess": "Passwort geändert",
     "passwordChangeFailed": "Passwort konnte nicht geändert werden",
+    "goals": {
+      "title": "Leseziele",
+      "subtitle": "Aktiviere Ziele, um sie spielerisch auf dem Dashboard zu verfolgen.",
+      "dashboardToggle": "Lese-Serien & Ziele auf dem Dashboard anzeigen",
+      "pagesPerDay": "Seiten pro Tag",
+      "pagesPerMonth": "Seiten pro Monat",
+      "booksPerMonth": "Bücher pro Monat",
+      "booksPerYear": "Bücher pro Jahr",
+      "target": "Ziel",
+      "pagesPerDayTarget": "Ziel: Seiten pro Tag",
+      "pagesPerMonthTarget": "Ziel: Seiten pro Monat",
+      "booksPerMonthTarget": "Ziel: Bücher pro Monat",
+      "booksPerYearTarget": "Ziel: Bücher pro Jahr",
+      "saveSuccess": "Leseziele gespeichert",
+      "invalidTarget": "{name} muss eine ganze Zahl von mindestens 1 sein."
+    },
     "dataManagement": {
       "title": "Meine Daten verwalten",
       "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",
@@ -606,11 +649,13 @@
         "validateFailed": "Validierung fehlgeschlagen.",
         "previewFailed": "Vorschau konnte nicht geladen werden.",
         "executeFailed": "Import fehlgeschlagen."
-      }
+      },
+      "authorsHint": "Ein einzelner Autor (getrennt mit ;, & oder und) oder ein Array mit Namen — jeder Eintrag wird ein Autor.",
+      "delimiterLabel": "CSV-Trennzeichen"
     }
   },
-    "dataHygiene": {
-        "authorRequired": "Autor darf nicht leer sein.",
+  "dataHygiene": {
+    "authorRequired": "Autor darf nicht leer sein.",
     "pageCountPositive": "Seitenzahl muss größer als 0 sein.",
     "title": "Datenpflege",
     "description": "Finde und korrigiere Bücher mit fehlenden Metadaten in deiner Bibliothek.",
@@ -702,7 +747,7 @@
     "allDoneSub": "Jedes Buch in deiner Bibliothek hat jetzt ein Cover.",
     "loadingBook": "Nächstes Buch wird geladen...",
     "loadingCandidates": "Cover-Quellen werden durchsucht...",
-    "keyboardHint": "Tipp: Drücke 1\u20139, um ein Cover auszuwählen, \u2192 zum Überspringen",
+    "keyboardHint": "Tipp: Drücke 1–9, um ein Cover auszuwählen, → zum Überspringen",
     "candidatesError": "Cover-Suche fehlgeschlagen. Du kannst weiterhin den manuellen Import verwenden.",
     "retry": "Wiederholen"
   }

@@ -8,6 +8,7 @@ export const SEED_USER = {
 export interface SeedBook {
 	title: string;
 	author: string;
+	authors?: string[];
 	isbn?: string;
 	page_count?: number;
 	reading_status: 'want_to_read' | 'currently_reading' | 'read' | 'did_not_finish';
@@ -27,4 +28,8 @@ export const SEED_BOOKS: SeedBook[] = [
 	{ title: '1984', author: 'George Orwell', isbn: '9780451524935', reading_status: 'read', rating: 5, page_count: 328, date_started: '2024-10-01', date_finished: '2024-10-20' },
 	{ title: 'Brave New World', author: 'Aldous Huxley', isbn: '9780060850524', reading_status: 'read', rating: 4, page_count: 311, date_started: '2024-09-01', date_finished: '2024-09-18' },
 	{ title: 'Atlas Shrugged', author: 'Ayn Rand', reading_status: 'did_not_finish', page_count: 1168 },
+	{ title: 'Die Fragezeichen', author: 'Christoph Dittert', reading_status: 'want_to_read', page_count: 96 },
+	{ title: 'Cars & Mercedes', author: 'Jane Driver', reading_status: 'want_to_read', tags: 'cars,audi', page_count: 120 },
+	{ title: 'Cars Only', author: 'Jane Driver', reading_status: 'want_to_read', tags: 'cars', page_count: 100 },
+	{ title: 'Good Omens', author: 'Terry Pratchett, Neil Gaiman', authors: ['Terry Pratchett', 'Neil Gaiman'], isbn: '9780060853983', reading_status: 'want_to_read', page_count: 288 },
 ];

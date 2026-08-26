@@ -6,6 +6,7 @@ export interface Book {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -32,6 +33,7 @@ export interface BookImportCandidate {
 	title: string;
 	subtitle: string | null;
 	author: string | null;
+	authors: string[] | null;
 	isbn: string | null;
 	cover_url: string | null;
 	publisher: string | null;
@@ -158,12 +160,15 @@ export interface TopRatedBook {
 	book_id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	rating: number;
 	reading_status: ReadingStatus;
 	cover_url: string | null;
 }
 
 export interface StatisticsResponse {
+	total_books: number;
+	total_authors: number;
 	avg_books_per_month: number | null;
 	busiest_month: string | null;
 	busiest_month_count: number | null;
@@ -214,6 +219,33 @@ export interface UserSettings {
 	timezone: string;
 	theme: string;
 	custom_theme: string | null;
+	goal_pages_per_day_enabled: boolean;
+	goal_pages_per_day: number;
+	goal_pages_per_month_enabled: boolean;
+	goal_pages_per_month: number;
+	goal_books_per_month_enabled: boolean;
+	goal_books_per_month: number;
+	goal_books_per_year_enabled: boolean;
+	goal_books_per_year: number;
+	gamification_enabled: boolean;
+}
+
+export type GoalType = 'pages_per_day' | 'pages_per_month' | 'books_per_month' | 'books_per_year';
+
+export interface GoalProgress {
+	type: GoalType;
+	target: number;
+	current: number;
+	reached: boolean;
+}
+
+export interface GamificationResponse {
+	enabled: boolean;
+	current_streak: number;
+	longest_streak: number;
+	longest_streak_start: string | null;
+	longest_streak_end: string | null;
+	goals: GoalProgress[];
 }
 
 export interface ApiKeyMeta {
@@ -245,6 +277,7 @@ export interface DataResetResponse {
 	deleted: {
 		books: number;
 		tags: number;
+		authors: number;
 		progress_entries: number;
 	};
 }
@@ -344,8 +377,8 @@ export interface ImportFieldConfig {
 
 export interface DataImportPreviewRow {
 	row_number: number;
-	source: Record<string, string>;
-	transformed: Record<string, string | null>;
+	source: Record<string, unknown>;
+	transformed: Record<string, unknown>;
 	errors: string[];
 }
 
@@ -377,6 +410,7 @@ export interface HygieneMissingBook {
 	id: number;
 	title: string;
 	author: string | null;
+	authors: string[];
 	isbn: string | null;
 	publisher: string | null;
 	published_year: number | null;

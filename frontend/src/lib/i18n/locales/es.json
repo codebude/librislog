@@ -59,7 +59,9 @@
     "noRating": "Sin valoración",
     "topRated": "Mejor valorados",
     "worstRated": "Peor valorados",
-    "showMore": "Mostrar más"
+    "showMore": "Mostrar más",
+    "totalBooksAndAuthors": "Libros en total",
+    "booksFromAuthors": "de {authors} {authors, plural, one {autor} other {autores}}"
   },
   "dashboard": {
     "title": "Panel de lectura",
@@ -76,13 +78,26 @@
     "noSearchResults": "No se encontraron libros",
     "noCurrentlyReading": "No estás leyendo ningún libro actualmente.",
     "noNextToRead": "Aún no hay libros en tu lista de deseos.",
-    "popularTags": "Etiquetas populares"
+    "popularTags": "Etiquetas populares",
+    "gamificationTitle": "Rachas de lectura y metas",
+    "currentStreak": "Racha actual",
+    "currentStreakHint": "Días consecutivos con actividad de lectura",
+    "longestStreak": "Racha más larga",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "Páginas por día",
+    "goalPagesPerMonth": "Páginas por mes",
+    "goalBooksPerMonth": "Libros por mes",
+    "goalBooksPerYear": "Libros por año",
+    "goalReached": "Meta alcanzada",
+    "goalOf": "de {target}",
+    "goalProgress": "{current} de {target}"
   },
   "status": {
     "want_to_read": "Quiero leer",
     "currently_reading": "Leyendo",
     "read": "Leído",
-    "did_not_finish": "Abandonado"
+    "did_not_finish": "Abandonado",
+    "all": "Todos los libros"
   },
   "common": {
     "all": "Todos",
@@ -180,7 +195,10 @@
     "progressPromptTitle": "¿Establecer progreso de lectura?",
     "progressPromptMessage": "¿Establecer el progreso de \"{title}\" al 100%?",
     "progressPromptSet": "Establecer al 100%",
-    "progressPromptSkip": "Saltar"
+    "progressPromptSkip": "Saltar",
+    "authorsPlaceholder": "Escribe un autor y pulsa Enter",
+    "authorsHint": "Pulsa Enter para añadir autores. Retroceso elimina el último.",
+    "authorsLabel": "Autor(es)"
   },
   "addModal": {
     "manual": "Manual",
@@ -291,7 +309,15 @@
     "resultsCount": "{count, plural, one {resultado} other {resultados}} encontrados",
     "noResults": "No se encontraron resultados",
     "noResultsFor": "No se encontraron resultados para \"{query}\"",
-    "tryDifferentQuery": "Prueba con un término de búsqueda diferente"
+    "tryDifferentQuery": "Prueba con un término de búsqueda diferente",
+    "help": {
+      "title": "Sintaxis de búsqueda",
+      "intro": "Usa prefijos de campo para buscar en un campo concreto. Los prefijos siempre están en inglés.",
+      "multiWord": "Envuelve los valores de varias palabras entre comillas dobles, p. ej. author:\"Marlen Haushofer\".",
+      "combine": "Puedes combinar varios prefijos; los resultados deben coincidir con todos.",
+      "negate": "Antepón - a cualquier término para excluirlo, p. ej. tag:cars -tag:audi.",
+      "possessionValues": "valores de posesión: owned, borrowed, digital_access, to_acquire"
+    }
   },
   "languages": {
     "en": "Inglés",
@@ -440,7 +466,8 @@
     "tooManyBooksSelected": "Demasiados libros seleccionados. Selecciona como máximo {max} a la vez.",
     "importMappingNameConflict": "Ya existe una asignación con este nombre.",
     "importMappingNotFound": "Asignación de importación no encontrada.",
-    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo."
+    "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo.",
+    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter."
   },
   "oidc": {
     "orContinueWith": "o continuar con",
@@ -463,6 +490,22 @@
     "profileSaveFailed": "Error al guardar el perfil",
     "passwordChangeSuccess": "Contraseña cambiada",
     "passwordChangeFailed": "Error al cambiar la contraseña",
+    "goals": {
+      "title": "Metas de lectura",
+      "subtitle": "Activa metas para seguirlas de forma lúdica en el panel.",
+      "dashboardToggle": "Mostrar rachas y metas de lectura en el panel",
+      "pagesPerDay": "Páginas por día",
+      "pagesPerMonth": "Páginas por mes",
+      "booksPerMonth": "Libros por mes",
+      "booksPerYear": "Libros por año",
+      "target": "Meta",
+      "pagesPerDayTarget": "Meta de páginas por día",
+      "pagesPerMonthTarget": "Meta de páginas por mes",
+      "booksPerMonthTarget": "Meta de libros por mes",
+      "booksPerYearTarget": "Meta de libros por año",
+      "saveSuccess": "Metas de lectura guardadas",
+      "invalidTarget": "{name} debe ser un número entero de al menos 1."
+    },
     "dataManagement": {
       "title": "Gestionar mis datos",
       "description": "Exporta tu biblioteca o importa libros desde un archivo CSV/JSON.",
@@ -606,7 +649,9 @@
         "validateFailed": "Validación fallida.",
         "previewFailed": "Error al cargar la vista previa.",
         "executeFailed": "Importación fallida."
-      }
+      },
+      "authorsHint": "Asigna una sola cadena de autor (separada por ;, & o y) o un array de nombres: cada entrada se convierte en un autor.",
+      "delimiterLabel": "Delimitador CSV"
     }
   },
   "dataHygiene": {
@@ -702,7 +747,7 @@
     "allDoneSub": "Todos los libros de tu biblioteca tienen ahora una imagen de portada.",
     "loadingBook": "Cargando siguiente libro...",
     "loadingCandidates": "Buscando fuentes de portadas...",
-    "keyboardHint": "Consejo: pulsa 1\u20139 para seleccionar una portada, \u2192 para saltar",
+    "keyboardHint": "Consejo: pulsa 1–9 para seleccionar una portada, → para saltar",
     "candidatesError": "Búsqueda de portadas fallida. Aún puedes usar la importación manual.",
     "retry": "Reintentar"
   }

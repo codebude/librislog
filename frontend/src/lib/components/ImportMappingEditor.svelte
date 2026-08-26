@@ -16,7 +16,7 @@
 		onChange: (mapping: Record<string, ImportFieldConfig>) => void;
 	} = $props();
 
-	const MANDATORY_FIELDS = ['title', 'author', 'page_count', 'acquisition_status'];
+	const MANDATORY_FIELDS = ['title', 'authors', 'page_count', 'acquisition_status'];
 	let transformOpen = $state<Record<string, boolean>>({});
 
 	function updateSource(target: string, source: string) {
@@ -105,6 +105,12 @@
 					<div class="mt-1.5 text-xs text-base-content/50 flex items-start gap-1">
 						<Info class="w-3.5 h-3.5 mt-0.5 shrink-0" />
 						<span>{$_('data.import.coverUrlHint')}</span>
+					</div>
+				{/if}
+				{#if dbField === 'authors'}
+					<div class="mt-1.5 text-xs text-base-content/50 flex items-start gap-1">
+						<Info class="w-3.5 h-3.5 mt-0.5 shrink-0" />
+						<span>{$_('data.import.authorsHint')}</span>
 					</div>
 				{/if}
 				<div class="mt-2">

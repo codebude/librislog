@@ -9,6 +9,7 @@
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 	import SuggestionInput from '$lib/components/SuggestionInput.svelte';
 	import { LoaderCircle, X } from '@lucide/svelte';
+	import { formatAuthors } from '$lib/utils/authors';
 	import type { Book, HygieneAttribute, HygieneMissingBook } from '$lib/types';
 
 	const ATTRIBUTES: { key: HygieneAttribute; labelKey: string }[] = [
@@ -329,7 +330,7 @@
 								/>
 							</th>
 							<th>{$_('book.title')}</th>
-							<th class="hidden lg:table-cell">{$_('book.author')}</th>
+							<th class="hidden lg:table-cell">{$_('book.authorsLabel')}</th>
 							<th class="hidden lg:table-cell">{$_('book.isbn')}</th>
 							<th class="hidden xl:table-cell">{$_('book.publisher')}</th>
 							<th>{$_('dataHygiene.tableHeaderMissing')}</th>
@@ -351,7 +352,7 @@
 									</div>
 								</td>
 								<td class="font-medium break-words min-w-0">{book.title}</td>
-								<td class="hidden lg:table-cell max-w-[180px] truncate">{book.author || '—'}</td>
+								<td class="hidden lg:table-cell max-w-[180px] truncate">{formatAuthors(book.authors, book.author || '—')}</td>
 								<td class="hidden lg:table-cell font-mono text-xs">{book.isbn || '—'}</td>
 								<td class="hidden xl:table-cell max-w-[150px] truncate">{book.publisher || '—'}</td>
 								<td>
