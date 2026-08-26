@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginViaUi } from '../fixtures/auth.fixture';
-import { seedBooks } from '../fixtures/seed.api';
+import { seedBooks, seedProgress, getBookId } from '../fixtures/seed.api';
 import { SEED_USER, SEED_BOOKS } from '../fixtures/seed-data';
 
 test.describe('Dashboard', () => {
@@ -86,5 +86,17 @@ test.describe('Dashboard', () => {
 		await expect(card).toBeVisible({ timeout: 5000 });
 		await expect(page.locator('text=Current Streak')).toBeVisible();
 		await expect(page.locator('text=Longest Streak')).toBeVisible();
+	});
+
+	test('2.9 gamification streak updates after logging reading progress', async ({ page }) => {
+		await seedBooks(page, SEED_BOOKS);
+		const bookId = await getBookId(page, 'The Three-Body Problem');
+		await seedProgress(page, bookId, 10);
+
+		await page.reload();
+		await page.waitForSelector('h1');
+
+		const streakValue = page.locator('div.stat:has-text("Current Streak") .stat-value');
+		await expect(streakValue).toHaveText(/[1-9]/, { timeout: 5000 });
 	});
 });

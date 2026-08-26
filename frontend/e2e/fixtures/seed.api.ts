@@ -43,3 +43,26 @@ export async function deleteAllBooks(page: Page): Promise<void> {
 		});
 	}
 }
+
+export async function getBookId(page: Page, title: string): Promise<number> {
+	const resp = await page.request.get(`${bookApiPath()}?q=${encodeURIComponent(title)}&limit=20`);
+	const body = await resp.json();
+	const books: { id: number; title: string }[] = Array.isArray(body?.books) ? body.books : [];
+	const book = books.find((b) => b.title === title);
+	if (!book) throw new Error(`Book "${title}" not found`);
+	return book.id;
+}
+
+export async function seedProgress(page: Page, bookId: number, pageNo: number): Promise<void> {
+	const csrf = await getCsrfToken(page);
+	const resp = await page.request.post(`${bookApiPath()}/${bookId}/progress`, {
+		data: { page: pageNo },
+		headers: {
+			'Content-Type': 'application/json',
+			'X-CSRF-Token': csrf,
+		},
+	});
+	if (!resp.ok()) {
+		throw new Error(`Seeding progress failed: ${resp.status()} ${await resp.text()}`);
+	}
+}

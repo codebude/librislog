@@ -84,9 +84,8 @@ import { Search, X } from '@lucide/svelte';
 
 	async function loadDashboard() {
 		loading = true;
-		gamificationLoading = true;
 		try {
-			const [statsData, readingResponse, wantToReadResponse, gamificationData] = await Promise.all([
+			const [statsData, readingResponse, wantToReadResponse] = await Promise.all([
 				api.books.stats(),
 				api.books.list({
 					status: 'currently_reading',
@@ -99,16 +98,12 @@ import { Search, X } from '@lucide/svelte';
 					smart_sort: false,
 					sort: 'date_added',
 					order: 'asc'
-				}),
-				// Gamification is optional: a failure must not blank the dashboard.
-				api.statistics.gamification().catch(() => null)
+				})
 			]);
 
 			stats = statsData;
 			currentlyReading = readingResponse.books.slice(0, 5);
 			nextToRead = wantToReadResponse.books.slice(0, 5);
-			gamification =
-				gamificationData ?? { current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -119,11 +114,23 @@ import { Search, X } from '@lucide/svelte';
 			}
 		} finally {
 			loading = false;
-			gamificationLoading = false;
 		}
 
+		await loadGamification(true);
 		await loadQuote();
 		await loadTagCloud();
+	}
+
+	async function loadGamification(showLoading = false) {
+		// Gamification is optional: a failure must not blank the dashboard.
+		if (showLoading) gamificationLoading = true;
+		try {
+			gamification = await api.statistics.gamification();
+		} catch {
+			gamification = { current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
+		} finally {
+			if (showLoading) gamificationLoading = false;
+		}
 	}
 
 	async function loadTagCloud() {
@@ -190,6 +197,7 @@ import { Search, X } from '@lucide/svelte';
 
 	function handleProgressChange(bookId: number, currentPage: number) {
 		progressMap = { ...progressMap, [bookId]: currentPage };
+		void loadGamification();
 	}
 
 	function handleDelete(id: number) {
