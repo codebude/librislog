@@ -67,14 +67,14 @@ test.describe('Library Browsing', () => {
 		await expect(body).toContainText(/no books|empty/i);
 	});
 
-	test('3.5 manual creation requires availability and persists the selected value', async ({ page }) => {
+	test('3.5 manual creation requires possession and persists the selected value', async ({ page }) => {
 		await deleteAllBooks(page);
 		const library = new LibraryPage(page);
 		await library.goto();
 
 		await page.getByRole('button', { name: '+ Add Book' }).click();
 		const modal = page.locator('.modal-box');
-		const availability = modal.getByRole('combobox', { name: /Availability/ });
+		const availability = modal.getByRole('combobox', { name: /Possession/ });
 		await expect(availability).toHaveValue('');
 
 		await modal.getByLabel('Title *').fill('Digital E2E Book');
@@ -91,7 +91,7 @@ test.describe('Library Browsing', () => {
 		expect((await response.json()).books[0].acquisition_status).toBe('digital_access');
 	});
 
-	test('3.6 filters Want to Read books by availability and marks books to acquire', async ({ page }) => {
+	test('3.6 filters Want to Read books by possession and marks books to acquire', async ({ page }) => {
 		await deleteAllBooks(page);
 		await createWantToReadBook(page, 'Owned E2E Book', 'owned');
 		await createWantToReadBook(page, 'Acquire E2E Book', 'to_acquire');

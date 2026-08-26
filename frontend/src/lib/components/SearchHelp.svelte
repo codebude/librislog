@@ -20,7 +20,7 @@
 		{ name: 'title', example: 'title:fragezeichen' },
 		{ name: 'tag', example: 'tag:cars' },
 		{ name: 'language', example: 'language:en' },
-		{ name: 'availability', example: 'availability:owned' },
+		{ name: 'possession', example: 'possession:owned' },
 		{ name: 'notes', example: 'notes:reading' },
 		{ name: 'description', example: 'description:desert' }
 	];
@@ -74,7 +74,7 @@
 				{$_('search.help.negate')}
 			</p>
 			<p class="text-xs text-base-content/50 mt-2">
-				{$_('search.help.availabilityValues')}
+				{$_('search.help.possessionValues')}
 			</p>
 		</div>
 	{/if}

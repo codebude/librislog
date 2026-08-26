@@ -281,19 +281,19 @@ def test_list_books_search_by_language(client: TestClient) -> None:
     assert body["books"][0]["title"] == "Dune"
 
 
-def test_list_books_search_by_availability(client: TestClient) -> None:
+def test_list_books_search_by_possession(client: TestClient) -> None:
     _create_book(client, title="Borrowed", acquisition_status="borrowed")
     _create_book(client, title="Owned", acquisition_status="owned")
-    resp = client.get("/api/books?q=availability:borrowed")
+    resp = client.get("/api/books?q=possession:borrowed")
     assert resp.status_code == 200
     body = resp.json()
     assert body["total"] == 1
     assert body["books"][0]["title"] == "Borrowed"
 
 
-def test_list_books_search_by_availability_invalid_value(client: TestClient) -> None:
+def test_list_books_search_by_possession_invalid_value(client: TestClient) -> None:
     _create_book(client, title="Borrowed", acquisition_status="borrowed")
-    resp = client.get("/api/books?q=availability:not-a-status")
+    resp = client.get("/api/books?q=possession:not-a-status")
     assert resp.status_code == 200
     assert resp.json()["total"] == 0
 
@@ -393,10 +393,10 @@ def test_list_books_search_negation_includes_nullable_field_rows(client: TestCli
     assert [b["title"] for b in body["books"]] == ["Plain"]
 
 
-def test_list_books_search_availability_quoted_multiword(client: TestClient) -> None:
+def test_list_books_search_possession_quoted_multiword(client: TestClient) -> None:
     _create_book(client, title="Wanted", acquisition_status="to_acquire")
     _create_book(client, title="Owned", acquisition_status="owned")
-    resp = client.get('/api/books?q=availability:"to acquire"')
+    resp = client.get('/api/books?q=possession:"to acquire"')
     assert resp.status_code == 200
     body = resp.json()
     assert [b["title"] for b in body["books"]] == ["Wanted"]

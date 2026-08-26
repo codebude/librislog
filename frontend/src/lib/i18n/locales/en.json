@@ -147,7 +147,7 @@
     "blurb": "Description",
     "about": "About",
     "dateStarted": "Date started",
-    "acquisitionStatus": "Availability",
+    "acquisitionStatus": "Possession",
     "selectAcquisitionStatus": "Select availability...",
     "startDatePromptTitle": "Set a start date?",
     "startDatePromptMessage": "This book has no start date. Set it to today or choose another date before marking it as read.",
@@ -303,7 +303,7 @@
       "multiWord": "Wrap multi-word values in double quotes, e.g. author:\"Marlen Haushofer\".",
       "combine": "You can combine multiple prefixes; results must match all of them.",
       "negate": "Prefix any term with - to exclude it, e.g. tag:cars -tag:audi.",
-      "availabilityValues": "availability values: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "possession values: owned, borrowed, digital_access, to_acquire"
     }
   },
   "languages": {

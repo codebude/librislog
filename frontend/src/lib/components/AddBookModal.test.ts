@@ -128,7 +128,7 @@ describe('AddBookModal', () => {
 		fireEvent.keyDown(authorInput, { key: 'Enter' });
 		const pagesInput = screen.getByLabelText(/Pages/);
 		fireEvent.input(pagesInput, { target: { value: '412' } });
-		fireEvent.change(screen.getByRole('combobox', { name: /Availability/ }), { target: { value: 'owned' } });
+		fireEvent.change(screen.getByRole('combobox', { name: /Possession/ }), { target: { value: 'owned' } });
 	}
 
 	it('submits form and calls api.books.create', async () => {

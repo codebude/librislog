@@ -303,7 +303,7 @@
       "multiWord": "Setze mehrteilige Werte in doppelte Anführungszeichen, z. B. author:\"Marlen Haushofer\".",
       "combine": "Du kannst mehrere Präfixe kombinieren; die Ergebnisse müssen allen entsprechen.",
       "negate": "Stelle einem Begriff ein - voran, um ihn auszuschließen, z. B. tag:cars -tag:audi.",
-      "availabilityValues": "Verfügbarkeitswerte: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire"
     }
   },
   "languages": {

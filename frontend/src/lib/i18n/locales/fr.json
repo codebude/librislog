@@ -303,7 +303,7 @@
       "multiWord": "Place les valeurs multi-mots entre guillemets doubles, p. ex. author:\"Marlen Haushofer\".",
       "combine": "Tu peux combiner plusieurs préfixes ; les résultats doivent correspondre à tous.",
       "negate": "Préfixe tout terme par - pour l'exclure, p. ex. tag:cars -tag:audi.",
-      "availabilityValues": "valeurs de disponibilité : owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "valeurs de possession : owned, borrowed, digital_access, to_acquire"
     }
   },
   "languages": {
