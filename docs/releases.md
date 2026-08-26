@@ -6,15 +6,43 @@ All LibrisLog releases, newest first — what's new, what was fixed, and anythin
 
 You can also browse the [GitHub Releases](https://github.com/codebude/librislog/releases) page and the [full changelog](https://github.com/codebude/librislog/commits/main).
 
-## vNext — Unreleased
+## Latest Release
 
-<Badge type="danger" text="Unreleased" /> <Badge type="info" text="development branch" />
+::: tip ⭐ v1.7.0 — Reading Streaks & Goals
+LibrisLog v1.7.0 brings reading streaks and reading goals to the dashboard, a richer book model with multiple authors, a new field-specific search syntax, and a more flexible file import.
+:::
 
-**Summary:** Everything merged into the development branch since v1.6.0, not yet released. Focused on a richer book model (multiple authors), a new search syntax, a more flexible file import, and reading streaks & goals.
+### All releases
+
+| Version | Date | Type |
+|---|---|---|
+| [v1.7.0](#v1-7-0-—-reading-streaks-goals) | 2026-08-26 | Feature release |
+| [v1.6.0](#v1-6-0-—-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
+| [v1.5.2](#v1-5-2-—-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.1](#v1-5-1-—-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.0](#v1-5-0-—-password-reset-usability) | 2026-06-22 | Feature release |
+| [v1.4.0](#v1-4-0-—-embeddable-views-arm64) | 2026-06-14 | Feature release |
+| [v1.3.1](#v1-3-1-—-maintenance) | 2026-06-09 | Maintenance |
+| [v1.3.0](#v1-3-0-—-more-languages) | 2026-06-09 | Feature release |
+| [v1.2.2](#v1-2-2-—-maintenance) | 2026-06-08 | Maintenance |
+| [v1.2.1](#v1-2-1-—-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
+| [v1.2.0](#v1-2-0-—-startup-screen-update-checks) | 2026-06-01 | Feature release |
+| [v1.1.1](#v1-1-1-—-maintenance) | 2026-06-01 | Maintenance |
+| [v1.1.0](#v1-1-0-—-polish-missing-covers) | 2026-05-31 | Feature release |
+| [v1.0.0](#v1-0-0-—-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.7.0 — Reading Streaks & Goals
+
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-08-26" />
+
+**Summary:** Adds a gamification section to the dashboard with reading streaks and reading goals, a richer book model with multiple authors, a new field-specific search syntax, and a more flexible file import.
 
 **Features**
 - 👥 **Multiple authors per book** — a book can have any number of authors (normalized per-user author model). The legacy API `author` field is deprecated in favor of the `authors` list
 - 🏆 **Reading streaks & goals** — a gamification section on the dashboard shows your current and all-time longest reading streak (with date range) plus playful progress cards for reading goals. Goals (pages/day, pages/month, books/month, books/year) are configured on the profile page and disabled by default; the whole section can be switched off
+- 🎲 **Random "Next to Read" suggestions** — the dashboard's suggestion shelf now picks a random selection from your want-to-read list on every visit
 - 🔍 **Enhanced search** — field-specific prefixes (`author:`, `title:`, `publisher:`, `tag:`, `language:`, `possession:`, `notes:`, `description:`), quoted phrases, and `-` negation
 - 📚 **"All books" library tab** — browse every book regardless of reading status, with the usual search and sort controls
 - 📈 **Author statistics card** — total book count and distinct author count on the statistics page
@@ -32,34 +60,9 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 **Breaking changes**
 - ⚠️ Creating a book now requires **at least one author** (via `authors` or the legacy `author` field) — API requests without any author are rejected
-- ⚠️ The `availability:` search prefix is renamed to `possession:` (the extended search is new and unreleased, so impact is limited)
+- ⚠️ The `availability:` search prefix is renamed to `possession:`
 
 [Compare with v1.6.0](https://github.com/codebude/librislog/compare/v1.6.0...main)
-
-## Latest Release
-
-::: tip ⭐ v1.6.0 — Reading Progress & Possession Tracking
-LibrisLog v1.6.0 brings improved reading-progress tracking with automatic synchronization across cards and detail views, a new possession (book ownership) tracking model, and a range of UI, statistics, and reliability improvements.
-:::
-
-### All releases
-
-| Version | Date | Type |
-|---|---|---|
-| [vNext](#vnext-—-unreleased) | — | Unreleased |
-| [v1.6.0](#v1-6-0-—-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
-| [v1.5.2](#v1-5-2-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.1](#v1-5-1-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.0](#v1-5-0-—-password-reset-usability) | 2026-06-22 | Feature release |
-| [v1.4.0](#v1-4-0-—-embeddable-views-arm64) | 2026-06-14 | Feature release |
-| [v1.3.1](#v1-3-1-—-maintenance) | 2026-06-09 | Maintenance |
-| [v1.3.0](#v1-3-0-—-more-languages) | 2026-06-09 | Feature release |
-| [v1.2.2](#v1-2-2-—-maintenance) | 2026-06-08 | Maintenance |
-| [v1.2.1](#v1-2-1-—-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
-| [v1.2.0](#v1-2-0-—-startup-screen-update-checks) | 2026-06-01 | Feature release |
-| [v1.1.1](#v1-1-1-—-maintenance) | 2026-06-01 | Maintenance |
-| [v1.1.0](#v1-1-0-—-polish-missing-covers) | 2026-05-31 | Feature release |
-| [v1.0.0](#v1-0-0-—-initial-release) | 2026-05-28 | Initial release |
 
 ---
 
