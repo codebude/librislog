@@ -103,7 +103,7 @@ import { Search, X } from '@lucide/svelte';
 
 			stats = statsData;
 			currentlyReading = readingResponse.books.slice(0, 5);
-			nextToRead = wantToReadResponse.books.slice(0, 5);
+			nextToRead = shuffle(wantToReadResponse.books).slice(0, 5);
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -119,6 +119,15 @@ import { Search, X } from '@lucide/svelte';
 		await loadGamification(true);
 		await loadQuote();
 		await loadTagCloud();
+	}
+
+	function shuffle<T>(items: T[]): T[] {
+		const copy = [...items];
+		for (let i = copy.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[copy[i], copy[j]] = [copy[j], copy[i]];
+		}
+		return copy;
 	}
 
 	async function loadGamification(showLoading = false) {
