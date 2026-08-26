@@ -84,7 +84,8 @@
     "want_to_read": "Möchte ich lesen",
     "currently_reading": "Lese ich gerade",
     "read": "Gelesen",
-    "did_not_finish": "Abgebrochen"
+    "did_not_finish": "Abgebrochen",
+    "all": "Alle Bücher"
   },
   "common": {
     "all": "Alle",

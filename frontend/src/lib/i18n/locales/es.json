@@ -84,7 +84,8 @@
     "want_to_read": "Quiero leer",
     "currently_reading": "Leyendo",
     "read": "Leído",
-    "did_not_finish": "Abandonado"
+    "did_not_finish": "Abandonado",
+    "all": "Todos los libros"
   },
   "common": {
     "all": "Todos",

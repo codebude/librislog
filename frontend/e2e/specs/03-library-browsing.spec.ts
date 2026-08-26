@@ -106,4 +106,36 @@ test.describe('Library Browsing', () => {
 		await expect(page.getByText('Acquire E2E Book')).toBeVisible();
 		await expect(page.getByText('Owned E2E Book')).not.toBeVisible();
 	});
+
+	test('3.7 All Books tab shows every book regardless of status with search and sort', async ({ page }) => {
+		const library = new LibraryPage(page);
+		await library.goto();
+
+		await page.getByRole('tab', { name: /All Books/ }).click();
+		await expect(page).toHaveURL(/\/library\?status=all/);
+
+		// All 12 seeded books are shown, spanning every reading status.
+		await expect(library.getBookCards()).toHaveCount(12);
+		await expect(page.getByText('The Great Gatsby')).toBeVisible();
+		await expect(page.getByText('The Three-Body Problem')).toBeVisible();
+		await expect(page.getByText('1984')).toBeVisible();
+		await expect(page.getByText('Atlas Shrugged')).toBeVisible();
+
+		// Smart sort is hidden on the All tab; the sort selects are enabled.
+		await expect(page.locator('input[name="smart-sort"]')).toHaveCount(0);
+		await expect(page.locator('select[name="sort-field"]')).toBeEnabled();
+
+		// Sort by title ascending: "1984" is alphabetically first among the seeds.
+		await page.locator('select[name="sort-field"]').selectOption('title');
+		await page.locator('select[name="sort-order"]').selectOption('asc');
+		await expect(page.locator('button.card h2').first()).toHaveText('1984');
+
+		// Search narrows the All tab results.
+		const searchInput = page.getByPlaceholder(/Search books/);
+		await searchInput.fill('Dune');
+		await searchInput.press('Enter');
+		await expect(page.locator('button.card')).toHaveCount(1);
+		await expect(page.getByText('Dune')).toBeVisible();
+		await expect(page.getByText('1984')).not.toBeVisible();
+	});
 });

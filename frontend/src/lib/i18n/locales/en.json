@@ -84,7 +84,8 @@
     "want_to_read": "Want to Read",
     "currently_reading": "Currently Reading",
     "read": "Read",
-    "did_not_finish": "Did Not Finish"
+    "did_not_finish": "Did Not Finish",
+    "all": "All Books"
   },
   "common": {
     "all": "All",

@@ -13,7 +13,7 @@ Books are categorized into four statuses:
 | **Read** | Books you've finished |
 | **Did Not Finish** | Books you started but abandoned |
 
-Each status has its own tab in the library view, making it easy to browse your collection by reading state.
+Each status has its own tab in the library view, making it easy to browse your collection by reading state. A fifth **All Books** tab shows every book regardless of status; like the other tabs it supports search and sorting (smart sort is disabled there, since it's based on per-status defaults).
 
 ## Possession
 
