@@ -322,7 +322,7 @@ import { Search, X } from '@lucide/svelte';
 
 <div class="flex flex-col gap-6">
 	<div class="hero rounded-2xl bg-base-100 shadow-sm border border-base-200">
-		<div class="hero-content text-center py-12">
+		<div class="hero-content text-center py-2">
 			<div class="max-w-2xl">
 				<h1 class="text-2xl sm:text-3xl font-bold tracking-tight">{$_('dashboard.title')}</h1>
 				<p class="text-base-content/70 mt-2">{$_('dashboard.subtitle')}</p>
