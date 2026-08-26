@@ -235,6 +235,7 @@ describe('api.statistics.gamification', () => {
 			ok: true,
 			headers: { get: () => 'application/json' },
 			json: async () => ({
+				enabled: true,
 				current_streak: 2,
 				longest_streak: 5,
 				longest_streak_start: '2026-01-01',
@@ -271,7 +272,8 @@ describe('api.statistics.gamification', () => {
 				goal_books_per_month_enabled: false,
 				goal_books_per_month: 2,
 				goal_books_per_year_enabled: true,
-				goal_books_per_year: 25
+				goal_books_per_year: 25,
+				gamification_enabled: true
 			})
 		} as unknown as Response);
 

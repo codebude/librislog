@@ -493,6 +493,7 @@
     "goals": {
       "title": "Reading Goals",
       "subtitle": "Enable goals to track them playfully on your dashboard.",
+      "dashboardToggle": "Show reading streaks & goals on dashboard",
       "pagesPerDay": "Pages per Day",
       "pagesPerMonth": "Pages per Month",
       "booksPerMonth": "Books per Month",

@@ -423,6 +423,16 @@ def get_gamification(
     if not settings:
         settings = UserSettings(user_id=current_user.id, language="en")
 
+    if not settings.gamification_enabled:
+        return GamificationResponse(
+            enabled=False,
+            current_streak=0,
+            longest_streak=0,
+            longest_streak_start=None,
+            longest_streak_end=None,
+            goals=[],
+        )
+
     # Only the columns needed for streaks and goal progress are loaded; the
     # per-request cost still grows with lifetime library size, which is
     # acceptable for typical personal-library volumes.
@@ -459,6 +469,7 @@ def get_gamification(
     )
 
     return GamificationResponse(
+        enabled=True,
         current_streak=current,
         longest_streak=longest,
         longest_streak_start=longest_start,

@@ -493,6 +493,7 @@
     "goals": {
       "title": "阅读目标",
       "subtitle": "启用目标，即可在仪表板上趣味追踪进度。",
+      "dashboardToggle": "在仪表板上显示阅读连续天数与目标",
       "pagesPerDay": "每天页数",
       "pagesPerMonth": "每月页数",
       "booksPerMonth": "每月本书",

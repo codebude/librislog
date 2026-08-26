@@ -191,6 +191,7 @@ class UserSettings(SQLModel, table=True):
     goal_books_per_month: int = Field(default=2, ge=1)
     goal_books_per_year_enabled: bool = Field(default=False)
     goal_books_per_year: int = Field(default=25, ge=1)
+    gamification_enabled: bool = Field(default=True)
 
 
 class ApiKey(SQLModel, table=True):

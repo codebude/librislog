@@ -123,11 +123,14 @@ import { Search, X } from '@lucide/svelte';
 
 	async function loadGamification(showLoading = false) {
 		// Gamification is optional: a failure must not blank the dashboard.
+		// Once the section is disabled it stays hidden until the dashboard
+		// is (re)loaded, so repeated progress-change callbacks are no-ops.
+		if (gamification && gamification.enabled === false) return;
 		if (showLoading) gamificationLoading = true;
 		try {
 			gamification = await api.statistics.gamification();
 		} catch {
-			gamification = { current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
+			gamification = { enabled: false, current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
 		} finally {
 			if (showLoading) gamificationLoading = false;
 		}
@@ -452,14 +455,16 @@ import { Search, X } from '@lucide/svelte';
 		</a>
 	</div>
 
-	<GamificationCard
-		currentStreak={gamification?.current_streak ?? 0}
-		longestStreak={gamification?.longest_streak ?? 0}
-		longestStreakStart={gamification?.longest_streak_start ?? null}
-		longestStreakEnd={gamification?.longest_streak_end ?? null}
-		goals={gamification?.goals ?? []}
-		loading={gamificationLoading}
-	/>
+	{#if gamification === null || gamification.enabled}
+		<GamificationCard
+			currentStreak={gamification?.current_streak ?? 0}
+			longestStreak={gamification?.longest_streak ?? 0}
+			longestStreakStart={gamification?.longest_streak_start ?? null}
+			longestStreakEnd={gamification?.longest_streak_end ?? null}
+			goals={gamification?.goals ?? []}
+			loading={gamificationLoading}
+		/>
+	{/if}
 
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-4">

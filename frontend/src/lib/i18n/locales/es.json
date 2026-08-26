@@ -493,6 +493,7 @@
     "goals": {
       "title": "Metas de lectura",
       "subtitle": "Activa metas para seguirlas de forma lúdica en el panel.",
+      "dashboardToggle": "Mostrar rachas y metas de lectura en el panel",
       "pagesPerDay": "Páginas por día",
       "pagesPerMonth": "Páginas por mes",
       "booksPerMonth": "Libros por mes",

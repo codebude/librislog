@@ -493,6 +493,7 @@
     "goals": {
       "title": "Objectifs de lecture",
       "subtitle": "Activez des objectifs pour les suivre de façon ludique sur votre tableau de bord.",
+      "dashboardToggle": "Afficher les séries et objectifs de lecture sur le tableau de bord",
       "pagesPerDay": "Pages par jour",
       "pagesPerMonth": "Pages par mois",
       "booksPerMonth": "Livres par mois",

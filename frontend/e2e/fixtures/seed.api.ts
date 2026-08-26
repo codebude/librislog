@@ -66,3 +66,17 @@ export async function seedProgress(page: Page, bookId: number, pageNo: number): 
 		throw new Error(`Seeding progress failed: ${resp.status()} ${await resp.text()}`);
 	}
 }
+
+export async function updateProfileSettings(page: Page, data: Record<string, unknown>): Promise<void> {
+	const csrf = await getCsrfToken(page);
+	const resp = await page.request.patch('/api/profile/settings', {
+		data,
+		headers: {
+			'Content-Type': 'application/json',
+			'X-CSRF-Token': csrf,
+		},
+	});
+	if (!resp.ok()) {
+		throw new Error(`Updating profile settings failed: ${resp.status()} ${await resp.text()}`);
+	}
+}

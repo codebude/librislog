@@ -493,6 +493,7 @@
     "goals": {
       "title": "Leseziele",
       "subtitle": "Aktiviere Ziele, um sie spielerisch auf dem Dashboard zu verfolgen.",
+      "dashboardToggle": "Lese-Serien & Ziele auf dem Dashboard anzeigen",
       "pagesPerDay": "Seiten pro Tag",
       "pagesPerMonth": "Seiten pro Monat",
       "booksPerMonth": "Bücher pro Monat",

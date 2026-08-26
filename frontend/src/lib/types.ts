@@ -227,6 +227,7 @@ export interface UserSettings {
 	goal_books_per_month: number;
 	goal_books_per_year_enabled: boolean;
 	goal_books_per_year: number;
+	gamification_enabled: boolean;
 }
 
 export type GoalType = 'pages_per_day' | 'pages_per_month' | 'books_per_month' | 'books_per_year';
@@ -239,6 +240,7 @@ export interface GoalProgress {
 }
 
 export interface GamificationResponse {
+	enabled: boolean;
 	current_streak: number;
 	longest_streak: number;
 	longest_streak_start: string | null;

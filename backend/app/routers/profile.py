@@ -112,6 +112,7 @@ def get_settings(
         goal_books_per_month=settings.goal_books_per_month,
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
+        gamification_enabled=settings.gamification_enabled,
     )
 
 
@@ -149,6 +150,7 @@ def update_settings(
         goal_books_per_month=settings.goal_books_per_month,
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
+        gamification_enabled=settings.gamification_enabled,
     )
 
 

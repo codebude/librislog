@@ -337,3 +337,35 @@ def test_gamification_without_settings_row_uses_defaults(client: Any, session: S
     data = resp.json()
     assert data["current_streak"] == 0
     assert data["goals"] == []
+
+
+def test_gamification_enabled_by_default(client: Any, session: Session) -> None:
+    book = _create_book(client)
+    _add_progress(session, book, 10, _utc_now())
+
+    data = client.get("/api/statistics/gamification").json()
+    assert data["enabled"] is True
+
+
+def test_gamification_disabled_returns_empty(client: Any, session: Session) -> None:
+    _set_goal(session, "goal_pages_per_day_enabled", "goal_pages_per_day", True, 20)
+    settings = session.exec(select(UserSettings)).first()
+    assert settings is not None
+    settings.gamification_enabled = False
+    session.add(settings)
+    session.commit()
+
+    book = _create_book(client)
+    _add_progress(session, book, 10, _utc_now())
+
+    data = client.get("/api/statistics/gamification").json()
+    assert data["enabled"] is False
+    assert data["current_streak"] == 0
+    assert data["longest_streak"] == 0
+    assert data["goals"] == []
+
+
+def test_settings_gamification_enabled_saved(client: Any) -> None:
+    resp = client.patch("/api/profile/settings", json={"gamification_enabled": False})
+    assert resp.status_code == 200
+    assert resp.json()["gamification_enabled"] is False

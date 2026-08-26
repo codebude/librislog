@@ -45,6 +45,7 @@
 	let goalBooksPerMonth = $state(2);
 	let goalBooksPerYearEnabled = $state(false);
 	let goalBooksPerYear = $state(25);
+	let gamificationEnabled = $state(true);
 	let goalsMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let goalsSaving = $state(false);
 	let resetDataConfirmation = $state('');
@@ -142,6 +143,7 @@
 		goalBooksPerMonth = settings.goal_books_per_month;
 		goalBooksPerYearEnabled = settings.goal_books_per_year_enabled;
 		goalBooksPerYear = settings.goal_books_per_year;
+		gamificationEnabled = settings.gamification_enabled;
 		applyThemeToDocument();
 		saveThemeToStorage();
 		saveRestorePoint();
@@ -268,7 +270,8 @@
 				goal_books_per_month_enabled: goalBooksPerMonthEnabled,
 				goal_books_per_month: goalBooksPerMonth,
 				goal_books_per_year_enabled: goalBooksPerYearEnabled,
-				goal_books_per_year: goalBooksPerYear
+				goal_books_per_year: goalBooksPerYear,
+				gamification_enabled: gamificationEnabled
 			});
 			goalsMessage = { type: 'success', text: $_('profile.goals.saveSuccess') };
 		} catch (e: unknown) {
@@ -625,6 +628,12 @@
 					{goalsMessage.text}
 				</Alert>
 			{/if}
+			<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
+				<label class="flex items-center gap-2 cursor-pointer">
+					<input type="checkbox" class="toggle toggle-sm toggle-primary" name="gamification-enabled" bind:checked={gamificationEnabled} />
+					<span class="text-sm font-medium">{$_('profile.goals.dashboardToggle')}</span>
+				</label>
+			</div>
 			<div class="flex flex-col gap-3">
 				<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
 					<label class="flex items-center gap-2 cursor-pointer">

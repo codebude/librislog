@@ -318,6 +318,7 @@ class GoalProgress(SQLModel):
 
 class GamificationResponse(SQLModel):
     """Dashboard gamification data — reading streaks and goal progress."""
+    enabled: bool
     current_streak: int
     longest_streak: int
     longest_streak_start: Optional[str] = None
@@ -411,6 +412,7 @@ class UserSettingsRead(SQLModel):
     goal_books_per_month: int
     goal_books_per_year_enabled: bool
     goal_books_per_year: int
+    gamification_enabled: bool
 
 
 class UserSettingsUpdate(SQLModel):
@@ -427,6 +429,7 @@ class UserSettingsUpdate(SQLModel):
     goal_books_per_month: Optional[int] = Field(default=None, ge=1)
     goal_books_per_year_enabled: Optional[bool] = None
     goal_books_per_year: Optional[int] = Field(default=None, ge=1)
+    gamification_enabled: Optional[bool] = None
 
     @field_validator('theme')
     @classmethod
