@@ -10,10 +10,11 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 <Badge type="danger" text="Unreleased" /> <Badge type="info" text="development branch" />
 
-**Summary:** Everything merged into the development branch since v1.6.0, not yet released. Focused on a richer book model (multiple authors), a new search syntax, and a more flexible file import.
+**Summary:** Everything merged into the development branch since v1.6.0, not yet released. Focused on a richer book model (multiple authors), a new search syntax, a more flexible file import, and reading streaks & goals.
 
 **Features**
 - 👥 **Multiple authors per book** — a book can have any number of authors (normalized per-user author model). The legacy API `author` field is deprecated in favor of the `authors` list
+- 🏆 **Reading streaks & goals** — a gamification section on the dashboard shows your current and all-time longest reading streak (with date range) plus playful progress cards for reading goals. Goals (pages/day, pages/month, books/month, books/year) are configured on the profile page and disabled by default; the whole section can be switched off
 - 🔍 **Enhanced search** — field-specific prefixes (`author:`, `title:`, `publisher:`, `tag:`, `language:`, `possession:`, `notes:`, `description:`), quoted phrases, and `-` negation
 - 📚 **"All books" library tab** — browse every book regardless of reading status, with the usual search and sort controls
 - 📈 **Author statistics card** — total book count and distinct author count on the statistics page
