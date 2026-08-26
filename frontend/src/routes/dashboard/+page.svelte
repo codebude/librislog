@@ -455,17 +455,6 @@ import { Search, X } from '@lucide/svelte';
 		</a>
 	</div>
 
-	{#if gamification === null || gamification.enabled}
-		<GamificationCard
-			currentStreak={gamification?.current_streak ?? 0}
-			longestStreak={gamification?.longest_streak ?? 0}
-			longestStreakStart={gamification?.longest_streak_start ?? null}
-			longestStreakEnd={gamification?.longest_streak_end ?? null}
-			goals={gamification?.goals ?? []}
-			loading={gamificationLoading}
-		/>
-	{/if}
-
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-4">
 			<div class="flex items-center justify-between">
@@ -486,6 +475,17 @@ import { Search, X } from '@lucide/svelte';
 			{/if}
 		</div>
 	</div>
+
+	{#if gamification === null || gamification.enabled}
+		<GamificationCard
+			currentStreak={gamification?.current_streak ?? 0}
+			longestStreak={gamification?.longest_streak ?? 0}
+			longestStreakStart={gamification?.longest_streak_start ?? null}
+			longestStreakEnd={gamification?.longest_streak_end ?? null}
+			goals={gamification?.goals ?? []}
+			loading={gamificationLoading}
+		/>
+	{/if}
 
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-4">
