@@ -7,6 +7,8 @@
   &nbsp;·&nbsp;
   <a href="https://docs.librislog.app/api/">API Reference</a>
   &nbsp;·&nbsp;
+  <a href="https://docs.librislog.app/releases">Release Notes</a>
+  &nbsp;·&nbsp;
   <a href="https://docs.librislog.app/next/">Nightly Docs</a>
 </p>
 
@@ -125,8 +127,6 @@ This project was developed with the assistance of AI coding tools under a human-
 ## License
 
 MIT
-
-## Star History
 
 ## Star History
 

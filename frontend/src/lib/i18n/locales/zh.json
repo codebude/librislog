@@ -84,7 +84,8 @@
     "want_to_read": "想读",
     "currently_reading": "在读",
     "read": "已读",
-    "did_not_finish": "弃读"
+    "did_not_finish": "弃读",
+    "all": "所有书籍"
   },
   "common": {
     "all": "全部",
@@ -303,7 +304,7 @@
       "multiWord": "多词值请用双引号括起来，例如 author:\"Marlen Haushofer\"。",
       "combine": "可以组合多个前缀；结果必须满足所有条件。",
       "negate": "在任何词条前加 - 以将其排除，例如 tag:cars -tag:audi。",
-      "availabilityValues": "可用性值：owned、borrowed、digital_access、to_acquire"
+      "possessionValues": "持有值：owned、borrowed、digital_access、to_acquire"
     }
   },
   "languages": {

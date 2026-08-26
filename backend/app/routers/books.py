@@ -156,7 +156,7 @@ def list_books(
         default=None,
         description=(
             "Search phrase. Use <field>:<value> to restrict a term to a single field "
-            "(author, publisher, title, tag, language, availability, notes, description). "
+            "(author, publisher, title, tag, language, possession, notes, description). "
             "Wrap multi-word values in double quotes (e.g. author:\"Marlen Haushofer\") and "
             "prefix any term with - to negate it (e.g. tag:cars -tag:audi)."
         ),

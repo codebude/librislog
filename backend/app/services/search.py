@@ -28,13 +28,13 @@ FIELD_COLUMNS: dict[str, Any] = {
     "description": Book.blurb,
 }
 
-# Availability is a special case: it maps to an exact enum comparison.
-AVAILABILITY_PREFIX = "availability"
+# Possession is a special case: it maps to an exact enum comparison.
+POSSESSION_PREFIX = "possession"
 TAG_PREFIX = "tag"
 AUTHOR_PREFIX = "author"
 
 SUPPORTED_PREFIXES: frozenset[str] = frozenset(
-    [*FIELD_COLUMNS.keys(), AVAILABILITY_PREFIX, TAG_PREFIX, AUTHOR_PREFIX]
+    [*FIELD_COLUMNS.keys(), POSSESSION_PREFIX, TAG_PREFIX, AUTHOR_PREFIX]
 )
 
 # Default fields searched by an unprefixed term (unchanged from the previous
@@ -168,7 +168,7 @@ def _unprefixed_condition(value: str, user_id: int) -> Any:
     )
 
 
-def _availability_condition(value: str) -> Any | None:
+def _possession_condition(value: str) -> Any | None:
     """Build the exact acquisition-status condition, or ``None`` if invalid."""
     normalized = value.strip().lower().replace(" ", "_")
     try:
@@ -180,8 +180,8 @@ def _availability_condition(value: str) -> Any | None:
 
 def _field_condition(field: str, value: str, user_id: int) -> Any | None:
     """Build the condition for a single field-specific term."""
-    if field == AVAILABILITY_PREFIX:
-        return _availability_condition(value)
+    if field == POSSESSION_PREFIX:
+        return _possession_condition(value)
     if field == TAG_PREFIX:
         return _tag_condition(value, user_id)
     if field == AUTHOR_PREFIX:
@@ -212,7 +212,7 @@ def apply_search_filter(statement: Any, query: str, user_id: int) -> Any:
 
         condition = _field_condition(term.field, term.value, user_id)
         if condition is None:
-            # Invalid availability value: positive yields no rows, negated is a no-op.
+            # Invalid possession value: positive yields no rows, negated is a no-op.
             conditions.append(sa.false() if not term.negated else sa.true())
         elif term.negated:
             conditions.append(sa.not_(condition))

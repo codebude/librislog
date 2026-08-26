@@ -13,11 +13,11 @@ Books are categorized into four statuses:
 | **Read** | Books you've finished |
 | **Did Not Finish** | Books you started but abandoned |
 
-Each status has its own tab in the library view, making it easy to browse your collection by reading state.
+Each status has its own tab in the library view, making it easy to browse your collection by reading state. A fifth **All Books** tab shows every book regardless of status; like the other tabs it supports search and sorting (smart sort is disabled there, since it's based on per-status defaults).
 
-## Availability
+## Possession
 
-Availability is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the availability filter to narrow the list without changing its newest-first order.
+Possession is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the possession filter to narrow the list without changing its newest-first order.
 
 ![Library](/screenshots/library-read.png)
 

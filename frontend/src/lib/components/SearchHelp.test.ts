@@ -33,7 +33,7 @@ describe('SearchHelp', () => {
 		expect(dialog).toHaveTextContent('title');
 		expect(dialog).toHaveTextContent('tag');
 		expect(dialog).toHaveTextContent('language');
-		expect(dialog).toHaveTextContent('availability');
+		expect(dialog).toHaveTextContent('possession');
 		expect(dialog).toHaveTextContent('notes');
 		expect(dialog).toHaveTextContent('description');
 	});

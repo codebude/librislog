@@ -40,6 +40,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'API', link: '/api/' },
+      { text: 'Releases', link: '/releases' },
       { text: 'About', link: '/about' },
     ],
     sidebar: {
@@ -60,6 +61,7 @@ export default defineConfig({
               ],
             },
             { text: 'Integrations 🔗', link: '/api/integrations/' },
+            { text: 'Release Notes', link: '/releases' },
           ],
         },
         {

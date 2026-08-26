@@ -13,7 +13,7 @@ Use `<field>:<value>` to search in a single field. The field prefixes are always
 | `publisher` | Publisher | `publisher:Penguin` |
 | `language` | Language | `language:Japanese` |
 | `tag` | Tag name | `tag:fantasy` |
-| `availability` | Acquisition status | `availability:owned` |
+| `possession` | Possession status | `possession:owned` |
 | `notes` | Private notes | `notes:"to reread"` |
 | `description` | Blurb / description | `description:"middle earth"` |
 
@@ -21,16 +21,16 @@ Use quotes for values that contain spaces: `title:"The Silmarillion"`.
 
 The `author:` prefix matches **any** author assigned to a book — a book with multiple authors matches if any of them contains the search value.
 
-### Availability values
+### Possession values
 
-The `availability` prefix matches the exact acquisition status. Accepted values include:
+The `possession` prefix matches the exact possession status. Accepted values include:
 
 - `to_acquire` (or `to acquire`)
 - `owned`
 - `borrowed`
 - `digital`
 
-Example: `availability:"to acquire"` shows books you want to buy.
+Example: `possession:"to acquire"` shows books you want to buy.
 
 ## Negation
 
@@ -45,7 +45,7 @@ Prefix a term with `-` to exclude matches.
 Separate terms with spaces. All terms are combined with **AND**.
 
 - `author:Murakami -title:Norwegian` — Murakami books except those whose title contains "Norwegian"
-- `tag:fantasy availability:owned` — owned fantasy books
+- `tag:fantasy possession:owned` — owned fantasy books
 
 ## Plain text
 

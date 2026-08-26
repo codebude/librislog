@@ -86,7 +86,7 @@ def test_parse_bare_prefix() -> None:
 
 
 def test_parse_all_supported_prefixes() -> None:
-    query = "author:a title:t publisher:p tag:g language:en availability:owned notes:n description:d"
+    query = "author:a title:t publisher:p tag:g language:en possession:owned notes:n description:d"
     fields = [t.field for t in parse_search_query(query)]
     assert fields == [
         "author",
@@ -94,22 +94,22 @@ def test_parse_all_supported_prefixes() -> None:
         "publisher",
         "tag",
         "language",
-        "availability",
+        "possession",
         "notes",
         "description",
     ]
 
 
-def test_availability_condition_accepts_enum_values() -> None:
-    from app.services.search import _availability_condition
+def test_possession_condition_accepts_enum_values() -> None:
+    from app.services.search import _possession_condition
 
-    assert _availability_condition("owned") is not None
-    assert _availability_condition("digital_access") is not None
-    assert _availability_condition("to acquire") is not None
-    assert _availability_condition("owned") is not None
+    assert _possession_condition("owned") is not None
+    assert _possession_condition("digital_access") is not None
+    assert _possession_condition("to acquire") is not None
+    assert _possession_condition("owned") is not None
 
 
-def test_availability_condition_rejects_unknown_value() -> None:
-    from app.services.search import _availability_condition
+def test_possession_condition_rejects_unknown_value() -> None:
+    from app.services.search import _possession_condition
 
-    assert _availability_condition("not-a-status") is None
+    assert _possession_condition("not-a-status") is None

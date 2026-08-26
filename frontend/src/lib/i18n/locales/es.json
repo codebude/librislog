@@ -84,7 +84,8 @@
     "want_to_read": "Quiero leer",
     "currently_reading": "Leyendo",
     "read": "Leído",
-    "did_not_finish": "Abandonado"
+    "did_not_finish": "Abandonado",
+    "all": "Todos los libros"
   },
   "common": {
     "all": "Todos",
@@ -303,7 +304,7 @@
       "multiWord": "Envuelve los valores de varias palabras entre comillas dobles, p. ej. author:\"Marlen Haushofer\".",
       "combine": "Puedes combinar varios prefijos; los resultados deben coincidir con todos.",
       "negate": "Antepón - a cualquier término para excluirlo, p. ej. tag:cars -tag:audi.",
-      "availabilityValues": "valores de disponibilidad: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "valores de posesión: owned, borrowed, digital_access, to_acquire"
     }
   },
   "languages": {
