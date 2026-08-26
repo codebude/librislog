@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { Book, DashboardQuote, LibraryStats } from '$lib/types';
+	import type { Book, DashboardQuote, GamificationResponse, LibraryStats } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -12,10 +12,13 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import GamificationCard from '$lib/components/GamificationCard.svelte';
 	import SearchHelp from '$lib/components/SearchHelp.svelte';
 import { Search, X } from '@lucide/svelte';
 
 	let loading = $state(true);
+	let gamification = $state<GamificationResponse | null>(null);
+	let gamificationLoading = $state(true);
 	let stats = $state<LibraryStats>({
 		total_books: 0,
 		books_read: 0,
@@ -81,8 +84,9 @@ import { Search, X } from '@lucide/svelte';
 
 	async function loadDashboard() {
 		loading = true;
+		gamificationLoading = true;
 		try {
-			const [statsData, readingResponse, wantToReadResponse] = await Promise.all([
+			const [statsData, readingResponse, wantToReadResponse, gamificationData] = await Promise.all([
 				api.books.stats(),
 				api.books.list({
 					status: 'currently_reading',
@@ -95,12 +99,16 @@ import { Search, X } from '@lucide/svelte';
 					smart_sort: false,
 					sort: 'date_added',
 					order: 'asc'
-				})
+				}),
+				// Gamification is optional: a failure must not blank the dashboard.
+				api.statistics.gamification().catch(() => null)
 			]);
 
 			stats = statsData;
 			currentlyReading = readingResponse.books.slice(0, 5);
 			nextToRead = wantToReadResponse.books.slice(0, 5);
+			gamification =
+				gamificationData ?? { current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -111,6 +119,7 @@ import { Search, X } from '@lucide/svelte';
 			}
 		} finally {
 			loading = false;
+			gamificationLoading = false;
 		}
 
 		await loadQuote();
@@ -434,6 +443,15 @@ import { Search, X } from '@lucide/svelte';
 			<div class="stat-value text-warning">{stats.books_reading}</div>
 		</a>
 	</div>
+
+	<GamificationCard
+		currentStreak={gamification?.current_streak ?? 0}
+		longestStreak={gamification?.longest_streak ?? 0}
+		longestStreakStart={gamification?.longest_streak_start ?? null}
+		longestStreakEnd={gamification?.longest_streak_end ?? null}
+		goals={gamification?.goals ?? []}
+		loading={gamificationLoading}
+	/>
 
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-4">

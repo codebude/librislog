@@ -78,7 +78,19 @@
     "noSearchResults": "Keine Bücher gefunden",
     "noCurrentlyReading": "Du liest aktuell kein Buch.",
     "noNextToRead": "Noch keine Bücher in deiner Wunschliste.",
-    "popularTags": "Beliebte Tags"
+    "popularTags": "Beliebte Tags",
+    "gamificationTitle": "Streaks & Ziele",
+    "currentStreak": "Aktueller Streak",
+    "currentStreakHint": "Aufeinanderfolgende Tage mit Leseaktivität",
+    "longestStreak": "Längster Streak",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "Seiten pro Tag",
+    "goalPagesPerMonth": "Seiten pro Monat",
+    "goalBooksPerMonth": "Bücher pro Monat",
+    "goalBooksPerYear": "Bücher pro Jahr",
+    "goalReached": "Ziel erreicht",
+    "goalOf": "von {target}",
+    "goalProgress": "{current} von {target}"
   },
   "status": {
     "want_to_read": "Möchte ich lesen",
@@ -478,6 +490,21 @@
     "profileSaveFailed": "Profil konnte nicht gespeichert werden",
     "passwordChangeSuccess": "Passwort geändert",
     "passwordChangeFailed": "Passwort konnte nicht geändert werden",
+    "goals": {
+      "title": "Leseziele",
+      "subtitle": "Aktiviere Ziele, um sie spielerisch auf dem Dashboard zu verfolgen.",
+      "pagesPerDay": "Seiten pro Tag",
+      "pagesPerMonth": "Seiten pro Monat",
+      "booksPerMonth": "Bücher pro Monat",
+      "booksPerYear": "Bücher pro Jahr",
+      "target": "Ziel",
+      "pagesPerDayTarget": "Ziel: Seiten pro Tag",
+      "pagesPerMonthTarget": "Ziel: Seiten pro Monat",
+      "booksPerMonthTarget": "Ziel: Bücher pro Monat",
+      "booksPerYearTarget": "Ziel: Bücher pro Jahr",
+      "saveSuccess": "Leseziele gespeichert",
+      "invalidTarget": "{name} muss eine ganze Zahl von mindestens 1 sein."
+    },
     "dataManagement": {
       "title": "Meine Daten verwalten",
       "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",

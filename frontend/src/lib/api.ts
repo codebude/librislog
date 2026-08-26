@@ -24,6 +24,7 @@ import type {
 	BookProgress,
 	DailyPagesResponse,
 	DashboardQuote,
+	GamificationResponse,
 	StatisticsResponse,
 	LibraryStats,
 	ReadingProgressEntry,
@@ -161,7 +162,7 @@ export const api = {
 			return request<UserSettings>('/profile/settings');
 		},
 
-		updateSettings(data: { language?: string; timezone?: string; theme?: string; custom_theme?: string | null }): Promise<UserSettings> {
+		updateSettings(data: Partial<UserSettings>): Promise<UserSettings> {
 			return request<UserSettings>('/profile/settings', {
 				method: 'PATCH',
 				body: JSON.stringify(data)
@@ -264,6 +265,10 @@ export const api = {
 		getPagesPerDay(days: number = 365): Promise<DailyPagesResponse> {
 			const qs = new URLSearchParams({ days: String(days) });
 			return request<DailyPagesResponse>(`/statistics/pages-per-day?${qs}`);
+		},
+
+		gamification(): Promise<GamificationResponse> {
+			return request<GamificationResponse>('/statistics/gamification');
 		}
 	},
 

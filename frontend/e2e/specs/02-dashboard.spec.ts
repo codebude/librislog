@@ -80,4 +80,11 @@ test.describe('Dashboard', () => {
 		await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 		await expect(page.locator('[role="dialog"]')).toContainText(/The Great Gatsby/i);
 	});
+
+	test('2.8 gamification card shows current and longest streak', async ({ page }) => {
+		const card = page.locator('text=Reading Streaks & Goals');
+		await expect(card).toBeVisible({ timeout: 5000 });
+		await expect(page.locator('text=Current Streak')).toBeVisible();
+		await expect(page.locator('text=Longest Streak')).toBeVisible();
+	});
 });

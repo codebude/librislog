@@ -104,6 +104,14 @@ def get_settings(
         timezone=settings.timezone,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
+        goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
+        goal_pages_per_day=settings.goal_pages_per_day,
+        goal_pages_per_month_enabled=settings.goal_pages_per_month_enabled,
+        goal_pages_per_month=settings.goal_pages_per_month,
+        goal_books_per_month_enabled=settings.goal_books_per_month_enabled,
+        goal_books_per_month=settings.goal_books_per_month,
+        goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
+        goal_books_per_year=settings.goal_books_per_year,
     )
 
 
@@ -133,6 +141,14 @@ def update_settings(
         timezone=settings.timezone,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
+        goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
+        goal_pages_per_day=settings.goal_pages_per_day,
+        goal_pages_per_month_enabled=settings.goal_pages_per_month_enabled,
+        goal_pages_per_month=settings.goal_pages_per_month,
+        goal_books_per_month_enabled=settings.goal_books_per_month_enabled,
+        goal_books_per_month=settings.goal_books_per_month,
+        goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
+        goal_books_per_year=settings.goal_books_per_year,
     )
 
 

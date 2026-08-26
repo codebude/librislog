@@ -37,6 +37,16 @@
 	let themeMode = $state(getThemeMode());
 	let customTheme = $state<string>(getCustomTheme() ?? 'dracula');
 	let themeMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let goalPagesPerDayEnabled = $state(false);
+	let goalPagesPerDay = $state(20);
+	let goalPagesPerMonthEnabled = $state(false);
+	let goalPagesPerMonth = $state(300);
+	let goalBooksPerMonthEnabled = $state(false);
+	let goalBooksPerMonth = $state(2);
+	let goalBooksPerYearEnabled = $state(false);
+	let goalBooksPerYear = $state(25);
+	let goalsMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let goalsSaving = $state(false);
 	let resetDataConfirmation = $state('');
 	let resetDataMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let deleteAccountConfirmation = $state('');
@@ -124,6 +134,14 @@
 			customTheme = settings.custom_theme;
 			setCustomTheme(customTheme);
 		}
+		goalPagesPerDayEnabled = settings.goal_pages_per_day_enabled;
+		goalPagesPerDay = settings.goal_pages_per_day;
+		goalPagesPerMonthEnabled = settings.goal_pages_per_month_enabled;
+		goalPagesPerMonth = settings.goal_pages_per_month;
+		goalBooksPerMonthEnabled = settings.goal_books_per_month_enabled;
+		goalBooksPerMonth = settings.goal_books_per_month;
+		goalBooksPerYearEnabled = settings.goal_books_per_year_enabled;
+		goalBooksPerYear = settings.goal_books_per_year;
 		applyThemeToDocument();
 		saveThemeToStorage();
 		saveRestorePoint();
@@ -224,6 +242,39 @@
 			themeMessage = { type: 'success', text: $_('common.saved') };
 		} catch (e: unknown) {
 			themeMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		}
+	}
+
+	async function saveGoals() {
+		goalsMessage = null;
+		const targets = [
+			{ enabled: goalPagesPerDayEnabled, value: goalPagesPerDay, key: $_('profile.goals.pagesPerDay') },
+			{ enabled: goalPagesPerMonthEnabled, value: goalPagesPerMonth, key: $_('profile.goals.pagesPerMonth') },
+			{ enabled: goalBooksPerMonthEnabled, value: goalBooksPerMonth, key: $_('profile.goals.booksPerMonth') },
+			{ enabled: goalBooksPerYearEnabled, value: goalBooksPerYear, key: $_('profile.goals.booksPerYear') }
+		];
+		const invalid = targets.find((t) => t.enabled && (!Number.isInteger(t.value) || t.value < 1));
+		if (invalid) {
+			goalsMessage = { type: 'error', text: $_('profile.goals.invalidTarget', { values: { name: invalid.key } }) };
+			return;
+		}
+		goalsSaving = true;
+		try {
+			await api.profile.updateSettings({
+				goal_pages_per_day_enabled: goalPagesPerDayEnabled,
+				goal_pages_per_day: goalPagesPerDay,
+				goal_pages_per_month_enabled: goalPagesPerMonthEnabled,
+				goal_pages_per_month: goalPagesPerMonth,
+				goal_books_per_month_enabled: goalBooksPerMonthEnabled,
+				goal_books_per_month: goalBooksPerMonth,
+				goal_books_per_year_enabled: goalBooksPerYearEnabled,
+				goal_books_per_year: goalBooksPerYear
+			});
+			goalsMessage = { type: 'success', text: $_('profile.goals.saveSuccess') };
+		} catch (e: unknown) {
+			goalsMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		} finally {
+			goalsSaving = false;
 		}
 	}
 
@@ -565,6 +616,98 @@
 		</div>
 	</div>
 
+	<div id="section-goals" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.goals.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.goals.subtitle')}</p>
+			{#if goalsMessage}
+				<Alert type={goalsMessage.type === 'success' ? 'success' : 'error'} onClose={() => (goalsMessage = null)}>
+					{goalsMessage.text}
+				</Alert>
+			{/if}
+			<div class="flex flex-col gap-3">
+				<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="checkbox" class="toggle toggle-sm toggle-primary" name="goal-pages-per-day-enabled" bind:checked={goalPagesPerDayEnabled} />
+						<span class="text-sm font-medium">{$_('profile.goals.pagesPerDay')}</span>
+					</label>
+					<label class="flex items-center gap-2">
+						<span class="text-xs text-base-content/50">{$_('profile.goals.target')}</span>
+						<input
+							type="number"
+							class="input input-bordered input-sm w-24"
+							name="goal-pages-per-day"
+							min="1"
+							aria-label={$_('profile.goals.pagesPerDayTarget')}
+							bind:value={goalPagesPerDay}
+							disabled={!goalPagesPerDayEnabled}
+						/>
+					</label>
+				</div>
+
+				<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="checkbox" class="toggle toggle-sm toggle-info" name="goal-pages-per-month-enabled" bind:checked={goalPagesPerMonthEnabled} />
+						<span class="text-sm font-medium">{$_('profile.goals.pagesPerMonth')}</span>
+					</label>
+					<label class="flex items-center gap-2">
+						<span class="text-xs text-base-content/50">{$_('profile.goals.target')}</span>
+						<input
+							type="number"
+							class="input input-bordered input-sm w-24"
+							name="goal-pages-per-month"
+							min="1"
+							aria-label={$_('profile.goals.pagesPerMonthTarget')}
+							bind:value={goalPagesPerMonth}
+							disabled={!goalPagesPerMonthEnabled}
+						/>
+					</label>
+				</div>
+
+				<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="checkbox" class="toggle toggle-sm toggle-warning" name="goal-books-per-month-enabled" bind:checked={goalBooksPerMonthEnabled} />
+						<span class="text-sm font-medium">{$_('profile.goals.booksPerMonth')}</span>
+					</label>
+					<label class="flex items-center gap-2">
+						<span class="text-xs text-base-content/50">{$_('profile.goals.target')}</span>
+						<input
+							type="number"
+							class="input input-bordered input-sm w-24"
+							name="goal-books-per-month"
+							min="1"
+							aria-label={$_('profile.goals.booksPerMonthTarget')}
+							bind:value={goalBooksPerMonth}
+							disabled={!goalBooksPerMonthEnabled}
+						/>
+					</label>
+				</div>
+
+				<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="checkbox" class="toggle toggle-sm toggle-success" name="goal-books-per-year-enabled" bind:checked={goalBooksPerYearEnabled} />
+						<span class="text-sm font-medium">{$_('profile.goals.booksPerYear')}</span>
+					</label>
+					<label class="flex items-center gap-2">
+						<span class="text-xs text-base-content/50">{$_('profile.goals.target')}</span>
+						<input
+							type="number"
+							class="input input-bordered input-sm w-24"
+							name="goal-books-per-year"
+							min="1"
+							aria-label={$_('profile.goals.booksPerYearTarget')}
+							bind:value={goalBooksPerYear}
+							disabled={!goalBooksPerYearEnabled}
+						/>
+					</label>
+				</div>
+			</div>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveGoals} disabled={goalsSaving}>
+				{goalsSaving ? $_('common.saving') : $_('common.save')}
+			</button>
+		</div>
+	</div>
+
 	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
@@ -852,6 +995,7 @@
 		<li><a href="#section-language" class:menu-active={activeSection === 'section-language'}>{$_('settings.languageTitle')}</a></li>
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
 		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
+		<li><a href="#section-goals" class:menu-active={activeSection === 'section-goals'}>{$_('profile.goals.title')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
 		<li><a href="#section-embed-tokens" class:menu-active={activeSection === 'section-embed-tokens'}>{$_('user.embedTokens')}</a></li>
 		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>

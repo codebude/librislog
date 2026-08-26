@@ -219,6 +219,31 @@ export interface UserSettings {
 	timezone: string;
 	theme: string;
 	custom_theme: string | null;
+	goal_pages_per_day_enabled: boolean;
+	goal_pages_per_day: number;
+	goal_pages_per_month_enabled: boolean;
+	goal_pages_per_month: number;
+	goal_books_per_month_enabled: boolean;
+	goal_books_per_month: number;
+	goal_books_per_year_enabled: boolean;
+	goal_books_per_year: number;
+}
+
+export type GoalType = 'pages_per_day' | 'pages_per_month' | 'books_per_month' | 'books_per_year';
+
+export interface GoalProgress {
+	type: GoalType;
+	target: number;
+	current: number;
+	reached: boolean;
+}
+
+export interface GamificationResponse {
+	current_streak: number;
+	longest_streak: number;
+	longest_streak_start: string | null;
+	longest_streak_end: string | null;
+	goals: GoalProgress[];
 }
 
 export interface ApiKeyMeta {

@@ -300,6 +300,31 @@ class StatisticsResponse(SQLModel):
     worst_rated_books: list[TopRatedBook]
 
 
+class GoalType(str, Enum):
+    """Reading goal types tracked on the dashboard."""
+    pages_per_day = "pages_per_day"
+    pages_per_month = "pages_per_month"
+    books_per_month = "books_per_month"
+    books_per_year = "books_per_year"
+
+
+class GoalProgress(SQLModel):
+    """Progress toward a single reading goal (enabled goals only)."""
+    type: GoalType
+    target: int
+    current: int
+    reached: bool
+
+
+class GamificationResponse(SQLModel):
+    """Dashboard gamification data — reading streaks and goal progress."""
+    current_streak: int
+    longest_streak: int
+    longest_streak_start: Optional[str] = None
+    longest_streak_end: Optional[str] = None
+    goals: list[GoalProgress]
+
+
 class UserLogin(SQLModel):
     """Login request body."""
     email: str
@@ -378,6 +403,14 @@ class UserSettingsRead(SQLModel):
     timezone: str
     theme: str
     custom_theme: Optional[str] = None
+    goal_pages_per_day_enabled: bool
+    goal_pages_per_day: int
+    goal_pages_per_month_enabled: bool
+    goal_pages_per_month: int
+    goal_books_per_month_enabled: bool
+    goal_books_per_month: int
+    goal_books_per_year_enabled: bool
+    goal_books_per_year: int
 
 
 class UserSettingsUpdate(SQLModel):
@@ -386,6 +419,14 @@ class UserSettingsUpdate(SQLModel):
     timezone: Optional[str] = None
     theme: Optional[str] = None
     custom_theme: Optional[str] = None
+    goal_pages_per_day_enabled: Optional[bool] = None
+    goal_pages_per_day: Optional[int] = Field(default=None, ge=1)
+    goal_pages_per_month_enabled: Optional[bool] = None
+    goal_pages_per_month: Optional[int] = Field(default=None, ge=1)
+    goal_books_per_month_enabled: Optional[bool] = None
+    goal_books_per_month: Optional[int] = Field(default=None, ge=1)
+    goal_books_per_year_enabled: Optional[bool] = None
+    goal_books_per_year: Optional[int] = Field(default=None, ge=1)
 
     @field_validator('theme')
     @classmethod

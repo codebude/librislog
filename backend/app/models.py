@@ -183,6 +183,14 @@ class UserSettings(SQLModel, table=True):
     timezone: str = Field(default="UTC", max_length=64)
     theme: str = Field(default="light", max_length=20)
     custom_theme: Optional[str] = Field(default=None, max_length=30)
+    goal_pages_per_day_enabled: bool = Field(default=False)
+    goal_pages_per_day: int = Field(default=20, ge=1)
+    goal_pages_per_month_enabled: bool = Field(default=False)
+    goal_pages_per_month: int = Field(default=300, ge=1)
+    goal_books_per_month_enabled: bool = Field(default=False)
+    goal_books_per_month: int = Field(default=2, ge=1)
+    goal_books_per_year_enabled: bool = Field(default=False)
+    goal_books_per_year: int = Field(default=25, ge=1)
 
 
 class ApiKey(SQLModel, table=True):

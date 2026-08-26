@@ -219,3 +219,67 @@ describe('api.profile.embedTokens', () => {
 		expect(fetchMock.mock.calls[0][0]).toContain('/profile/embed-tokens/1');
 	});
 });
+
+describe('api.statistics.gamification', () => {
+	afterEach(() => {
+		apiKey.set(null);
+		csrfToken.set(null);
+		vi.restoreAllMocks();
+	});
+
+	it('calls GET /statistics/gamification', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: { get: () => 'application/json' },
+			json: async () => ({
+				current_streak: 2,
+				longest_streak: 5,
+				longest_streak_start: '2026-01-01',
+				longest_streak_end: '2026-01-05',
+				goals: [
+					{ type: 'pages_per_day', target: 20, current: 15, reached: false }
+				]
+			})
+		} as unknown as Response);
+
+		const data = await api.statistics.gamification();
+		expect(fetchMock.mock.calls[0][0]).toContain('/statistics/gamification');
+		expect(data.current_streak).toBe(2);
+		expect(data.goals[0].type).toBe('pages_per_day');
+	});
+
+	it('updateSettings sends goal fields', async () => {
+		apiKey.set('test-key');
+		csrfToken.set('test-csrf');
+
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			headers: { get: () => 'application/json' },
+			json: async () => ({
+				user_id: 1,
+				language: 'en',
+				timezone: 'UTC',
+				theme: 'light',
+				custom_theme: null,
+				goal_pages_per_day_enabled: true,
+				goal_pages_per_day: 25,
+				goal_pages_per_month_enabled: false,
+				goal_pages_per_month: 300,
+				goal_books_per_month_enabled: false,
+				goal_books_per_month: 2,
+				goal_books_per_year_enabled: true,
+				goal_books_per_year: 25
+			})
+		} as unknown as Response);
+
+		await api.profile.updateSettings({ goal_pages_per_day_enabled: true, goal_pages_per_day: 25 });
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.method).toBe('PATCH');
+		expect(fetchMock.mock.calls[0][0]).toContain('/profile/settings');
+		const body = JSON.parse(String(init.body));
+		expect(body).toMatchObject({ goal_pages_per_day_enabled: true, goal_pages_per_day: 25 });
+	});
+});
