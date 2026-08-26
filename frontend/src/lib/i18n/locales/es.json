@@ -78,7 +78,19 @@
     "noSearchResults": "No se encontraron libros",
     "noCurrentlyReading": "No estás leyendo ningún libro actualmente.",
     "noNextToRead": "Aún no hay libros en tu lista de deseos.",
-    "popularTags": "Etiquetas populares"
+    "popularTags": "Etiquetas populares",
+    "gamificationTitle": "Rachas de lectura y metas",
+    "currentStreak": "Racha actual",
+    "currentStreakHint": "Días consecutivos con actividad de lectura",
+    "longestStreak": "Racha más larga",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "Páginas por día",
+    "goalPagesPerMonth": "Páginas por mes",
+    "goalBooksPerMonth": "Libros por mes",
+    "goalBooksPerYear": "Libros por año",
+    "goalReached": "Meta alcanzada",
+    "goalOf": "de {target}",
+    "goalProgress": "{current} de {target}"
   },
   "status": {
     "want_to_read": "Quiero leer",
@@ -478,6 +490,22 @@
     "profileSaveFailed": "Error al guardar el perfil",
     "passwordChangeSuccess": "Contraseña cambiada",
     "passwordChangeFailed": "Error al cambiar la contraseña",
+    "goals": {
+      "title": "Metas de lectura",
+      "subtitle": "Activa metas para seguirlas de forma lúdica en el panel.",
+      "dashboardToggle": "Mostrar rachas y metas de lectura en el panel",
+      "pagesPerDay": "Páginas por día",
+      "pagesPerMonth": "Páginas por mes",
+      "booksPerMonth": "Libros por mes",
+      "booksPerYear": "Libros por año",
+      "target": "Meta",
+      "pagesPerDayTarget": "Meta de páginas por día",
+      "pagesPerMonthTarget": "Meta de páginas por mes",
+      "booksPerMonthTarget": "Meta de libros por mes",
+      "booksPerYearTarget": "Meta de libros por año",
+      "saveSuccess": "Metas de lectura guardadas",
+      "invalidTarget": "{name} debe ser un número entero de al menos 1."
+    },
     "dataManagement": {
       "title": "Gestionar mis datos",
       "description": "Exporta tu biblioteca o importa libros desde un archivo CSV/JSON.",

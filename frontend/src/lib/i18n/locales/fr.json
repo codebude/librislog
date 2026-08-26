@@ -78,7 +78,19 @@
     "noSearchResults": "Aucun livre trouvé",
     "noCurrentlyReading": "Tu ne lis aucun livre actuellement.",
     "noNextToRead": "Aucun livre dans ta liste d'envies.",
-    "popularTags": "Étiquettes populaires"
+    "popularTags": "Étiquettes populaires",
+    "gamificationTitle": "Séries de lecture & objectifs",
+    "currentStreak": "Série actuelle",
+    "currentStreakHint": "Jours consécutifs avec activité de lecture",
+    "longestStreak": "Série la plus longue",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "Pages par jour",
+    "goalPagesPerMonth": "Pages par mois",
+    "goalBooksPerMonth": "Livres par mois",
+    "goalBooksPerYear": "Livres par an",
+    "goalReached": "Objectif atteint",
+    "goalOf": "sur {target}",
+    "goalProgress": "{current} sur {target}"
   },
   "status": {
     "want_to_read": "À lire",
@@ -478,6 +490,22 @@
     "profileSaveFailed": "Échec de l'enregistrement du profil",
     "passwordChangeSuccess": "Mot de passe modifié",
     "passwordChangeFailed": "Échec de la modification du mot de passe",
+    "goals": {
+      "title": "Objectifs de lecture",
+      "subtitle": "Activez des objectifs pour les suivre de façon ludique sur votre tableau de bord.",
+      "dashboardToggle": "Afficher les séries et objectifs de lecture sur le tableau de bord",
+      "pagesPerDay": "Pages par jour",
+      "pagesPerMonth": "Pages par mois",
+      "booksPerMonth": "Livres par mois",
+      "booksPerYear": "Livres par an",
+      "target": "Objectif",
+      "pagesPerDayTarget": "Objectif de pages par jour",
+      "pagesPerMonthTarget": "Objectif de pages par mois",
+      "booksPerMonthTarget": "Objectif de livres par mois",
+      "booksPerYearTarget": "Objectif de livres par an",
+      "saveSuccess": "Objectifs de lecture enregistrés",
+      "invalidTarget": "{name} doit être un nombre entier d'au moins 1."
+    },
     "dataManagement": {
       "title": "Gérer mes données",
       "description": "Exporte ta bibliothèque ou importe des livres depuis un fichier CSV/JSON.",

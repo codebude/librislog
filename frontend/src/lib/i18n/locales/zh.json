@@ -78,7 +78,19 @@
     "noSearchResults": "未找到图书",
     "noCurrentlyReading": "你当前没有在读的图书。",
     "noNextToRead": "你的想读列表还没有图书。",
-    "popularTags": "热门标签"
+    "popularTags": "热门标签",
+    "gamificationTitle": "阅读连续天数与目标",
+    "currentStreak": "当前连续",
+    "currentStreakHint": "有阅读活动的连续天数",
+    "longestStreak": "最长连续",
+    "longestStreakDateRange": "{start} – {end}",
+    "goalPagesPerDay": "每天页数",
+    "goalPagesPerMonth": "每月页数",
+    "goalBooksPerMonth": "每月本书",
+    "goalBooksPerYear": "每年本书",
+    "goalReached": "目标达成",
+    "goalOf": "共 {target}",
+    "goalProgress": "{current} / {target}"
   },
   "status": {
     "want_to_read": "想读",
@@ -478,6 +490,22 @@
     "profileSaveFailed": "保存个人资料失败",
     "passwordChangeSuccess": "密码已更改",
     "passwordChangeFailed": "更改密码失败",
+    "goals": {
+      "title": "阅读目标",
+      "subtitle": "启用目标，即可在仪表板上趣味追踪进度。",
+      "dashboardToggle": "在仪表板上显示阅读连续天数与目标",
+      "pagesPerDay": "每天页数",
+      "pagesPerMonth": "每月页数",
+      "booksPerMonth": "每月本书",
+      "booksPerYear": "每年本书",
+      "target": "目标",
+      "pagesPerDayTarget": "每天页数目标",
+      "pagesPerMonthTarget": "每月页数目标",
+      "booksPerMonthTarget": "每月本书目标",
+      "booksPerYearTarget": "每年本书目标",
+      "saveSuccess": "阅读目标已保存",
+      "invalidTarget": "{name} 必须是至少为 1 的整数。"
+    },
     "dataManagement": {
       "title": "管理我的数据",
       "description": "导出你的书库或从 CSV/JSON 文件导入图书。",

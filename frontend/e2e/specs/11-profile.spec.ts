@@ -113,4 +113,43 @@ test.describe('Profile', () => {
 		// Now the embed tokens section should be visible
 		await expect(page.locator('#section-embed-tokens')).toBeVisible();
 	});
+
+	test('11.7 enable and configure reading goals', async ({ page }) => {
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		await page.locator('#section-goals').scrollIntoViewIfNeeded();
+		await page.waitForTimeout(500);
+
+		await page.locator('input[name="goal-pages-per-day-enabled"]').check();
+		await page.locator('input[name="goal-pages-per-day"]').fill('25');
+		await page.locator('input[name="goal-books-per-year-enabled"]').check();
+
+		await page.locator('#section-goals button[class*="btn-primary"]').click();
+		await page.waitForTimeout(1000);
+
+		const alert = page.locator('#section-goals .alert');
+		await expect(alert).toBeVisible({ timeout: 5000 });
+
+		await page.reload();
+		await page.waitForTimeout(1000);
+
+		await expect(page.locator('input[name="goal-pages-per-day-enabled"]')).toBeChecked();
+		await expect(page.locator('input[name="goal-pages-per-day"]')).toHaveValue('25');
+		await expect(page.locator('input[name="goal-books-per-year-enabled"]')).toBeChecked();
+	});
+
+	test('11.8 goal input is disabled until enabled', async ({ page }) => {
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		await page.locator('#section-goals').scrollIntoViewIfNeeded();
+		await page.waitForTimeout(500);
+
+		const input = page.locator('input[name="goal-books-per-month"]');
+		await expect(input).toBeDisabled();
+
+		await page.locator('input[name="goal-books-per-month-enabled"]').check();
+		await expect(input).toBeEnabled();
+	});
 });

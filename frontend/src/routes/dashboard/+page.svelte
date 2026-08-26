@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { Book, DashboardQuote, LibraryStats } from '$lib/types';
+	import type { Book, DashboardQuote, GamificationResponse, LibraryStats } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -12,10 +12,13 @@
 	import BookCard from '$lib/components/BookCard.svelte';
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import GamificationCard from '$lib/components/GamificationCard.svelte';
 	import SearchHelp from '$lib/components/SearchHelp.svelte';
 import { Search, X } from '@lucide/svelte';
 
 	let loading = $state(true);
+	let gamification = $state<GamificationResponse | null>(null);
+	let gamificationLoading = $state(true);
 	let stats = $state<LibraryStats>({
 		total_books: 0,
 		books_read: 0,
@@ -100,7 +103,7 @@ import { Search, X } from '@lucide/svelte';
 
 			stats = statsData;
 			currentlyReading = readingResponse.books.slice(0, 5);
-			nextToRead = wantToReadResponse.books.slice(0, 5);
+			nextToRead = shuffle(wantToReadResponse.books).slice(0, 5);
 
 			const allBooks = [...currentlyReading, ...nextToRead];
 			void loadProgressForBooks(allBooks);
@@ -113,8 +116,33 @@ import { Search, X } from '@lucide/svelte';
 			loading = false;
 		}
 
+		await loadGamification(true);
 		await loadQuote();
 		await loadTagCloud();
+	}
+
+	function shuffle<T>(items: T[]): T[] {
+		const copy = [...items];
+		for (let i = copy.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[copy[i], copy[j]] = [copy[j], copy[i]];
+		}
+		return copy;
+	}
+
+	async function loadGamification(showLoading = false) {
+		// Gamification is optional: a failure must not blank the dashboard.
+		// Once the section is disabled it stays hidden until the dashboard
+		// is (re)loaded, so repeated progress-change callbacks are no-ops.
+		if (gamification && gamification.enabled === false) return;
+		if (showLoading) gamificationLoading = true;
+		try {
+			gamification = await api.statistics.gamification();
+		} catch {
+			gamification = { enabled: false, current_streak: 0, longest_streak: 0, longest_streak_start: null, longest_streak_end: null, goals: [] };
+		} finally {
+			if (showLoading) gamificationLoading = false;
+		}
 	}
 
 	async function loadTagCloud() {
@@ -181,6 +209,7 @@ import { Search, X } from '@lucide/svelte';
 
 	function handleProgressChange(bookId: number, currentPage: number) {
 		progressMap = { ...progressMap, [bookId]: currentPage };
+		void loadGamification();
 	}
 
 	function handleDelete(id: number) {
@@ -302,7 +331,7 @@ import { Search, X } from '@lucide/svelte';
 
 <div class="flex flex-col gap-6">
 	<div class="hero rounded-2xl bg-base-100 shadow-sm border border-base-200">
-		<div class="hero-content text-center py-12">
+		<div class="hero-content text-center py-2">
 			<div class="max-w-2xl">
 				<h1 class="text-2xl sm:text-3xl font-bold tracking-tight">{$_('dashboard.title')}</h1>
 				<p class="text-base-content/70 mt-2">{$_('dashboard.subtitle')}</p>
@@ -455,6 +484,17 @@ import { Search, X } from '@lucide/svelte';
 			{/if}
 		</div>
 	</div>
+
+	{#if gamification === null || gamification.enabled}
+		<GamificationCard
+			currentStreak={gamification?.current_streak ?? 0}
+			longestStreak={gamification?.longest_streak ?? 0}
+			longestStreakStart={gamification?.longest_streak_start ?? null}
+			longestStreakEnd={gamification?.longest_streak_end ?? null}
+			goals={gamification?.goals ?? []}
+			loading={gamificationLoading}
+		/>
+	{/if}
 
 	<div class="card bg-base-100 border border-base-200 shadow-sm">
 		<div class="card-body gap-4">
