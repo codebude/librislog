@@ -61,7 +61,7 @@ Open **http://localhost:8001** and create your account.
 
 ## Why LibrisLog?
 
-- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no tracking, no vendor lock-in. A single SQLite file you can back up anytime.
+- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no user tracking, no vendor lock-in. A single SQLite file you can back up anytime.
 - **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
 - **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
 - **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
