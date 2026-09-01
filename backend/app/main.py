@@ -16,6 +16,9 @@ from app.logging_config import configure_logging
 from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, statistics, users
 from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
+from app.services.telemetry import send_telemetry_once
+
+_TELEMETRY_INTERVAL_SECONDS = 24 * 3600
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +62,20 @@ async def _periodic_maintenance(interval_hours: int = 1) -> None:
                 logger.warning("Periodic maintenance failed (%d): %s", failures, exc)
 
 
+async def _telemetry_heartbeat() -> None:
+    """Send one telemetry heartbeat at startup, then every 24 hours.
+
+    Telemetry is an installation census, not event tracking. ``send_telemetry_once``
+    never raises, so failures cannot interrupt the loop or the application.
+    """
+    while True:
+        try:
+            await send_telemetry_once()
+        except Exception as exc:  # noqa: BLE001 — telemetry must never interfere
+            logger.debug("Telemetry heartbeat failed: %s", exc)
+        await asyncio.sleep(_TELEMETRY_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: create required directories and start background tasks."""
@@ -73,12 +90,21 @@ async def lifespan(app: FastAPI):
         )
 
     maintenance_task = asyncio.create_task(_periodic_maintenance())
+    telemetry_task = (
+        asyncio.create_task(_telemetry_heartbeat()) if not settings.telemetry_disabled else None
+    )
     yield
     maintenance_task.cancel()
     try:
         await maintenance_task
     except asyncio.CancelledError:
         pass
+    if telemetry_task is not None:
+        telemetry_task.cancel()
+        try:
+            await telemetry_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __git_sha__ != "unknown" and __version__.find(__git_sha__[:7]) == -1:

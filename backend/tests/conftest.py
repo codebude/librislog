@@ -10,6 +10,8 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 os.environ.setdefault("API_KEY_ENCRYPTION_KEY", "test-api-key-encryption-secret")
+# Telemetry must never fire during the test suite (no network, no dev-DB writes).
+os.environ["TELEMETRY_DISABLED"] = "true"
 
 from app.auth import encrypt_api_key, generate_api_key, get_api_key_prefix, get_password_hash, hash_api_key
 from app.models import ApiKey, User, UserRole, UserSettings
