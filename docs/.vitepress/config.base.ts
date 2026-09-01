@@ -50,6 +50,7 @@ export default defineConfig({
           items: [
             { text: 'Quick Start', link: '/guide/getting-started' },
             { text: 'Configuration', link: '/guide/configuration' },
+            { text: 'Telemetry', link: '/guide/telemetry' },
             { text: 'API Keys', link: '/guide/api-keys' },
             {
               text: 'Developer Setup',

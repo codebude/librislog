@@ -105,6 +105,19 @@ uv run uvicorn app.main:app --reload
 
 ---
 
+## Telemetry
+
+LibrisLog sends a minimal, anonymous installation census (installation id, version, OS, CPU architecture, runtime) to understand how many installations exist and on which platforms they run. No user, book, reading, host, or personal data is ever collected, and it can be disabled with `TELEMETRY_DISABLED=true`.
+
+Both sides are fully open and verifiable:
+
+- **Telemetry server source:** [github.com/codebude/librislog-telemetry](https://github.com/codebude/librislog-telemetry)
+- **Live aggregated results:** [metrics.librislog.app](https://metrics.librislog.app/)
+
+See [docs.librislog.app/guide/telemetry](https://docs.librislog.app/guide/telemetry) for exactly what is and is not collected.
+
+---
+
 ## Stack
 
 | Layer | Technology |
