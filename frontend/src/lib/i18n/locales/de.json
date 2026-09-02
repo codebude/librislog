@@ -237,6 +237,9 @@
     "help": "Richte die Kamera auf den Barcode eines Buchs. Nach einem gültigen ISBN-Treffer startet die Suche automatisch.",
     "startError": "Barcode-Scanner konnte nicht gestartet werden. Prüfe die Kameraberechtigungen.",
     "noCamera": "Kein Kameragerät gefunden.",
+    "switchCamera": "Kamera wechseln",
+    "zoom": "Zoom",
+    "zoomLevel": "Zoom {zoom}x",
     "close": "Scanner schließen"
   },
   "coverPicker": {

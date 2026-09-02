@@ -237,6 +237,9 @@
     "help": "Apunta la cámara al código de barras de un libro. La búsqueda comienza automáticamente tras encontrar un ISBN válido.",
     "startError": "No se pudo iniciar el escáner. Comprueba los permisos de la cámara.",
     "noCamera": "No se encontró ningún dispositivo de cámara.",
+    "switchCamera": "Cambiar cámara",
+    "zoom": "Zoom",
+    "zoomLevel": "Zoom {zoom}x",
     "close": "Cerrar escáner"
   },
   "coverPicker": {

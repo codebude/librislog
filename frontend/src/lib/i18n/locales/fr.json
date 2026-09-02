@@ -237,6 +237,9 @@
     "help": "Dirige la caméra vers le code-barres d'un livre. La recherche démarre automatiquement après avoir trouvé un ISBN valide.",
     "startError": "Impossible de démarrer le scanner. Vérifie les autorisations de la caméra.",
     "noCamera": "Aucun appareil photo trouvé.",
+    "switchCamera": "Changer de caméra",
+    "zoom": "Zoom",
+    "zoomLevel": "Zoom {zoom}x",
     "close": "Fermer le scanner"
   },
   "coverPicker": {
