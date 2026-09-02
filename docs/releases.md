@@ -8,14 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.7.0 — Reading Streaks & Goals
-LibrisLog v1.7.0 brings reading streaks and reading goals to the dashboard, a richer book model with multiple authors, a new field-specific search syntax, and a more flexible file import.
+::: tip ⭐ v1.8.0 — Camera & Zoom Control, Optional Telemetry
+LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner, optional anonymous installation telemetry with a publicly verifiable census, a new Homer dashboard integration, and several usability and dependency fixes.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
+| [v1.8.0](#v1-8-0-—-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-—-reading-streaks-goals) | 2026-08-26 | Feature release |
 | [v1.6.0](#v1-6-0-—-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
 | [v1.5.2](#v1-5-2-—-maintenance) | 2026-06-22 | Maintenance |
@@ -30,6 +31,29 @@ LibrisLog v1.7.0 brings reading streaks and reading goals to the dashboard, a ri
 | [v1.1.1](#v1-1-1-—-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-—-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-—-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.8.0 — Camera & Zoom Control, Optional Telemetry
+
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-02" />
+
+**Summary:** Adds camera selection and zoom control to the barcode scanner, optional anonymous installation telemetry with a publicly verifiable census, a new Homer dashboard integration, and several usability and dependency fixes.
+
+**Features**
+- 📷 **Barcode scanner camera & zoom** — switch between your available cameras and zoom in on the code directly in the scan view. Your camera and zoom level are remembered for the next scan
+- 📡 **Optional anonymous telemetry** — a privacy-focused installation census (version, OS, architecture, runtime) sent on startup and then every 24 hours. It is enabled by default and can be disabled with `TELEMETRY_DISABLED=true`. The telemetry server is open source and the aggregated results are public at [metrics.librislog.app](https://metrics.librislog.app/). See the [Telemetry guide](/guide/telemetry) for details
+- 🖼️ **Homer dashboard integration** — new documentation for showing your reading statistics on a [Homer](https://github.com/bastienwirtz/homer) dashboard using its LibrisLog smart card
+- 🔢 **Current-page input clamping** — the page input in the book details now clamps to the book's page count while you type, so an out-of-range value can no longer be entered
+- 🔒 **Dependency updates** — upgraded backend and frontend dependencies, including fixes for security advisories in Starlette and joserfc
+- 🛠️ **Developer CLI fix** — adjusted the `llc` CLI for the updated Typer exception handling
+
+**Bug fixes**
+- 🏷️ Fixed the reading-status badge overflowing its border in the book details view for books with many authors — the author list now wraps and the badge stays on a single line
+
+**Breaking changes:** None.
+
+[Compare with v1.7.0](https://github.com/codebude/librislog/compare/v1.7.0...main)
 
 ---
 
