@@ -48,3 +48,6 @@ headers. For these integrations you need an **embed token**, used with the
 - [Homepage](/api/integrations/homepage) — Display your LibrisLog statistics
   on a [Homepage](https://gethomepage.dev/) dashboard using the custom API
   widget.
+- [Homer](/api/integrations/homer) — Display your LibrisLog statistics on a
+  [Homer](https://github.com/bastienwirtz/homer) dashboard using the
+  LibrisLog custom service.

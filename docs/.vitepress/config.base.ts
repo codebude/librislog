@@ -98,6 +98,7 @@ export default defineConfig({
                 { text: 'Home Assistant', link: '/api/integrations/homeassistant' },
                 { text: 'Homarr', link: '/api/integrations/homarr' },
                 { text: 'Homepage', link: '/api/integrations/homepage' },
+                { text: 'Homer', link: '/api/integrations/homer' },
               ],
             },
           ],
