@@ -61,7 +61,7 @@ Open **http://localhost:8001** and create your account.
 
 ## Why LibrisLog?
 
-- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no tracking, no vendor lock-in. A single SQLite file you can back up anytime.
+- **Your data, your rules.** Fully self-hosted under MIT license — no ads, no user tracking, no vendor lock-in. A single SQLite file you can back up anytime.
 - **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
 - **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
 - **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
@@ -102,6 +102,19 @@ cd backend
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
+
+---
+
+## Telemetry
+
+LibrisLog sends a minimal, anonymous installation census (installation id, version, OS, CPU architecture, runtime) to understand how many installations exist and on which platforms they run. No user, book, reading, host, or personal data is ever collected, and it can be disabled with `TELEMETRY_DISABLED=true`.
+
+Both sides are fully open and verifiable:
+
+- **Telemetry server source:** [github.com/codebude/librislog-telemetry](https://github.com/codebude/librislog-telemetry)
+- **Live aggregated results:** [metrics.librislog.app](https://metrics.librislog.app/)
+
+See [docs.librislog.app/guide/telemetry](https://docs.librislog.app/guide/telemetry) for exactly what is and is not collected.
 
 ---
 

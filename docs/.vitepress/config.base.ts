@@ -50,6 +50,7 @@ export default defineConfig({
           items: [
             { text: 'Quick Start', link: '/guide/getting-started' },
             { text: 'Configuration', link: '/guide/configuration' },
+            { text: 'Telemetry', link: '/guide/telemetry' },
             { text: 'API Keys', link: '/guide/api-keys' },
             {
               text: 'Developer Setup',
@@ -97,6 +98,7 @@ export default defineConfig({
                 { text: 'Home Assistant', link: '/api/integrations/homeassistant' },
                 { text: 'Homarr', link: '/api/integrations/homarr' },
                 { text: 'Homepage', link: '/api/integrations/homepage' },
+                { text: 'Homer', link: '/api/integrations/homer' },
               ],
             },
           ],

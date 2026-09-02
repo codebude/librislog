@@ -224,4 +224,23 @@ describe('BookDetailDialog', () => {
 		await fireEvent.click(closeBtn);
 		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
 	});
+
+	it('clamps current page input while typing', async () => {
+		mockProgressList.mockResolvedValue([]);
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+
+		await waitFor(() => expect(mockProgressList).toHaveBeenCalled());
+
+		const input = document.querySelector('input[name="current-page"]') as HTMLInputElement;
+		expect(input).toBeInTheDocument();
+
+		await fireEvent.input(input, { target: { value: '999' } });
+		expect(input.value).toBe('300');
+
+		await fireEvent.input(input, { target: { value: '150' } });
+		expect(input.value).toBe('150');
+
+		await fireEvent.input(input, { target: { value: '-10' } });
+		expect(input.value).toBe('0');
+	});
 });

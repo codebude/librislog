@@ -15,6 +15,7 @@ services:
     environment:
       DATABASE_URL: sqlite:///./data/librislog.db
       API_KEY_ENCRYPTION_KEY: zK7qP9mX2vR5tW8yA4cF6hJ1lN3pS0uB # dummy key for testing purposes only
+      TELEMETRY_DISABLED: "true" # E2E runs must not send telemetry
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
       interval: 2s

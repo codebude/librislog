@@ -113,6 +113,24 @@
 		void saveProgress();
 	}
 
+	function handlePageInput(event: Event) {
+		const target = event.target as HTMLInputElement;
+		if (target.value === '') return;
+
+		let value = parseInt(target.value, 10);
+		if (Number.isNaN(value)) return;
+
+		if (book?.page_count && value > book.page_count) {
+			value = book.page_count;
+		}
+		if (value < 0) {
+			value = 0;
+		}
+
+		currentPage = value;
+		target.value = String(value);
+	}
+
 	function handleSliderInput(event: Event) {
 		const target = event.target as HTMLInputElement;
 		currentPage = parseInt(target.value, 10);
@@ -396,9 +414,9 @@
 		{/if}
 
 		<div class="px-4 pb-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-			<div class="flex items-center justify-between gap-2">
-				<div class="text-sm text-base-content/70">{formatAuthors(book.authors, book.author ?? '-')}</div>
-				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]}">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
+			<div class="flex items-start justify-between gap-2">
+				<div class="text-sm text-base-content/70 min-w-0 break-words">{formatAuthors(book.authors, book.author ?? '-')}</div>
+				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} shrink-0 whitespace-nowrap">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
 			</div>
 
 			<div class="text-sm">
@@ -491,6 +509,7 @@
 								bind:value={currentPage}
 								min="0"
 								max={book.page_count}
+								oninput={handlePageInput}
 								onblur={handlePageBlur}
 							/>
 							<span class="text-sm text-base-content/50">/ {book.page_count}</span>

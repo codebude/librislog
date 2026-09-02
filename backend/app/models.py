@@ -303,3 +303,25 @@ class ImportMapping(SQLModel, table=True):
         default_factory=utcnow,
         sa_column=Column(UtcDateTime, default=utcnow)
     )
+
+
+class InstallationInfo(SQLModel, table=True):
+    """Singleton row storing the anonymous installation id for telemetry.
+
+    The id is a random UUIDv4 generated on first startup and persisted in the
+    database so it stays stable across container restarts and updates. It is
+    never derived from any machine-specific identifier.
+    """
+
+    __tablename__: str = "installation_info"
+
+    id: int = Field(default=1, primary_key=True)
+    installation_id: str = Field(max_length=64)
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )

@@ -237,6 +237,9 @@
     "help": "Point your camera at a book barcode. The search starts automatically after a valid ISBN is found.",
     "startError": "Unable to start barcode scanner. Check camera permissions.",
     "noCamera": "No camera device found.",
+    "switchCamera": "Switch camera",
+    "zoom": "Zoom",
+    "zoomLevel": "Zoom {zoom}x",
     "close": "Close scanner"
   },
   "coverPicker": {

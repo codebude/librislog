@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     password_reset_token_max_age: int = 3600
     public_app_url: str = "http://localhost:5173"
     forwarded_allow_ips: str = "*"
+    telemetry_disabled: bool = False
+    telemetry_endpoint: str = "https://metrics.librislog.app/api/telemetry"
+    telemetry_timeout_seconds: float = Field(default=10.0, gt=0)
 
     @field_validator("api_key_encryption_key")
     @classmethod

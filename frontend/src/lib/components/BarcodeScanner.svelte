@@ -1,10 +1,10 @@
-	<script lang="ts">
+<script lang="ts">
 	import Alert from '$lib/components/Alert.svelte';
 	import { Html5QrcodeSupportedFormats, BaseLoggger } from 'html5-qrcode/esm/core';
 	import { Html5QrcodeShim } from 'html5-qrcode/esm/code-decoder';
 	import { _ } from '$lib/i18n';
 	import { onDestroy } from 'svelte';
-	import { X } from '@lucide/svelte';
+	import { RefreshCw, X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -20,9 +20,22 @@
 	let detectionLocked = $state(false);
 	let videoEl = $state<HTMLVideoElement | null>(null);
 
+	let cameras = $state<MediaDeviceInfo[]>([]);
+	let cameraIndex = $state(0);
+	let selectedCameraId = $state<string | null>(null);
+	let zoomSupported = $state(false);
+	let zoom = $state(1);
+	let zoomMax = $state(10);
+	let zoomStep = $state(0.1);
+	let zoomPresets = $state<number[]>([]);
+	let focusContinuousSupported = $state(false);
+
 	let decoder: Html5QrcodeShim | null = null;
 	let scanTimer: ReturnType<typeof setInterval> | null = null;
 	let scanCanvas: HTMLCanvasElement | null = null;
+
+	const CAMERA_PREF_KEY = 'librislog.scanner.cameraId';
+	const ZOOM_PREF_KEY = 'librislog.scanner.zoom';
 
 	const SUPPORTED_FORMATS = [
 		Html5QrcodeSupportedFormats.EAN_13,
@@ -32,6 +45,11 @@
 		Html5QrcodeSupportedFormats.CODE_128
 	];
 
+	interface CameraCapabilities {
+		focusMode?: string[];
+		zoom?: { min?: number; max?: number; step?: number };
+	}
+
 	function normalizeIsbn(raw: string): string | null {
 		const normalized = raw.trim().replaceAll('-', '').replaceAll(' ', '');
 		if (/^\d{13}$/.test(normalized)) return normalized;
@@ -39,19 +57,60 @@
 		return null;
 	}
 
-	async function stopScanner() {
+	function readCameraPref(): string | null {
+		try {
+			return window.localStorage.getItem(CAMERA_PREF_KEY);
+		} catch {
+			return null;
+		}
+	}
+
+	function writeCameraPref(deviceId: string) {
+		try {
+			window.localStorage.setItem(CAMERA_PREF_KEY, deviceId);
+		} catch {
+			// ignore storage errors (e.g. private browsing)
+		}
+	}
+
+	function readZoomPref(): number | null {
+		try {
+			const value = Number(window.localStorage.getItem(ZOOM_PREF_KEY));
+			return Number.isFinite(value) ? value : null;
+		} catch {
+			return null;
+		}
+	}
+
+	function writeZoomPref(zoomValue: number) {
+		try {
+			window.localStorage.setItem(ZOOM_PREF_KEY, String(zoomValue));
+		} catch {
+			// ignore storage errors (e.g. private browsing)
+		}
+	}
+
+	function clearScanning() {
 		if (scanTimer) {
 			clearInterval(scanTimer);
 			scanTimer = null;
 		}
 		decoder = null;
 		scanCanvas = null;
+	}
+
+	async function stopStream() {
+		clearScanning();
 		if (stream) {
 			for (const track of stream.getTracks()) {
 				track.stop();
 			}
 			stream = null;
 		}
+	}
+
+	async function stopScanner() {
+		await stopStream();
 	}
 
 	async function closeScanner() {
@@ -80,16 +139,20 @@
 		}).catch(() => {});
 	}
 
-	async function startScanner() {
-		if (starting || stream) return;
-		starting = true;
-		scannerError = null;
-		detectionLocked = false;
+	async function enumerateCameras(): Promise<MediaDeviceInfo[]> {
+		const devices = await navigator.mediaDevices.enumerateDevices();
+		return devices.filter((d) => d.kind === 'videoinput');
+	}
 
-		try {
-			let mediaStream: MediaStream;
+	async function ensureCameraSelection() {
+		let devices = await enumerateCameras();
+		const hasLabels = devices.some((d) => d.kind === 'videoinput' && !!d.label);
+		let permissionStream: MediaStream | null = null;
+		if (!hasLabels) {
+			// The first getUserMedia triggers the permission prompt, which makes
+			// device labels available for a meaningful selection.
 			try {
-				mediaStream = await navigator.mediaDevices.getUserMedia({
+				permissionStream = await navigator.mediaDevices.getUserMedia({
 					audio: false,
 					video: {
 						facingMode: { ideal: 'environment' },
@@ -98,37 +161,154 @@
 					}
 				});
 			} catch {
-				if (!navigator.mediaDevices) throw new Error($_('scanner.noCamera'));
-				const devices = await navigator.mediaDevices.enumerateDevices();
-				const cameras = devices.filter((d) => d.kind === 'videoinput');
-				if (!cameras.length) throw new Error($_('scanner.noCamera'));
-				const backCamera = cameras.find((c) =>
-					c.label.toLowerCase().includes('back')
-					|| c.label.toLowerCase().includes('environment')
-				);
-				mediaStream = await navigator.mediaDevices.getUserMedia({
-					audio: false,
-					video: { deviceId: { exact: (backCamera ?? cameras[0]).deviceId } }
-				});
+				// permission denied — surface the no-camera error below
 			}
+			devices = await enumerateCameras();
+			permissionStream?.getTracks().forEach((t) => t.stop());
+		}
 
-			stream = mediaStream;
-			decoder = new Html5QrcodeShim(SUPPORTED_FORMATS, true, false, new BaseLoggger(false));
-			scanCanvas = document.createElement('canvas');
+		cameras = devices;
+		if (!cameras.length) {
+			throw new Error($_('scanner.noCamera'));
+		}
 
-			await waitForVideoEl();
+		const preferred = readCameraPref();
+		let index = cameras.findIndex((c) => c.deviceId === preferred);
+		if (index === -1) {
+			index = cameras.findIndex((c) => /back|environment|rear/i.test(c.label));
+		}
+		if (index === -1) index = 0;
+		cameraIndex = index;
+		selectedCameraId = cameras[index].deviceId;
+		writeCameraPref(selectedCameraId);
+	}
 
-			videoEl!.srcObject = mediaStream;
-			await videoEl!.play();
+	function roundToStep(value: number, step: number): number {
+		return Number((Math.round(value / step) * step).toFixed(6));
+	}
 
-			scanTimer = setInterval(scanFrame, 100);
+	function computeZoomPresets(min: number, max: number, step: number): number[] {
+		// Common Android lens stops (ultra-wide/main/tele/macro). The device's
+		// rear lenses are exposed as a single zoom range, so these presets let
+		// the user switch between them.
+		const stops = [0.5, 1, 2, 3, 5, 10, 20];
+		const presets = new Set<number>();
+		for (const stop of stops) {
+			const clamped = Math.min(max, Math.max(min, stop));
+			if (clamped >= min && clamped <= max) presets.add(roundToStep(clamped, step));
+		}
+		presets.add(min);
+		presets.add(max);
+		return [...presets].sort((a, b) => a - b);
+	}
+
+	async function applyTrackSettings(track: MediaStreamTrack | undefined) {
+		zoomSupported = false;
+		focusContinuousSupported = false;
+		zoomPresets = [];
+		if (!track || typeof track.getCapabilities !== 'function') return;
+		const caps = track.getCapabilities() as MediaTrackCapabilities & CameraCapabilities;
+
+		focusContinuousSupported =
+			Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous');
+
+		const zoomCaps = caps.zoom;
+		if (zoomCaps && typeof zoomCaps.max === 'number' && zoomCaps.max > 1) {
+			const min = zoomCaps.min ?? 1;
+			const step = zoomCaps.step ?? 0.1;
+			zoomSupported = true;
+			zoomMax = zoomCaps.max;
+			zoomStep = step;
+			// Restore the last selected zoom factor if it is still within range.
+			const saved = readZoomPref();
+			zoom = roundToStep(Math.min(zoomMax, Math.max(min, saved ?? 1)), step);
+			zoomPresets = computeZoomPresets(min, zoomMax, step);
+		}
+
+		await applyTrackConstraints(track);
+	}
+
+	async function applyTrackConstraints(track: MediaStreamTrack) {
+		const constraints: Record<string, unknown> = {};
+		if (focusContinuousSupported) {
+			constraints.advanced = [{ focusMode: 'continuous' }];
+		}
+		if (zoomSupported) {
+			constraints.zoom = zoom;
+		}
+		try {
+			await track.applyConstraints(constraints as unknown as MediaTrackConstraints);
+		} catch {
+			// combination of constraints not supported — ignore
+		}
+	}
+
+	async function startStream() {
+		if (!selectedCameraId) throw new Error($_('scanner.noCamera'));
+		clearScanning();
+		const mediaStream = await navigator.mediaDevices.getUserMedia({
+			audio: false,
+			video: {
+				deviceId: { exact: selectedCameraId },
+				width: { min: 640 },
+				height: { min: 480 }
+			}
+		});
+		stream = mediaStream;
+		await applyTrackSettings(mediaStream.getVideoTracks()[0]);
+
+		decoder = new Html5QrcodeShim(SUPPORTED_FORMATS, true, false, new BaseLoggger(false));
+		scanCanvas = document.createElement('canvas');
+
+		await waitForVideoEl();
+		videoEl!.srcObject = mediaStream;
+		await videoEl!.play();
+		scanTimer = setInterval(scanFrame, 100);
+	}
+
+	async function startScanner() {
+		if (starting || stream) return;
+		if (!navigator.mediaDevices?.getUserMedia) throw new Error($_('scanner.noCamera'));
+		starting = true;
+		scannerError = null;
+		detectionLocked = false;
+		try {
+			await ensureCameraSelection();
+			await startStream();
 		} catch (err: unknown) {
-			scannerError =
-				err instanceof Error ? err.message : $_('scanner.startError');
-			await stopScanner();
+			scannerError = err instanceof Error ? err.message : $_('scanner.startError');
+			await stopStream();
 		} finally {
 			starting = false;
 		}
+	}
+
+	async function switchCamera() {
+		if (starting || cameras.length < 2 || !selectedCameraId) return;
+		starting = true;
+		scannerError = null;
+		try {
+			cameraIndex = (cameraIndex + 1) % cameras.length;
+			const next = cameras[cameraIndex];
+			selectedCameraId = next.deviceId;
+			writeCameraPref(next.deviceId);
+			// Stop the previous track before requesting the new stream — otherwise
+			// Android tends to hand back the old stream.
+			await stopStream();
+			await startStream();
+		} catch (err: unknown) {
+			scannerError = err instanceof Error ? err.message : $_('scanner.startError');
+			await stopStream();
+		} finally {
+			starting = false;
+		}
+	}
+
+	async function applyZoom() {
+		const track = stream?.getVideoTracks()[0];
+		if (!track || !zoomSupported) return;
+		writeZoomPref(zoom);
+		await applyTrackConstraints(track);
 	}
 
 	async function waitForVideoEl(): Promise<void> {
@@ -195,6 +375,48 @@
 								playsinline
 								muted
 							></video>
+						</div>
+
+						<div class="flex items-center justify-center gap-4 flex-wrap">
+							{#if zoomSupported}
+								<div class="flex flex-col items-center gap-2">
+									<div class="flex items-center gap-1 flex-wrap justify-center" title={$_('scanner.zoom')}>
+										{#each zoomPresets as preset}
+											<button
+												class="btn btn-xs gap-0 {Math.abs(zoom - preset) < zoomStep / 2 ? 'btn-primary' : 'btn-outline'}"
+												onclick={() => {
+													zoom = preset;
+													void applyZoom();
+												}}
+												aria-label={$_('scanner.zoomLevel', { values: { zoom: preset } })}
+											>{preset}x</button>
+										{/each}
+									</div>
+									<label class="flex items-center gap-2 text-sm text-base-content/70">
+										<input
+											type="range"
+											min={zoomPresets[0]}
+											max={zoomMax}
+											step={zoomStep}
+											bind:value={zoom}
+											oninput={() => void applyZoom()}
+											class="range range-primary range-xs w-40"
+											aria-label={$_('scanner.zoom')}
+										/>
+									</label>
+								</div>
+							{/if}
+							{#if cameras.length > 1}
+								<button
+									class="btn btn-outline btn-sm gap-2"
+									onclick={() => void switchCamera()}
+									disabled={starting}
+									aria-label={$_('scanner.switchCamera')}
+								>
+									<RefreshCw class="w-4 h-4" />
+									{$_('scanner.switchCamera')}
+								</button>
+							{/if}
 						</div>
 					{/if}
 				</div>

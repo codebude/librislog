@@ -87,6 +87,24 @@ The Mailpit web UI is available at http://localhost:8025 to inspect sent emails.
 | `DASHBOARD_QUOTE_URL` | Quote API endpoint | `https://motivational-spark-api.vercel.app/api/quotes/random` |
 | `DASHBOARD_QUOTE_CACHE_TTL` | Quote cache time-to-live (seconds) | `86400` |
 
+## Telemetry
+
+LibrisLog sends minimal, anonymous installation telemetry (see [Telemetry](/guide/telemetry)) to understand how many installations exist and on which platforms they run. It is an installation census. No user, book, reading, or host data is ever collected.
+
+The telemetry server is open source ([github.com/codebude/librislog-telemetry](https://github.com/codebude/librislog-telemetry)) and the aggregated results are public at [metrics.librislog.app](https://metrics.librislog.app/).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TELEMETRY_DISABLED` | Disable all telemetry (`true`/`false`) | `false` |
+| `TELEMETRY_ENDPOINT` | Telemetry API endpoint | `https://metrics.librislog.app/api/telemetry` |
+| `TELEMETRY_TIMEOUT_SECONDS` | HTTP timeout for telemetry requests | `10` |
+
+To opt out entirely:
+
+```bash
+TELEMETRY_DISABLED=true
+```
+
 ## Frontend Build
 
 | Variable | Description | Default |
