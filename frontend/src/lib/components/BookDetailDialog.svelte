@@ -113,6 +113,24 @@
 		void saveProgress();
 	}
 
+	function handlePageInput(event: Event) {
+		const target = event.target as HTMLInputElement;
+		if (target.value === '') return;
+
+		let value = parseInt(target.value, 10);
+		if (Number.isNaN(value)) return;
+
+		if (book?.page_count && value > book.page_count) {
+			value = book.page_count;
+		}
+		if (value < 0) {
+			value = 0;
+		}
+
+		currentPage = value;
+		target.value = String(value);
+	}
+
 	function handleSliderInput(event: Event) {
 		const target = event.target as HTMLInputElement;
 		currentPage = parseInt(target.value, 10);
@@ -491,6 +509,7 @@
 								bind:value={currentPage}
 								min="0"
 								max={book.page_count}
+								oninput={handlePageInput}
 								onblur={handlePageBlur}
 							/>
 							<span class="text-sm text-base-content/50">/ {book.page_count}</span>
