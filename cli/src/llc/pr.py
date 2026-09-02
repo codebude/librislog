@@ -24,7 +24,7 @@ def cmd_create() -> None:
             if llc._interactive.confirm("Uncommitted changes found. Commit first?", default=True):
                 console.print("[yellow]Please commit your changes manually, then re-run.[/yellow]")
                 raise typer.Exit()
-    except click.exceptions.Exit:
+    except (click.exceptions.Exit, typer.Exit):
         raise
     except Exception:
         console.print("[red]Failed to check for uncommitted changes.[/red]")
