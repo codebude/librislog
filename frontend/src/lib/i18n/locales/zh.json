@@ -270,6 +270,7 @@
     "themeCustom": "自定义",
     "themeSelect": "选择自定义主题",
     "timezonePlaceholder": "搜索时区...",
+    "timezoneNoResults": "没有匹配的时区",
     "apiDocsTitle": "API 文档",
     "apiDocsHelp": "直接在应用中探索和测试后端接口。",
     "apiDocsViewLabel": "查看",

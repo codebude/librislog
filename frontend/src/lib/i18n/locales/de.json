@@ -270,6 +270,7 @@
     "themeCustom": "Anpassen",
     "themeSelect": "Wähle ein benutzerdefiniertes Design",
     "timezonePlaceholder": "Zeitzone suchen...",
+    "timezoneNoResults": "Keine passende Zeitzone",
     "apiDocsTitle": "API-Dokumentation",
     "apiDocsHelp": "Erkunde und teste Backend-Endpunkte direkt in der App.",
     "apiDocsViewLabel": "Ansicht",

@@ -270,6 +270,7 @@
     "themeCustom": "Personalizar",
     "themeSelect": "Selecciona un tema personalizado",
     "timezonePlaceholder": "Buscar zona horaria...",
+    "timezoneNoResults": "No hay ninguna zona horaria coincidente",
     "apiDocsTitle": "Documentación de la API",
     "apiDocsHelp": "Explora y prueba los endpoints del backend directamente desde la app.",
     "apiDocsViewLabel": "Ver",

@@ -270,6 +270,7 @@
     "themeCustom": "Customize",
     "themeSelect": "Select a custom theme",
     "timezonePlaceholder": "Search timezone...",
+    "timezoneNoResults": "No matching timezone",
     "apiDocsTitle": "API Documentation",
     "apiDocsHelp": "Explore and test backend endpoints directly from the app.",
     "apiDocsViewLabel": "View",
