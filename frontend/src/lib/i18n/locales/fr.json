@@ -270,6 +270,7 @@
     "themeCustom": "Personnaliser",
     "themeSelect": "Choisir un thème personnalisé",
     "timezonePlaceholder": "Rechercher un fuseau horaire...",
+    "timezoneNoResults": "Aucun fuseau horaire correspondant",
     "apiDocsTitle": "Documentation de l'API",
     "apiDocsHelp": "Explore et teste les points d'accès du backend directement depuis l'application.",
     "apiDocsViewLabel": "Voir",

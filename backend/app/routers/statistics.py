@@ -130,17 +130,22 @@ def _extract_progress_daily_pages(
         book_entries.sort(key=lambda e: (e.created_at, e.page))
         for prev, curr in zip(book_entries, book_entries[1:]):
             delta = curr.page - prev.page
-            if delta > 0:
-                day_diff = (curr.created_at - prev.created_at).days + 1
-                if day_diff > 0:
-                    daily_avg = delta / day_diff
-                    start, end = _clamp_window(prev.created_at, curr.created_at, window_start, window_end)
-                    if start is None or end is None:
-                        continue
-                    while start <= end:
-                        date_key = start.astimezone(tz).strftime("%Y-%m-%d")
-                        daily[date_key] += daily_avg
-                        start += timedelta(days=1)
+            if delta <= 0:
+                continue
+            prev_day = prev.created_at.astimezone(tz).date()
+            curr_day = curr.created_at.astimezone(tz).date()
+            day_diff = (curr_day - prev_day).days + 1
+            if day_diff <= 0:
+                continue
+            daily_avg = delta / day_diff
+            start, end = _clamp_window(prev.created_at, curr.created_at, window_start, window_end)
+            if start is None or end is None:
+                continue
+            day = start.astimezone(tz).date()
+            last = end.astimezone(tz).date()
+            while day <= last:
+                daily[day.isoformat()] += daily_avg
+                day += timedelta(days=1)
 
     return daily
 

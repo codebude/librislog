@@ -10,6 +10,7 @@
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
 	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '$lib/stores/theme';
 	import Alert from '$lib/components/Alert.svelte';
+	import SearchableSelect from '$lib/components/SearchableSelect.svelte';
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
 	import { toDateInputValue, today } from '$lib/date';
@@ -580,19 +581,14 @@
 					{timezoneMessage.text}
 				</Alert>
 			{/if}
-			<input
-				list="timezone-list"
-				name="timezone"
-				class="input input-bordered max-w-xs"
+			<SearchableSelect
 				bind:value={timezone}
-				autocomplete="off"
+				options={allTimezones}
+				name="timezone"
+				ariaLabel={$_('settings.timezone')}
 				placeholder={$_('settings.timezonePlaceholder')}
+				noResultsText={$_('settings.timezoneNoResults')}
 			/>
-			<datalist id="timezone-list">
-				{#each allTimezones as tz}
-					<option value={tz}></option>
-				{/each}
-			</datalist>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneDetected', { values: { tz: browserTz } })}</p>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneSelected', { values: { tz: timezone } })}</p>
 			<button class="btn btn-primary btn-sm self-start" onclick={saveTimezone}>{$_('common.save')}</button>
