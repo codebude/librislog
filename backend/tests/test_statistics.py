@@ -630,6 +630,30 @@ def test_extract_progress_daily_pages_skips_outside_window() -> None:
     assert result == {}
 
 
+def test_extract_progress_daily_pages_splits_delta_across_calendar_days() -> None:
+    """A delta spanning two calendar days must be split, even when the span is <24h."""
+    from app.routers.statistics import _extract_progress_daily_pages
+
+    entries = [
+        SimpleNamespace(book_id=1, page=202, created_at=datetime(2026, 9, 2, 21, 16, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=320, created_at=datetime(2026, 9, 3, 20, 54, tzinfo=timezone.utc)),
+    ]
+    result = _extract_progress_daily_pages(entries, ZoneInfo("Europe/Berlin"))
+    assert result == {"2026-09-02": 59.0, "2026-09-03": 59.0}
+
+
+def test_extract_progress_daily_pages_keeps_last_day_of_partial_span() -> None:
+    """The final calendar day must not be dropped when prev is later in the day than curr."""
+    from app.routers.statistics import _extract_progress_daily_pages
+
+    entries = [
+        SimpleNamespace(book_id=1, page=10, created_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=30, created_at=datetime(2026, 5, 2, 22, 0, tzinfo=timezone.utc)),
+    ]
+    result = _extract_progress_daily_pages(entries, ZoneInfo("UTC"))
+    assert result == {"2026-05-01": 10.0, "2026-05-02": 10.0}
+
+
 def test_extract_book_level_daily_pages_skips_outside_window() -> None:
     from app.routers.statistics import _extract_book_level_daily_pages
 
