@@ -450,6 +450,7 @@
   "error": {
     "isbnAlreadyExists": "此 ISBN 已被另一本书使用。",
     "dateInFuture": "日期不能为未来。",
+    "invalidDate": "请输入有效日期。",
     "dateStartedAfterFinished": "开始日期不能晚于完成日期。",
     "dateFinishedRequiredForRead": "已读完的书必须有结束日期。如果要移除结束日期，请更改状态。",
     "invalidLanguageCode": "语言必须是 2 位 ISO 代码（例如：EN、DE、FR）。",

@@ -10,6 +10,7 @@
 	import CoverPicker from './CoverPicker.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
 	import TagInput from './TagInput.svelte';
+	import AdaptiveDateInput from './AdaptiveDateInput.svelte';
 	import DateConflictDialog from './DateConflictDialog.svelte';
 	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
@@ -61,6 +62,10 @@
 	let tags = $state('');
 	let date_started = $state('');
 	let date_finished = $state('');
+	let dateStartedInvalid = $state(false);
+	let dateFinishedInvalid = $state(false);
+	let dateStartedHasInput = $state(false);
+	let dateFinishedHasInput = $state(false);
 	let cover_url = $state<string | null>(null);
 
 	// ── Android back button: close drawer instead of navigating away ──────────
@@ -214,6 +219,14 @@
 		}
 		if (!page_count) {
 			toasts.add($_('error.pageCountRequired'), 'error');
+			return;
+		}
+		if (dateStartedInvalid && dateStartedHasInput) {
+			toasts.add($_('error.invalidDate'), 'error');
+			return;
+		}
+		if (dateFinishedInvalid && dateFinishedHasInput) {
+			toasts.add($_('error.invalidDate'), 'error');
 			return;
 		}
 		const ds = date_started.trim();
@@ -501,12 +514,30 @@
 
 			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateStarted')}</span>
-				<input type="date" class="input input-bordered input-sm" name="date_started" bind:value={date_started} max={today} />
+				<AdaptiveDateInput
+					name="date_started"
+					bind:value={date_started}
+					bind:invalid={dateStartedInvalid}
+					bind:hasInput={dateStartedHasInput}
+					ariaLabel={$_('book.dateStarted')}
+				/>
+				{#if dateStartedInvalid && dateStartedHasInput}
+					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
+				{/if}
 			</label>
 
 			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateFinished')}</span>
-				<input type="date" class="input input-bordered input-sm" name="date_finished" bind:value={date_finished} max={today} />
+				<AdaptiveDateInput
+					name="date_finished"
+					bind:value={date_finished}
+					bind:invalid={dateFinishedInvalid}
+					bind:hasInput={dateFinishedHasInput}
+					ariaLabel={$_('book.dateFinished')}
+				/>
+				{#if dateFinishedInvalid && dateFinishedHasInput}
+					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
+				{/if}
 			</label>
 
 			<label class="flex flex-col gap-1">
@@ -596,7 +627,10 @@
 				<p class="text-sm text-base-content/70 mt-2">{$_('book.startDatePromptMessage')}</p>
 				<label class="flex flex-col gap-1 mt-4">
 					<span class="label label-text">{$_('book.dateStarted')}</span>
-					<input type="date" class="input input-bordered input-sm" bind:value={promptedStartDate} max={today} />
+					<AdaptiveDateInput
+						bind:value={promptedStartDate}
+						ariaLabel={$_('book.dateStarted')}
+					/>
 				</label>
 				<div class="modal-action">
 					<button
