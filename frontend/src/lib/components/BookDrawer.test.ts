@@ -95,8 +95,8 @@ describe('BookDrawer', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
 		expect(screen.getByRole('textbox', { name: /ISBN/ })).toBeInTheDocument();
-		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();
+		expect(screen.getByRole('spinbutton', { name: /^Year$/ })).toBeInTheDocument();
+		expect(screen.getByRole('spinbutton', { name: /Pages/ })).toBeInTheDocument();
 		expect(screen.getByLabelText(/Language/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Status/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
@@ -151,8 +151,8 @@ describe('BookDrawer', () => {
 
 	it('shows date inputs', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
-		expect(screen.getByLabelText(/Date started/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Date finished/)).toBeInTheDocument();
+		expect(document.querySelector('input[name="date_started"]')).toBeInTheDocument();
+		expect(document.querySelector('input[name="date_finished"]')).toBeInTheDocument();
 	});
 
 	it('has rating selector', () => {
@@ -181,5 +181,30 @@ describe('BookDrawer', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		const autoSearchBtn = screen.getByRole('button', { name: 'Auto-search covers' });
 		expect(autoSearchBtn).not.toBeDisabled();
+	});
+
+	it('blocks save and shows error when date_started is invalid', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+
+		const day = screen.getByLabelText('Date started') as HTMLInputElement;
+		await fireEvent.input(day, { target: { value: '31' } });
+		await fireEvent.blur(day);
+
+		const saveBtn = screen.getByRole('button', { name: 'Save' });
+		await fireEvent.click(saveBtn);
+
+		expect(mockBooksUpdate).not.toHaveBeenCalled();
+		expect(mockTransitionStatus).not.toHaveBeenCalled();
+		expect(mockToastsAdd).toHaveBeenCalledWith('Please enter a valid date.', 'error');
+	});
+
+	it('shows inline helper text when date_started is invalid', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+
+		const day = screen.getByLabelText('Date started') as HTMLInputElement;
+		await fireEvent.input(day, { target: { value: '31' } });
+		await fireEvent.blur(day);
+
+		expect(screen.getByText('Please enter a valid date.')).toBeInTheDocument();
 	});
 });

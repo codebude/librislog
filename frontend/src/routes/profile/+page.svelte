@@ -11,6 +11,7 @@
 	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '$lib/stores/theme';
 	import Alert from '$lib/components/Alert.svelte';
 	import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+	import AdaptiveDateInput from '$lib/components/AdaptiveDateInput.svelte';
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
 	import { toDateInputValue, today } from '$lib/date';
@@ -316,6 +317,8 @@
 	let embedTokenName = $state('');
 	let embedTokenOrigins = $state('');
 	let embedTokenExpires = $state('');
+	let embedTokenExpiresInvalid = $state(false);
+	let embedTokenExpiresHasInput = $state(false);
 	let createdEmbedToken = $state<string | null>(null);
 	let embedTokenCopied = $state(false);
 	let pendingRotateTokenId = $state<number | null>(null);
@@ -324,6 +327,8 @@
 	let embedTokenMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let editExpiryTokenId = $state<number | null>(null);
 	let editExpiryValue = $state('');
+	let editExpiryInvalid = $state(false);
+	let editExpiryHasInput = $state(false);
 
 	async function loadEmbedTokens() {
 		embedTokens = await api.profile.listEmbedTokens();
@@ -331,6 +336,10 @@
 
 	async function createEmbedToken() {
 		embedTokenMessage = null;
+		if (embedTokenExpiresInvalid && embedTokenExpiresHasInput) {
+			embedTokenMessage = { type: 'error', text: $_('error.invalidDate') };
+			return;
+		}
 		try {
 			const payload: { name: string; allowed_origins?: string | null; expires_at?: string | null } = { name: embedTokenName };
 			if (embedTokenOrigins.trim()) payload.allowed_origins = embedTokenOrigins.trim();
@@ -391,6 +400,10 @@
 
 
 	async function confirmExpirySave() {
+		if (editExpiryInvalid && editExpiryHasInput) {
+			embedTokenMessage = { type: 'error', text: $_('error.invalidDate') };
+			return;
+		}
 		if (editExpiryTokenId !== null && editExpiryValue.length === 10) {
 			await saveEmbedTokenExpiry(editExpiryTokenId, editExpiryValue);
 		}
@@ -771,7 +784,18 @@
 				<Info class="w-3 h-3 shrink-0" />
 				{$_('user.embedTokenOriginsTooltip')}
 			</p>
-			<input type="date" class="input input-bordered max-w-48" name="embed-token-expires" bind:value={embedTokenExpires} min={today(timezone)} />
+			<AdaptiveDateInput
+				inputClass="input input-bordered max-w-48"
+				name="embed-token-expires"
+				bind:value={embedTokenExpires}
+				bind:invalid={embedTokenExpiresInvalid}
+				bind:hasInput={embedTokenExpiresHasInput}
+				min={today(timezone)}
+				ariaLabel={$_('user.embedTokenExpiresAt')}
+			/>
+			{#if embedTokenExpiresInvalid && embedTokenExpiresHasInput}
+				<p class="text-xs text-error -mt-1">{$_('error.invalidDate')}</p>
+			{/if}
 			<p class="text-xs text-base-content/50 -mt-1">{$_('user.embedTokenExpiresAt')}</p>
 			{#if createdEmbedToken}
 				<Alert type="success" onClose={() => (createdEmbedToken = null)} duration={0}>
@@ -853,10 +877,17 @@
 						<h3 class="font-bold text-lg">{$_('user.embedTokenEditExpiry')}</h3>
 						<p class="text-sm text-base-content/70 mt-1">{$_('user.embedTokenEditExpiryDescription')}</p>
 						<div class="py-4">
-							<input type="date" class="input input-bordered w-full"
-								bind:value={editExpiryValue}
-								min={today(timezone)}
-							/>
+						<AdaptiveDateInput
+							inputClass="input input-bordered w-full"
+							bind:value={editExpiryValue}
+							bind:invalid={editExpiryInvalid}
+							bind:hasInput={editExpiryHasInput}
+							min={today(timezone)}
+							ariaLabel={$_('user.embedTokenEditExpiry')}
+						/>
+						{#if editExpiryInvalid && editExpiryHasInput}
+							<p class="text-xs text-error mt-1">{$_('error.invalidDate')}</p>
+						{/if}
 						</div>
 						<div class="modal-action">
 							<button class="btn btn-sm" onclick={cancelExpiryEdit}>{$_('common.cancel')}</button>

@@ -450,6 +450,7 @@
   "error": {
     "isbnAlreadyExists": "This ISBN is already used by another book.",
     "dateInFuture": "Date cannot be in the future.",
+    "invalidDate": "Please enter a valid date.",
     "dateStartedAfterFinished": "Start date cannot be after finish date.",
     "dateFinishedRequiredForRead": "A finished book must have an end date. Change the status if you want to remove the finish date.",
     "invalidLanguageCode": "Language must be a 2-letter ISO code (for example: EN, DE, FR).",
