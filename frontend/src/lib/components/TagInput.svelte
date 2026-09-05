@@ -290,7 +290,7 @@
 						aria-selected={i === highlightedIndex}
 						class="px-3 py-2 cursor-pointer text-sm"
 						class:bg-base-200={i !== highlightedIndex}
-						style={i === highlightedIndex ? 'background-color: oklch(var(--p) / 0.2); color: oklch(var(--p)); font-weight: 600; border: 1px solid oklch(var(--p) / 0.4);' : ''}
+						style={i === highlightedIndex ? 'background-color: oklch(var(--p) / 0.2); color: oklch(var(--p)); font-weight: 600; box-shadow: inset 0 0 0 2px oklch(var(--p) / 0.6);' : ''}
 						onmousedown={() => selectSuggestion(suggestion)}
 						onmouseenter={() => (highlightedIndex = i)}
 					>
