@@ -31,16 +31,16 @@
 	function openNativePicker() {
 		if (disabled || !pickerInputEl) return;
 		try {
-			pickerInputEl.focus({ preventScroll: true });
+			pickerInputEl.showPicker();
 		} catch {
 			pickerInputEl.focus();
+			pickerInputEl.click();
 		}
-		pickerInputEl.click();
 	}
 </script>
 
 <div class="flex items-center gap-2">
-	<div class="flex-1 min-w-0">
+	<div class="flex-1 min-w-0 relative">
 		<SegmentedDateInput
 			{name}
 			bind:value
@@ -52,6 +52,19 @@
 			{required}
 			{inputClass}
 			{ariaLabel}
+		/>
+		<!-- Positioned over the date input so the native picker opens next to the field -->
+		<input
+			bind:this={pickerInputEl}
+			type="date"
+			class="absolute inset-0 opacity-0 pointer-events-none -z-10"
+			bind:value
+			{min}
+			{max}
+			{disabled}
+			{required}
+			aria-hidden="true"
+			tabindex="-1"
 		/>
 	</div>
 
@@ -65,17 +78,4 @@
 	>
 		<Calendar class="w-4 h-4" />
 	</button>
-
-	<input
-		bind:this={pickerInputEl}
-		type="date"
-		class="fixed -left-[9999px] top-0 h-px w-px opacity-0 pointer-events-none"
-		bind:value
-		{min}
-		{max}
-		{disabled}
-		{required}
-		tabindex="-1"
-		aria-hidden="true"
-	/>
 </div>
