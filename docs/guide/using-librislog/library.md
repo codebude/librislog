@@ -67,7 +67,15 @@ The search automatically tries Open Library first, then falls back to other sour
 
 ### ISBN Barcode Scan
 
-On mobile devices, use the camera to scan ISBN barcodes. The app uses the device's camera with real-time barcode detection to quickly look up books.
+Use the camera to scan ISBN barcodes. The app uses the device's camera with real-time barcode detection to quickly look up books.
+
+::: warning Requires a secure context
+
+Camera access is only available when LibrisLog is served in a **secure context**. A page is a secure context when it is served over **HTTPS** or from `http://localhost` (or `http://127.0.0.1`). Accessing the app via a plain `http://` address on a remote host — e.g. `http://192.168.1.10:8001` — is **not** a secure context, and the camera will not start. See [MDN: Secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Dangerous_Contexts) for details.
+
+If the barcode scan button is hidden or the scanner shows a black box, your browser is likely blocking camera access because the app is not running in a secure context. Serve LibrisLog behind HTTPS (a reverse proxy with a TLS certificate) or access it via `localhost` to enable scanning.
+
+:::
 
 ## Editing Books
 
