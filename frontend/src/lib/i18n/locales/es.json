@@ -219,6 +219,8 @@
     "googleAdded": "Resultados de Google Books añadidos: {count}",
     "scan": "Escanear",
     "scanIsbn": "Escanear código de barras ISBN",
+    "scanUnavailable": "El escaneo de códigos de barras no está disponible porque la aplicación no se sirve en un contexto seguro.",
+    "scanUnavailableDocsLink": "Más información",
     "importFailed": "Importación fallida",
     "searchFailed": "Búsqueda fallida",
     "scannedIsbn": "ISBN escaneado: {isbn}",
@@ -240,7 +242,9 @@
     "switchCamera": "Cambiar cámara",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
-    "close": "Cerrar escáner"
+    "close": "Cerrar escáner",
+    "secureContextRequired": "El acceso a la cámara requiere un contexto seguro (HTTPS o localhost).",
+    "secureContextDocsLink": "Más información"
   },
   "coverPicker": {
     "dropzone": "Arrastra una imagen aquí, o",
