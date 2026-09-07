@@ -38,6 +38,17 @@
 	const useNewKey = $derived(
 		typeKey === 'startedAfterFinished' ? 'clearAndStart' : 'useNew'
 	);
+
+	// Close on Escape right away — the modal-backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onCancel?.();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 </script>
 
 {#if open}
@@ -65,6 +76,6 @@
 				</div>
 			{/if}
 		</div>
-		<div class="modal-backdrop" role="button" tabindex="-1"></div>
+		<div class="modal-backdrop"></div>
 	</div>
 {/if}

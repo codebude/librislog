@@ -43,6 +43,18 @@
 	let cover_url = $state<string | null>(null);
 	$effect(() => { status = defaultStatus; });
 
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// Skip while the nested barcode scanner is open.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && !scannerOpen) open = false;
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
+
 	function reset() {
 		title = '';
 		subtitle = '';
@@ -268,7 +280,6 @@
 			isbn = detected;
 		}}
 	/>
-		<!-- Click-outside to close -->
-		<div class="modal-backdrop" role="button" tabindex="-1" onkeydown={(e) => e.key === 'Escape' && (open = false)}></div>
+		<div class="modal-backdrop"></div>
 	</div>
 {/if}
