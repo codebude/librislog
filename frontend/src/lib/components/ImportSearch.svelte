@@ -6,6 +6,7 @@
 	import { toasts } from '$lib/toasts';
 	import { ScanBarcode } from '@lucide/svelte';
 	import { formatAuthors } from '$lib/utils/authors';
+	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
 
 	let {
 		onImport,
@@ -29,6 +30,7 @@
 	let supplementAddedCount = $state<number | null>(null);
 	let importing = $state<string | null>(null);
 	let cameraSupported = $state(false);
+	let secureContext = $state(false);
 	let lastHandledScannedIsbn = $state<string | null>(null);
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
@@ -36,9 +38,10 @@
 	let hasOlResults = $derived(results.some((r) => r.source === 'open_library'));
 
 	onMount(async () => {
+		secureContext = isSecureContext();
 		cameraSupported =
 			typeof navigator !== 'undefined' &&
-			window.isSecureContext &&
+			secureContext &&
 			!!navigator.mediaDevices &&
 			typeof navigator.mediaDevices.getUserMedia === 'function';
 		await refreshImportedLookups();
@@ -287,6 +290,13 @@
 				<span>{$_('import.scan')}</span>
 			</button>
 		</div>
+	{:else if !secureContext}
+		<p class="text-sm text-base-content/60">
+			{$_('import.scanUnavailable')}{' '}
+			<a href={SECURE_CONTEXT_DOCS_URL} target="_blank" rel="noreferrer" class="link link-primary">
+				{$_('import.scanUnavailableDocsLink')}
+			</a>
+		</p>
 	{/if}
 
 	{#if stages.length > 0}

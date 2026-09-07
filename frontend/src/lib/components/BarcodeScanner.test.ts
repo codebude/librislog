@@ -122,6 +122,12 @@ function installMediaElementMocks() {
 	}
 }
 
+function setSecureContext(value: boolean) {
+	Object.defineProperty(window, 'isSecureContext', { configurable: true, value });
+}
+
+const ORIGINAL_SECURE_CONTEXT_DESCRIPTOR = Object.getOwnPropertyDescriptor(window, 'isSecureContext');
+
 describe('BarcodeScanner', () => {
 	const CAMERAS: Camera[] = [
 		{ deviceId: 'cam-front', label: 'Front Camera' },
@@ -133,11 +139,15 @@ describe('BarcodeScanner', () => {
 		vi.clearAllMocks();
 		window.localStorage.clear();
 		installMediaElementMocks();
+		setSecureContext(true);
 	});
 
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
+		if (ORIGINAL_SECURE_CONTEXT_DESCRIPTOR) {
+			Object.defineProperty(window, 'isSecureContext', ORIGINAL_SECURE_CONTEXT_DESCRIPTOR);
+		}
 	});
 
 	it('requests the persisted camera with an exact deviceId', async () => {
@@ -333,6 +343,23 @@ describe('BarcodeScanner', () => {
 		await waitFor(() => {
 			expect(window.localStorage.getItem(CAMERA_PREF_KEY)).toBe('cam-front');
 		});
+		expect(screen.queryByRole('button', { name: /switch camera/i })).not.toBeInTheDocument();
+	});
+
+	it('shows a secure-context warning and does not start the camera outside a secure context', async () => {
+		setSecureContext(false);
+		const { getUserMedia } = mockMediaDevices(CAMERAS);
+
+		render(BarcodeScanner, { props: { open: true } });
+
+		expect(await screen.findByText(/secure context/i)).toBeInTheDocument();
+		const link = screen.getByRole('link', { name: /learn more/i });
+		expect(link).toHaveAttribute(
+			'href',
+			'https://docs.librislog.app/guide/using-librislog/library.html#isbn-barcode-scan'
+		);
+		expect(getUserMedia).not.toHaveBeenCalled();
+		expect(screen.queryByRole('slider', { name: /zoom/i })).not.toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: /switch camera/i })).not.toBeInTheDocument();
 	});
 });

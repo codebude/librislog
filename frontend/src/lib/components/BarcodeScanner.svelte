@@ -5,6 +5,7 @@
 	import { _ } from '$lib/i18n';
 	import { onDestroy } from 'svelte';
 	import { RefreshCw, X } from '@lucide/svelte';
+	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
 
 	let {
 		open = $bindable(false),
@@ -16,6 +17,7 @@
 
 	let stream = $state<MediaStream | null>(null);
 	let scannerError = $state<string | null>(null);
+	let notSecure = $state(false);
 	let starting = $state(false);
 	let detectionLocked = $state(false);
 	let videoEl = $state<HTMLVideoElement | null>(null);
@@ -268,6 +270,10 @@
 
 	async function startScanner() {
 		if (starting || stream) return;
+		if (!isSecureContext()) {
+			notSecure = true;
+			return;
+		}
 		if (!navigator.mediaDevices?.getUserMedia) throw new Error($_('scanner.noCamera'));
 		starting = true;
 		scannerError = null;
@@ -320,12 +326,13 @@
 	}
 
 	$effect(() => {
-		if (open && !stream && !starting && !scannerError) {
+		if (open && !stream && !starting && !scannerError && !notSecure) {
 			void startScanner();
 			return;
 		}
 		if (!open) {
 			scannerError = null;
+			notSecure = false;
 			if (stream) {
 				void stopScanner();
 			}
@@ -366,7 +373,18 @@
 						</div>
 					{/if}
 
-					{#if !scannerError}
+					{#if notSecure}
+						<div class="alert alert-warning text-sm">
+							<span>
+								{$_('scanner.secureContextRequired')}{' '}
+								<a href={SECURE_CONTEXT_DOCS_URL} target="_blank" rel="noreferrer" class="link link-primary">
+									{$_('scanner.secureContextDocsLink')}
+								</a>
+							</span>
+						</div>
+					{/if}
+
+					{#if !scannerError && !notSecure}
 						<div class="flex-1 min-h-72 rounded-lg bg-black overflow-hidden relative">
 							<video
 								bind:this={videoEl}

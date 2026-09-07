@@ -219,6 +219,8 @@
     "googleAdded": "Google Books 结果已添加：{count}",
     "scan": "扫描",
     "scanIsbn": "扫描 ISBN 条码",
+    "scanUnavailable": "由于应用未在安全上下文中提供，条码扫描不可用。",
+    "scanUnavailableDocsLink": "了解更多",
     "importFailed": "导入失败",
     "searchFailed": "搜索失败",
     "scannedIsbn": "已扫描 ISBN：{isbn}",
@@ -240,7 +242,9 @@
     "switchCamera": "切换摄像头",
     "zoom": "缩放",
     "zoomLevel": "缩放 {zoom}x",
-    "close": "关闭扫描器"
+    "close": "关闭扫描器",
+    "secureContextRequired": "摄像头访问需要安全上下文（HTTPS 或 localhost）。",
+    "secureContextDocsLink": "了解更多"
   },
   "coverPicker": {
     "dropzone": "拖放图片到此处，或",

@@ -7,6 +7,8 @@ Get LibrisLog running in minutes.
 - [Docker](https://docs.docker.com/get-docker/) (includes Docker Compose)
 - `curl` or `wget` (to download files)
 
+> **Camera features need a secure context**: The ISBN barcode scanner (and any camera use) only works when the app is served over **HTTPS** or via `http://localhost`. If you access the app over plain `http://` on a remote address, the camera won't start. See the [library guide](/guide/using-librislog/library#isbn-barcode-scan) for details.
+
 ## Setup
 
 Download the files, create your environment, and generate a secure encryption key.

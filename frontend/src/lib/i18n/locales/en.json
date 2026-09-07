@@ -219,6 +219,8 @@
     "googleAdded": "Google Books results added: {count}",
     "scan": "Scan",
     "scanIsbn": "Scan ISBN barcode",
+    "scanUnavailable": "Barcode scanning is unavailable because the app is not served in a secure context.",
+    "scanUnavailableDocsLink": "Learn more",
     "importFailed": "Import failed",
     "searchFailed": "Search failed",
     "scannedIsbn": "Scanned ISBN: {isbn}",
@@ -240,7 +242,9 @@
     "switchCamera": "Switch camera",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
-    "close": "Close scanner"
+    "close": "Close scanner",
+    "secureContextRequired": "Camera access requires a secure context (HTTPS or localhost).",
+    "secureContextDocsLink": "Learn more"
   },
   "coverPicker": {
     "dropzone": "Drag & drop an image, or",
