@@ -65,6 +65,8 @@ Search external sources for book metadata:
 
 The search automatically tries Open Library first, then falls back to other sources. For ISBN searches, all available sources are queried in parallel.
 
+While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
+
 ### ISBN Barcode Scan
 
 Use the camera to scan ISBN barcodes. The app uses the device's camera with real-time barcode detection to quickly look up books.

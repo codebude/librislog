@@ -483,11 +483,12 @@ export const api = {
 		async *searchStream(
 			q: string,
 			type: 'title' | 'isbn' = 'title',
-			mode: ImportSearchMode = 'auto'
+			mode: ImportSearchMode = 'auto',
+			signal?: AbortSignal
 		): AsyncGenerator<SearchStage> {
 			const res = await fetch(
 				`${BASE}/import/search/stream?q=${encodeURIComponent(q)}&type=${type}&mode=${mode}`,
-				{ headers: authHeaders() }
+				{ headers: authHeaders(), signal }
 			);
 			if (!res.ok || !res.body) {
 				const detail = await res.json().catch(() => ({}));

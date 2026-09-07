@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AcquisitionStatus, Book, BookImportCandidate, ReadingStatus, SearchStage } from '$lib/types';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -36,6 +36,7 @@
 	let importedTitleAuthors = $state<Set<string>>(new Set());
 	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
 	let hasOlResults = $derived(results.some((r) => r.source === 'open_library'));
+	let searchAbortController: AbortController | null = null;
 
 	onMount(async () => {
 		secureContext = isSecureContext();
@@ -55,6 +56,11 @@
 		toasts.add($_('import.scannedIsbn', { values: { isbn: scannedIsbn } }), 'success');
 		void search();
 		onScannedHandled?.();
+	});
+
+	// Abort any pending search when the component unmounts (modal close, tab switch).
+	onDestroy(() => {
+		searchAbortController?.abort();
 	});
 
 	function stageLabel(s: SearchStage): string {
@@ -187,9 +193,20 @@
 		return merged;
 	}
 
-	async function runSearch(mode: 'auto' | 'google_only', mergeResults: boolean) {
+	function startSearch(): AbortController {
+		searchAbortController?.abort();
+		const controller = new AbortController();
+		searchAbortController = controller;
+		return controller;
+	}
+
+	function cancelSearch() {
+		searchAbortController?.abort();
+	}
+
+	async function runSearch(mode: 'auto' | 'google_only', mergeResults: boolean, signal?: AbortSignal) {
 		try {
-			for await (const event of api.import.searchStream(query.trim(), searchType, mode)) {
+			for await (const event of api.import.searchStream(query.trim(), searchType, mode, signal)) {
 				if (event.stage === 'complete') {
 					results = mergeResults ? mergeCandidates(results, event.results) : event.results;
 				} else {
@@ -198,12 +215,16 @@
 				}
 			}
 		} catch (e: unknown) {
+			if (e instanceof Error && e.name === 'AbortError') {
+				return;
+			}
 			toasts.add(e instanceof Error ? e.message : $_('import.searchFailed'), 'error');
 		}
 	}
 
 	async function search() {
-		if (!query.trim()) return;
+		if (!query.trim() || searching) return;
+		const controller = startSearch();
 		searching = true;
 		supplementingGoogle = false;
 		googleSupplementSearched = false;
@@ -211,21 +232,34 @@
 		results = [];
 		stages = [];
 		try {
-			await runSearch('auto', false);
+			await runSearch('auto', false, controller.signal);
 		} finally {
+			if (controller.signal.aborted) {
+				// Explicit cancel: discard partial results so a corrected query starts fresh.
+				results = [];
+				stages = [];
+			}
+			if (searchAbortController === controller) searchAbortController = null;
 			searching = false;
 		}
 	}
 
 	async function searchGoogleToo() {
 		if (!query.trim() || searching || supplementingGoogle || googleSupplementSearched) return;
+		const controller = startSearch();
 		supplementingGoogle = true;
 		const beforeCount = results.length;
 		try {
-			await runSearch('google_only', true);
-			supplementAddedCount = Math.max(0, results.length - beforeCount);
-			googleSupplementSearched = true;
+			await runSearch('google_only', true, controller.signal);
 		} finally {
+			if (controller.signal.aborted) {
+				supplementAddedCount = null;
+				googleSupplementSearched = false;
+			} else {
+				supplementAddedCount = Math.max(0, results.length - beforeCount);
+				googleSupplementSearched = true;
+			}
+			if (searchAbortController === controller) searchAbortController = null;
 			supplementingGoogle = false;
 		}
 	}
@@ -260,15 +294,20 @@
 			class="input input-bordered w-full sm:w-auto sm:grow sm:min-w-0"
 			placeholder={searchType === 'isbn' ? $_('import.enterIsbn') : $_('import.searchByTitleOrAuthor')}
 			bind:value={query}
-			onkeydown={(e) => e.key === 'Enter' && search()}
+			onkeydown={(e) => e.key === 'Enter' && !searching && !supplementingGoogle && search()}
 		/>
 		<div class="flex gap-2 w-full sm:w-auto">
 			<select class="select select-bordered min-w-fit max-sm:flex-1" name="import-type" bind:value={searchType}>
 				<option value="title">{$_('book.title')}</option>
 				<option value="isbn">{$_('book.isbn')}</option>
 			</select>
-			<button class="btn btn-primary shrink-0 max-sm:flex-1" onclick={search} disabled={searching}>
-				{searching ? $_('common.loadingEllipsis') : $_('common.search')}
+			<button
+				class="btn btn-primary shrink-0 max-sm:flex-1"
+				onclick={searching || supplementingGoogle ? cancelSearch : search}
+				disabled={!query.trim() && !searching && !supplementingGoogle}
+				aria-label={searching || supplementingGoogle ? $_('common.cancel') : $_('common.search')}
+			>
+				{searching || supplementingGoogle ? $_('common.cancel') : $_('common.search')}
 			</button>
 		</div>
 	</div>
