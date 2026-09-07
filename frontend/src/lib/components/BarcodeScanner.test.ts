@@ -356,7 +356,7 @@ describe('BarcodeScanner', () => {
 		const link = screen.getByRole('link', { name: /learn more/i });
 		expect(link).toHaveAttribute(
 			'href',
-			'https://docs.librislog.app/guide/using-librislog/library#isbn-barcode-scan'
+			'https://docs.librislog.app/guide/using-librislog/library.html#isbn-barcode-scan'
 		);
 		expect(getUserMedia).not.toHaveBeenCalled();
 		expect(screen.queryByRole('slider', { name: /zoom/i })).not.toBeInTheDocument();
