@@ -26,6 +26,7 @@ import type {
 	DashboardQuote,
 	GamificationResponse,
 	StatisticsResponse,
+	StatisticsRange,
 	LibraryStats,
 	ReadingProgressEntry,
 	StatusTransitionRequest,
@@ -258,8 +259,11 @@ export const api = {
 	},
 
 	statistics: {
-		get(): Promise<StatisticsResponse> {
-			return request<StatisticsResponse>('/statistics');
+		get(range: StatisticsRange = 'alltime', customFrom?: string | null, customTo?: string | null): Promise<StatisticsResponse> {
+			const params = new URLSearchParams({ range });
+			if (customFrom) params.set('from', customFrom);
+			if (customTo) params.set('to', customTo);
+			return request<StatisticsResponse>(`/statistics?${params.toString()}`);
 		},
 
 		getPagesPerDay(days: number = 365): Promise<DailyPagesResponse> {
