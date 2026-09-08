@@ -17,21 +17,21 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 | Version | Date | Type |
 |---|---|---|
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | Unreleased | Feature release |
-| [v1.8.0](#v1-8-0-—-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
-| [v1.7.0](#v1-7-0-—-reading-streaks-goals) | 2026-08-26 | Feature release |
-| [v1.6.0](#v1-6-0-—-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
-| [v1.5.2](#v1-5-2-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.1](#v1-5-1-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.0](#v1-5-0-—-password-reset-usability) | 2026-06-22 | Feature release |
-| [v1.4.0](#v1-4-0-—-embeddable-views-arm64) | 2026-06-14 | Feature release |
-| [v1.3.1](#v1-3-1-—-maintenance) | 2026-06-09 | Maintenance |
-| [v1.3.0](#v1-3-0-—-more-languages) | 2026-06-09 | Feature release |
-| [v1.2.2](#v1-2-2-—-maintenance) | 2026-06-08 | Maintenance |
-| [v1.2.1](#v1-2-1-—-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
-| [v1.2.0](#v1-2-0-—-startup-screen-update-checks) | 2026-06-01 | Feature release |
-| [v1.1.1](#v1-1-1-—-maintenance) | 2026-06-01 | Maintenance |
-| [v1.1.0](#v1-1-0-—-polish-missing-covers) | 2026-05-31 | Feature release |
-| [v1.0.0](#v1-0-0-—-initial-release) | 2026-05-28 | Initial release |
+| [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
+| [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
+| [v1.6.0](#v1-6-0-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
+| [v1.5.2](#v1-5-2-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.1](#v1-5-1-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.0](#v1-5-0-password-reset-usability) | 2026-06-22 | Feature release |
+| [v1.4.0](#v1-4-0-embeddable-views-arm64) | 2026-06-14 | Feature release |
+| [v1.3.1](#v1-3-1-maintenance) | 2026-06-09 | Maintenance |
+| [v1.3.0](#v1-3-0-more-languages) | 2026-06-09 | Feature release |
+| [v1.2.2](#v1-2-2-maintenance) | 2026-06-08 | Maintenance |
+| [v1.2.1](#v1-2-1-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
+| [v1.2.0](#v1-2-0-startup-screen-update-checks) | 2026-06-01 | Feature release |
+| [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
+| [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
+| [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
 
 ---
 
@@ -60,7 +60,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.8.0 — Camera & Zoom Control, Optional Telemetry
+## v1.8.0: Camera & Zoom Control, Optional Telemetry
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-02" />
 
@@ -83,7 +83,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.7.0 — Reading Streaks & Goals
+## v1.7.0: Reading Streaks & Goals
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-08-26" />
 
@@ -116,7 +116,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.6.0 — Reading Progress & Possession Tracking
+## v1.6.0: Reading Progress & Possession Tracking
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-08-23" />
 
@@ -138,7 +138,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.2 — Maintenance
+## v1.5.2: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-22" />
 
@@ -154,7 +154,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.1 — Maintenance
+## v1.5.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-22" />
 
@@ -169,7 +169,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.0 — Password Reset & Usability
+## v1.5.0: Password Reset & Usability
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-22" />
 
@@ -191,7 +191,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.4.0 — Embeddable Views & ARM64
+## v1.4.0: Embeddable Views & ARM64
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-14" />
 
@@ -213,7 +213,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.3.1 — Maintenance
+## v1.3.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-09" />
 
@@ -228,7 +228,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.3.0 — More Languages
+## v1.3.0: More Languages
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-09" />
 
@@ -245,7 +245,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.2 — Maintenance
+## v1.2.2: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-08" />
 
@@ -260,7 +260,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.1 — Import Reliability & Multi-User Consistency
+## v1.2.1: Import Reliability & Multi-User Consistency
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-08" />
 
@@ -282,7 +282,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.0 — Startup Screen & Update Checks
+## v1.2.0: Startup Screen & Update Checks
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-01" />
 
@@ -298,7 +298,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.1.1 — Maintenance
+## v1.1.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-01" />
 
@@ -315,7 +315,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.1.0 — Polish & Missing Covers
+## v1.1.0: Polish & Missing Covers
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-05-31" />
 
@@ -333,7 +333,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.0.0 — Initial Release
+## v1.0.0: Initial Release
 
 <Badge type="tip" text="Initial release" /> <Badge type="info" text="2026-05-28" />
 
