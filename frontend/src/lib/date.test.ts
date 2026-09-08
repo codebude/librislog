@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { toDateInputValue, fromDateInputValue, formatDate, formatDateTime, today } from './date';
+import {
+	toDateInputValue,
+	fromDateInputValue,
+	formatDate,
+	formatDateTime,
+	toDateTimeInputValue,
+	fromDateTimeInputValue,
+	today
+} from './date';
 
 describe('toDateInputValue', () => {
 	it('converts UTC ISO to YYYY-MM-DD in UTC', () => {
@@ -52,8 +60,9 @@ describe('fromDateInputValue', () => {
 		expect(result).toBe('2026-05-16T00:00:00.000Z');
 	});
 
-	// Note: line 19 (isValid check) is unreachable because dayjs.tz() throws
-	// for invalid input before isValid() can be called.
+	it('returns null for invalid input', () => {
+		expect(fromDateInputValue('garbage', 'UTC')).toBeNull();
+	});
 });
 
 describe('formatDate', () => {
@@ -81,6 +90,54 @@ describe('formatDateTime', () => {
 
 	it('returns empty string for invalid date', () => {
 		expect(formatDateTime('not-a-date', 'UTC')).toBe('');
+	});
+});
+
+describe('toDateTimeInputValue', () => {
+	it('converts UTC ISO to datetime-local value in UTC', () => {
+		expect(toDateTimeInputValue('2026-05-16T14:30:00.000Z', 'UTC')).toBe('2026-05-16T14:30');
+	});
+
+	it('converts UTC ISO to datetime-local value in Europe/Berlin', () => {
+		expect(toDateTimeInputValue('2026-05-16T14:30:00.000Z', 'Europe/Berlin')).toBe('2026-05-16T16:30');
+	});
+
+	it('converts UTC ISO to datetime-local value in America/New_York', () => {
+		expect(toDateTimeInputValue('2026-05-16T04:30:00.000Z', 'America/New_York')).toBe('2026-05-16T00:30');
+	});
+
+	it('returns empty string for null', () => {
+		expect(toDateTimeInputValue(null, 'UTC')).toBe('');
+	});
+
+	it('returns empty string for invalid date', () => {
+		expect(toDateTimeInputValue('invalid', 'UTC')).toBe('');
+	});
+});
+
+describe('fromDateTimeInputValue', () => {
+	it('converts datetime-local value to UTC ISO for UTC timezone', () => {
+		expect(fromDateTimeInputValue('2026-05-16T14:30', 'UTC')).toBe('2026-05-16T14:30:00.000Z');
+	});
+
+	it('converts datetime-local value to UTC ISO for Europe/Berlin', () => {
+		expect(fromDateTimeInputValue('2026-05-16T14:30', 'Europe/Berlin')).toBe('2026-05-16T12:30:00.000Z');
+	});
+
+	it('converts datetime-local value to UTC ISO for America/New_York', () => {
+		expect(fromDateTimeInputValue('2026-05-16T00:30', 'America/New_York')).toBe('2026-05-16T04:30:00.000Z');
+	});
+
+	it('returns null for empty string', () => {
+		expect(fromDateTimeInputValue('', 'UTC')).toBeNull();
+	});
+
+	it('trims whitespace', () => {
+		expect(fromDateTimeInputValue(' 2026-05-16T14:30 ', 'UTC')).toBe('2026-05-16T14:30:00.000Z');
+	});
+
+	it('returns null for invalid input', () => {
+		expect(fromDateTimeInputValue('garbage', 'UTC')).toBeNull();
 	});
 });
 

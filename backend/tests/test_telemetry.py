@@ -410,8 +410,8 @@ async def test_database_failure_is_swallowed(monkeypatch) -> None:
 
 
 @pytest.mark.anyio
-async def test_heartbeat_sends_then_waits_24h() -> None:
-    """The heartbeat sends on start, then sleeps 24h and keeps going on failure."""
+async def test_heartbeat_sends_then_waits_interval() -> None:
+    """The heartbeat sends on start, then sleeps the configured interval and keeps going on failure."""
     import app.main as main_module
 
     calls = 0
@@ -428,7 +428,7 @@ async def test_heartbeat_sends_then_waits_24h() -> None:
                 await main_module._telemetry_heartbeat()
 
     assert calls == 2
-    assert mock_sleep.call_args_list[0].args[0] == 24 * 3600
+    assert mock_sleep.call_args_list[0].args[0] == main_module._TELEMETRY_INTERVAL_SECONDS
 
 
 @pytest.mark.anyio

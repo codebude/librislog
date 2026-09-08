@@ -195,6 +195,8 @@ describe('BarcodeScanner', () => {
 		);
 
 		const switchBtn = await screen.findByRole('button', { name: /switch camera/i });
+		// The current camera name is shown in a badge next to the switch button.
+		expect(screen.getByText('Rear Camera')).toBeInTheDocument();
 		await fireEvent.click(switchBtn);
 
 		await waitFor(() => {
@@ -205,6 +207,8 @@ describe('BarcodeScanner', () => {
 				video: expect.objectContaining({ deviceId: { exact: 'cam-macro' } })
 			})
 		);
+		// The badge follows the newly selected camera.
+		expect(screen.getByText('Macro Camera')).toBeInTheDocument();
 		// The previous stream's track must be stopped before requesting the new one.
 		expect(streams[0].getTracks()[0].stop).toHaveBeenCalled();
 		// The chosen camera is remembered for the next session.

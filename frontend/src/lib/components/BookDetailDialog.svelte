@@ -2,7 +2,12 @@
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import { locale } from '$lib/i18n';
-	import { formatDate, formatDateTime } from '$lib/date';
+	import {
+		formatDate,
+		formatDateTime,
+		fromDateTimeInputValue,
+		toDateTimeInputValue
+	} from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
@@ -170,9 +175,7 @@
 
 	function startEditEntry(entry: ReadingProgressEntry) {
 		editingEntryId = entry.id;
-		const d = new Date(entry.created_at);
-		const pad = (n: number) => n.toString().padStart(2, '0');
-		editingDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		editingDate = toDateTimeInputValue(entry.created_at, tz);
 	}
 
 	function cancelEditEntry() {
@@ -182,8 +185,12 @@
 
 	async function saveEditEntry(entry: ReadingProgressEntry) {
 		if (!editingDate) return;
-		const d = new Date(editingDate);
-		const created_at = d.toISOString();
+		const created_at = fromDateTimeInputValue(editingDate, tz);
+		if (!created_at || created_at === entry.created_at) {
+			editingEntryId = null;
+			editingDate = '';
+			return;
+		}
 		try {
 			const updated = await api.books.progress.update(entry.book_id, entry.id, { created_at });
 			progressEntries = progressEntries.map((e) => (e.id === entry.id ? { ...e, created_at: updated.created_at } : e));

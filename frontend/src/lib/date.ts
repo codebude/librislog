@@ -31,6 +31,21 @@ export function formatDateTime(value: string | null | undefined, timeZone: strin
 	return d.tz(timeZone).format('YYYY-MM-DD HH:mm');
 }
 
+export function toDateTimeInputValue(value: string | null | undefined, timeZone: string): string {
+	if (!value) return '';
+	const d = dayjs(value);
+	if (!d.isValid()) return '';
+	return d.tz(timeZone).format('YYYY-MM-DDTHH:mm');
+}
+
+export function fromDateTimeInputValue(value: string, timeZone: string): string | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const d = dayjs.tz(trimmed, timeZone);
+	if (!d.isValid()) return null;
+	return d.toISOString();
+}
+
 export function today(timeZone: string): string {
 	return dayjs().tz(timeZone).format('YYYY-MM-DD');
 }

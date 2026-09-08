@@ -244,6 +244,7 @@
     "startError": "Barcode-Scanner konnte nicht gestartet werden. Prüfe die Kameraberechtigungen.",
     "noCamera": "Kein Kameragerät gefunden.",
     "switchCamera": "Kamera wechseln",
+    "currentCamera": "Aktuelle Kamera: {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
     "close": "Scanner schließen",
