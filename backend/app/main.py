@@ -18,7 +18,7 @@ from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
 from app.services.telemetry import send_telemetry_once
 
-_TELEMETRY_INTERVAL_SECONDS = 24 * 3600
+_TELEMETRY_INTERVAL_SECONDS = 23 * 3600
 
 logger = logging.getLogger(__name__)
 
