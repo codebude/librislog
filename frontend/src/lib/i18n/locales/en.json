@@ -244,6 +244,7 @@
     "startError": "Unable to start barcode scanner. Check camera permissions.",
     "noCamera": "No camera device found.",
     "switchCamera": "Switch camera",
+    "currentCamera": "Current camera: {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
     "close": "Close scanner",

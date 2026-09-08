@@ -429,15 +429,23 @@
 								</div>
 							{/if}
 							{#if cameras.length > 1}
-								<button
-									class="btn btn-outline btn-sm gap-2"
-									onclick={() => void switchCamera()}
-									disabled={starting}
-									aria-label={$_('scanner.switchCamera')}
-								>
-									<RefreshCw class="w-4 h-4" />
-									{$_('scanner.switchCamera')}
-								</button>
+								<div class="flex items-center gap-2">
+									<span
+										class="badge badge-ghost badge-sm max-w-40 truncate"
+										title={$_('scanner.currentCamera', { values: { camera: cameras[cameraIndex]?.label ?? '' } })}
+									>
+										{cameras[cameraIndex]?.label}
+									</span>
+									<button
+										class="btn btn-outline btn-sm gap-2"
+										onclick={() => void switchCamera()}
+										disabled={starting}
+										aria-label={$_('scanner.switchCamera')}
+									>
+										<RefreshCw class="w-4 h-4" />
+										{$_('scanner.switchCamera')}
+									</button>
+								</div>
 							{/if}
 						</div>
 					{/if}

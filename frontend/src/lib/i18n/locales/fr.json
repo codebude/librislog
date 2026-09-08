@@ -244,6 +244,7 @@
     "startError": "Impossible de démarrer le scanner. Vérifie les autorisations de la caméra.",
     "noCamera": "Aucun appareil photo trouvé.",
     "switchCamera": "Changer de caméra",
+    "currentCamera": "Caméra actuelle : {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
     "close": "Fermer le scanner",

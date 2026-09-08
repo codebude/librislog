@@ -244,6 +244,7 @@
     "startError": "No se pudo iniciar el escáner. Comprueba los permisos de la cámara.",
     "noCamera": "No se encontró ningún dispositivo de cámara.",
     "switchCamera": "Cambiar cámara",
+    "currentCamera": "Cámara actual: {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
     "close": "Cerrar escáner",
