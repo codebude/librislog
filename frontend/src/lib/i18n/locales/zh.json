@@ -232,7 +232,11 @@
     "sourceGoogleSearching": "正在搜索 Google Books...",
     "sourceBackendError": "{source} 后端错误（请检查后端日志）",
     "sourceError": "搜索失败：{message}",
-    "resultCount": "{source} - {count} 个结果"
+    "resultCount": "{source} - {count} 个结果",
+    "groupResultPlural": "个结果",
+    "groupExpand": "显示版本",
+    "groupCollapse": "隐藏版本",
+    "groupChooseEdition": "选择版本"
   },
   "scanner": {
     "title": "扫描 ISBN 条码",
