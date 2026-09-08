@@ -674,6 +674,26 @@ def test_extract_book_level_daily_pages_skips_outside_window() -> None:
     assert result == {}
 
 
+def test_statistics_monthly_pages_clamp_to_selected_window() -> None:
+    from app.routers.statistics import _compute_pages_per_month_from_books
+
+    book = Book(
+        title="Windowed",
+        reading_status=ReadingStatus.read,
+        user_id=1,
+        page_count=100,
+        date_started=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        date_finished=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )
+    result = _compute_pages_per_month_from_books(
+        [book],
+        ZoneInfo("UTC"),
+        datetime(2026, 1, 6),
+        datetime(2026, 1, 10, 23, 59, 59),
+    )
+    assert result == {"2026-01": 50.0}
+
+
 # ── Rating stats ─────────────────────────────────────────────────────────
 
 
@@ -690,3 +710,53 @@ def test_statistics_top_and_worst_rated_books(client: Any) -> None:
     assert data["average_rating"] == 3.5
     assert [b["title"] for b in data["top_rated_books"]] == ["Best", "Good", "Okay", "Bad"]
     assert [b["title"] for b in data["worst_rated_books"]] == ["Bad", "Okay", "Good", "Best"]
+
+
+def test_statistics_range_filters_finished_books(client: Any) -> None:
+    now = datetime.now(timezone.utc)
+    _create_book(
+        client,
+        title="Outside",
+        reading_status="read",
+        date_started=(now - timedelta(days=45)).isoformat(),
+        date_finished=(now - timedelta(days=40)).isoformat(),
+    )
+    _create_book(
+        client,
+        title="Inside",
+        reading_status="read",
+        date_started=(now - timedelta(days=5)).isoformat(),
+        date_finished=(now - timedelta(days=2)).isoformat(),
+    )
+
+    response = client.get("/api/statistics?range=30days")
+    assert response.status_code == 200
+    data = response.json()
+    assert sum(item["count"] for item in data["books_finished_per_month"]) == 1
+    assert sum(item["count"] for item in data["books_finished_per_year"]) == 1
+
+
+def test_statistics_custom_range_and_validation(client: Any) -> None:
+    _create_book(
+        client,
+        title="Included",
+        reading_status="read",
+        date_started="2026-01-01T00:00:00Z",
+        date_finished="2026-02-01T00:00:00Z",
+    )
+    _create_book(
+        client,
+        title="Excluded",
+        reading_status="read",
+        date_started="2026-03-01T00:00:00Z",
+        date_finished="2026-04-01T00:00:00Z",
+    )
+
+    response = client.get("/api/statistics?range=custom&from=2026-01-01&to=2026-02-28")
+    assert response.status_code == 200
+    assert sum(item["count"] for item in response.json()["books_finished_per_month"]) == 1
+
+    assert client.get("/api/statistics?range=custom&from=2026-01-01").status_code == 400
+    assert client.get("/api/statistics?range=custom&from=2026-03-01&to=2026-02-01").status_code == 400
+    assert client.get("/api/statistics?range=alltime&from=2026-01-01&to=2026-02-01").status_code == 400
+    assert client.get("/api/statistics?range=custom&from=1900-01-01&to=2026-02-01").status_code == 400

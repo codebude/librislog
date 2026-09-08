@@ -1,7 +1,7 @@
 """Pydantic / SQLModel request and response schemas for the API."""
 
 from typing import Optional, Any
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Literal
 
@@ -249,6 +249,16 @@ class YearlyBooks(SQLModel):
     count: int
 
 
+class StatisticsRange(str, Enum):
+    """Shared statistics time-range selector options."""
+    alltime = "alltime"
+    three_years = "3years"
+    one_year = "1year"
+    six_months = "6months"
+    thirty_days = "30days"
+    custom = "custom"
+
+
 class TopAuthor(SQLModel):
     """An author with the most books in the library."""
     author: str
@@ -413,6 +423,9 @@ class UserSettingsRead(SQLModel):
     goal_books_per_year_enabled: bool
     goal_books_per_year: int
     gamification_enabled: bool
+    statistics_range: StatisticsRange
+    statistics_custom_from: Optional[date] = None
+    statistics_custom_to: Optional[date] = None
 
 
 class UserSettingsUpdate(SQLModel):
@@ -430,6 +443,9 @@ class UserSettingsUpdate(SQLModel):
     goal_books_per_year_enabled: Optional[bool] = None
     goal_books_per_year: Optional[int] = Field(default=None, ge=1)
     gamification_enabled: Optional[bool] = None
+    statistics_range: Optional[StatisticsRange] = None
+    statistics_custom_from: Optional[date] = None
+    statistics_custom_to: Optional[date] = None
 
     @field_validator('theme')
     @classmethod

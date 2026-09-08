@@ -2,7 +2,7 @@
 
 from enum import Enum
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import sqlalchemy as sa
 from pydantic import model_validator
@@ -192,6 +192,9 @@ class UserSettings(SQLModel, table=True):
     goal_books_per_year_enabled: bool = Field(default=False)
     goal_books_per_year: int = Field(default=25, ge=1)
     gamification_enabled: bool = Field(default=True)
+    statistics_range: str = Field(default="alltime", max_length=20)
+    statistics_custom_from: Optional[date] = Field(default=None)
+    statistics_custom_to: Optional[date] = Field(default=None)
 
 
 class ApiKey(SQLModel, table=True):

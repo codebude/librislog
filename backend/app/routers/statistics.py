@@ -2,13 +2,13 @@
 
 import calendar
 from collections import Counter, defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from statistics import mean
 from types import SimpleNamespace
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
@@ -27,6 +27,7 @@ from app.schemas import (
     MonthlyBooks,
     MonthlyPages,
     PageBuckets,
+    StatisticsRange,
     StatisticsResponse,
     StatusDistribution,
     TopAuthor,
@@ -36,6 +37,7 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/api/statistics", tags=["statistics"])
+MAX_CUSTOM_RANGE_DAYS = 25 * 366
 
 
 def _zone_from_name(timezone_name: str | None) -> ZoneInfo:
@@ -108,6 +110,71 @@ def _naive_utc(dt: datetime) -> datetime:
     if dt.tzinfo is not None:
         return dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt
+
+
+def _subtract_months(dt: datetime, months: int) -> datetime:
+    """Return *dt* shifted back by *months*, clamping the day if needed."""
+    year, month = dt.year, dt.month - months
+    while month <= 0:
+        month += 12
+        year -= 1
+    last_dom = calendar.monthrange(year, month)[1]
+    day = min(dt.day, last_dom)
+    return dt.replace(year=year, month=month, day=day)
+
+
+def _subtract_years(dt: datetime, years: int) -> datetime:
+    """Return *dt* shifted back by *years*, handling Feb 29 gracefully."""
+    year = dt.year - years
+    try:
+        return dt.replace(year=year)
+    except ValueError:
+        return dt.replace(year=year, month=2, day=28)
+
+
+def _statistics_window(
+    range_value: StatisticsRange,
+    custom_from: date | None,
+    custom_to: date | None,
+    tz: ZoneInfo,
+    now: datetime,
+) -> tuple[datetime | None, datetime | None]:
+    """Return the inclusive statistics window as naive UTC datetimes.
+
+    Returns ``(None, None)`` for "All time".  For bounded ranges the window is
+    expressed in the user's timezone and converted to naive UTC to match the
+    DB filtering convention used by :func:`_clamp_window`.
+
+    - Custom -> from start of the custom *from* day to end of the custom *to*
+      day (inclusive) in *tz*.
+    - Predefined -> ``now - delta`` (inclusive) to ``now``.
+    """
+    if range_value == StatisticsRange.alltime:
+        return (None, None)
+
+    if range_value == StatisticsRange.custom:
+        if custom_from is None or custom_to is None:
+            raise HTTPException(status_code=400, detail="Custom range requires both dates.")
+        if custom_from > custom_to:
+            raise HTTPException(status_code=400, detail="'from' cannot be after 'to'.")
+        if (custom_to - custom_from).days > MAX_CUSTOM_RANGE_DAYS:
+            raise HTTPException(status_code=400, detail="Custom range cannot exceed 25 years.")
+        start = datetime.combine(custom_from, time.min, tzinfo=tz)
+        end = datetime.combine(custom_to, time.max, tzinfo=tz)
+        return (_naive_utc(start), _naive_utc(end))
+
+    end = now
+    if range_value == StatisticsRange.thirty_days:
+        start = now - timedelta(days=30)
+    elif range_value == StatisticsRange.six_months:
+        start = _subtract_months(now, 6)
+    elif range_value == StatisticsRange.one_year:
+        start = _subtract_years(now, 1)
+    elif range_value == StatisticsRange.three_years:
+        start = _subtract_years(now, 3)
+    else:
+        start = now
+    return (_naive_utc(start), _naive_utc(end))
 
 
 def _extract_progress_daily_pages(
@@ -196,8 +263,16 @@ def _allocate_daily_avg_across_months(
     return monthly
 
 
-def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> dict[str, float]:
-    """Compute pages read per month from reading progress entries."""
+def _compute_pages_per_month_from_progress(
+    entries: list, tz: ZoneInfo,
+    window_start: datetime | None = None, window_end: datetime | None = None,
+) -> dict[str, float]:
+    """Compute pages read per month from reading progress entries.
+
+    When *window_start*/*window_end* are provided, only the portion of each
+    reading span that overlaps the window is allocated to months.  The daily
+    average is still computed from the full span so the values stay correct.
+    """
     monthly: dict[str, float] = defaultdict(float)
     grouped: dict[int, list] = {}
     for entry in entries:
@@ -211,14 +286,26 @@ def _compute_pages_per_month_from_progress(entries: list, tz: ZoneInfo) -> dict[
             day_diff = (curr.created_at - prev.created_at).days + 1
             if day_diff <= 0:
                 continue
-            m = _allocate_daily_avg_across_months(delta / day_diff, prev.created_at, curr.created_at, tz)
+            start, end = _clamp_window(prev.created_at, curr.created_at, window_start, window_end)
+            if start is None or end is None:
+                continue
+            m = _allocate_daily_avg_across_months(delta / day_diff, start, end, tz)
             for k, v in m.items():
                 monthly[k] += v
     return monthly
 
 
-def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> dict[str, float]:
-    """Compute pages read per month for finished books without progress entries."""
+def _compute_pages_per_month_from_books(
+    books: list[Book], tz: ZoneInfo,
+    window_start: datetime | None = None, window_end: datetime | None = None,
+) -> dict[str, float]:
+    """Compute pages read per month for finished books without progress entries.
+
+    When *window_start*/*window_end* are provided, only the portion of each
+    book's reading period that overlaps the window is allocated to months.
+    The daily average is still computed from the full period so the values
+    stay correct.
+    """
     monthly: dict[str, float] = defaultdict(float)
     for book in books:
         if not (book.date_started and book.date_finished and book.page_count):
@@ -228,8 +315,11 @@ def _compute_pages_per_month_from_books(books: list[Book], tz: ZoneInfo) -> dict
         total_days = (book.date_finished - book.date_started).days + 1
         if total_days <= 0:
             continue
+        start, end = _clamp_window(book.date_started, book.date_finished, window_start, window_end)
+        if start is None or end is None:
+            continue
         m = _allocate_daily_avg_across_months(
-            book.page_count / total_days, book.date_started, book.date_finished, tz
+            book.page_count / total_days, start, end, tz
         )
         for k, v in m.items():
             monthly[k] += v
@@ -598,13 +688,45 @@ def get_pages_per_day(
 
 @router.get("", response_model=StatisticsResponse)
 def get_statistics(
+    range_value: StatisticsRange = Query(default=StatisticsRange.alltime, alias="range"),
+    custom_from: Optional[date] = Query(default=None, alias="from"),
+    custom_to: Optional[date] = Query(default=None, alias="to"),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> StatisticsResponse:
-    """Return the full statistics dashboard for the authenticated user."""
+    """Return the full statistics dashboard for the authenticated user.
+
+    The *range* query parameter selects a shared time window for the three
+    trend charts (pages read per month, books finished per month/year).  When
+    *range* is ``custom``, the ``from``/``to`` dates bound the window inclusive.
+    All other statistics (status/acquisition distributions, top authors,
+    ratings, page buckets) are computed over the full library.
+    """
     assert current_user.id is not None
+
+    if range_value == StatisticsRange.custom:
+        if custom_from is None or custom_to is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Both 'from' and 'to' are required when range is 'custom'.",
+            )
+        if custom_from > custom_to:
+            raise HTTPException(
+                status_code=400,
+                detail="'from' cannot be after 'to'.",
+            )
+    else:
+        if custom_from is not None or custom_to is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="'from'/'to' are only allowed when range is 'custom'.",
+            )
+
     tz = _user_timezone(session, current_user.id)
     now = datetime.now(tz)
+    window_start, window_end = _statistics_window(
+        range_value, custom_from, custom_to, tz, now
+    )
     current_month_key = f"{now.year:04d}-{now.month:02d}"
     current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == current_user.id)).all())
@@ -675,11 +797,26 @@ def get_statistics(
         pages_wasted=pages_wasted,
     )
 
-    finished_books = [
+    all_finished_books = [
         book
         for book in books
         if book.reading_status == ReadingStatus.read and book.date_finished is not None
     ]
+    finished_books_per_month_all_time: Counter[str] = Counter()
+    for book in all_finished_books:
+        assert book.date_finished is not None
+        finished_books_per_month_all_time[_month_key(book.date_finished, tz)] += 1
+
+    finished_books = all_finished_books
+
+    if window_start is not None and window_end is not None:
+        finished_books = [
+            book
+            for book in finished_books
+            if book.date_finished is not None
+            and _naive_utc(book.date_finished) >= window_start
+            and _naive_utc(book.date_finished) <= window_end
+        ]
 
     finished_books_per_month: Counter[str] = Counter()
     for book in finished_books:
@@ -687,19 +824,70 @@ def get_statistics(
         month = _month_key(book.date_finished, tz)
         finished_books_per_month[month] += 1
 
-    progress_entries = list(
+    # For bounded ranges the chart axis spans the whole selected window, so
+    # months/years outside any real data still appear (with zero counts).
+    if window_start is not None and window_end is not None:
+        window_start_aware = window_start.replace(tzinfo=timezone.utc)
+        window_end_aware = window_end.replace(tzinfo=timezone.utc)
+        window_start_month_key = _month_key(window_start_aware, tz)
+        window_end_month_key = _month_key(window_end_aware, tz)
+        window_start_year = window_start_aware.astimezone(tz).year
+        window_end_year = window_end_aware.astimezone(tz).year
+    else:
+        window_start_month_key = None
+        window_end_month_key = None
+        window_start_year = None
+        window_end_year = None
+
+    if window_start is not None and window_end is not None:
+        # Only books with at least one progress entry inside the window can
+        # contribute pages to the window; load their full entry chains so the
+        # prev→curr deltas and day spans are complete.  Mirrors pages-per-day.
+        book_ids_with_window_progress = set(
+            session.exec(
+                select(ReadingProgress.book_id)
+                .where(
+                    ReadingProgress.user_id == current_user.id,
+                    ReadingProgress.created_at >= window_start,
+                )
+                .distinct()
+            ).all()
+        )
+        if book_ids_with_window_progress:
+            progress_entries = list(
+                session.exec(
+                    select(ReadingProgress)
+                    .where(
+                        ReadingProgress.user_id == current_user.id,
+                        col(ReadingProgress.book_id).in_(book_ids_with_window_progress),
+                    )
+                    .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
+                ).all()
+            )
+        else:
+            progress_entries = []
+    else:
+        progress_entries = list(
+            session.exec(
+                select(ReadingProgress)
+                .where(ReadingProgress.user_id == current_user.id)
+                .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
+            ).all()
+        )
+
+    # All book_ids with *any* progress entry — used to exclude books from the
+    # fallback computation and to build virtual entries.
+    all_book_ids_with_progress = set(
         session.exec(
-            select(ReadingProgress)
+            select(ReadingProgress.book_id)
             .where(ReadingProgress.user_id == current_user.id)
-            .order_by(col(ReadingProgress.book_id), col(ReadingProgress.created_at))
+            .distinct()
         ).all()
     )
 
-    books_with_progress = {e.book_id for e in progress_entries}
-
     virtual_entries = []
     for book in books:
-        if book.id not in books_with_progress or not book.date_started:
+        if book.id not in all_book_ids_with_progress or not book.date_started:
             continue
         if book.reading_status == ReadingStatus.read and not book.date_finished:
             continue
@@ -712,60 +900,77 @@ def get_statistics(
         )
 
     all_progress_entries = list(progress_entries) + virtual_entries
-    pages_read_per_month_counter = _compute_pages_per_month_from_progress(all_progress_entries, tz)
+    pages_read_per_month_counter = _compute_pages_per_month_from_progress(
+        all_progress_entries, tz, window_start, window_end
+    )
 
     fallback_books = [
         b
         for b in books
-        if b.id not in books_with_progress
+        if b.id not in all_book_ids_with_progress
         and b.reading_status == ReadingStatus.read
         and b.date_started
         and b.date_finished
         and b.page_count
     ]
-    fallback_monthly = _compute_pages_per_month_from_books(fallback_books, tz)
+    fallback_monthly = _compute_pages_per_month_from_books(
+        fallback_books, tz, window_start, window_end
+    )
     for k, v in fallback_monthly.items():
         pages_read_per_month_counter[k] += v
 
-    if finished_books_per_month:
+    if finished_books_per_month_all_time:
         avg_books_per_month = round(
-            sum(finished_books_per_month.values()) / len(finished_books_per_month),
+            sum(finished_books_per_month_all_time.values()) / len(finished_books_per_month_all_time),
             2,
         )
         busiest_month, busiest_month_count = min(
             (
                 (month, count)
-                for month, count in finished_books_per_month.items()
+                for month, count in finished_books_per_month_all_time.items()
             ),
             key=lambda item: (-item[1], item[0]),
         )
-        month_keys = _month_range(min(finished_books_per_month), max(max(finished_books_per_month), current_month_key))
-        books_finished_per_month = [
-            MonthlyBooks(month=month, count=finished_books_per_month.get(month, 0)) for month in month_keys
-        ]
     else:
         avg_books_per_month = None
         busiest_month = None
         busiest_month_count = None
+
+    if finished_books_per_month or (window_start_month_key is not None and window_end_month_key is not None):
+        if window_start_month_key is not None and window_end_month_key is not None:
+            month_keys = _month_range(window_start_month_key, window_end_month_key)
+        else:
+            month_keys = _month_range(min(finished_books_per_month), max(max(finished_books_per_month), current_month_key))
+        books_finished_per_month = [
+            MonthlyBooks(month=month, count=finished_books_per_month.get(month, 0)) for month in month_keys
+        ]
+    else:
         books_finished_per_month = []
 
-    if pages_read_per_month_counter:
-        all_months = set(pages_read_per_month_counter) | {current_month_key}
-        if finished_books_per_month:
-            all_months |= set(finished_books_per_month)
-        month_keys = _month_range(min(all_months), max(all_months))
+    if pages_read_per_month_counter or (window_start_month_key is not None and window_end_month_key is not None):
+        if window_start_month_key is not None and window_end_month_key is not None:
+            month_keys = _month_range(window_start_month_key, window_end_month_key)
+        else:
+            all_months = set(pages_read_per_month_counter) | {current_month_key}
+            if finished_books_per_month:
+                all_months |= set(finished_books_per_month)
+            month_keys = _month_range(min(all_months), max(all_months))
         pages_read_per_month = [
             MonthlyPages(month=month, pages=int(round(pages_read_per_month_counter.get(month, 0)))) for month in month_keys
         ]
     else:
         pages_read_per_month = []
 
-    if finished_books_per_month:
+    if finished_books_per_month or (window_start_year is not None and window_end_year is not None):
         yearly_counts: Counter[int] = Counter()
         for month_key, count in finished_books_per_month.items():
             yearly_counts[int(month_key.split("-")[0])] += count
-        year_start = min(yearly_counts)
-        year_end = max(max(yearly_counts), current_year)
+        if window_start_year is not None and window_end_year is not None:
+            year_start = window_start_year
+            year_end = window_end_year
+        else:
+            year_start = min(yearly_counts) if yearly_counts else current_year
+            year_end = max(max(yearly_counts), current_year) if yearly_counts else current_year
         books_finished_per_year = [
             YearlyBooks(year=year, count=yearly_counts.get(year, 0))
             for year in range(year_start, year_end + 1)

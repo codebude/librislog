@@ -198,6 +198,8 @@ export interface StatisticsResponse {
 	worst_rated_books: TopRatedBook[];
 }
 
+export type StatisticsRange = 'alltime' | '3years' | '1year' | '6months' | '30days' | 'custom';
+
 export type UserRole = 'admin' | 'user';
 
 export interface User {
@@ -236,6 +238,9 @@ export interface UserSettings {
 	goal_books_per_year_enabled: boolean;
 	goal_books_per_year: number;
 	gamification_enabled: boolean;
+	statistics_range: StatisticsRange;
+	statistics_custom_from: string | null;
+	statistics_custom_to: string | null;
 }
 
 export type GoalType = 'pages_per_day' | 'pages_per_month' | 'books_per_month' | 'books_per_year';
