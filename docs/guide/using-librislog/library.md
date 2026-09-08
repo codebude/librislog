@@ -63,26 +63,26 @@ Search external sources for book metadata:
 - **Google Books** — Requires API key (set in `.env`)
 - **Hardcover.app** — Requires API token (set in `.env`)
 
-Open Library and Hardcover (if an API token is configured) are queried **in parallel** for both title and ISBN searches. Google Books is only used as a **fallback** when the other sources return no results — or on demand via the **Search Google Books too** button, which adds Google Books results to the current results.
+Open Library and Hardcover (if an API token is configured) are queried **in parallel** for both title and ISBN searches. Google Books is only used as a **fallback** when the other sources return no results, or on demand via the **Search Google Books too** button, which adds Google Books results to the current results.
 
 While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
 
 #### How results are grouped
 
-Different providers often describe the same book slightly differently (title language, page count, publisher, cover). Instead of dropping these variants, LibrisLog keeps every result and groups the ones that represent the same book. Each group shows a **"N results"** badge with a **Show editions** toggle — expand it to review the individual records and pick the one you want to import.
+Different providers often describe the same book slightly differently (title language, page count, publisher, cover). Instead of dropping these variants, LibrisLog keeps every result and groups the ones that represent the same book. Each group shows a **"N results"** badge with a **Show editions** toggle: expand it to review the individual records and pick the one you want to import.
 
 Results are grouped by this rule:
 
-- **Same ISBN** — if two results carry the same ISBN, they are grouped together. ISBN-10 and ISBN-13 forms of the same ISBN count as equal (e.g. `0441013597` and `9780441013593`).
-- **No ISBN — same title + same authors** — results without an ISBN are grouped by a normalized title (case- and whitespace-insensitive) together with the same sorted author names.
+- **Same ISBN**: if two results carry the same ISBN, they are grouped together. ISBN-10 and ISBN-13 forms of the same ISBN count as equal (e.g. `0441013597` and `9780441013593`).
+- **No ISBN, same title + same authors**: results without an ISBN are grouped by a normalized title (case- and whitespace-insensitive) together with the same sorted author names.
 
 Consequences you may notice:
 
-- Two results with the *same title* but **different ISBNs** are **not** grouped — they are different editions (different language, publisher, or page count) and appear as separate entries.
+- Two results with the *same title* but **different ISBNs** are **not** grouped: they are different editions (different language, publisher, or page count) and appear as separate entries.
 - A result with an ISBN and a result without one are never grouped, even if the title and authors match.
 - Results that differ only in metadata (cover, publisher, page count, description) but share an ISBN or title+author are grouped so you can compare them side by side.
 
-Because an ISBN can only be owned once per user, a group with a shared ISBN always represents a single book — importing one variant is enough.
+Because an ISBN can only be owned once per user, a group with a shared ISBN always represents a single book, so importing one variant is enough.
 
 ### ISBN Barcode Scan
 
