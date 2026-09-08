@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import BookDetailDialog from './BookDetailDialog.svelte';
+import { setTimezone } from '$lib/stores/timezone';
 import type { Book, ReadingProgressEntry } from '$lib/types';
 
 vi.mock('svelte-chartjs', () => ({
@@ -10,6 +11,7 @@ vi.mock('svelte-chartjs', () => ({
 
 const mockProgressList = vi.fn(async (_bookId: number): Promise<ReadingProgressEntry[]> => []);
 const mockProgressCreate = vi.fn(async (_bookId: number, _page: number): Promise<ReadingProgressEntry> => ({ id: 1, book_id: _bookId, page: _page, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }));
+const mockProgressUpdate = vi.fn(async (_bookId: number, _entryId: number, _data: { created_at: string }): Promise<ReadingProgressEntry> => ({ id: _entryId, book_id: _bookId, page: 150, created_at: _data.created_at, updated_at: _data.created_at }));
 const mockProgressDelete = vi.fn(async (_bookId: number, _entryId: number) => {});
 const mockBooksDelete = vi.fn(async (_id: number) => {});
 const mockBooksUpdate = vi.fn(async (_id: number, _data: Partial<Book>) => ({ ...mockBook, ..._data, id: _id }));
@@ -22,6 +24,7 @@ vi.mock('$lib/api', () => ({
 			progress: {
 				list: (bookId: number) => mockProgressList(bookId),
 				create: (bookId: number, page: number) => mockProgressCreate(bookId, page),
+				update: (bookId: number, entryId: number, data: { created_at: string }) => mockProgressUpdate(bookId, entryId, data),
 				delete: (bookId: number, entryId: number) => mockProgressDelete(bookId, entryId)
 			},
 			delete: (id: number) => mockBooksDelete(id)
@@ -63,10 +66,12 @@ const mockBook = {
 describe('BookDetailDialog', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setTimezone('UTC');
 	});
 
 	afterEach(() => {
 		cleanup();
+		setTimezone('UTC');
 	});
 
 	it('does not render when closed', () => {
@@ -273,5 +278,35 @@ describe('BookDetailDialog', () => {
 
 		await fireEvent.input(input, { target: { value: '-10' } });
 		expect(input.value).toBe('0');
+	});
+
+	it('edits progress entry dates in the configured timezone', async () => {
+		// Use a timezone well ahead of UTC so any browser-local interpretation
+		// would shift the day.
+		setTimezone('Asia/Tokyo');
+		mockProgressList.mockResolvedValue([
+			{ id: 1, book_id: 1, page: 150, created_at: '2026-09-08T15:00:00.000Z', updated_at: '2026-09-08T15:00:00.000Z' }
+		]);
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+
+		await waitFor(() => expect(mockProgressList).toHaveBeenCalled());
+		await fireEvent.click(screen.getByRole('button', { name: 'Progress Log' }));
+		const logDialog = await screen.findByRole('dialog', { name: 'Progress Log' });
+		expect(logDialog).toBeInTheDocument();
+
+		await fireEvent.click(within(logDialog).getByRole('button', { name: 'Edit' }));
+
+		const input = within(logDialog).getByDisplayValue('2026-09-09T00:00') as HTMLInputElement;
+		expect(input).toBeInTheDocument();
+
+		// Shift by one minute and save. The new UTC instant must map back to
+		// the same profile-timezone minute, proving the edit uses tz, not
+		// browser-local time.
+		await fireEvent.input(input, { target: { value: '2026-09-09T00:01' } });
+		await fireEvent.click(within(logDialog).getByRole('button', { name: 'Save' }));
+
+		await waitFor(() => {
+			expect(mockProgressUpdate).toHaveBeenCalledWith(1, 1, { created_at: '2026-09-08T15:01:00.000Z' });
+		});
 	});
 });
