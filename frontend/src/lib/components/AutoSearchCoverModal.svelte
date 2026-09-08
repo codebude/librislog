@@ -23,6 +23,17 @@
 	function close() {
 		onCancel?.();
 	}
+
+	// Close on Escape right away — the modal-backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') close();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 </script>
 
 {#if open}
@@ -48,6 +59,6 @@
 				<button type="button" class="btn btn-ghost" onclick={close}>{$_('common.cancel')}</button>
 			</div>
 		</div>
-		<button type="button" class="modal-backdrop" aria-label={$_('common.close')} onclick={close}></button>
+		<div class="modal-backdrop"></div>
 	</div>
 {/if}

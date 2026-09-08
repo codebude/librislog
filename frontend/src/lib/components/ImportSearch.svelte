@@ -1,12 +1,17 @@
 <script lang="ts">
-	import type { AcquisitionStatus, Book, BookImportCandidate, ReadingStatus, SearchStage } from '$lib/types';
-	import { onMount } from 'svelte';
+	import type { AcquisitionStatus, Book, BookImportCandidate, BookImportCandidateGroup, ReadingStatus, SearchStage } from '$lib/types';
+	import { onDestroy, onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import { ScanBarcode } from '@lucide/svelte';
 	import { formatAuthors } from '$lib/utils/authors';
 	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
+	import {
+		canonicalIsbn,
+		groupCandidates,
+		titleAuthorKey
+	} from '$lib/utils/importSearch';
 
 	let {
 		onImport,
@@ -35,7 +40,10 @@
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
 	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
-	let hasOlResults = $derived(results.some((r) => r.source === 'open_library'));
+	let searchAbortController: AbortController | null = null;
+	let expandedGroups = $state<Record<string, boolean>>({});
+	let selectedVariantByGroup = $state<Record<string, number>>({});
+	let groups = $derived(groupCandidates(results));
 
 	onMount(async () => {
 		secureContext = isSecureContext();
@@ -55,6 +63,11 @@
 		toasts.add($_('import.scannedIsbn', { values: { isbn: scannedIsbn } }), 'success');
 		void search();
 		onScannedHandled?.();
+	});
+
+	// Abort any pending search when the component unmounts (modal close, tab switch).
+	onDestroy(() => {
+		searchAbortController?.abort();
 	});
 
 	function stageLabel(s: SearchStage): string {
@@ -111,33 +124,11 @@
 	return 'text-base-content/70';
 }
 
-	function normalize(value: string | null | undefined): string {
-		return (value ?? '').trim().toLowerCase();
-	}
-
-	function normalizeIsbn(value: string | null | undefined): string {
-		return normalize(value).replaceAll('-', '').replaceAll(' ', '');
-	}
-
-	function authorKey(authors: string[] | null | undefined): string {
-		return (authors ?? []).slice().sort().join('|');
-	}
-
-	function candidateKey(candidate: BookImportCandidate): string {
-		const isbn = normalizeIsbn(candidate.isbn);
-		if (isbn) return `isbn:${isbn}`;
-		return `ta:${normalize(candidate.title)}|${authorKey(candidate.authors)}`;
-	}
-
-	function titleAuthorKey(title: string | null | undefined, authors: string[]): string {
-		return `${normalize(title)}|${authorKey(authors)}`;
-	}
-
 	function updateImportedLookups(books: Book[]) {
 		const isbnSet = new Set<string>();
 		const titleAuthorSet = new Set<string>();
 		for (const book of books) {
-			const isbn = normalizeIsbn(book.isbn);
+			const isbn = book.isbn ? canonicalIsbn(book.isbn) : '';
 			if (isbn) isbnSet.add(isbn);
 			if (book.authors?.length) titleAuthorSet.add(titleAuthorKey(book.title, book.authors));
 		}
@@ -157,7 +148,7 @@
 	function markAsImported(book: Book) {
 		const nextIsbns = new Set(importedIsbns);
 		const nextTitleAuthors = new Set(importedTitleAuthors);
-		const isbn = normalizeIsbn(book.isbn);
+		const isbn = book.isbn ? canonicalIsbn(book.isbn) : '';
 		if (isbn) nextIsbns.add(isbn);
 		if (book.authors?.length) nextTitleAuthors.add(titleAuthorKey(book.title, book.authors));
 		importedIsbns = nextIsbns;
@@ -165,74 +156,113 @@
 	}
 
 	function isAlreadyImported(candidate: BookImportCandidate): boolean {
-		const isbn = normalizeIsbn(candidate.isbn);
+		const isbn = candidate.isbn ? canonicalIsbn(candidate.isbn) : '';
 		if (isbn && importedIsbns.has(isbn)) return true;
 		if (!candidate.authors?.length) return false;
 		return importedTitleAuthors.has(titleAuthorKey(candidate.title, candidate.authors));
 	}
 
-	function mergeCandidates(
-		existing: BookImportCandidate[],
-		incoming: BookImportCandidate[]
-	): BookImportCandidate[] {
-		const seen = new Set(existing.map(candidateKey));
-		const merged = [...existing];
-		for (const candidate of incoming) {
-			const key = candidateKey(candidate);
-			if (!seen.has(key)) {
-				seen.add(key);
-				merged.push(candidate);
-			}
-		}
-		return merged;
+	function selectedIndex(group: BookImportCandidateGroup): number {
+		const idx = selectedVariantByGroup[group.key];
+		if (idx !== undefined && idx >= 0 && idx < group.variants.length) return idx;
+		const withCoverIdx = group.variants.findIndex((v: BookImportCandidate) => v.cover_url);
+		return withCoverIdx >= 0 ? withCoverIdx : 0;
 	}
 
-	async function runSearch(mode: 'auto' | 'google_only', mergeResults: boolean) {
+	function selectedCandidate(group: BookImportCandidateGroup): BookImportCandidate {
+		return group.variants[selectedIndex(group)];
+	}
+
+	function isGroupAlreadyImported(group: BookImportCandidateGroup): boolean {
+		if (group.variants.some((v: BookImportCandidate) => {
+			const isbn = v.isbn ? canonicalIsbn(v.isbn) : '';
+			return isbn !== '' && importedIsbns.has(isbn);
+		})) return true;
+		return group.variants.some((v: BookImportCandidate) => isAlreadyImported(v));
+	}
+
+	function resetGroupState() {
+		expandedGroups = {};
+		selectedVariantByGroup = {};
+	}
+
+	function startSearch(): AbortController {
+		searchAbortController?.abort();
+		const controller = new AbortController();
+		searchAbortController = controller;
+		return controller;
+	}
+
+	function cancelSearch() {
+		searchAbortController?.abort();
+	}
+
+	async function runSearch(mode: 'auto' | 'google_only', mergeResults: boolean, signal?: AbortSignal) {
 		try {
-			for await (const event of api.import.searchStream(query.trim(), searchType, mode)) {
+			for await (const event of api.import.searchStream(query.trim(), searchType, mode, signal)) {
 				if (event.stage === 'complete') {
-					results = mergeResults ? mergeCandidates(results, event.results) : event.results;
+					results = mergeResults ? [...results, ...event.results] : event.results;
 				} else {
 					stages = stages.filter((s) => s.stage !== event.stage);
 					stages = [...stages, event];
 				}
 			}
 		} catch (e: unknown) {
+			if (e instanceof Error && e.name === 'AbortError') {
+				return;
+			}
 			toasts.add(e instanceof Error ? e.message : $_('import.searchFailed'), 'error');
 		}
 	}
 
 	async function search() {
-		if (!query.trim()) return;
+		if (!query.trim() || searching) return;
+		const controller = startSearch();
 		searching = true;
 		supplementingGoogle = false;
 		googleSupplementSearched = false;
 		supplementAddedCount = null;
 		results = [];
 		stages = [];
+		resetGroupState();
 		try {
-			await runSearch('auto', false);
+			await runSearch('auto', false, controller.signal);
 		} finally {
+			if (controller.signal.aborted) {
+				// Explicit cancel: discard partial results so a corrected query starts fresh.
+				results = [];
+				stages = [];
+				resetGroupState();
+			}
+			if (searchAbortController === controller) searchAbortController = null;
 			searching = false;
 		}
 	}
 
 	async function searchGoogleToo() {
 		if (!query.trim() || searching || supplementingGoogle || googleSupplementSearched) return;
+		const controller = startSearch();
 		supplementingGoogle = true;
 		const beforeCount = results.length;
 		try {
-			await runSearch('google_only', true);
-			supplementAddedCount = Math.max(0, results.length - beforeCount);
-			googleSupplementSearched = true;
+			await runSearch('google_only', true, controller.signal);
 		} finally {
+			if (controller.signal.aborted) {
+				supplementAddedCount = null;
+				googleSupplementSearched = false;
+			} else {
+				supplementAddedCount = Math.max(0, results.length - beforeCount);
+				googleSupplementSearched = true;
+			}
+			if (searchAbortController === controller) searchAbortController = null;
 			supplementingGoogle = false;
 		}
 	}
 
-	async function importBook(candidate: BookImportCandidate, status: ReadingStatus) {
+	async function importBook(group: BookImportCandidateGroup, status: ReadingStatus) {
 		if (!acquisitionStatus) return;
-		const key = candidate.isbn ?? candidate.title;
+		const candidate = selectedCandidate(group);
+		const key = `${group.key}:${group.variants.indexOf(candidate)}`;
 		importing = key;
 		try {
 			const book = await api.import.importBook(candidate, status, acquisitionStatus);
@@ -260,15 +290,20 @@
 			class="input input-bordered w-full sm:w-auto sm:grow sm:min-w-0"
 			placeholder={searchType === 'isbn' ? $_('import.enterIsbn') : $_('import.searchByTitleOrAuthor')}
 			bind:value={query}
-			onkeydown={(e) => e.key === 'Enter' && search()}
+			onkeydown={(e) => e.key === 'Enter' && !searching && !supplementingGoogle && search()}
 		/>
 		<div class="flex gap-2 w-full sm:w-auto">
 			<select class="select select-bordered min-w-fit max-sm:flex-1" name="import-type" bind:value={searchType}>
 				<option value="title">{$_('book.title')}</option>
 				<option value="isbn">{$_('book.isbn')}</option>
 			</select>
-			<button class="btn btn-primary shrink-0 max-sm:flex-1" onclick={search} disabled={searching}>
-				{searching ? $_('common.loadingEllipsis') : $_('common.search')}
+			<button
+				class="btn btn-primary shrink-0 max-sm:flex-1"
+				onclick={searching || supplementingGoogle ? cancelSearch : search}
+				disabled={!query.trim() && !searching && !supplementingGoogle}
+				aria-label={searching || supplementingGoogle ? $_('common.cancel') : $_('common.search')}
+			>
+				{searching || supplementingGoogle ? $_('common.cancel') : $_('common.search')}
 			</button>
 		</div>
 	</div>
@@ -310,7 +345,7 @@
 		</ul>
 	{/if}
 
-	{#if hasOlResults && !googleSupplementSearched}
+	{#if results.length > 0 && !googleSupplementSearched}
 		<div class="flex justify-start">
 			<button class="btn btn-outline btn-sm" onclick={searchGoogleToo} disabled={searching || supplementingGoogle}>
 				{supplementingGoogle ? $_('import.googleSearching') : $_('import.googleToo')}
@@ -342,63 +377,113 @@
 	{/if}
 
 	<ul class="flex flex-col gap-2 max-h-80 overflow-y-auto">
-		{#each results as candidate}
-			{@const key = candidate.isbn ?? candidate.title}
-			{@const alreadyImported = isAlreadyImported(candidate)}
-			<li
-				class="flex gap-3 items-start p-2 rounded-lg border {alreadyImported
-					? 'border-success/40 bg-success/5'
-					: 'border-base-200'}"
-			>
-				{#if candidate.cover_url}
-					<img
-						src={candidate.cover_url}
-						alt={$_('book.cover')}
-						class="w-10 rounded flex-shrink-0 object-cover"
-					/>
-				{:else}
-					<div class="w-10 h-14 bg-base-200 rounded flex-shrink-0"></div>
-				{/if}
-				<div class="flex-1 min-w-0">
-					<p class="font-medium text-sm line-clamp-2">{candidate.title}</p>
-					{#if candidate.author}
-						<p class="text-xs text-base-content/60">{formatAuthors(candidate.authors, candidate.author)}</p>
+		{#each groups as group}
+			{@const selected = selectedCandidate(group)}
+			{@const groupImported = isGroupAlreadyImported(group)}
+			{@const importingKey = `${group.key}:${group.variants.indexOf(selected)}`}
+			<li class="flex flex-col gap-2 p-2 rounded-lg border {groupImported ? 'border-success/40 bg-success/5' : 'border-base-200'}">
+				<div class="flex gap-3 items-start">
+					{#if group.coverUrl}
+						<img
+							src={group.coverUrl}
+							alt={$_('book.cover')}
+							class="w-10 rounded flex-shrink-0 object-cover"
+						/>
+					{:else}
+						<div class="w-10 h-14 bg-base-200 rounded flex-shrink-0"></div>
 					{/if}
-					<div class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/40">
-						<span>{candidate.source}</span>
-						{#if candidate.published_year}
-							<span>·</span>
-							<span>{candidate.published_year}</span>
+					<div class="flex-1 min-w-0">
+						<p class="font-medium text-sm line-clamp-2">{group.title}</p>
+						{#if group.authors?.length}
+							<p class="text-xs text-base-content/60">{formatAuthors(group.authors, group.authors[0])}</p>
 						{/if}
-						{#if candidate.language}
-							<span>·</span>
-							<span class="badge badge-ghost badge-xs">{candidate.language}</span>
-						{/if}
-						{#if candidate.page_count}
-							<span>·</span>
-							<span>{candidate.page_count} {$_('book.pages').toLowerCase()}</span>
+						<div class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/40">
+							<span>{selected.source}</span>
+							{#if selected.published_year}
+								<span>·</span>
+								<span>{selected.published_year}</span>
+							{/if}
+							{#if selected.language}
+								<span>·</span>
+								<span class="badge badge-ghost badge-xs">{selected.language}</span>
+							{/if}
+							{#if selected.page_count}
+								<span>·</span>
+								<span>{selected.page_count} {$_('book.pages').toLowerCase()}</span>
+							{/if}
+							{#if group.variants.length > 1}
+								<span class="badge badge-ghost badge-xs">{group.variants.length} {$_('import.groupResultPlural')}</span>
+							{/if}
+						</div>
+						{#if groupImported}
+							<div class="mt-1">
+								<span class="badge badge-success badge-outline badge-xs">{$_('import.alreadyImported')}</span>
+							</div>
 						{/if}
 					</div>
-					{#if alreadyImported}
-						<div class="mt-1">
-							<span class="badge badge-success badge-outline badge-xs">{$_('import.alreadyImported')}</span>
-						</div>
-					{/if}
+					<div class="flex flex-col gap-1">
+						<button
+							class="btn btn-xs {groupImported ? 'btn-success btn-outline' : 'btn-primary'}"
+							disabled={groupImported || importing === importingKey || !acquisitionStatus}
+							title={groupImported ? $_('import.alreadyImported') : ''}
+							onclick={() => importBook(group, 'want_to_read')}
+						>
+							{importing === importingKey
+								? $_('common.loadingEllipsis')
+								: groupImported
+									? $_('import.imported')
+									: $_('app.add')}
+						</button>
+						{#if group.variants.length > 1}
+							<button
+								class="btn btn-xs btn-ghost"
+								aria-expanded={expandedGroups[group.key] ?? false}
+								onclick={() => expandedGroups[group.key] = !expandedGroups[group.key]}
+							>
+								{expandedGroups[group.key] ? $_('import.groupCollapse') : $_('import.groupExpand')}
+							</button>
+						{/if}
+					</div>
 				</div>
-				<div class="flex flex-col gap-1">
-					<button
-						class="btn btn-xs {alreadyImported ? 'btn-success btn-outline' : 'btn-primary'}"
-						disabled={alreadyImported || importing === key || !acquisitionStatus}
-						title={alreadyImported ? $_('import.alreadyImported') : ''}
-						onclick={() => importBook(candidate, 'want_to_read')}
-					>
-						{importing === key
-							? $_('common.loadingEllipsis')
-							: alreadyImported
-								? $_('import.imported')
-								: $_('app.add')}
-					</button>
-				</div>
+
+				{#if expandedGroups[group.key]}
+					<div class="flex flex-col gap-1 pl-4 border-l-2 border-base-200">
+						<p class="text-xs font-medium text-base-content/70">{$_('import.groupChooseEdition')}</p>
+						{#each group.variants as variant, idx}
+							{@const variantImported = isAlreadyImported(variant)}
+							{@const isSelected = selectedIndex(group) === idx}
+							<button
+								class="flex gap-2 items-start p-1 rounded text-left {isSelected ? 'bg-base-200' : 'hover:bg-base-100'}"
+								aria-pressed={isSelected}
+								onclick={() => selectedVariantByGroup[group.key] = idx}
+							>
+								{#if variant.cover_url}
+									<img
+										src={variant.cover_url}
+										alt={$_('book.cover')}
+										class="w-8 rounded flex-shrink-0 object-cover"
+									/>
+								{:else}
+									<div class="w-8 h-11 bg-base-200 rounded flex-shrink-0"></div>
+								{/if}
+								<div class="flex-1 min-w-0">
+									<p class="text-xs font-medium">{variant.source}</p>
+									<p class="text-xs text-base-content/60 truncate">
+										{[
+											variant.published_year,
+											variant.language,
+											variant.page_count ? `${variant.page_count} ${$_('book.pages').toLowerCase()}` : null,
+											variant.isbn
+										].filter(Boolean).join(' · ')}
+									</p>
+								</div>
+								{#if variantImported}
+									<span class="badge badge-success badge-outline badge-xs">{$_('import.alreadyImported')}</span>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</li>
 		{/each}
 	</ul>

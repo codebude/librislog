@@ -225,6 +225,37 @@ describe('BookDetailDialog', () => {
 		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
 	});
 
+	it('closes on Escape', async () => {
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
+	});
+
+	it('does not close when backdrop is clicked', async () => {
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+		const dialog = screen.getByRole('dialog');
+		const backdrop = dialog.previousElementSibling;
+		expect(backdrop).toBeTruthy();
+		await fireEvent.click(backdrop as Element);
+		expect(screen.getByText('Test Book')).toBeInTheDocument();
+	});
+
+	it('closes nested progress log on Escape before closing the dialog', async () => {
+		mockProgressList.mockResolvedValue([]);
+		render(BookDetailDialog, { props: { book: mockBook, open: true } });
+		await waitFor(() => expect(mockProgressList).toHaveBeenCalled());
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Progress Log' }));
+		expect(screen.getByRole('dialog', { name: 'Progress Log' })).toBeInTheDocument();
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(screen.queryByRole('dialog', { name: 'Progress Log' })).not.toBeInTheDocument();
+		expect(screen.getByText('Test Book')).toBeInTheDocument();
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
+	});
+
 	it('clamps current page input while typing', async () => {
 		mockProgressList.mockResolvedValue([]);
 		render(BookDetailDialog, { props: { book: mockBook, open: true } });

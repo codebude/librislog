@@ -376,15 +376,27 @@
 			void saveProgress();
 		}
 	});
+
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// When the nested progress-log modal is open, Escape closes that first.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			if (logModalOpen) {
+				logModalOpen = false;
+			} else {
+				open = false;
+			}
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 </script>
 
 {#if open && book}
-	<div
-		class="fixed inset-0 bg-black/40 z-40"
-		role="button"
-		tabindex="-1"
-		onkeydown={(e) => e.key === 'Escape' && (open = false)}
-	></div>
+	<div class="fixed inset-0 bg-black/40 z-40"></div>
 
 	<div role="dialog" aria-label={book.title} class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
@@ -585,13 +597,7 @@
 
 	<!-- Progress Log Modal -->
 	{#if logModalOpen}
-		<div
-			class="fixed inset-0 bg-black/40 z-50"
-			role="button"
-			tabindex="-1"
-			onclick={() => (logModalOpen = false)}
-			onkeydown={(e) => e.key === 'Escape' && (logModalOpen = false)}
-		></div>
+		<div class="fixed inset-0 bg-black/40 z-50"></div>
 		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
 			<div class="bg-base-100 rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-y-auto pointer-events-auto" role="dialog" aria-label={$_('book.progressLog')}>
 				<div class="sticky top-0 bg-base-100 z-10 flex items-center justify-between p-4 border-b border-base-200">

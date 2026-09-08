@@ -113,6 +113,29 @@
 		}
 	});
 
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// Reusable nested overlays handle their own Escape; only handle the
+	// inline start-date / progress prompts here.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			if (scannerOpen || dateConflictOpen || autoSearchOpen) return;
+			if (startDatePromptOpen) {
+				startDatePromptOpen = false;
+				return;
+			}
+			if (pendingProgressBook) {
+				pendingProgressBook = null;
+				return;
+			}
+			open = false;
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
+
 	function buildNonStatusPayload(includeDates: boolean): Partial<Book> {
 		const payload: Partial<Book> = {
 			title,
@@ -397,12 +420,7 @@
 
 {#if open && book}
 	<!-- Backdrop -->
-	<div
-		class="fixed inset-0 bg-black/40 z-40"
-		role="button"
-		tabindex="-1"
-		onkeydown={(e) => e.key === 'Escape' && (open = false)}
-	></div>
+	<div class="fixed inset-0 bg-black/40 z-40"></div>
 
 	<!-- Drawer panel -->
 	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
@@ -652,7 +670,7 @@
 					>{$_('book.startDatePromptSet')}</button>
 				</div>
 			</div>
-			<button type="button" class="modal-backdrop" aria-label={$_('common.close')} onclick={() => (startDatePromptOpen = false)}></button>
+			<div class="modal-backdrop"></div>
 		</div>
 	{/if}
 
@@ -694,16 +712,7 @@
 					</button>
 				</div>
 			</div>
-			<button
-				type="button"
-				class="modal-backdrop"
-				aria-label={$_('common.close')}
-				onclick={() => {
-					onSave?.(pbook);
-					open = false;
-					pendingProgressBook = null;
-				}}
-			></button>
+			<div class="modal-backdrop"></div>
 		</div>
 	{/if}
 

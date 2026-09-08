@@ -232,7 +232,11 @@
     "sourceGoogleSearching": "Durchsuche Google Books...",
     "sourceBackendError": "{source}-Backendfehler (Backend-Logs prüfen)",
     "sourceError": "Suche fehlgeschlagen: {message}",
-    "resultCount": "{source} - {count} Ergebnis{suffix}"
+    "resultCount": "{source} - {count} Ergebnis{suffix}",
+    "groupResultPlural": "Ergebnisse",
+    "groupExpand": "Ausgaben anzeigen",
+    "groupCollapse": "Ausgaben ausblenden",
+    "groupChooseEdition": "Ausgabe wählen"
   },
   "scanner": {
     "title": "ISBN-Barcode scannen",

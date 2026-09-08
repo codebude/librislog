@@ -100,13 +100,21 @@ describe('AutoSearchCoverModal', () => {
 		expect(onCancel).toHaveBeenCalledOnce();
 	});
 
-	it('calls onCancel when backdrop clicked', async () => {
+	it('does not call onCancel when backdrop clicked', async () => {
 		render(AutoSearchCoverModal, {
 			props: { open: true, loading: false, candidates: [], error: null, onCancel, onSelect }
 		});
 		const backdrop = document.querySelector('.modal-backdrop');
 		expect(backdrop).toBeTruthy();
 		await fireEvent.click(backdrop as Element);
+		expect(onCancel).not.toHaveBeenCalled();
+	});
+
+	it('calls onCancel when Escape is pressed', async () => {
+		render(AutoSearchCoverModal, {
+			props: { open: true, loading: false, candidates: [], error: null, onCancel, onSelect }
+		});
+		await fireEvent.keyDown(window, { key: 'Escape' });
 		expect(onCancel).toHaveBeenCalledOnce();
 	});
 

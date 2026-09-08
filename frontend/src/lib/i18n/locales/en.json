@@ -232,7 +232,11 @@
     "sourceGoogleSearching": "Searching Google Books...",
     "sourceBackendError": "{source} backend error (check backend logs)",
     "sourceError": "Search failed: {message}",
-    "resultCount": "{source} - {count} result{suffix}"
+    "resultCount": "{source} - {count} result{suffix}",
+    "groupResultPlural": "results",
+    "groupExpand": "Show editions",
+    "groupCollapse": "Hide editions",
+    "groupChooseEdition": "Choose edition"
   },
   "scanner": {
     "title": "Scan ISBN Barcode",

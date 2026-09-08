@@ -45,6 +45,14 @@ export interface BookImportCandidate {
 	source: string;
 }
 
+export interface BookImportCandidateGroup {
+	key: string;
+	title: string;
+	authors: string[] | null;
+	coverUrl: string | null;
+	variants: BookImportCandidate[];
+}
+
 export interface CoverCandidate {
 	source: 'abebooks' | 'openlibrary' | 'amazon' | 'hardcover' | 'thalia';
 	url: string;

@@ -232,7 +232,11 @@
     "sourceGoogleSearching": "Recherche sur Google Books...",
     "sourceBackendError": "Erreur backend {source} (vérifie les journaux du serveur)",
     "sourceError": "Échec de la recherche : {message}",
-    "resultCount": "{source} - {count} résultat{suffix}"
+    "resultCount": "{source} - {count} résultat{suffix}",
+    "groupResultPlural": "résultats",
+    "groupExpand": "Afficher les éditions",
+    "groupCollapse": "Masquer les éditions",
+    "groupChooseEdition": "Choisir l'édition"
   },
   "scanner": {
     "title": "Scanner un code-barres ISBN",

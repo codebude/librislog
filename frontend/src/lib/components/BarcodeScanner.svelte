@@ -339,6 +339,17 @@
 		}
 	});
 
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') void closeScanner();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
+
 	onDestroy(() => {
 		void stopScanner();
 	});
@@ -346,14 +357,7 @@
 
 {#if open}
 	<div class="fixed inset-0 z-[400]">
-		<div
-			class="absolute inset-0 bg-black/45"
-			onclick={closeScanner}
-			onkeydown={(e) => e.key === 'Escape' && closeScanner()}
-			role="button"
-			tabindex="0"
-			aria-label={$_('scanner.close')}
-		></div>
+		<div class="absolute inset-0 bg-black/45"></div>
 
 		<div class="absolute inset-0 z-[401] flex items-center justify-center p-2 sm:p-4">
 			<div class="w-full max-w-4xl h-[88dvh] bg-base-100 rounded-xl shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label={$_('scanner.title')}>

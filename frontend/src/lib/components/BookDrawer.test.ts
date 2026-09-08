@@ -143,6 +143,21 @@ describe('BookDrawer', () => {
 		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
 	});
 
+	it('closes on Escape', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
+	});
+
+	it('does not close when backdrop is clicked', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+		const panel = document.querySelector('.fixed.top-0.right-0.h-full.w-full.max-w-md');
+		const backdrop = panel?.previousElementSibling;
+		expect(backdrop).toBeTruthy();
+		await fireEvent.click(backdrop as Element);
+		expect(screen.getByText('Test Book')).toBeInTheDocument();
+	});
+
 	it('has close button', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		// Close button uses aria-label="Close" with ✕ as text

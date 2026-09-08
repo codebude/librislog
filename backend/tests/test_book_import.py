@@ -1006,22 +1006,23 @@ def test_hardcover_dedup_key_full() -> None:
     assert key == ("9781234567897", 300, "en")
 
 
-# ── _merge_and_deduplicate ─────────────────────────────────────────────────────
+# ── _merge_results ─────────────────────────────────────────────────────────────
 
-def test_merge_and_deduplicate_cover_preference() -> None:
+def test_merge_results_preserves_all_candidates() -> None:
     a = BookImportCandidate(title="A", isbn="123", cover_url=None, source="ol")
     b = BookImportCandidate(title="B", isbn="123", cover_url="https://x.jpg", source="gb")
-    result = bi._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].cover_url == "https://x.jpg"
+    result = bi._merge_results([a], [b])
+    assert len(result) == 2
+    assert result[0] is a
+    assert result[1] is b
 
 
-def test_merge_and_deduplicate_no_cover_override() -> None:
-    a = BookImportCandidate(title="A", isbn="123", cover_url="https://a.jpg", source="ol")
-    b = BookImportCandidate(title="B", isbn="123", cover_url="https://b.jpg", source="gb")
-    result = bi._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].cover_url == "https://a.jpg"
+def test_merge_results_preserves_order() -> None:
+    a = BookImportCandidate(title="A", isbn="123", source="ol")
+    b = BookImportCandidate(title="B", isbn="123", source="gb")
+    c = BookImportCandidate(title="C", isbn="456", source="hc")
+    result = bi._merge_results([a, b], [c])
+    assert [r.title for r in result] == ["A", "B", "C"]
 
 
 # ── _pick_isbn ─────────────────────────────────────────────────────────────────
