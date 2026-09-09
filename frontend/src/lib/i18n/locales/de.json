@@ -26,6 +26,7 @@
     "languageDistribution": "Bücher nach Sprache",
     "statusDistribution": "Bücher nach Status",
     "acquisitionStatusDistribution": "Bücher nach Besitz",
+    "mediumDistribution": "Medienverteilung",
     "pageBuckets": "Seitenstatistik",
     "pagesToRead": "Zu lesen",
     "pagesRead": "Gelesen",
@@ -50,6 +51,7 @@
     "coversForAuthor": "Buchcover für {author}",
     "booksCount": "{count} {count, plural, one {Buch} other {Bücher}}",
     "unknownLanguage": "Unbekannt",
+    "unknownMedium": "Unbekanntes Medium",
     "pagesReadCalendar": "Leseaktivität (letzte 365 Tage)",
     "noCalendarData": "Keine Leseaktivität im letzten Jahr verfügbar",
     "pagesOver": "Seiten an",
@@ -173,6 +175,8 @@
     "dateStarted": "Begonnen am",
     "acquisitionStatus": "Besitzstatus",
     "selectAcquisitionStatus": "Besitzstatus auswählen...",
+    "medium": "Medium",
+    "selectMedium": "Medium auswählen...",
     "startDatePromptTitle": "Startdatum festlegen?",
     "startDatePromptMessage": "Dieses Buch hat kein Startdatum. Lege es auf heute fest oder wähle ein anderes Datum, bevor du es als gelesen markierst.",
     "startDatePromptSet": "Startdatum festlegen",
@@ -329,6 +333,13 @@
     "digital_access": "Digital verfügbar",
     "to_acquire": "Muss noch beschafft werden"
   },
+  "medium": {
+    "print": "Print",
+    "ebook": "eBook",
+    "audiobook": "Hörbuch",
+    "comic_graphic_novel": "Comic / Graphic Novel",
+    "magazine_newspaper": "Magazin / Zeitung"
+  },
   "search": {
     "resultsCount": "{count, plural, one {Ergebnis} other {Ergebnisse}} gefunden",
     "noResults": "Keine Ergebnisse gefunden",
@@ -340,7 +351,8 @@
       "multiWord": "Setze mehrteilige Werte in doppelte Anführungszeichen, z. B. author:\"Marlen Haushofer\".",
       "combine": "Du kannst mehrere Präfixe kombinieren; die Ergebnisse müssen allen entsprechen.",
       "negate": "Stelle einem Begriff ein - voran, um ihn auszuschließen, z. B. tag:cars -tag:audi.",
-      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire",
+      "mediumValues": "Medium-Werte: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
     }
   },
   "languages": {

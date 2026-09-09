@@ -155,6 +155,7 @@ async def import_book(
         blurb=c.blurb,
         reading_status=body.reading_status,
         acquisition_status=body.acquisition_status,
+        medium=body.medium,
         user_id=current_user.id,
     )
     session.add(book)

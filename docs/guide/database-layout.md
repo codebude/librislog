@@ -70,6 +70,7 @@ erDiagram
         integer rating
         varchar reading_status
         varchar acquisition_status
+        varchar medium
         integer user_id
         datetime date_added
         datetime date_started
@@ -215,6 +216,7 @@ A book in the user's library.
 | `rating` | `INTEGER` |  | ≥ 1; ≤ 5 |
 | `reading_status` | `VARCHAR` | NOT NULL, INDEX | default `want_to_read` |
 | `acquisition_status` | `VARCHAR` | NOT NULL, INDEX | default `owned` |
+| `medium` | `VARCHAR` | INDEX, nullable | Stored as the enum key (`print`, `ebook`, `audiobook`, `comic_graphic_novel`, or `magazine_newspaper`) |
 | `user_id` | `INTEGER` | FK → user.id, INDEX |  |
 | `date_added` | `DATETIME` | INDEX | UTC |
 | `date_started` | `DATETIME` | INDEX | UTC |

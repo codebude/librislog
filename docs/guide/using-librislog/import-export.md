@@ -15,7 +15,7 @@ The most common way to add books is by searching external sources:
    - **Google Books** (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
    - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set — see [API Keys](/guide/api-keys))
 4. Select a result to import with full metadata and cover
-5. Choose an availability value (owned, borrowed, digital access, or to acquire) before saving
+5. Choose an availability value and, optionally, a medium (Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper) before saving
 
 ### ISBN Barcode Scan
 
@@ -23,11 +23,11 @@ On mobile devices:
 1. Tap the scan button in the import dialog
 2. Point the camera at an ISBN barcode
 3. The app detects the barcode and searches automatically
-4. Pick the search result and select an availability value before saving
+4. Pick the search result and select an availability value and optional medium before saving
 
 ### Manual Entry
 
-If no search results are found, enter book details manually. Title, author, page count, and availability are required; all other fields are optional.
+If no search results are found, enter book details manually. Title, author, page count, and availability are required; all other fields, including medium, are optional.
 
 Authors can be added as multiple values: type a name and press **Enter** (or pick a suggestion) to add a chip. A book can have any number of authors. Commas inside an author name (e.g. `Asimov, Isaac`) are preserved — they are not treated as separators.
 
@@ -85,6 +85,8 @@ When importing CSV, map source columns to LibrisLog fields:
 - Optional transform expressions (Python) for data conversion
 
 `acquisition_status` is required for imports. Map it to one of `owned`, `borrowed`, `digital_access`, or `to_acquire`; use a transform when the source file uses different names.
+
+The optional `medium` field can be mapped to `Print`, `eBook`, `Audiobook`, `Comic / Graphic Novel`, or `Magazine / Newspaper`. Existing exports include this field and preserve an unset medium as empty/null.
 
 `date_added` is importable too — useful when migrating from another tool so the original "added to library" dates are preserved (the LibrisLog JSON export includes it, so exports round-trip losslessly). If a row has no `date_added`, the import timestamp is used.
 

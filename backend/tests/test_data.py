@@ -24,7 +24,7 @@ def _parse_sse(text: str) -> list[dict[str, str | int | bool | None]]:
 def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "medium": "Print"},
     )
     assert create_resp.status_code == 201
 
@@ -46,12 +46,13 @@ def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) ->
         assert manifest["counts"]["books"] == 1
         books = json.loads(zf.read("books.json"))
         assert books[0]["title"] == "Dune"
+        assert books[0]["medium"] == "Print"
 
 
 def test_data_export_csv_format(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "medium": "Audiobook"},
     )
     assert create_resp.status_code == 201
 
@@ -68,6 +69,8 @@ def test_data_export_csv_format(client: TestClient) -> None:
         assert "tags.csv" in names
         books_csv = zf.read("books.csv").decode()
         assert "title,subtitle" in books_csv
+        assert "medium" in books_csv.splitlines()[0]
+        assert "Audiobook" in books_csv
         assert "Dune" in books_csv
 
 

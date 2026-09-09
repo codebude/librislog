@@ -39,10 +39,11 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 <Badge type="warning" text="Unreleased" /> <Badge type="tip" text="Feature release" />
 
-**Summary:** Groups duplicate import-search results into expandable edition groups, makes running searches cancelable, introduces an adaptive date input with a native picker, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
+**Summary:** Groups duplicate import-search results into expandable edition groups, makes running searches cancelable, introduces an adaptive date input with a native picker, adds optional book media and medium statistics, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
 
 **Features**
 - 📚 **Edition groups in the import search**: results from different providers that describe the same book (same ISBN, or same title and authors) are now grouped into expandable entries with an "N results" badge. Compare the variants side by side and import the one you want; no result is dropped anymore. See the [Library guide](/guide/using-librislog/library#how-results-are-grouped) for the exact grouping rules
+- 🗂️ **Optional book medium**: classify books as Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper from manual entry, search import, and book editing. Mediums can be filtered in the library, searched with `medium:`, imported/exported, and reviewed in the statistics distribution
 - 🛑 **Cancelable book search**: while an import search is running, the Search button becomes a Cancel button, so you can stop the request and refine your query
 - ⌨️ **Escape closes dialogs and drawers**: overlays such as the sidebar, the book drawer, and the import modal can now be closed with the Escape key
 - 📅 **Adaptive date input**: date fields in the book form now use a segmented year/month/day input that no longer assumes the month or day after the first keystroke, validates values as you type, and accepts pasting a complete date. A calendar button next to the field opens the native date picker

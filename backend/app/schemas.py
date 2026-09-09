@@ -10,7 +10,7 @@ import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
-from app.models import AcquisitionStatus, ReadingStatus, UserRole
+from app.models import AcquisitionStatus, Medium, ReadingStatus, UserRole
 
 
 class ReadingProgressCreate(SQLModel):
@@ -74,6 +74,7 @@ class BookCreate(SQLModel):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = ReadingStatus.want_to_read
     acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
+    medium: Optional[Medium] = None
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -96,6 +97,7 @@ class BookUpdate(SQLModel):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: Optional[ReadingStatus] = None
     acquisition_status: Optional[AcquisitionStatus] = None
+    medium: Optional[Medium] = None
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -144,6 +146,7 @@ class BookImportRequest(SQLModel):
     candidate: BookImportCandidate
     reading_status: ReadingStatus = ReadingStatus.want_to_read
     acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
+    medium: Optional[Medium] = None
 
 
 class BookRead(SQLModel):
@@ -165,6 +168,7 @@ class BookRead(SQLModel):
     rating: Optional[int]
     reading_status: ReadingStatus
     acquisition_status: AcquisitionStatus
+    medium: Optional[Medium] = None
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
@@ -222,6 +226,12 @@ class AcquisitionStatusDistribution(SQLModel):
     borrowed: int
     digital_access: int
     to_acquire: int
+
+
+class MediumDistribution(SQLModel):
+    """Count of books per medium, including unset values."""
+    medium: Optional[Medium]
+    count: int
 
 
 class PageBuckets(SQLModel):
@@ -298,6 +308,7 @@ class StatisticsResponse(SQLModel):
     language_distribution: list[LanguageDistribution]
     status_distribution: StatusDistribution
     acquisition_status_distribution: AcquisitionStatusDistribution
+    medium_distribution: list[MediumDistribution]
     page_buckets: PageBuckets
     pages_read_per_month: list[MonthlyPages]
     books_finished_per_month: list[MonthlyBooks]

@@ -14,7 +14,7 @@ from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, ReadingProgress, ReadingStatus, User, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, Medium, ReadingProgress, ReadingStatus, User, UserSettings
 from app.services.authors import join_authors, load_authors_batch
 from app.schemas import (
     AcquisitionStatusDistribution,
@@ -26,6 +26,7 @@ from app.schemas import (
     LanguageDistribution,
     MonthlyBooks,
     MonthlyPages,
+    MediumDistribution,
     PageBuckets,
     StatisticsRange,
     StatisticsResponse,
@@ -751,6 +752,17 @@ def get_statistics(
         to_acquire=acquisition_counts.get(AcquisitionStatus.to_acquire, 0),
     )
 
+    medium_distribution = [
+        MediumDistribution(
+            medium=medium,
+            count=sum(1 for book in books if book.medium == medium),
+        )
+        for medium in Medium
+    ]
+    unset_medium_count = sum(1 for book in books if book.medium is None)
+    if unset_medium_count:
+        medium_distribution.append(MediumDistribution(medium=None, count=unset_medium_count))
+
     page_values = [book.page_count for book in books if book.page_count is not None]
     avg_page_count = round(mean(page_values), 2) if page_values else None
 
@@ -1093,6 +1105,7 @@ def get_statistics(
         language_distribution=language_distribution,
         status_distribution=status_distribution,
         acquisition_status_distribution=acquisition_status_distribution,
+        medium_distribution=medium_distribution,
         page_buckets=page_buckets,
         pages_read_per_month=pages_read_per_month,
         books_finished_per_month=books_finished_per_month,

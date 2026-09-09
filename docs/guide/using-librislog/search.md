@@ -14,6 +14,7 @@ Use `<field>:<value>` to search in a single field. The field prefixes are always
 | `language` | Language | `language:Japanese` |
 | `tag` | Tag name | `tag:fantasy` |
 | `possession` | Possession status | `possession:owned` |
+| `medium` | Book medium | `medium:audiobook` |
 | `notes` | Private notes | `notes:"to reread"` |
 | `description` | Blurb / description | `description:"middle earth"` |
 
@@ -32,6 +33,12 @@ The `possession` prefix matches the exact possession status. Accepted values inc
 
 Example: `possession:"to acquire"` shows books you want to buy.
 
+### Medium values
+
+The `medium` prefix matches the selected book medium. Accepted values are `print`, `ebook`, `audiobook`, `comic_graphic_novel`, and `magazine_newspaper`. Display values such as `"Comic / Graphic Novel"` are accepted too.
+
+Example: `medium:audiobook` shows audiobook entries. The API list filter accepts both display values and normalized keys.
+
 ## Negation
 
 Prefix a term with `-` to exclude matches.
@@ -46,6 +53,7 @@ Separate terms with spaces. All terms are combined with **AND**.
 
 - `author:Murakami -title:Norwegian` — Murakami books except those whose title contains "Norwegian"
 - `tag:fantasy possession:owned` — owned fantasy books
+- `medium:print possession:owned` — owned print books
 
 ## Plain text
 

@@ -35,6 +35,39 @@ def test_create_book_returns_201(client: TestClient) -> None:
     assert data["reading_status"] == "want_to_read"
 
 
+def test_create_and_filter_books_by_medium(client: TestClient) -> None:
+    created = _create_book(client, title="Audio", medium="Audiobook")
+    assert created["medium"] == "Audiobook"
+    assert _create_book(client, title="Print", medium="Print")["medium"] == "Print"
+
+    response = client.get("/api/books?medium=Audiobook")
+    assert response.status_code == 200
+    assert [book["title"] for book in response.json()["books"]] == ["Audio"]
+
+    search = client.get("/api/books?q=medium:audiobook")
+    assert search.status_code == 200
+    assert [book["title"] for book in search.json()["books"]] == ["Audio"]
+
+
+def test_update_book_medium_can_be_set_and_cleared(client: TestClient) -> None:
+    book = _create_book(client, medium="Print")
+    updated = client.patch(f"/api/books/{book['id']}", json={"medium": "audiobook"})
+    assert updated.status_code == 200
+    assert updated.json()["medium"] == "Audiobook"
+
+    cleared = client.patch(f"/api/books/{book['id']}", json={"medium": None})
+    assert cleared.status_code == 200
+    assert cleared.json()["medium"] is None
+
+
+def test_create_book_rejects_invalid_medium(client: TestClient) -> None:
+    response = client.post(
+        "/api/books",
+        json={"title": "Invalid", "author": "Author", "page_count": 100, "medium": "vinyl"},
+    )
+    assert response.status_code == 422
+
+
 def test_create_book_with_all_fields(client: TestClient) -> None:
     payload = {
         "title": "Dune",

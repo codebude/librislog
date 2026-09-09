@@ -28,6 +28,7 @@
     "languageDistribution": "Books by Language",
     "statusDistribution": "Books by Status",
     "acquisitionStatusDistribution": "Books by Ownership",
+    "mediumDistribution": "Medium Distribution",
     "pageBuckets": "Page Statistics",
     "pagesToRead": "Pages to Read",
     "pagesRead": "Pages Read",
@@ -52,6 +53,7 @@
     "coversForAuthor": "Book covers for {author}",
     "booksCount": "{count} {count, plural, one {book} other {books}}",
     "unknownLanguage": "Unknown",
+    "unknownMedium": "Unknown medium",
     "pagesReadCalendar": "Reading Activity (Last 365 Days)",
     "noCalendarData": "No reading data available for the past year",
     "pagesOver": "pages over",
@@ -173,6 +175,8 @@
     "dateStarted": "Date started",
     "acquisitionStatus": "Possession",
     "selectAcquisitionStatus": "Select availability...",
+    "medium": "Medium",
+    "selectMedium": "Select medium...",
     "startDatePromptTitle": "Set a start date?",
     "startDatePromptMessage": "This book has no start date. Set it to today or choose another date before marking it as read.",
     "startDatePromptSet": "Set start date",
@@ -329,6 +333,13 @@
     "digital_access": "Digital access",
     "to_acquire": "Needs to be acquired"
   },
+  "medium": {
+    "print": "Print",
+    "ebook": "eBook",
+    "audiobook": "Audiobook",
+    "comic_graphic_novel": "Comic / Graphic Novel",
+    "magazine_newspaper": "Magazine / Newspaper"
+  },
   "search": {
     "resultsCount": "{count, plural, one {result} other {results}} found",
     "noResults": "No results found",
@@ -340,7 +351,8 @@
       "multiWord": "Wrap multi-word values in double quotes, e.g. author:\"Marlen Haushofer\".",
       "combine": "You can combine multiple prefixes; results must match all of them.",
       "negate": "Prefix any term with - to exclude it, e.g. tag:cars -tag:audi.",
-      "possessionValues": "possession values: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "possession values: owned, borrowed, digital_access, to_acquire",
+      "mediumValues": "medium values: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
     }
   },
   "languages": {

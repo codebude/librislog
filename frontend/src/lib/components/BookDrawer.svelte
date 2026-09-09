@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -55,6 +55,7 @@
 	let rating = $state<number | null>(null);
 	let reading_status = $state<ReadingStatus>('want_to_read');
 	let acquisition_status = $state<AcquisitionStatus>('owned');
+	let medium = $state<Medium | ''>('');
 	let publisher = $state('');
 	let published_year = $state('');
 	let page_count = $state('');
@@ -99,6 +100,7 @@
 			rating = book.rating;
 			reading_status = book.reading_status;
 			acquisition_status = book.acquisition_status;
+			medium = book.medium ?? '';
 			publisher = book.publisher ?? '';
 			published_year = book.published_year !== null ? String(book.published_year) : '';
 			page_count = book.page_count !== null ? String(book.page_count) : '';
@@ -151,7 +153,8 @@
 			blurb: blurb || null,
 			rating,
 			cover_url: cover_url || null,
-			acquisition_status
+			acquisition_status,
+			medium: medium || null
 		};
 
 		if (includeDates) {
@@ -367,6 +370,13 @@
 		{ value: 'digital_access', label: 'acquisition.digital_access' },
 		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
 	];
+	const MEDIUM_OPTIONS: { value: Medium; label: string }[] = [
+		{ value: 'Print', label: 'medium.print' },
+		{ value: 'eBook', label: 'medium.ebook' },
+		{ value: 'Audiobook', label: 'medium.audiobook' },
+		{ value: 'Comic / Graphic Novel', label: 'medium.comic_graphic_novel' },
+		{ value: 'Magazine / Newspaper', label: 'medium.magazine_newspaper' }
+	];
 
 	const coverSearchUrl = $derived.by(() => {
 		const query = `${title} ${authors.join(' ')}`.trim();
@@ -518,6 +528,15 @@
 				<span class="label label-text">{$_('book.acquisitionStatus')}</span>
 				<select class="select select-bordered select-sm" name="acquisition_status" bind:value={acquisition_status}>
 					{#each ACQUISITION_OPTIONS as opt}
+						<option value={opt.value}>{$_(opt.label)}</option>
+					{/each}
+				</select>
+			</label>
+			<label class="flex flex-col gap-1">
+				<span class="label label-text">{$_('book.medium')}</span>
+				<select class="select select-bordered select-sm" name="medium" bind:value={medium}>
+					<option value="">{$_('book.selectMedium')}</option>
+					{#each MEDIUM_OPTIONS as opt}
 						<option value={opt.value}>{$_(opt.label)}</option>
 					{/each}
 				</select>

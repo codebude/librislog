@@ -1216,6 +1216,17 @@ def test_parse_acquisition_status_missing_value() -> None:
         di._parse_acquisition_status("   ")
 
 
+def test_parse_medium_accepts_optional_display_and_key_values() -> None:
+    assert di._parse_medium(None) is None
+    assert di._parse_medium("") is None
+    audiobook = di._parse_medium("Audiobook")
+    comic = di._parse_medium("comic_graphic_novel")
+    assert audiobook is not None and audiobook.value == "Audiobook"
+    assert comic is not None and comic.value == "Comic / Graphic Novel"
+    with pytest.raises(ValueError, match="Invalid value for 'medium'"):
+        di._parse_medium("unknown")
+
+
 # ── _mapped_row ───────────────────────────────────────────────────────────────
 
 def test_mapped_row_transform_execution_error() -> None:

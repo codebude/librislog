@@ -12,7 +12,7 @@ from sqlmodel import Session, col, func, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, ReadingProgress, ReadingStatus, Tag, User
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingStatus, Tag, User
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -152,11 +152,12 @@ def _build_book_read_with_tags(book: Book, tags_text: str | None, authors: list[
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
     acquisition_status: Optional[AcquisitionStatus] = Query(default=None),
+    medium: Optional[Medium] = Query(default=None),
     q: Optional[str] = Query(
         default=None,
         description=(
             "Search phrase. Use <field>:<value> to restrict a term to a single field "
-            "(author, publisher, title, tag, language, possession, notes, description). "
+            "(author, publisher, title, tag, language, possession, medium, notes, description). "
             "Wrap multi-word values in double quotes (e.g. author:\"Marlen Haushofer\") and "
             "prefix any term with - to negate it (e.g. tag:cars -tag:audi)."
         ),
@@ -179,8 +180,8 @@ def list_books(
     read → date_finished, did_not_finish → date_started (all descending).
     """
     logger.debug(
-        "list_books — status=%r q=%r sort=%s order=%s smart_sort=%s",
-        status, q, sort, order, smart_sort,
+        "list_books — status=%r acquisition=%r medium=%r q=%r sort=%s order=%s smart_sort=%s",
+        status, acquisition_status, medium, q, sort, order, smart_sort,
     )
     base_statement = select(Book).where(Book.user_id == current_user.id)
 
@@ -189,6 +190,9 @@ def list_books(
 
     if acquisition_status is not None:
         base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
+
+    if medium is not None:
+        base_statement = base_statement.where(Book.medium == medium)
 
     if q:
         assert current_user.id is not None

@@ -26,6 +26,7 @@
     "languageDistribution": "按语言分布",
     "statusDistribution": "按状态分布",
     "acquisitionStatusDistribution": "按所有权分布",
+    "mediumDistribution": "媒介分布",
     "pageBuckets": "页数统计",
     "pagesToRead": "待读页数",
     "pagesRead": "已读页数",
@@ -50,6 +51,7 @@
     "coversForAuthor": "{author} 的图书封面",
     "booksCount": "{count} 本书",
     "unknownLanguage": "未知",
+    "unknownMedium": "未知媒介",
     "pagesReadCalendar": "阅读活动（最近365天）",
     "noCalendarData": "过去一年没有阅读数据",
     "pagesOver": "页，共",
@@ -173,6 +175,8 @@
     "dateStarted": "开始日期",
     "acquisitionStatus": "可用性",
     "selectAcquisitionStatus": "选择可用性...",
+    "medium": "媒介",
+    "selectMedium": "选择媒介...",
     "startDatePromptTitle": "设置开始日期？",
     "startDatePromptMessage": "此书没有开始日期。在将其标记为已读前，请设为今天或选择其他日期。",
     "startDatePromptSet": "设置开始日期",
@@ -329,6 +333,13 @@
     "digital_access": "可数字访问",
     "to_acquire": "需要获取"
   },
+  "medium": {
+    "print": "纸质书",
+    "ebook": "电子书",
+    "audiobook": "有声书",
+    "comic_graphic_novel": "漫画 / 图像小说",
+    "magazine_newspaper": "杂志 / 报纸"
+  },
   "search": {
     "resultsCount": "找到 {count} 个结果",
     "noResults": "未找到结果",
@@ -340,7 +351,8 @@
       "multiWord": "多词值请用双引号括起来，例如 author:\"Marlen Haushofer\"。",
       "combine": "可以组合多个前缀；结果必须满足所有条件。",
       "negate": "在任何词条前加 - 以将其排除，例如 tag:cars -tag:audi。",
-      "possessionValues": "持有值：owned、borrowed、digital_access、to_acquire"
+      "possessionValues": "持有值：owned、borrowed、digital_access、to_acquire",
+      "mediumValues": "媒介值：print、ebook、audiobook、comic_graphic_novel、magazine_newspaper"
     }
   },
   "languages": {

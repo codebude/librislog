@@ -1,6 +1,7 @@
 """SQLModel ORM models for LibrisLog database tables."""
 
 from enum import Enum
+import re
 from typing import Optional
 from datetime import date, datetime, timezone
 
@@ -53,6 +54,33 @@ class AcquisitionStatus(str, Enum):
     to_acquire = "to_acquire"
 
 
+def normalize_medium_key(value: str) -> str:
+    """Normalize a medium display value or enum key for comparisons."""
+    return re.sub(r"[\s/]+", "_", value.strip().lower())
+
+
+class Medium(str, Enum):
+    """Enum of a book's physical or digital medium format."""
+
+    print = "Print"
+    ebook = "eBook"
+    audiobook = "Audiobook"
+    comic_graphic_novel = "Comic / Graphic Novel"
+    magazine_newspaper = "Magazine / Newspaper"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "Medium | None":
+        """Accept enum keys and normalized display values at API boundaries."""
+        if not isinstance(value, str):
+            return None
+        normalized = normalize_medium_key(value)
+        for member in cls:
+            member_value = normalize_medium_key(member.value)
+            if normalized in {member.name, member_value}:
+                return member
+        return None
+
+
 class UserRole(str, Enum):
     """Enum of possible user roles."""
 
@@ -88,6 +116,7 @@ class Book(SQLModel, table=True):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)
     acquisition_status: AcquisitionStatus = Field(default=AcquisitionStatus.owned, index=True)
+    medium: Optional[Medium] = Field(default=None, index=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     date_added: datetime = Field(
         default_factory=utcnow,
