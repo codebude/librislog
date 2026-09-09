@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AcquisitionStatus, Book, BookImportCandidate, BookImportCandidateGroup, ReadingStatus, SearchStage } from '$lib/types';
+	import type { AcquisitionStatus, Book, BookImportCandidate, BookImportCandidateGroup, Medium, ReadingStatus, SearchStage } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -40,10 +40,18 @@
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
 	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
+	let medium = $state<Medium | ''>('');
 	let searchAbortController: AbortController | null = null;
 	let expandedGroups = $state<Record<string, boolean>>({});
 	let selectedVariantByGroup = $state<Record<string, number>>({});
 	let groups = $derived(groupCandidates(results));
+	const MEDIUM_OPTIONS: { value: Medium; label: string }[] = [
+		{ value: 'Print', label: 'medium.print' },
+		{ value: 'eBook', label: 'medium.ebook' },
+		{ value: 'Audiobook', label: 'medium.audiobook' },
+		{ value: 'Comic / Graphic Novel', label: 'medium.comic_graphic_novel' },
+		{ value: 'Magazine / Newspaper', label: 'medium.magazine_newspaper' }
+	];
 
 	onMount(async () => {
 		secureContext = isSecureContext();
@@ -265,7 +273,7 @@
 		const key = `${group.key}:${group.variants.indexOf(candidate)}`;
 		importing = key;
 		try {
-			const book = await api.import.importBook(candidate, status, acquisitionStatus);
+			const book = await api.import.importBook(candidate, status, acquisitionStatus, medium || null);
 			markAsImported(book);
 			onImport?.(book);
 		} catch (e: unknown) {
@@ -358,6 +366,16 @@
 			{$_('import.googleAdded', { values: { count: supplementAddedCount } })}
 		</p>
 	{/if}
+
+	<label class="flex flex-col gap-1 text-sm">
+		<span>{$_('book.medium')}</span>
+		<select class="select select-bordered select-sm" name="medium" bind:value={medium}>
+			<option value="">{$_('book.selectMedium')}</option>
+			{#each MEDIUM_OPTIONS as opt}
+				<option value={opt.value}>{$_(opt.label)}</option>
+			{/each}
+		</select>
+	</label>
 
 	<label class="flex flex-col gap-1 text-sm">
 		<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>

@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
@@ -40,6 +40,7 @@
 	let rating = $state('');
 	let status = $state<ReadingStatus>('want_to_read');
 	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
+	let medium = $state<Medium | ''>('');
 	let cover_url = $state<string | null>(null);
 	$effect(() => { status = defaultStatus; });
 
@@ -70,6 +71,7 @@
 		rating = '';
 		status = defaultStatus;
 		acquisitionStatus = '';
+		medium = '';
 		cover_url = null;
 		activeTab = 'manual';
 	}
@@ -96,6 +98,7 @@
 				rating: rating ? parseInt(rating) : null,
 				reading_status: status,
 				acquisition_status: acquisitionStatus,
+				medium: medium || null,
 				cover_url: cover_url || null
 			});
 			onAdded?.(book);
@@ -125,6 +128,13 @@
 		{ value: 'borrowed', label: 'acquisition.borrowed' },
 		{ value: 'digital_access', label: 'acquisition.digital_access' },
 		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
+	];
+	const MEDIUM_OPTIONS: { value: Medium; label: string }[] = [
+		{ value: 'Print', label: 'medium.print' },
+		{ value: 'eBook', label: 'medium.ebook' },
+		{ value: 'Audiobook', label: 'medium.audiobook' },
+		{ value: 'Comic / Graphic Novel', label: 'medium.comic_graphic_novel' },
+		{ value: 'Magazine / Newspaper', label: 'medium.magazine_newspaper' }
 	];
 </script>
 
@@ -223,6 +233,15 @@
 							<option value={opt.value}>{$_(opt.label)}</option>
 						{/each}
 				</select>
+				</label>
+				<label class="flex flex-col gap-1">
+					<span class="label label-text">{$_('book.medium')}</span>
+					<select class="select select-bordered" name="medium" bind:value={medium}>
+						<option value="">{$_('book.selectMedium')}</option>
+						{#each MEDIUM_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
 				</label>
 				<label class="flex flex-col gap-1">
 					<span class="label label-text">{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>

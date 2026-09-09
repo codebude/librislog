@@ -9,6 +9,19 @@
       "avg_pages": "每本页数"
     }
   },
+  "medium": {
+    "print": "纸质书",
+    "ebook": "电子书",
+    "audiobook": "有声书",
+    "comic_graphic_novel": "漫画 / 图像小说",
+    "magazine_newspaper": "杂志 / 报纸"
+  },
+  "acquisition": {
+    "owned": "已拥有",
+    "borrowed": "借阅",
+    "digital_access": "数字版可用",
+    "to_acquire": "待获取"
+  },
   "email": {
     "passwordResetSubject": "密码重置 – LibrisLog",
     "passwordResetBody": "<html>\n<body>\n<p>您已请求重置 LibrisLog 帐户的密码。</p>\n<p>点击下面的链接重置您的密码。此链接有效期为 {duration_minutes} 分钟。</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>如果您没有请求此操作，请忽略此邮件。</p>\n</body>\n</html>"

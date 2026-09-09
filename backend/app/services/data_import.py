@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
 from app.config import settings
-from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User
+from app.models import AcquisitionStatus, Book, Medium, ReadingProgress, ReadingStatus, User, normalize_medium_key
 from app.schemas import ImportFieldConfig
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "rating",
     "reading_status",
     "acquisition_status",
+    "medium",
     "date_added",
     "date_started",
     "date_finished",
@@ -81,6 +82,10 @@ _ALIASES: dict[str, str] = {
     "acquisition": "acquisition_status",
     "availability": "acquisition_status",
     "ownership": "acquisition_status",
+    "medium": "medium",
+    "book medium": "medium",
+    "format": "medium",
+    "media type": "medium",
     "date added": "date_added",
     "added": "date_added",
     "date started": "date_started",
@@ -305,6 +310,19 @@ def _parse_acquisition_status(value: object) -> AcquisitionStatus:
     except ValueError as exc:
         choices = ", ".join(status.value for status in AcquisitionStatus)
         raise ValueError(_format_value_error("acquisition_status", f"one of: {choices}", value)) from exc
+
+
+def _parse_medium(value: object) -> Medium | None:
+    """Parse an optional book medium from an import row."""
+    if value is None or not str(value).strip():
+        return None
+    normalized = normalize_medium_key(str(value))
+    for medium in Medium:
+        enum_value = normalize_medium_key(medium.value)
+        if normalized in {medium.name, enum_value}:
+            return medium
+    choices = ", ".join(medium.value for medium in Medium)
+    raise ValueError(_format_value_error("medium", f"one of: {choices}", value))
 
 
 def _parse_year(value: object, field: str) -> int | None:
@@ -565,6 +583,7 @@ def validate_import(
             reading_status = _parse_reading_status(row_data.get("reading_status"))
             if require_acquisition_status:
                 _parse_acquisition_status(row_data.get("acquisition_status"))
+            _parse_medium(row_data.get("medium"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -685,6 +704,7 @@ def preview_import(
             reading_status = _parse_reading_status(row_data.get("reading_status"))
             if require_acquisition_status:
                 _parse_acquisition_status(row_data.get("acquisition_status"))
+            _parse_medium(row_data.get("medium"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -807,6 +827,7 @@ async def execute_import(
                     if require_acquisition_status
                     else AcquisitionStatus.owned
                 )
+                medium = _parse_medium(row_data.get("medium"))
 
                 language = _normalize_language(
                     None if row_data.get("language") is None else str(row_data.get("language"))
@@ -869,6 +890,7 @@ async def execute_import(
                     rating=rating,
                     reading_status=reading_status,
                     acquisition_status=acquisition_status,
+                    medium=medium,
                     date_added=date_added or utcnow(),
                     date_started=date_started,
                     date_finished=date_finished,

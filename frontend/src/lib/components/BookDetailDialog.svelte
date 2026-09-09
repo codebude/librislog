@@ -23,6 +23,13 @@
 	import type { ChartData, ChartOptions } from 'chart.js';
 
 	const tz = getTimezone();
+	const MEDIUM_LABEL_KEYS: Record<string, string> = {
+		Print: 'medium.print',
+		eBook: 'medium.ebook',
+		Audiobook: 'medium.audiobook',
+		'Comic / Graphic Novel': 'medium.comic_graphic_novel',
+		'Magazine / Newspaper': 'medium.magazine_newspaper'
+	};
 
 	let {
 		book = $bindable(null),
@@ -477,6 +484,12 @@
 					<div class="text-xs text-base-content/60">{$_('book.acquisitionStatus')}</div>
 					<div>{$_(`acquisition.${book.acquisition_status}`)}</div>
 				</div>
+				{#if book.medium}
+					<div>
+						<div class="text-xs text-base-content/60">{$_('book.medium')}</div>
+						<div>{MEDIUM_LABEL_KEYS[book.medium] ? $_(MEDIUM_LABEL_KEYS[book.medium]) : book.medium}</div>
+					</div>
+				{/if}
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.tags')}</div>
 					{#if splitTags(book.tags).length > 0}

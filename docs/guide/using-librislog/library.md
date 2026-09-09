@@ -19,6 +19,8 @@ Each status has its own tab in the library view, making it easy to browse your c
 
 Possession is separate from reading status. Choose whether a book is owned, borrowed, available digitally, or still needs to be acquired. In the Want to Read view, books that still need to be acquired show a shopping-cart indicator. Use the possession filter to narrow the list without changing its newest-first order.
 
+Each book can also have an optional medium: Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper. Use the medium filter to narrow the library, or search with `medium:audiobook`. A missing medium is valid when it is not known yet.
+
 ![Library](/screenshots/library-read.png)
 
 ## Navigation
@@ -39,7 +41,7 @@ Each book card shows:
 
 Clicking a book opens the detail dialog/drawer showing:
 - Full cover image
-- Complete metadata (title, subtitle, author, ISBN, publisher, year, pages, language)
+- Complete metadata (title, subtitle, author, ISBN, publisher, year, pages, language, medium)
 - Reading status badge
 - Star rating (clickable to change)
 - Reading progress slider (for books with page count)
@@ -52,7 +54,7 @@ Clicking a book opens the detail dialog/drawer showing:
 
 ### Manual Entry
 
-Use the "Add Book" button to manually enter book details. Fill in title, author, and optional fields like ISBN, publisher, page count, etc.
+Use the "Add Book" button to manually enter book details. Fill in title, author, and optional fields like ISBN, publisher, page count, and medium. The medium can be left unset.
 
 A book can have **multiple authors**: type a name and press **Enter** to add it as a chip. Authors are shown joined with "; " throughout the app, so names written last-name-first (e.g. `"Doe, Jane"`) stay unambiguous.
 

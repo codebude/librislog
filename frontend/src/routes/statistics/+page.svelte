@@ -213,6 +213,24 @@
 		].filter((item) => item.value > 0);
 	});
 
+	const mediumLabelKeys: Record<string, string> = {
+		Print: 'medium.print',
+		eBook: 'medium.ebook',
+		Audiobook: 'medium.audiobook',
+		'Comic / Graphic Novel': 'medium.comic_graphic_novel',
+		'Magazine / Newspaper': 'medium.magazine_newspaper'
+	};
+
+	const mediumSegments = $derived.by<Segment[]>(() => {
+		if (!stats) return [];
+		const colors = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-info', 'bg-success', 'bg-warning'];
+		return (stats.medium_distribution ?? []).map((entry, idx) => ({
+			label: entry.medium ? $_(mediumLabelKeys[entry.medium] ?? entry.medium) : $_('statistics.unknownMedium'),
+			value: entry.count,
+			className: colors[idx % colors.length]
+		}));
+	});
+
 	const pageSegments = $derived.by<Segment[]>(() => {
 		if (!stats) return [];
 		return [
@@ -399,6 +417,29 @@
 					</div>
 					<div class="flex flex-wrap gap-3 text-sm">
 						{#each acquisitionSegments as segment}
+							<div class="flex items-center gap-2">
+								<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
+								<span>{segment.label}: {formatNumber(segment.value, 0)}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
+
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body">
+					<h2 class="card-title text-base">{$_('statistics.mediumDistribution')}</h2>
+					<div role="img" aria-label={$_('statistics.mediumDistribution')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
+						{#if total(mediumSegments) === 0}
+							<div class="w-full h-full"></div>
+						{:else}
+							{#each mediumSegments as segment}
+								<div class={`h-full ${segment.className}`} style={`width:${safePercentage(segment.value, total(mediumSegments))}%`}></div>
+							{/each}
+						{/if}
+					</div>
+					<div class="flex flex-wrap gap-3 text-sm">
+						{#each mediumSegments as segment}
 							<div class="flex items-center gap-2">
 								<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
 								<span>{segment.label}: {formatNumber(segment.value, 0)}</span>

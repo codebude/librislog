@@ -66,6 +66,7 @@ const mockBook = {
 	rating: 4,
 	reading_status: 'want_to_read' as const,
 	acquisition_status: 'owned' as const,
+	medium: null,
 	date_added: '2024-01-01T00:00:00Z',
 	date_started: null,
 	date_finished: null,

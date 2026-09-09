@@ -61,6 +61,8 @@ The `author` field is marked as **deprecated** in the OpenAPI spec (visible in S
 
 When creating a book you must provide at least one author — either `authors` as a list, or the legacy `author` string. If both are sent, `authors` takes precedence. A request with neither (or with an empty `authors` list) is rejected with a `422` validation error.
 
+Books have an optional nullable `medium` field. Accepted values are `Print`, `eBook`, `Audiobook`, `Comic / Graphic Novel`, and `Magazine / Newspaper`. Omit it or send `null` when the medium is not known. Books can be filtered with `GET /api/books?medium=Audiobook` or searched with `q=medium:audiobook`.
+
 For updates, `author`/`authors` are optional; if you send an empty `authors` list the book's authors are cleared.
 
 The legacy `author` string is **parsed on commas, tag-style** (e.g. `"Isaac Asimov, Frank Herbert"` becomes two authors). This only applies to the API create/update path. It differs from **file import** (CSV/JSON), where a single author string is split on `;`, ` & `, or ` and ` — never on commas — so a name like `"Asimov, Isaac"` stays one author. See [Import & Export](../guide/using-librislog/import-export.md) for the import behaviour.
