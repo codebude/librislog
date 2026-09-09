@@ -24,7 +24,7 @@ The `author:` prefix matches **any** author assigned to a book — a book with m
 
 ### Possession values
 
-The `possession` prefix matches the exact possession status. Accepted values include:
+The `possession` prefix matches the exact possession status. The original enum keys are accepted, and localized display values are accepted too, such as German `Im Besitz` for `owned`. Accepted keys include:
 
 - `to_acquire` (or `to acquire`)
 - `owned`
@@ -35,7 +35,7 @@ Example: `possession:"to acquire"` shows books you want to buy.
 
 ### Medium values
 
-The `medium` prefix matches the selected book medium. Accepted values are `print`, `ebook`, `audiobook`, `comic_graphic_novel`, and `magazine_newspaper`. Display values such as `"Comic / Graphic Novel"` are accepted too.
+The `medium` prefix matches the selected book medium. The original enum keys are `print`, `ebook`, `audiobook`, `comic_graphic_novel`, and `magazine_newspaper`. Localized display values are also accepted, such as German `Hörbuch` for `audiobook`.
 
 Example: `medium:audiobook` shows audiobook entries. The API list filter accepts both display values and normalized keys.
 

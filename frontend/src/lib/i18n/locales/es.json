@@ -351,8 +351,8 @@
       "multiWord": "Envuelve los valores de varias palabras entre comillas dobles, p. ej. author:\"Marlen Haushofer\".",
       "combine": "Puedes combinar varios prefijos; los resultados deben coincidir con todos.",
       "negate": "Antepón - a cualquier término para excluirlo, p. ej. tag:cars -tag:audi.",
-      "possessionValues": "valores de posesión: owned, borrowed, digital_access, to_acquire",
-      "mediumValues": "valores de medio: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
+      "possessionValues": "claves de posesión: owned, borrowed, digital_access, to_acquire; también se aceptan etiquetas localizadas",
+      "mediumValues": "claves de medio: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper; también se aceptan etiquetas localizadas"
     }
   },
   "languages": {

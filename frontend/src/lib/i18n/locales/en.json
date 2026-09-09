@@ -351,8 +351,8 @@
       "multiWord": "Wrap multi-word values in double quotes, e.g. author:\"Marlen Haushofer\".",
       "combine": "You can combine multiple prefixes; results must match all of them.",
       "negate": "Prefix any term with - to exclude it, e.g. tag:cars -tag:audi.",
-      "possessionValues": "possession values: owned, borrowed, digital_access, to_acquire",
-      "mediumValues": "medium values: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
+      "possessionValues": "possession keys: owned, borrowed, digital_access, to_acquire; localized labels are also accepted",
+      "mediumValues": "medium keys: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper; localized labels are also accepted"
     }
   },
   "languages": {

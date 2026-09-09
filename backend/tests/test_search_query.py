@@ -105,6 +105,7 @@ def test_possession_condition_accepts_enum_values() -> None:
     from app.services.search import _possession_condition
 
     assert _possession_condition("owned") is not None
+    assert _possession_condition("Im Besitz") is not None
     assert _possession_condition("digital_access") is not None
     assert _possession_condition("to acquire") is not None
     assert _possession_condition("owned") is not None
@@ -120,6 +121,7 @@ def test_medium_condition_accepts_display_and_key_values() -> None:
     from app.services.search import _medium_condition
 
     assert _medium_condition("Audiobook") is not None
+    assert _medium_condition("Hörbuch") is not None
     assert _medium_condition("comic_graphic_novel") is not None
     assert _medium_condition("Comic / Graphic Novel") is not None
     assert _medium_condition("unknown") is None

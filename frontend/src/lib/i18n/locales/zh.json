@@ -351,8 +351,8 @@
       "multiWord": "多词值请用双引号括起来，例如 author:\"Marlen Haushofer\"。",
       "combine": "可以组合多个前缀；结果必须满足所有条件。",
       "negate": "在任何词条前加 - 以将其排除，例如 tag:cars -tag:audi。",
-      "possessionValues": "持有值：owned、borrowed、digital_access、to_acquire",
-      "mediumValues": "媒介值：print、ebook、audiobook、comic_graphic_novel、magazine_newspaper"
+      "possessionValues": "持有键：owned、borrowed、digital_access、to_acquire；也接受本地化名称",
+      "mediumValues": "媒介键：print、ebook、audiobook、comic_graphic_novel、magazine_newspaper；也接受本地化名称"
     }
   },
   "languages": {

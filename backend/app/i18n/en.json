@@ -9,6 +9,19 @@
       "avg_pages": "Avg/Book"
     }
   },
+  "medium": {
+    "print": "Print",
+    "ebook": "eBook",
+    "audiobook": "Audiobook",
+    "comic_graphic_novel": "Comic / Graphic Novel",
+    "magazine_newspaper": "Magazine / Newspaper"
+  },
+  "acquisition": {
+    "owned": "Owned",
+    "borrowed": "Borrowed",
+    "digital_access": "Digital access",
+    "to_acquire": "Needs to be acquired"
+  },
   "email": {
     "passwordResetSubject": "Password Reset – LibrisLog",
     "passwordResetBody": "<html>\n<body>\n<p>You have requested a password reset for your LibrisLog account.</p>\n<p>Click the link below to reset your password. This link is valid for {duration_minutes} minutes.</p>\n<p><a href=\"{reset_url}\">{reset_url}</a></p>\n<p>If you did not request this, please ignore this email.</p>\n</body>\n</html>"

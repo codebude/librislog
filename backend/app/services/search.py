@@ -17,6 +17,7 @@ import sqlalchemy as sa
 from sqlmodel import col, or_, select
 
 from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, Tag, normalize_medium_key
+from app.i18n import translate
 
 # Fields that can be targeted with a prefix. The keys are the canonical,
 # always-English prefix names; the values are the book model columns.
@@ -172,11 +173,14 @@ def _unprefixed_condition(value: str, user_id: int) -> Any:
 def _possession_condition(value: str) -> Any | None:
     """Build the exact acquisition-status condition, or ``None`` if invalid."""
     normalized = value.strip().lower().replace(" ", "_")
-    try:
-        status = AcquisitionStatus(normalized)
-    except ValueError:
-        return None
-    return Book.acquisition_status == status
+    for status in AcquisitionStatus:
+        localized_values = {
+            normalize_medium_key(translate(f"acquisition.{status.name}", locale))
+            for locale in ("en", "de", "es", "fr", "zh")
+        }
+        if normalized in {status.name, status.value, *localized_values}:
+            return Book.acquisition_status == status
+    return None
 
 
 def _medium_condition(value: str) -> Any | None:
@@ -184,7 +188,11 @@ def _medium_condition(value: str) -> Any | None:
     normalized = normalize_medium_key(value)
     for medium in Medium:
         enum_value = normalize_medium_key(medium.value)
-        if normalized in {medium.name, enum_value}:
+        localized_values = {
+            normalize_medium_key(translate(f"medium.{medium.name}", locale))
+            for locale in ("en", "de", "es", "fr", "zh")
+        }
+        if normalized in {medium.name, enum_value, *localized_values}:
             return Book.medium == medium
     return None
 

@@ -351,8 +351,8 @@
       "multiWord": "Place les valeurs multi-mots entre guillemets doubles, p. ex. author:\"Marlen Haushofer\".",
       "combine": "Tu peux combiner plusieurs préfixes ; les résultats doivent correspondre à tous.",
       "negate": "Préfixe tout terme par - pour l'exclure, p. ex. tag:cars -tag:audi.",
-      "possessionValues": "valeurs de possession : owned, borrowed, digital_access, to_acquire",
-      "mediumValues": "valeurs de format : print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
+      "possessionValues": "clés de possession : owned, borrowed, digital_access, to_acquire ; les libellés localisés sont également acceptés",
+      "mediumValues": "clés de format : print, ebook, audiobook, comic_graphic_novel, magazine_newspaper ; les libellés localisés sont également acceptés"
     }
   },
   "languages": {

@@ -351,8 +351,8 @@
       "multiWord": "Setze mehrteilige Werte in doppelte Anführungszeichen, z. B. author:\"Marlen Haushofer\".",
       "combine": "Du kannst mehrere Präfixe kombinieren; die Ergebnisse müssen allen entsprechen.",
       "negate": "Stelle einem Begriff ein - voran, um ihn auszuschließen, z. B. tag:cars -tag:audi.",
-      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire",
-      "mediumValues": "Medium-Werte: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper"
+      "possessionValues": "Possession-Schlüssel: owned, borrowed, digital_access, to_acquire; lokalisierte Bezeichnungen werden ebenfalls akzeptiert",
+      "mediumValues": "Medium-Schlüssel: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper; lokalisierte Bezeichnungen werden ebenfalls akzeptiert"
     }
   },
   "languages": {
