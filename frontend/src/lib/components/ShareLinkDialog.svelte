@@ -46,6 +46,7 @@
 	let expiresHasInput = $state(false);
 	let tz = $state('UTC');
 	let dialogEl = $state<HTMLDialogElement | null>(null);
+	let nameTouched = $state(false);
 
 	function resetFromLink(value: PublicProfileLink | null) {
 		const defaults = defaultPublicProfileVisibilityConfig();
@@ -66,6 +67,7 @@
 		}
 		expiresInvalid = false;
 		expiresHasInput = false;
+		nameTouched = false;
 	}
 
 	$effect(() => {
@@ -125,7 +127,10 @@
 	function setAllSections(checked: boolean) {
 		sections = checked
 			? PUBLIC_PROFILE_SECTIONS.map((s) => s.key)
-			: sections.filter((s) => s === 'statistics');
+			: [];
+		if (!checked) {
+			statistics = [];
+		}
 	}
 
 	function statsForGroup(group: PublicProfileStatisticsGroup) {
@@ -168,7 +173,7 @@
 		aria-modal="true"
 		aria-label={link ? $_('publicProfile.dialogTitleEdit') : $_('publicProfile.dialogTitleCreate')}
 	>
-		<div class="modal-box w-11/12 max-w-2xl">
+		<div class="modal-box w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
 			<form method="dialog">
 				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick={onClose} aria-label={$_('common.close')}>✕</button>
 			</form>
@@ -177,18 +182,22 @@
 			<form class="flex flex-col gap-6 mt-4" onsubmit={(e) => { e.preventDefault(); handleSave(); }}>
 				<div>
 <label class="label" for="share-link-name">
-					<span class="label-text font-medium">{$_('publicProfile.dialogName')}</span>
+					<span class="label-text font-medium">{$_('publicProfile.dialogName')} <span class="text-error">*</span></span>
 				</label>
 				<input
 					id="share-link-name"
-					class="input input-bordered w-full"
+					class="input w-full {nameTouched && !name.trim() ? 'input-error' : 'input-bordered'}"
 					name="share-link-name"
 						bind:value={name}
 						autocomplete="off"
 						maxlength="255"
 						required
 						placeholder={$_('publicProfile.dialogNamePlaceholder')}
+						onblur={() => { nameTouched = true; }}
 					/>
+					{#if nameTouched && !name.trim()}
+						<p class="text-xs text-error mt-1">{$_('common.required')}</p>
+					{/if}
 				</div>
 
 				<fieldset class="border border-base-300 rounded-xl p-4">
