@@ -43,6 +43,36 @@ The **"Show reading streaks & goals on dashboard"** switch above the goals disab
 
 See [Dashboard → Reading Streaks & Goals](/guide/using-librislog/dashboard#reading-streaks-goals) for details on how streaks and goal progress are calculated.
 
+## URL/Profile Sharing
+
+Create a read-only public view of your reading profile and share it with a URL. The shared page does not expose editing controls, notes, blurbs, or your email address.
+
+### Create a Profile URL
+
+1. Open **Profile** and scroll to **Share Profile**.
+2. Click **Create New URL**.
+3. Enter a name for the link, such as `Friends & family`.
+4. Choose who can access it:
+   - **Everyone** — anyone with the URL can view the profile, without logging in.
+   - **Logged-in users only** — viewers must be signed in to LibrisLog.
+5. Under **Content**, select the profile sections to share. Statistics can be enabled separately and configured by group.
+6. Choose the language for this URL. The public page uses the link's language independently of your viewer's current UI language.
+7. Under **Validity**, leave the link unlimited or set an expiration date.
+8. Save the link.
+
+The complete URL is shown once after creation. Copy it immediately or open it in a new tab. For security, the full token is not shown in the link list unless you explicitly reveal it through the link actions.
+
+### Manage Existing URLs
+
+Each link appears in the **Share Profile** list with its name, access level, status, token prefix, and expiry information. The available actions are:
+
+- **Copy link** — copy the URL to the clipboard.
+- **Open link** — open the read-only profile page in a new tab.
+- **Edit** — change the access level, shared sections, statistics, language, or expiry date.
+- **Delete** — revoke the link immediately. Anyone using it will lose access.
+
+Treat an **Everyone** URL like a public page: anyone who receives it can view the selected information until the link expires or is deleted. Create separate links when you want different audiences or different languages.
+
 ## API Keys
 
 Create and manage API keys for headless access to the REST API. Each key can have an optional description. Keys are shown once at creation — copy it immediately, as it cannot be retrieved later.
