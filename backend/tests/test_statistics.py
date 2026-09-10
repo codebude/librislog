@@ -10,7 +10,7 @@ from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.models import Book, ReadingProgress, ReadingStatus, UserSettings
-from app.routers.statistics import _extract_book_level_daily_pages
+from app.services.statistics import _extract_book_level_daily_pages
 
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
@@ -403,7 +403,7 @@ def test_extract_book_level_skips_non_positive_total_days() -> None:
 
 
 def test_clamp_window_entirely_before() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
     end = datetime(2025, 1, 5, tzinfo=timezone.utc)
@@ -413,7 +413,7 @@ def test_clamp_window_entirely_before() -> None:
 
 
 def test_clamp_window_start_before_window() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 5, tzinfo=timezone.utc)
     end = datetime(2025, 1, 15, tzinfo=timezone.utc)
@@ -425,7 +425,7 @@ def test_clamp_window_start_before_window() -> None:
 
 
 def test_clamp_window_entirely_after() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 25, tzinfo=timezone.utc)
     end = datetime(2025, 1, 30, tzinfo=timezone.utc)
@@ -435,7 +435,7 @@ def test_clamp_window_entirely_after() -> None:
 
 
 def test_clamp_window_end_after_window() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 15, tzinfo=timezone.utc)
     end = datetime(2025, 1, 25, tzinfo=timezone.utc)
@@ -543,7 +543,7 @@ def test_statistics_includes_virtual_entry_for_non_read_book_with_progress(clien
 
 
 def test_compute_pages_per_month_skips_non_positive_delta() -> None:
-    from app.routers.statistics import _compute_pages_per_month_from_progress
+    from app.services.statistics import _compute_pages_per_month_from_progress
 
     entries = [
         SimpleNamespace(book_id=1, page=100, created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)),
@@ -556,7 +556,7 @@ def test_compute_pages_per_month_skips_non_positive_delta() -> None:
 def test_compute_pages_per_month_skips_non_positive_day_diff(monkeypatch: MonkeyPatch) -> None:
     import builtins
 
-    from app.routers.statistics import _compute_pages_per_month_from_progress
+    from app.services.statistics import _compute_pages_per_month_from_progress
 
     # Bypass internal sorting so we can feed prev/curr in the order needed.
     monkeypatch.setattr(builtins, "sorted", lambda iterable, **kwargs: list(iterable))
@@ -570,7 +570,7 @@ def test_compute_pages_per_month_skips_non_positive_day_diff(monkeypatch: Monkey
 
 
 def test_compute_pages_per_month_from_books_skips_invalid() -> None:
-    from app.routers.statistics import _compute_pages_per_month_from_books
+    from app.services.statistics import _compute_pages_per_month_from_books
 
     books = [
         Book(id=1, title="No dates", reading_status=ReadingStatus.read, user_id=1),
@@ -590,7 +590,7 @@ def test_compute_pages_per_month_from_books_skips_invalid() -> None:
 
 def test_compute_pages_per_month_from_books_skips_non_positive_total_days() -> None:
     """total_days <= 0 should be skipped even when date_finished is not < date_started."""
-    from app.routers.statistics import _compute_pages_per_month_from_books
+    from app.services.statistics import _compute_pages_per_month_from_books
 
     class FakeDateTime:
         def __lt__(self, other: object) -> bool:
@@ -615,7 +615,7 @@ def test_compute_pages_per_month_from_books_skips_non_positive_total_days() -> N
 
 
 def test_extract_progress_daily_pages_skips_outside_window() -> None:
-    from app.routers.statistics import _extract_progress_daily_pages
+    from app.services.statistics import _extract_progress_daily_pages
 
     entries = [
         SimpleNamespace(book_id=1, page=0, created_at=datetime(2025, 1, 1, tzinfo=timezone.utc)),
@@ -632,7 +632,7 @@ def test_extract_progress_daily_pages_skips_outside_window() -> None:
 
 def test_extract_progress_daily_pages_splits_delta_across_calendar_days() -> None:
     """A delta spanning two calendar days must be split, even when the span is <24h."""
-    from app.routers.statistics import _extract_progress_daily_pages
+    from app.services.statistics import _extract_progress_daily_pages
 
     entries = [
         SimpleNamespace(book_id=1, page=202, created_at=datetime(2026, 9, 2, 21, 16, tzinfo=timezone.utc)),
@@ -644,7 +644,7 @@ def test_extract_progress_daily_pages_splits_delta_across_calendar_days() -> Non
 
 def test_extract_progress_daily_pages_keeps_last_day_of_partial_span() -> None:
     """The final calendar day must not be dropped when prev is later in the day than curr."""
-    from app.routers.statistics import _extract_progress_daily_pages
+    from app.services.statistics import _extract_progress_daily_pages
 
     entries = [
         SimpleNamespace(book_id=1, page=10, created_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc)),
@@ -655,7 +655,7 @@ def test_extract_progress_daily_pages_keeps_last_day_of_partial_span() -> None:
 
 
 def test_extract_book_level_daily_pages_skips_outside_window() -> None:
-    from app.routers.statistics import _extract_book_level_daily_pages
+    from app.services.statistics import _extract_book_level_daily_pages
 
     book = Book(
         title="Old",
@@ -675,7 +675,7 @@ def test_extract_book_level_daily_pages_skips_outside_window() -> None:
 
 
 def test_statistics_monthly_pages_clamp_to_selected_window() -> None:
-    from app.routers.statistics import _compute_pages_per_month_from_books
+    from app.services.statistics import _compute_pages_per_month_from_books
 
     book = Book(
         title="Windowed",

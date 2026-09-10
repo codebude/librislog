@@ -142,6 +142,30 @@ def get_embed_token_prefix(token: str) -> str:
     return token[:12]
 
 
+# --- Public profile share-link token utilities ---
+
+PUBLIC_PROFILE_TOKEN_PREFIX = "lp_"
+
+
+def generate_public_profile_token() -> str:
+    """Generate a new random public profile token prefixed with 'lp_'."""
+    return f"{PUBLIC_PROFILE_TOKEN_PREFIX}{secrets.token_urlsafe(32)}"
+
+
+def hash_public_profile_token(value: str) -> str:
+    """Return a HMAC-SHA256 hex digest of a public profile token."""
+    return hmac.new(
+        settings.api_key_encryption_key.encode("utf-8"),
+        value.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def get_public_profile_token_prefix(token: str) -> str:
+    """Return the first 12 characters of the public profile token (visible prefix)."""
+    return token[:12]
+
+
 # --- Password reset token utilities ---
 
 _password_reset_serializer = URLSafeTimedSerializer(

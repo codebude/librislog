@@ -27,6 +27,7 @@ function createMockStats(overrides?: Partial<StatisticsResponse>): StatisticsRes
 		language_distribution: [{ language: 'EN', count: 3 }],
 		status_distribution: { want_to_read: 1, currently_reading: 0, read: 2, did_not_finish: 0 },
 		acquisition_status_distribution: { owned: 2, borrowed: 1, digital_access: 0, to_acquire: 1 },
+		medium_distribution: [],
 		page_buckets: { pages_to_read: 100, pages_read: 200, pages_wasted: 0 },
 		pages_read_per_month: [],
 		books_finished_per_month: [],

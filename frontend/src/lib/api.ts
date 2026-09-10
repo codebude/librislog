@@ -41,6 +41,12 @@ import type {
 	SortOrder,
 	OidcConfig,
 	OidcLinkStatus,
+	PublicProfileAudience,
+	PublicProfileLink,
+	PublicProfileLinkCreateResponse,
+	PublicProfileResponse,
+	PublicProfileVisibilityConfig,
+	ShareLinkRevealResponse,
 	User,
 	UserCreateResponse,
 	UserAdminUpdate,
@@ -73,6 +79,35 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 	const res = await fetch(`${BASE}${path}`, {
 		headers,
+		credentials: 'same-origin',
+		...options
+	});
+
+	const contentType = res.headers.get('content-type') ?? '';
+	const isJson = contentType.includes('application/json');
+
+	if (!res.ok) {
+		const err = new Error(`HTTP ${res.status}`) as Error & { status?: number };
+		err.status = res.status;
+		if (isJson) {
+			const detail = await res.json().catch(() => ({}));
+			err.message = detail?.detail ?? `HTTP ${res.status}`;
+			throw err;
+		}
+		const text = await res.text().catch(() => '');
+		err.message = text || `HTTP ${res.status}`;
+		throw err;
+	}
+	if (res.status === 204) return undefined as T;
+	if (!isJson) {
+		throw new Error(`Unexpected non-JSON response for ${path}`);
+	}
+	return res.json() as Promise<T>;
+}
+
+async function publicRequest<T>(path: string, options?: RequestInit): Promise<T> {
+	const res = await fetch(`${BASE}${path}`, {
+		headers: { 'Content-Type': 'application/json' },
 		credentials: 'same-origin',
 		...options
 	});
@@ -214,6 +249,49 @@ export const api = {
 			return request<void>(`/profile/embed-tokens/${id}`, { method: 'DELETE' });
 		},
 
+		listShareLinks(): Promise<PublicProfileLink[]> {
+			return request<PublicProfileLink[]>('/profile/share-links');
+		},
+
+		createShareLink(data: {
+			name: string;
+			audience: PublicProfileAudience;
+			language?: string | null;
+			visibility_config: PublicProfileVisibilityConfig;
+			expires_at?: string | null;
+		}): Promise<PublicProfileLinkCreateResponse> {
+			return request<PublicProfileLinkCreateResponse>('/profile/share-links', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		updateShareLink(
+			id: number,
+			data: Partial<{
+				name: string;
+				audience: PublicProfileAudience;
+				language: string | null;
+				visibility_config: PublicProfileVisibilityConfig;
+				expires_at: string | null;
+			}>
+		): Promise<PublicProfileLink> {
+			return request<PublicProfileLink>(`/profile/share-links/${id}`, {
+				method: 'PATCH',
+				body: JSON.stringify(data)
+			});
+		},
+
+		deleteShareLink(id: number): Promise<void> {
+			return request<void>(`/profile/share-links/${id}`, { method: 'DELETE' });
+		},
+
+		revealShareLink(id: number): Promise<ShareLinkRevealResponse> {
+			return request<ShareLinkRevealResponse>(`/profile/share-links/${id}/reveal`, {
+				method: 'POST'
+			});
+		},
+
 		resetData(confirmation: string): Promise<DataResetResponse> {
 			return request<DataResetResponse>('/profile/reset-data', {
 				method: 'POST',
@@ -256,6 +334,12 @@ export const api = {
 
 		delete(id: number): Promise<void> {
 			return request<void>(`/users/${id}`, { method: 'DELETE' });
+		}
+	},
+
+	publicProfile: {
+		get(token: string): Promise<PublicProfileResponse> {
+			return publicRequest<PublicProfileResponse>(`/public-profiles/${encodeURIComponent(token)}`);
 		}
 	},
 

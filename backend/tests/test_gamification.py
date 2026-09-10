@@ -6,7 +6,7 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.models import Book, ReadingProgress, UserSettings
-from app.routers.statistics import current_streak, longest_streak
+from app.services.statistics import current_streak, longest_streak
 
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
