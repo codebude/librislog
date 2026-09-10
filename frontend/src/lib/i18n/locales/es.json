@@ -662,6 +662,7 @@
       "emptyLibrary": "Esta biblioteca está vacía.",
       "noCurrentlyReading": "No se está leyendo nada actualmente.",
       "noLastRead": "Aún no hay libros terminados.",
+      "timelineMore": "y {count} más",
       "themeToggle": "Cambiar tema"
     }
   },

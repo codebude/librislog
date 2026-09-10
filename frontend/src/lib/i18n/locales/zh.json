@@ -662,6 +662,7 @@
       "emptyLibrary": "此书库为空。",
       "noCurrentlyReading": "当前没有正在阅读的图书。",
       "noLastRead": "暂无已读完的图书。",
+      "timelineMore": "还有 {count} 本",
       "themeToggle": "切换主题"
     }
   },

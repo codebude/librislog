@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import { _, setLocale, SUPPORTED_LOCALES, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
+	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
 	import { Moon, Palette, Star, Sun } from '@lucide/svelte';
 	import {
 		applyThemeToDocument,
@@ -95,6 +96,10 @@
 		return Math.min(100, Math.max(3, (value / sum) * 100));
 	}
 
+	function actualPercentage(value: number, sum: number): number {
+		return sum > 0 ? (value / sum) * 100 : 0;
+	}
+
 	async function load() {
 		status = 'loading';
 		try {
@@ -172,6 +177,10 @@
 		}, new Map<string, PublicProfileBook[]>())]
 			.sort(([a], [b]) => (a < b ? 1 : -1))
 	);
+
+	function timelineHiddenCount(monthKey: string, visibleCount: number): number {
+		return timelineBooks.filter((book) => book.date_finished!.slice(0, 7) === monthKey).length - visibleCount;
+	}
 
 	const summaryStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'summary' && statValue(s.key) !== undefined).map((s) => s.key));
 	const distributionStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'distribution' && statValue(s.key) !== undefined).map((s) => s.key));
@@ -364,11 +373,20 @@
 
 			{#if hasSection('user_info')}
 				<section class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
-					<div class="card-body gap-1">
-						<h2 class="card-title text-lg font-semibold">{$_('publicProfile.sections.userInfo')}</h2>
-						<p class="text-sm text-base-content/70">
-							{profile.owner.firstname} {profile.owner.lastname}
-						</p>
+					<div class="card-body">
+						<div class="flex items-center gap-4">
+							<AnimalAvatar
+								seed={`${profile.owner.firstname} ${profile.owner.lastname}`}
+								size={56}
+								class="h-14 w-14 shrink-0"
+							/>
+							<div class="min-w-0">
+								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.sections.userInfo')}</h2>
+								<p class="truncate text-sm text-base-content/70">
+									{profile.owner.firstname} {profile.owner.lastname}
+								</p>
+							</div>
+						</div>
 					</div>
 				</section>
 			{/if}
@@ -445,17 +463,32 @@
 						{#if timelineBooks.length === 0}
 							<p class="text-sm text-base-content/50">{$_('publicProfile.page.emptyLibrary')}</p>
 						{:else}
-							<ol class="flex flex-col gap-5 min-w-0">
+							<ol class="grid min-w-0 gap-3 sm:grid-cols-2">
 								{#each timelineMonths as [monthKey, books]}
-									<li class="relative pl-6 min-w-0">
-										<span aria-hidden="true" class="absolute left-1.5 top-3 bottom-0 w-px bg-base-300"></span>
-										<span aria-hidden="true" class="absolute left-0 top-1 h-3 w-3 rounded-full bg-primary border-2 border-base-100"></span>
-										<h3 class="font-medium text-sm">{formatMonthLabel(monthKey)}</h3>
-										<div class="mt-1 flex flex-col gap-1 text-sm min-w-0">
+									<li class="min-w-0 rounded-xl border border-base-200 p-4">
+										<div class="flex items-center gap-2">
+											<span aria-hidden="true" class="h-2.5 w-2.5 shrink-0 rounded-full bg-primary"></span>
+											<h3 class="min-w-0 flex-1 truncate text-sm font-semibold">{formatMonthLabel(monthKey)}</h3>
+											<span class="badge badge-ghost badge-sm tabular-nums">{books.length}</span>
+										</div>
+										<div class="mt-3 divide-y divide-base-200">
 											{#each books as book}
-												<p class="truncate min-w-0"><span class="font-medium">{book.title}</span> ({formatAuthors(book.authors)})</p>
+													<div class="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0">
+														{#if book.cover_url}
+															<img src={book.cover_url} alt="" class="h-12 w-8 shrink-0 rounded object-cover" loading="lazy" />
+														{:else}
+															<div class="h-12 w-8 shrink-0 rounded bg-base-200"></div>
+														{/if}
+														<div class="min-w-0 flex-1">
+															<p class="truncate text-sm font-medium">{book.title}</p>
+															<p class="truncate text-xs text-base-content/50">({formatAuthors(book.authors)})</p>
+														</div>
+													</div>
 											{/each}
 										</div>
+										{#if timelineHiddenCount(monthKey, books.length) > 0}
+											<p class="mt-2 text-xs italic text-base-content/50">{$_('publicProfile.page.timelineMore', { values: { count: timelineHiddenCount(monthKey, books.length) } })}</p>
+										{/if}
 									</li>
 								{/each}
 							</ol>
@@ -540,26 +573,38 @@
 
 					{#if distributionStats.length > 0}
 						<article class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
-							<div class="card-body flex flex-col gap-4">
+							<div class="card-body flex min-w-0 flex-col gap-5">
 								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.statGroups.distribution')}</h2>
-								{#each distributionStats as key}
-									{@const rows = distributionRows(key)}
-									{@const distTotal = rows.reduce<number>((sum, row) => sum + row.value, 0)}
-									{#if rows.length > 0}
-										<div class="flex flex-col gap-1">
-											<h3 class="text-sm font-medium text-base-content/70">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</h3>
-											{#each rows as row}
-												<div class="flex items-center gap-2 text-xs">
-													<span class="w-32 shrink-0 truncate" title={row.label}>{row.label}</span>
-													<div class="flex-1 h-3 bg-base-300 rounded-full overflow-hidden">
-														<div class={`h-full ${row.className} rounded-full`} style="width: {safePercentage(row.value, distTotal)}%"></div>
-													</div>
-													<span class="w-10 shrink-0 text-right tabular-nums">{formatNumber(row.value)}</span>
+								<div class="columns-1 min-w-0 gap-4 md:columns-2">
+									{#each distributionStats as key}
+										{@const rows = distributionRows(key)}
+										{@const distTotal = rows.reduce<number>((sum, row) => sum + row.value, 0)}
+										{#if rows.length > 0}
+											<section class="mb-4 inline-block w-full break-inside-avoid rounded-xl border border-base-200 p-4 align-top">
+												<h3 class="text-sm font-semibold">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</h3>
+												<div class="mt-4 flex flex-col gap-3">
+													{#each rows as row}
+														<div>
+															<div class="flex items-center justify-between gap-3 text-xs">
+																<span class="flex min-w-0 items-center gap-2">
+																	<span aria-hidden="true" class={`h-2 w-2 shrink-0 rounded-full ${row.className}`}></span>
+																	<span class="truncate text-base-content/70" title={row.label}>{row.label}</span>
+																</span>
+																<span class="shrink-0 tabular-nums">
+																	<span class="font-semibold">{formatNumber(row.value)}</span>
+																	<span class="ml-1 text-base-content/50">{formatNumber(actualPercentage(row.value, distTotal), 0)}%</span>
+																</span>
+															</div>
+															<div class="mt-1.5 h-2 overflow-hidden rounded-full bg-base-200">
+																<div class={`h-full rounded-full ${row.className}`} style="width: {safePercentage(row.value, distTotal)}%"></div>
+															</div>
+														</div>
+													{/each}
 												</div>
-											{/each}
-										</div>
-									{/if}
-								{/each}
+											</section>
+										{/if}
+									{/each}
+								</div>
 							</div>
 						</article>
 					{/if}
