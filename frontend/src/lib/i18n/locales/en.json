@@ -654,7 +654,7 @@
       "errorDesc": "Something went wrong while loading this page. Please try again later.",
       "retry": "Retry",
       "showMore": "Show more",
-      "shareHint": "Powered by LibrisLog",
+      "shareHint": "Powered by {app}",
       "githubLink": "LibrisLog on GitHub",
       "expiresHint": "This link expires on {date}.",
       "finishedOn": "Finished on {date}",

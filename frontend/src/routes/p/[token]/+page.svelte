@@ -23,6 +23,10 @@
 	} from '$lib/publicProfile/sections';
 	import type { PublicProfileBook, PublicProfileResponse, PublicProfileSectionKey } from '$lib/types';
 
+	const GITHUB_URL = 'https://github.com/codebude/librislog';
+
+	const GITHUB_ANCHOR = `<a class="link link-neutral" href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer">LibrisLog</a>`;
+
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
 		currently_reading: 'status.currently_reading',
@@ -59,6 +63,7 @@
 	let currentThemeMode = $state<ThemeMode>(getThemeMode());
 	let lastReadLimit = $state(5);
 	let libraryLimit = $state(24);
+	let timelineLimit = $state(5);
 	let previousLocale = $state<string | null>(null);
 
 	const ThemeIcon = $derived(THEME_ICONS[currentThemeMode] ?? Sun);
@@ -147,7 +152,7 @@
 	);
 
 	const timelineMonths = $derived(
-		[...timelineBooks.reduce((map, book) => {
+		[...timelineBooks.slice(-timelineLimit).reduce((map, book) => {
 			const key = book.date_finished!.slice(0, 7);
 			if (!map.has(key)) map.set(key, []);
 			map.get(key)!.push(book);
@@ -275,7 +280,7 @@
 				</button>
 				<a
 					class="btn btn-ghost btn-sm"
-					href="https://github.com/codebude/librislog"
+					href={GITHUB_URL}
 					target="_blank"
 					rel="noopener noreferrer"
 					aria-label={$_('publicProfile.page.githubLink')}
@@ -411,21 +416,25 @@
 						{#if timelineBooks.length === 0}
 							<p class="text-sm text-base-content/50">{$_('publicProfile.page.emptyLibrary')}</p>
 						{:else}
-							<ol class="timeline timeline-vertical">
+							<ol class="flex flex-col gap-5 min-w-0">
 								{#each timelineMonths as [monthKey, books]}
-									<li>
-										<div class="timeline-middle">
-											<span class="badge badge-sm badge-ghost">{formatMonthLabel(monthKey)}</span>
-										</div>
-										<div class="timeline-end mb-6 flex flex-col gap-1 text-sm">
+									<li class="relative pl-6 min-w-0">
+										<span aria-hidden="true" class="absolute left-1.5 top-3 bottom-0 w-px bg-base-300"></span>
+										<span aria-hidden="true" class="absolute left-0 top-1 h-3 w-3 rounded-full bg-primary border-2 border-base-100"></span>
+										<h3 class="font-medium text-sm">{formatMonthLabel(monthKey)}</h3>
+										<div class="mt-1 flex flex-col gap-1 text-sm min-w-0">
 											{#each books as book}
-												<p class="truncate"><span class="font-medium">{book.title}</span> {formatAuthors(book.authors)}</p>
+												<p class="truncate min-w-0"><span class="font-medium">{book.title}</span> {formatAuthors(book.authors)}</p>
 											{/each}
 										</div>
-										<hr />
 									</li>
 								{/each}
 							</ol>
+							{#if timelineBooks.length > timelineLimit}
+								<button class="btn btn-ghost btn-sm self-start mt-1" onclick={() => (timelineLimit += 5)}>
+									{$_('publicProfile.page.showMore')}
+								</button>
+							{/if}
 						{/if}
 					</div>
 				</section>
@@ -591,11 +600,8 @@
 	</main>
 
 	<footer class="border-t border-base-200 py-6">
-		<div class="max-w-3xl mx-auto px-4 flex items-center justify-center gap-2 text-xs text-base-content/50">
-			{$_('publicProfile.page.shareHint')}
-			<a class="link link-neutral inline-flex items-center gap-1" href="https://github.com/codebude/librislog" target="_blank" rel="noopener noreferrer">
-				{$_('publicProfile.page.githubLink')}
-			</a>
+		<div class="max-w-3xl mx-auto px-4 flex items-center justify-center text-xs text-base-content/50">
+			{@html $_('publicProfile.page.shareHint', { values: { app: GITHUB_ANCHOR } })}
 		</div>
 	</footer>
 </div>

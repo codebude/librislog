@@ -654,7 +654,7 @@
       "errorDesc": "加载此页面时出现问题。请稍后重试。",
       "retry": "重试",
       "showMore": "显示更多",
-      "shareHint": "由 LibrisLog 提供支持",
+      "shareHint": "由 {app} 提供支持",
       "githubLink": "LibrisLog on GitHub",
       "expiresHint": "此链接将于 {date} 过期。",
       "finishedOn": "完成于 {date}",

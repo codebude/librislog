@@ -654,7 +654,7 @@
       "errorDesc": "Une erreur s'est produite lors du chargement de cette page. Réessaie plus tard.",
       "retry": "Réessayer",
       "showMore": "Afficher plus",
-      "shareHint": "Propulsé par LibrisLog",
+      "shareHint": "Propulsé par {app}",
       "githubLink": "LibrisLog sur GitHub",
       "expiresHint": "Ce lien expire le {date}.",
       "finishedOn": "Terminé le {date}",

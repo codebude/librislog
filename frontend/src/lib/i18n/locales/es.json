@@ -654,7 +654,7 @@
       "errorDesc": "Algo salió mal al cargar esta página. Inténtalo de nuevo más tarde.",
       "retry": "Reintentar",
       "showMore": "Mostrar más",
-      "shareHint": "Desarrollado por LibrisLog",
+      "shareHint": "Desarrollado por {app}",
       "githubLink": "LibrisLog en GitHub",
       "expiresHint": "Este enlace caduca el {date}.",
       "finishedOn": "Terminado el {date}",

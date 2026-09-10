@@ -103,8 +103,10 @@ test.describe('Public Profile', () => {
 		// statistics section is on by default and shows computed values
 		await expect(publicPage.getByText('Total Books')).toBeVisible();
 
-		// footer links back to the project without leaking viewer chrome
-		await expect(publicPage.getByRole('link', { name: 'LibrisLog on GitHub' }).first()).toBeVisible();
+		// footer links the librislog word to GitHub and nothing else
+		const footer = publicPage.locator('footer');
+		await expect(footer.getByRole('link', { name: 'LibrisLog' })).toBeVisible();
+		await expect(footer.getByRole('link')).toHaveCount(1);
 		await publicPage.close();
 	});
 

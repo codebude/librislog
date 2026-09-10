@@ -654,7 +654,7 @@
       "errorDesc": "Beim Laden dieser Seite ist etwas schiefgelaufen. Bitte versuche es später erneut.",
       "retry": "Erneut versuchen",
       "showMore": "Mehr anzeigen",
-      "shareHint": "Bereitgestellt von LibrisLog",
+      "shareHint": "Bereitgestellt von {app}",
       "githubLink": "LibrisLog auf GitHub",
       "expiresHint": "Dieser Link läuft am {date} ab.",
       "finishedOn": "Beendet am {date}",
