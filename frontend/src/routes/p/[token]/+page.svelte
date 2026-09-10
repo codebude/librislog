@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { _, setLocale, SUPPORTED_LOCALES, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
-	import { Moon, Palette, Sun } from '@lucide/svelte';
+	import { Moon, Palette, Star, Sun } from '@lucide/svelte';
 	import {
 		applyThemeToDocument,
 		cycleTheme,
@@ -25,7 +25,7 @@
 
 	const GITHUB_URL = 'https://github.com/codebude/librislog';
 
-	const GITHUB_ANCHOR = `<a class="link link-neutral" href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer">LibrisLog</a>`;
+	const GITHUB_ANCHOR = `<a class="link link-neutral ml-1" href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer">LibrisLog</a>`;
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
 		want_to_read: 'status.want_to_read',
@@ -65,6 +65,7 @@
 	let libraryLimit = $state(8);
 	let libraryQuery = $state('');
 	let timelineLimit = $state(5);
+	let trendRange = $state<'12months' | '3years' | 'alltime'>('12months');
 	let previousLocale = $state<string | null>(null);
 
 	const ThemeIcon = $derived(THEME_ICONS[currentThemeMode] ?? Sun);
@@ -176,6 +177,8 @@
 	const distributionStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'distribution' && statValue(s.key) !== undefined).map((s) => s.key));
 	const trendStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'trends' && statValue(s.key) !== undefined).map((s) => s.key));
 	const ratingStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'ratings' && statValue(s.key) !== undefined).map((s) => s.key));
+	const ratingSummaryKeys = $derived(ratingStats.filter((key) => key === 'books_with_rating' || key === 'books_without_rating' || key === 'average_rating'));
+	const ratedBookKeys = $derived(ratingStats.filter((key) => key === 'top_rated_books' || key === 'worst_rated_books'));
 
 	function distributionRows(key: string): { label: string; value: number; className: string }[] {
 		const raw = statValue(key) as Record<keyof Record<string, number> | string, unknown> | undefined;
@@ -254,7 +257,22 @@
 	function trendPoints(key: string): { label: string; value: number }[] {
 		const raw = statValue(key) as { month: string; pages: number }[] | { month: string; count: number }[] | { year: number; count: number }[] | undefined;
 		if (!raw) return [];
-		return raw.map((entry) => ({
+		const isYearly = raw.length > 0 && 'year' in raw[0];
+		const rangeSize = trendRange === '12months' ? (isYearly ? 1 : 12) : trendRange === '3years' ? (isYearly ? 3 : 36) : null;
+		const latest = isYearly
+			? Math.max(...raw.map((entry) => (entry as { year: number }).year))
+			: Math.max(...raw.map((entry) => {
+				const [year, month] = (entry as { month: string }).month.split('-').map(Number);
+				return year * 12 + month;
+			}));
+		const first = rangeSize === null ? null : latest - rangeSize + 1;
+
+		return raw.filter((entry) => {
+			if (first === null) return true;
+			if (isYearly) return (entry as { year: number }).year >= first;
+			const [year, month] = (entry as { month: string }).month.split('-').map(Number);
+			return year * 12 + month >= first;
+		}).map((entry) => ({
 			label: 'year' in entry ? String(entry.year) : formatMonthLabel((entry as { month: string }).month),
 			value: 'pages' in entry ? entry.pages : entry.count
 		}));
@@ -500,7 +518,7 @@
 							<div class="card-body">
 								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.statGroups.summary')}</h2>
 								<div class="stats stats-vertical sm:stats-horizontal shadow-none bg-transparent">
-									{#each summaryStats as key, i}
+									{#each summaryStats as key}
 										<div class="stat">
 											<div class="stat-title text-xs">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</div>
 											{#if key === 'busiest_month'}
@@ -509,10 +527,9 @@
 											{:else if key === 'most_popular_language'}
 												<div class="stat-value text-2xl">{(statValue(key) as string) ? formatLanguageCode(statValue(key) as string, appLocale) : '-'}</div>
 												<div class="stat-desc">{formatNumber(statValue(key + '_count') as number)}</div>
-											{:else if i === 0}
-												<div class="stat-value text-2xl">{formatNumber(statValue(key) as number)}</div>
 											{:else}
 												<div class="stat-value text-2xl">{formatNumber(statValue(key) as number)}</div>
+												<div class="stat-desc invisible" aria-hidden="true">&nbsp;</div>
 											{/if}
 										</div>
 									{/each}
@@ -550,19 +567,36 @@
 					{#if trendStats.length > 0}
 						<article class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 							<div class="card-body flex flex-col gap-4">
-								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.statGroups.trends')}</h2>
+								<div class="flex flex-wrap items-center justify-between gap-3">
+									<h2 class="card-title text-lg font-semibold">{$_('publicProfile.statGroups.trends')}</h2>
+									<label>
+										<select class="select select-bordered select-sm" aria-label={$_('statistics.rangeLabel')} bind:value={trendRange}>
+											<option value="12months">{$_('statistics.rangeLast12Months')}</option>
+											<option value="3years">{$_('statistics.rangeLast3Years')}</option>
+											<option value="alltime">{$_('statistics.rangeAllTime')}</option>
+										</select>
+									</label>
+								</div>
 								{#each trendStats as key}
 									{@const points = trendPoints(key)}
 									{@const max = points.reduce((m, p) => Math.max(m, p.value), 0)}
 									{#if points.length > 0}
 										<div class="flex flex-col gap-1">
 											<h3 class="text-sm font-medium text-base-content/70">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</h3>
-											<div class="flex items-end gap-1 h-24 overflow-hidden">
-												{#each points as point}
-													<div class="flex-1 flex flex-col items-center gap-1 min-w-0">
-														<div class="w-full bg-primary/80 rounded-t" style="height: {barWidth(point.value, max)}"></div>
-													</div>
-												{/each}
+										<div class="flex items-end gap-1 h-24 overflow-visible">
+											{#each points as point}
+												<button
+													type="button"
+													class="trend-bar group relative flex-1 flex flex-col items-center gap-1 min-w-0 rounded border-0 bg-transparent p-0 text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+													title={`${point.label}: ${formatNumber(point.value, 0)}`}
+													aria-label={`${point.label}: ${formatNumber(point.value, 0)}`}
+												>
+													<div class="w-full bg-primary/80 rounded-t" style="height: {barWidth(point.value, max)}"></div>
+													<span role="tooltip" class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-neutral px-2 py-1 text-[11px] text-neutral-content opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus:opacity-100">
+														{point.label}: {formatNumber(point.value, 0)}
+													</span>
+												</button>
+											{/each}
 											</div>
 											<div class="flex gap-1">
 												{#each points as point}
@@ -578,41 +612,70 @@
 
 					{#if ratingStats.length > 0}
 						<article class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
-							<div class="card-body flex flex-col gap-4">
+							<div class="card-body flex min-w-0 flex-col gap-5">
 								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.statGroups.ratings')}</h2>
-								{#each ratingStats as key}
-									{@const i18nKey = PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey}
-									{#if key === 'books_with_rating' || key === 'books_without_rating' || key === 'average_rating'}
-										<div class="flex items-center gap-2 text-sm">
-											<span class="text-base-content/70">{$_(i18nKey)}</span>
-											<span class="font-semibold tabular-nums">{key === 'average_rating' ? formatNumber(statValue(key) as number) : formatNumber(statValue(key) as number, 0)}</span>
-										</div>
-									{:else if key === 'top_authors'}
-										{@const authors = statValue(key) as { author: string; book_count: number }[]}
-										{#if authors.length > 0}
-											<div class="flex flex-col gap-1">
-												<h3 class="text-sm font-medium text-base-content/70">{$_(i18nKey)}</h3>
+								{#if ratingSummaryKeys.length > 0}
+									<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+										{#each ratingSummaryKeys as key}
+											{@const i18nKey = PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey}
+											<div class="rounded-xl bg-base-200/60 px-4 py-3">
+												<p class="text-xs font-medium uppercase tracking-wide text-base-content/60">{$_(i18nKey)}</p>
+												<p class="mt-1 text-2xl font-semibold tabular-nums">{key === 'average_rating' ? formatNumber(statValue(key) as number) : formatNumber(statValue(key) as number, 0)}</p>
+											</div>
+										{/each}
+									</div>
+								{/if}
+
+								{#if ratingStats.includes('top_authors')}
+									{@const authors = statValue('top_authors') as { author: string; book_count: number }[]}
+									{#if authors.length > 0}
+										<section class="rounded-xl border border-base-200 p-4">
+											<h3 class="text-sm font-semibold">{$_('statistics.topAuthors')}</h3>
+											<div class="mt-3 divide-y divide-base-200">
 												{#each authors as author, idx}
-													<p class="text-sm"><span class="font-medium">{author.author}</span> <span class="text-base-content/50">({$_('statistics.booksCount', { values: { count: author.book_count } })})</span></p>
+													<div class="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
+														<span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{idx + 1}</span>
+														<span class="min-w-0 flex-1 truncate text-sm font-medium">{author.author}</span>
+														<span class="badge badge-ghost badge-sm shrink-0">{$_('statistics.booksCount', { values: { count: author.book_count } })}</span>
+													</div>
 												{/each}
 											</div>
-										{/if}
-									{:else if key === 'top_rated_books' || key === 'worst_rated_books'}
-										{@const books = statValue(key) as { title: string; author: string | null; rating: number; cover_url: string | null }[]}
-										{#if books.length > 0}
-											<div class="flex flex-col gap-1">
-												<h3 class="text-sm font-medium text-base-content/70">{$_(i18nKey)}</h3>
-												{#each books.slice(0, 5) as book}
-													<p class="flex items-center gap-2 text-sm min-w-0">
-														<span class="text-warning font-semibold">{book.rating ?? '-'}</span>
-														<span class="truncate font-medium">{book.title}</span>
-														{#if book.author}<span class="text-base-content/50 truncate">{book.author}</span>{/if}
-													</p>
-												{/each}
-											</div>
-										{/if}
+										</section>
 									{/if}
-								{/each}
+								{/if}
+
+								{#if ratedBookKeys.length > 0}
+									<div class="grid min-w-0 gap-4 sm:grid-cols-2">
+										{#each ratedBookKeys as key}
+											{@const i18nKey = PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey}
+											{@const books = statValue(key) as { title: string; author: string | null; rating: number; cover_url: string | null }[]}
+											{#if books.length > 0}
+												<section class="min-w-0 rounded-xl border border-base-200 p-4">
+													<h3 class="text-sm font-semibold">{$_(i18nKey)}</h3>
+													<div class="mt-3 flex flex-col divide-y divide-base-200">
+														{#each books.slice(0, 5) as book}
+															<div class="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0">
+																{#if book.cover_url}
+																	<img src={book.cover_url} alt="" class="h-12 w-8 shrink-0 rounded object-cover" loading="lazy" />
+																{:else}
+																	<div class="h-12 w-8 shrink-0 rounded bg-base-200"></div>
+																{/if}
+																<div class="min-w-0 flex-1">
+																	<p class="truncate text-sm font-medium">{book.title}</p>
+																	{#if book.author}<p class="truncate text-xs text-base-content/50">{book.author}</p>{/if}
+																</div>
+																<span class="inline-flex shrink-0 items-center gap-1 text-warning font-semibold tabular-nums">
+																	<Star class="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+																	{book.rating ?? '-'}
+																</span>
+															</div>
+														{/each}
+													</div>
+												</section>
+											{/if}
+										{/each}
+									</div>
+								{/if}
 							</div>
 						</article>
 					{/if}
@@ -627,3 +690,10 @@
 		</div>
 	</footer>
 </div>
+
+<style>
+	.trend-bar:hover > [role='tooltip'],
+	.trend-bar:focus > [role='tooltip'] {
+		opacity: 1;
+	}
+</style>
