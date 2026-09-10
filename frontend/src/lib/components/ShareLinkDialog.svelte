@@ -18,18 +18,22 @@
 		PublicProfileVisibilityConfig
 	} from '$lib/types';
 	import { Globe, Info, Lock } from '@lucide/svelte';
+	import { SUPPORTED_LOCALES } from '$lib/i18n';
 
 	let {
 		open = $bindable(false),
 		link = null,
+		defaultLanguage = 'en',
 		onSave,
 		onClose
 	}: {
 		open?: boolean;
 		link?: PublicProfileLink | null;
+		defaultLanguage?: string;
 		onSave: (payload: {
 			name: string;
 			audience: PublicProfileAudience;
+			language: string | null;
 			visibility_config: PublicProfileVisibilityConfig;
 			expires_at: string | null;
 		}) => void;
@@ -38,6 +42,7 @@
 
 	let name = $state('');
 	let audience = $state<PublicProfileAudience>('public');
+	let language = $state<string | null>(null);
 	let sections = $state<PublicProfileSectionKey[]>([]);
 	let statistics = $state<PublicProfileStatisticsKey[]>([]);
 	let unlimited = $state(true);
@@ -47,12 +52,14 @@
 	let tz = $state('UTC');
 	let dialogEl = $state<HTMLDialogElement | null>(null);
 	let nameTouched = $state(false);
+	let previousStatistics = $state<PublicProfileStatisticsKey[]>([]);
 
 	function resetFromLink(value: PublicProfileLink | null) {
 		const defaults = defaultPublicProfileVisibilityConfig();
 		if (value) {
 			name = value.name;
 			audience = value.audience;
+			language = value.language;
 			sections = [...value.visibility_config.sections];
 			statistics = [...value.visibility_config.statistics];
 			unlimited = !value.expires_at;
@@ -60,6 +67,7 @@
 		} else {
 			name = '';
 			audience = 'public';
+			language = defaultLanguage;
 			sections = [...defaults.sections];
 			statistics = [...defaults.statistics];
 			unlimited = true;
@@ -68,6 +76,7 @@
 		expiresInvalid = false;
 		expiresHasInput = false;
 		nameTouched = false;
+		previousStatistics = [];
 	}
 
 	$effect(() => {
@@ -102,14 +111,19 @@
 		if (sections.includes(key)) {
 			sections = sections.filter((s) => s !== key);
 			if (key === 'statistics') {
+				previousStatistics = [...statistics];
 				statistics = [];
 			}
 		} else {
 			sections = [...sections, key];
-			if (key === 'statistics' && statistics.length === 0) {
-				statistics = [
-					...PUBLIC_PROFILE_STATISTICS.filter((s) => s.defaultOn).map((s) => s.key)
-				];
+			if (key === 'statistics') {
+				if (previousStatistics.length > 0) {
+					statistics = [...previousStatistics];
+				} else if (statistics.length === 0) {
+					statistics = [
+						...PUBLIC_PROFILE_STATISTICS.filter((s) => s.defaultOn).map((s) => s.key)
+					];
+				}
 			}
 		}
 	}
@@ -130,6 +144,7 @@
 			: [];
 		if (!checked) {
 			statistics = [];
+			previousStatistics = [];
 		}
 	}
 
@@ -159,6 +174,7 @@
 		onSave({
 			name: name.trim(),
 			audience,
+			language,
 			visibility_config: { sections, statistics },
 			expires_at
 		});
@@ -220,6 +236,15 @@
 							<span class="tooltip tooltip-left" data-tip={$_('publicProfile.audienceAuthenticatedTooltip')}><Info class="w-3.5 h-3.5 text-base-content/40" /></span>
 						</label>
 					</div>
+				</fieldset>
+
+				<fieldset class="border border-base-300 rounded-xl p-4">
+					<legend class="px-1 text-sm font-semibold">{$_('settings.languageTitle')}</legend>
+					<select class="select select-bordered w-full" name="share-link-language" bind:value={language}>
+						{#each SUPPORTED_LOCALES as code}
+							<option value={code}>{$_(`languages.${code}`)}</option>
+						{/each}
+					</select>
 				</fieldset>
 
 				<fieldset class="border border-base-300 rounded-xl p-4">

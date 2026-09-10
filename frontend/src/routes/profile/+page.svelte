@@ -474,6 +474,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			audience: PublicProfileAudience;
 			visibility_config: PublicProfileVisibilityConfig;
 			expires_at: string | null;
+			language: string | null;
 		}) {
 			shareLinkMessage = null;
 			try {
@@ -1102,6 +1103,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 	<ShareLinkDialog
 		bind:open={shareLinkDialogOpen}
 		link={editingShareLink}
+		defaultLanguage={language}
 		onSave={saveShareLink}
 		onClose={() => (shareLinkDialogOpen = false)}
 	/>

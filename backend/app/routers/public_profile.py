@@ -127,6 +127,7 @@ def get_public_profile(
             lastname=owner.lastname if show_name else None,
         ),
         audience=link.audience,
+        language=link.language,
         expires_at=link.expires_at,
         visibility_config=config,
         books=books,

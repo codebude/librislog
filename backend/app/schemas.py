@@ -816,6 +816,7 @@ class PublicProfileLinkCreate(SQLModel):
 
     name: str = Field(min_length=1, max_length=255)
     audience: Optional[PublicProfileAudience] = None
+    language: Optional[str] = Field(default=None, max_length=10)
     visibility_config: PublicProfileVisibilityConfig = Field(default_factory=PublicProfileVisibilityConfig)
     expires_at: Optional[datetime] = None
 
@@ -825,6 +826,7 @@ class PublicProfileLinkUpdate(SQLModel):
 
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     audience: Optional[PublicProfileAudience] = None
+    language: Optional[str] = Field(default=None, max_length=10)
     visibility_config: Optional[PublicProfileVisibilityConfig] = None
     expires_at: Optional[datetime] = None
 
@@ -836,6 +838,7 @@ class PublicProfileLinkRead(SQLModel):
     name: str
     token_prefix: str
     audience: PublicProfileAudience
+    language: Optional[str] = None
     visibility_config: PublicProfileVisibilityConfig
     expires_at: Optional[datetime] = None
     created_at: datetime
@@ -891,6 +894,7 @@ class PublicProfileResponse(SQLModel):
 
     owner: PublicProfileUserInfo
     audience: PublicProfileAudience
+    language: Optional[str] = None
     expires_at: Optional[datetime] = None
     visibility_config: PublicProfileVisibilityConfig
     books: list[PublicProfileBook] = Field(default_factory=list)

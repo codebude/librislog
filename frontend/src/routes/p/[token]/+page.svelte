@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
-	import { _, locale } from '$lib/i18n';
+	import { _, setLocale, SUPPORTED_LOCALES, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
 	import { Moon, Palette, Sun } from '@lucide/svelte';
 	import {
@@ -59,6 +59,7 @@
 	let currentThemeMode = $state<ThemeMode>(getThemeMode());
 	let lastReadLimit = $state(5);
 	let libraryLimit = $state(24);
+	let previousLocale = $state<string | null>(null);
 
 	const ThemeIcon = $derived(THEME_ICONS[currentThemeMode] ?? Sun);
 	const appLocale = $derived($locale ?? 'en');
@@ -91,6 +92,10 @@
 		status = 'loading';
 		try {
 			profile = await api.publicProfile.get($page.params.token ?? '');
+			if (profile.language && SUPPORTED_LOCALES.includes(profile.language as (typeof SUPPORTED_LOCALES)[number])) {
+				previousLocale = $locale ?? null;
+				setLocale(profile.language as (typeof SUPPORTED_LOCALES)[number]);
+			}
 			status = 'ready';
 		} catch (e: unknown) {
 			const err = e as Error & { status?: number };
@@ -107,6 +112,12 @@
 	onMount(() => {
 		tz = getTimezone();
 		void load();
+	});
+
+	onDestroy(() => {
+		if (previousLocale && SUPPORTED_LOCALES.includes(previousLocale as (typeof SUPPORTED_LOCALES)[number])) {
+			setLocale(previousLocale as (typeof SUPPORTED_LOCALES)[number]);
+		}
 	});
 
 	function hasSection(key: PublicProfileSectionKey): boolean {

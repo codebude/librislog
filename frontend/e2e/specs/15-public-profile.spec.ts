@@ -3,7 +3,11 @@ import { loginViaUi } from '../fixtures/auth.fixture';
 import { SEED_USER } from '../fixtures/seed-data';
 import { seedBooks } from '../fixtures/seed.api';
 
-async function createShareLink(page: Page, name: string, options: { sections?: string[] } = {}) {
+async function createShareLink(
+	page: Page,
+	name: string,
+	options: { sections?: string[]; language?: string } = {}
+) {
 	const section = page.locator('#section-share-profile');
 	await section.scrollIntoViewIfNeeded();
 	await page.waitForTimeout(500);
@@ -19,6 +23,10 @@ async function createShareLink(page: Page, name: string, options: { sections?: s
 		for (const sectionKey of options.sections) {
 			await dialog.locator(`input[name="share-link-section"][value="${sectionKey}"]`).check();
 		}
+	}
+
+	if (options.language) {
+		await dialog.locator('select[name="share-link-language"]').selectOption(options.language);
 	}
 
 	await dialog.locator('button[type="submit"]').click();
@@ -149,5 +157,32 @@ test.describe('Public Profile', () => {
 		const publicPage = await openIncognito(browser, shareUrl);
 		await expect(publicPage.getByText('This public profile link is no longer valid.')).toBeVisible();
 		await publicPage.close();
+	});
+
+	test('15.4 share link language controls the public page locale', async ({ page, browser }) => {
+		await page.goto('/profile');
+		await page.waitForTimeout(1000);
+
+		await seedBooks(page, [
+			{ title: '1984', author: 'George Orwell', page_count: 328, reading_status: 'currently_reading', date_started: '2024-10-01' }
+		]);
+
+		const shareUrl = await createShareLink(page, 'German Profile Link', { language: 'de' });
+
+		// Default language of the dialog follows the profile language ('en'); a German
+		// share link renders the public page entirely in German for anonymous viewers.
+		const publicPage = await openIncognito(browser, shareUrl);
+		await expect(publicPage.getByText('Aktuell gelesen')).toBeVisible();
+		await expect(publicPage.getByText('Currently Reading')).toHaveCount(0);
+		await publicPage.close();
+
+		const dialog = page.getByRole('dialog');
+		await page.locator('#section-share-profile').scrollIntoViewIfNeeded();
+		await page.waitForTimeout(500);
+		const row = page.locator('#section-share-profile li').filter({ hasText: 'German Profile Link' });
+		await row.locator('button[aria-label="Edit"]').click();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.locator('select[name="share-link-language"]')).toHaveValue('de');
+		await dialog.locator('button[aria-label="Close"]').click();
 	});
 });

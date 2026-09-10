@@ -38,6 +38,7 @@ def _to_read_model(link: PublicProfileLink) -> PublicProfileLinkRead:
         name=link.name,
         token_prefix=link.token_prefix,
         audience=link.audience,
+        language=link.language,
         visibility_config=parse_visibility_config(link.visibility_config_json),
         expires_at=link.expires_at,
         created_at=link.created_at,
@@ -97,6 +98,7 @@ def create_share_link(
         token=plain_token,
         token_hash=hash_public_profile_token(plain_token),
         audience=audience,
+        language=body.language,
         visibility_config_json=serialize_visibility_config(body.visibility_config),
         expires_at=body.expires_at,
     )

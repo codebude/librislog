@@ -332,6 +332,7 @@ class PublicProfileLink(SQLModel, table=True):
     token: Optional[str] = Field(default=None, nullable=True)
     token_hash: str = Field(index=True, unique=True)
     audience: PublicProfileAudience = Field(default=PublicProfileAudience.public)
+    language: Optional[str] = Field(default=None, nullable=True)
     visibility_config_json: str = Field(
         default="{}",
         sa_column=Column(sa.Text, default="{}"),

@@ -38,6 +38,24 @@ def _create_book(client: Any, title: str = "Book", **overrides: Any) -> dict[str
     return resp.json()
 
 
+def test_share_link_language_roundtrip(client: Any) -> None:
+    """Language is set on create, appears in list, and survives an update."""
+    data = _create_share_link(client, language="de")
+    assert data["link"]["language"] == "de"
+
+    listed = client.get("/api/profile/share-links")
+    assert listed.json()[0]["language"] == "de"
+
+    link_id = data["link"]["id"]
+    resp = client.patch(f"/api/profile/share-links/{link_id}", json={"language": "fr"})
+    assert resp.status_code == 200
+    assert resp.json()["language"] == "fr"
+
+    public = _public_profile(client, data["token"])
+    assert public.status_code == 200
+    assert public.json()["language"] == "fr"
+
+
 def test_create_share_link_returns_token_once(client: Any) -> None:
     data = _create_share_link(client)
     assert data["token"].startswith("lp_")

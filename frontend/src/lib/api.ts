@@ -256,6 +256,7 @@ export const api = {
 		createShareLink(data: {
 			name: string;
 			audience: PublicProfileAudience;
+			language?: string | null;
 			visibility_config: PublicProfileVisibilityConfig;
 			expires_at?: string | null;
 		}): Promise<PublicProfileLinkCreateResponse> {
@@ -270,6 +271,7 @@ export const api = {
 			data: Partial<{
 				name: string;
 				audience: PublicProfileAudience;
+				language: string | null;
 				visibility_config: PublicProfileVisibilityConfig;
 				expires_at: string | null;
 			}>

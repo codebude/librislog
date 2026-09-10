@@ -7,7 +7,7 @@ import type { PublicProfileLink } from '$lib/types';
 
 vi.mock('$lib/i18n', () => {
 	const t = (key: string) => `[${key}]`;
-	return { _: readable(t) };
+	return { _: readable(t), SUPPORTED_LOCALES: ['en', 'de', 'zh', 'es', 'fr'] };
 });
 
 function createLink(overrides?: Partial<PublicProfileLink>): PublicProfileLink {
@@ -17,6 +17,7 @@ function createLink(overrides?: Partial<PublicProfileLink>): PublicProfileLink {
 		name: 'Friends & family',
 		token_prefix: 'lp_9f2c81a4e7d3',
 		audience: 'public',
+		language: null,
 		visibility_config,
 		expires_at: null,
 		created_at: '2026-01-01T00:00:00Z',
@@ -58,11 +59,13 @@ describe('ShareLinkDialog', () => {
 		const payload = onSave.mock.calls[0][0] as {
 			name: string;
 			audience: string;
+			language: string | null;
 			expires_at: string | null;
 			visibility_config: { sections: string[]; statistics: string[] };
 		};
 		expect(payload.name).toBe('My profile');
 		expect(payload.audience).toBe('public');
+		expect(payload.language).toBe('en');
 		expect(payload.visibility_config.sections).toEqual(defaultPublicProfileVisibilityConfig().sections);
 		expect(payload.visibility_config.statistics).toEqual(defaultPublicProfileVisibilityConfig().statistics);
 		expect(payload.expires_at).toBeNull();
@@ -127,5 +130,32 @@ describe('ShareLinkDialog', () => {
 			props: { open: false, link: null, onSave: vi.fn(), onClose: vi.fn() }
 		});
 		expect(container.querySelector('dialog')).toBeNull();
+	});
+
+	it('uses the profile language as default and prefills the link language on edit', async () => {
+		const onSave = vi.fn();
+		const onClose = vi.fn();
+		const { container, unmount } = render(ShareLinkDialog, {
+			props: { open: true, link: null, defaultLanguage: 'de', onSave, onClose }
+		});
+		const langSelect = container.querySelector<HTMLSelectElement>('select[name="share-link-language"]')!;
+		expect(langSelect).toBeTruthy();
+		expect(langSelect.value).toBe('de');
+
+		await fireEvent.input(container.querySelector<HTMLInputElement>('input[name="share-link-name"]')!, {
+			target: { value: 'German' }
+		});
+		await fireEvent.click(container.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+		expect((onSave.mock.calls[0][0] as { language: string | null }).language).toBe('de');
+		unmount();
+
+		const link = createLink({ language: 'fr' });
+		const onSave2 = vi.fn();
+		const { container: container2, unmount: unmount2 } = render(ShareLinkDialog, {
+			props: { open: true, link, defaultLanguage: 'de', onSave: onSave2, onClose }
+		});
+		const langSelect2 = container2.querySelector<HTMLSelectElement>('select[name="share-link-language"]')!;
+		expect(langSelect2.value).toBe('fr');
+		unmount2();
 	});
 });

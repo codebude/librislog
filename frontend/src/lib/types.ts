@@ -504,6 +504,7 @@ export interface PublicProfileLink {
 	name: string;
 	token_prefix: string;
 	audience: PublicProfileAudience;
+	language: string | null;
 	visibility_config: PublicProfileVisibilityConfig;
 	expires_at: string | null;
 	created_at: string;
@@ -540,6 +541,7 @@ export interface PublicProfileBook {
 export interface PublicProfileResponse {
 	owner: PublicProfileUserInfo;
 	audience: PublicProfileAudience;
+	language: string | null;
 	expires_at: string | null;
 	visibility_config: PublicProfileVisibilityConfig;
 	books: PublicProfileBook[];
