@@ -46,6 +46,7 @@ import type {
 	PublicProfileLinkCreateResponse,
 	PublicProfileResponse,
 	PublicProfileVisibilityConfig,
+	ShareLinkRevealResponse,
 	User,
 	UserCreateResponse,
 	UserAdminUpdate,
@@ -281,6 +282,12 @@ export const api = {
 
 		deleteShareLink(id: number): Promise<void> {
 			return request<void>(`/profile/share-links/${id}`, { method: 'DELETE' });
+		},
+
+		revealShareLink(id: number): Promise<ShareLinkRevealResponse> {
+			return request<ShareLinkRevealResponse>(`/profile/share-links/${id}/reveal`, {
+				method: 'POST'
+			});
 		},
 
 		resetData(confirmation: string): Promise<DataResetResponse> {

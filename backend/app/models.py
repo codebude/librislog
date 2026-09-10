@@ -329,6 +329,7 @@ class PublicProfileLink(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", index=True)
     name: str = Field(max_length=255)
     token_prefix: str = Field(index=True)
+    token: Optional[str] = Field(default=None, nullable=True)
     token_hash: str = Field(index=True, unique=True)
     audience: PublicProfileAudience = Field(default=PublicProfileAudience.public)
     visibility_config_json: str = Field(

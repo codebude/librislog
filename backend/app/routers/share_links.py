@@ -19,6 +19,7 @@ from app.schemas import (
     PublicProfileLinkRead,
     PublicProfileLinkUpdate,
     PublicProfileVisibilityConfig,
+    ShareLinkRevealResponse,
 )
 from app.services.public_profile import (
     parse_visibility_config,
@@ -93,6 +94,7 @@ def create_share_link(
         user_id=current_user.id,
         name=body.name,
         token_prefix=get_public_profile_token_prefix(plain_token),
+        token=plain_token,
         token_hash=hash_public_profile_token(plain_token),
         audience=audience,
         visibility_config_json=serialize_visibility_config(body.visibility_config),
@@ -105,6 +107,20 @@ def create_share_link(
         token=plain_token,
         link=_to_read_model(link),
     )
+
+
+@router.post("/{link_id}/reveal", response_model=ShareLinkRevealResponse)
+def reveal_share_link(
+    link_id: int,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> ShareLinkRevealResponse:
+    """Return the raw token for a share link owned by the current user."""
+    assert current_user.id is not None
+    link = _get_owned_link(link_id, current_user.id, session)
+    if not link.token:
+        raise HTTPException(status_code=404, detail="Token not available for legacy link")
+    return ShareLinkRevealResponse(token=link.token)
 
 
 @router.patch("/{link_id}", response_model=PublicProfileLinkRead)

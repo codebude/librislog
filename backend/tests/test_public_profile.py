@@ -405,3 +405,58 @@ def test_public_profile_rejects_past_expiry_on_update(client: Any) -> None:
     )
     assert resp.status_code == 200
     assert resp.json()["expires_at"] is None
+
+
+def test_reveal_share_link_returns_raw_token(client: Any) -> None:
+    data = _create_share_link(client)
+    link_id = data["link"]["id"]
+    resp = client.post(f"/api/profile/share-links/{link_id}/reveal")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["token"] == data["token"]
+    assert body["token"].startswith("lp_")
+
+
+def test_reveal_share_link_404_for_other_user(
+    client: Any, create_user_with_key: Any
+) -> None:
+    data = _create_share_link(client)
+    link_id = data["link"]["id"]
+
+    user_b, key_b = create_user_with_key(email="other@example.com")
+    resp = client.post(
+        f"/api/profile/share-links/{link_id}/reveal",
+        headers={"X-API-Key": key_b},
+    )
+    assert resp.status_code == 404
+
+
+def test_reveal_share_link_404_for_revoked(client: Any) -> None:
+    data = _create_share_link(client)
+    link_id = data["link"]["id"]
+
+    # Revoke
+    client.delete(f"/api/profile/share-links/{link_id}")
+
+    resp = client.post(f"/api/profile/share-links/{link_id}/reveal")
+    assert resp.status_code == 404
+
+
+def test_reveal_share_link_404_for_legacy_without_token(client: Any, session: Session) -> None:
+    """Legacy links with token=None cannot be revealed."""
+    from app.auth import get_public_profile_token_prefix, hash_public_profile_token
+    from app.models import PublicProfileLink
+
+    token_hash = hash_public_profile_token("lp_fake_legacy_token")
+    link = PublicProfileLink(
+        user_id=1,
+        name="Legacy",
+        token_prefix=get_public_profile_token_prefix("lp_fake_legacy_token"),
+        token_hash=token_hash,
+    )
+    session.add(link)
+    session.commit()
+    session.refresh(link)
+
+    resp = client.post(f"/api/profile/share-links/{link.id}/reveal")
+    assert resp.status_code == 404

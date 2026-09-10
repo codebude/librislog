@@ -848,6 +848,12 @@ class PublicProfileLinkCreateResponse(SQLModel):
     link: PublicProfileLinkRead
 
 
+class ShareLinkRevealResponse(SQLModel):
+    """Response for the reveal endpoint, returning the raw token."""
+
+    token: str
+
+
 class PublicProfileUserInfo(SQLModel):
     """Public-safe owner identity shown on a public profile.
 

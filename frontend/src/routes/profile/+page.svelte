@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
-	import { Calendar, Info, Pencil, Trash2 } from '@lucide/svelte';
+	import { Calendar, Check, Copy, ExternalLink, Info, Pencil, Trash2 } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
@@ -448,6 +448,8 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		let shareTokenCopied = $state(false);
 		let pendingDeleteShareLinkId = $state<number | null>(null);
 		let shareLinkMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+		let revealedTokens = $state<Record<number, string>>({});
+		let copiedShareLinkId = $state<number | null>(null);
 
 		async function loadShareLinks() {
 			shareLinks = await api.profile.listShareLinks();
@@ -514,6 +516,31 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			} catch (e: unknown) {
 				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
 			}
+		}
+
+		async function ensureRevealedToken(link: PublicProfileLink): Promise<string | null> {
+			if (revealedTokens[link.id]) return revealedTokens[link.id];
+			try {
+				const result = await api.profile.revealShareLink(link.id);
+				revealedTokens = { ...revealedTokens, [link.id]: result.token };
+				return result.token;
+			} catch {
+				return null;
+			}
+		}
+
+		async function copyShareLinkUrl(link: PublicProfileLink) {
+			const token = await ensureRevealedToken(link);
+			if (!token) return;
+			await navigator.clipboard.writeText(publicShareUrl(token));
+			copiedShareLinkId = link.id;
+			setTimeout(() => { copiedShareLinkId = null; }, 1500);
+		}
+
+		async function openShareLinkUrl(link: PublicProfileLink) {
+			const token = await ensureRevealedToken(link);
+			if (!token) return;
+			window.open(publicShareUrl(token), '_blank', 'noopener');
 		}
 
 		async function startOidcLink() {
@@ -1034,7 +1061,11 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 										<span class="badge badge-success badge-sm">{$_('publicProfile.active')}</span>
 									{/if}
 								</p>
-								<p class="font-mono text-xs text-base-content/60">{link.token_prefix}...</p>
+								{#if revealedTokens[link.id]}
+									<p class="font-mono text-xs text-base-content/60 break-all">{publicShareUrl(revealedTokens[link.id])}</p>
+								{:else}
+									<p class="font-mono text-xs text-base-content/60">{link.token_prefix}...</p>
+								{/if}
 								<p class="text-xs text-base-content/50">
 									{#if link.expires_at}
 										{$_('publicProfile.expiresAt')}: {new Date(link.expires_at).toLocaleDateString()}
@@ -1044,6 +1075,16 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 								</p>
 							</div>
 							<div class="flex gap-1 shrink-0">
+								<button class="btn btn-ghost btn-xs" onclick={() => copyShareLinkUrl(link)} aria-label={copiedShareLinkId === link.id ? $_('common.copied') : $_('publicProfile.copyLink')}>
+									{#if copiedShareLinkId === link.id}
+										<Check class="w-4 h-4" />
+									{:else}
+										<Copy class="w-4 h-4" />
+									{/if}
+								</button>
+								<button class="btn btn-ghost btn-xs" onclick={() => openShareLinkUrl(link)} aria-label={$_('publicProfile.openLink')}>
+									<ExternalLink class="w-4 h-4" />
+								</button>
 								<button class="btn btn-ghost btn-xs" onclick={() => openEditShareLink(link)} aria-label={$_('publicProfile.edit')}>
 									<Pencil class="w-4 h-4" />
 								</button>

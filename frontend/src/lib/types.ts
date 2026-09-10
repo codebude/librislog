@@ -514,6 +514,10 @@ export interface PublicProfileLinkCreateResponse {
 	link: PublicProfileLink;
 }
 
+export interface ShareLinkRevealResponse {
+	token: string;
+}
+
 export interface PublicProfileUserInfo {
 	firstname: string;
 	lastname: string;
