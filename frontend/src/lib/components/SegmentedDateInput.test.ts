@@ -73,7 +73,7 @@ describe('SegmentedDateInput', () => {
 	});
 
 	it('copies the full date on Ctrl/Cmd+C', async () => {
-		const writeText = vi.fn(async () => undefined);
+		const writeText = vi.fn<(text: string) => Promise<void>>(async () => undefined);
 		Object.defineProperty(navigator, 'clipboard', {
 			configurable: true,
 			value: { writeText }

@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
-	import { Calendar, Info } from '@lucide/svelte';
+	import { Calendar, Info, Pencil, Trash2 } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
@@ -12,10 +12,20 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import SearchableSelect from '$lib/components/SearchableSelect.svelte';
 	import AdaptiveDateInput from '$lib/components/AdaptiveDateInput.svelte';
+import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
 	import { toDateInputValue, today } from '$lib/date';
-	import type { ApiKeyMeta, AppConfig, EmbedTokenMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
+	import type {
+	ApiKeyMeta,
+	AppConfig,
+	EmbedTokenMeta,
+	OidcConfig,
+	OidcLinkStatus,
+	PublicProfileAudience,
+	PublicProfileLink,
+	PublicProfileVisibilityConfig
+} from '$lib/types';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -151,6 +161,7 @@
 		saveRestorePoint();
 		keys = await api.profile.listApiKeys();
 		embedTokens = await api.profile.listEmbedTokens();
+		await loadShareLinks();
 		appConfig = await api.app.config();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
@@ -430,7 +441,82 @@
 		embedTokens = await api.profile.listEmbedTokens();
 	}
 
-	async function startOidcLink() {
+	let shareLinks = $state<PublicProfileLink[]>([]);
+		let shareLinkDialogOpen = $state(false);
+		let editingShareLink = $state<PublicProfileLink | null>(null);
+		let createdShareToken = $state<string | null>(null);
+		let shareTokenCopied = $state(false);
+		let pendingDeleteShareLinkId = $state<number | null>(null);
+		let shareLinkMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+		async function loadShareLinks() {
+			shareLinks = await api.profile.listShareLinks();
+		}
+
+		function openCreateShareLink() {
+			editingShareLink = null;
+			shareLinkDialogOpen = true;
+		}
+
+		function openEditShareLink(link: PublicProfileLink) {
+			editingShareLink = link;
+			shareLinkDialogOpen = true;
+		}
+
+		function publicShareUrl(token: string): string {
+			return `${window.location.origin}${base}/p/${token}`;
+		}
+
+		async function saveShareLink(payload: {
+			name: string;
+			audience: PublicProfileAudience;
+			visibility_config: PublicProfileVisibilityConfig;
+			expires_at: string | null;
+		}) {
+			shareLinkMessage = null;
+			try {
+				if (editingShareLink) {
+					await api.profile.updateShareLink(editingShareLink.id, payload);
+				} else {
+					const result = await api.profile.createShareLink(payload);
+					createdShareToken = result.token;
+					shareTokenCopied = false;
+				}
+				shareLinkDialogOpen = false;
+				editingShareLink = null;
+				await loadShareLinks();
+			} catch (e: unknown) {
+				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
+			}
+		}
+
+		async function copyShareToken() {
+			if (!createdShareToken) return;
+			await navigator.clipboard.writeText(publicShareUrl(createdShareToken));
+			shareTokenCopied = true;
+		}
+
+		function requestDeleteShareLink(id: number) {
+			pendingDeleteShareLinkId = id;
+		}
+
+		function cancelDeleteShareLink() {
+			pendingDeleteShareLinkId = null;
+		}
+
+		async function confirmDeleteShareLink() {
+			if (pendingDeleteShareLinkId === null) return;
+			const id = pendingDeleteShareLinkId;
+			pendingDeleteShareLinkId = null;
+			try {
+				await api.profile.deleteShareLink(id);
+				await loadShareLinks();
+			} catch (e: unknown) {
+				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
+			}
+		}
+
+		async function startOidcLink() {
 		oidcMessage = null;
 		try {
 			const response = await api.oidc.startLink();
@@ -900,6 +986,101 @@
 	</div>
 	{/if}
 
+	<div id="section-share-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.shareProfile.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.shareProfile.subtitle')}</p>
+			{#if shareLinkMessage}
+				<Alert type={shareLinkMessage.type === 'success' ? 'success' : 'error'} onClose={() => (shareLinkMessage = null)}>
+					{shareLinkMessage.text}
+				</Alert>
+			{/if}
+			<div>
+				<button class="btn btn-primary btn-sm" onclick={openCreateShareLink}>{$_('profile.shareProfile.createLink')}</button>
+			</div>
+			{#if createdShareToken}
+				<Alert type="success" onClose={() => (createdShareToken = null)} duration={0}>
+					<div class="flex flex-col items-start gap-2 text-xs">
+						<span>{$_('publicProfile.tokenShownOnce')}</span>
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+							{publicShareUrl(createdShareToken)}
+						</div>
+						<div class="flex gap-2">
+							<button type="button" class="btn btn-success btn-xs" onclick={copyShareToken}>
+								{shareTokenCopied ? $_('common.copied') : $_('publicProfile.copyLink')}
+							</button>
+							<a class="btn btn-ghost btn-xs" href={publicShareUrl(createdShareToken)} target="_blank" rel="noopener noreferrer">
+								{$_('publicProfile.openLink')}
+							</a>
+						</div>
+					</div>
+				</Alert>
+			{/if}
+			{#if shareLinks.length === 0}
+				<p class="text-sm text-base-content/50">{$_('profile.shareProfile.empty')}</p>
+			{:else}
+				<ul class="flex flex-col gap-2">
+					{#each shareLinks as link}
+						<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
+							<div class="min-w-0 flex-1">
+								<p class="font-medium flex items-center gap-2 flex-wrap">
+									{link.name}
+									<span class={`badge badge-sm ${link.audience === 'public' ? 'badge-ghost' : 'badge-info'}`}>
+										{link.audience === 'public' ? $_('publicProfile.audiencePublic') : $_('publicProfile.audienceAuthenticated')}
+									</span>
+									{#if link.expires_at && new Date(link.expires_at) < new Date()}
+										<span class="badge badge-error badge-sm">{$_('publicProfile.expired')}</span>
+									{:else}
+										<span class="badge badge-success badge-sm">{$_('publicProfile.active')}</span>
+									{/if}
+								</p>
+								<p class="font-mono text-xs text-base-content/60">{link.token_prefix}...</p>
+								<p class="text-xs text-base-content/50">
+									{#if link.expires_at}
+										{$_('publicProfile.expiresAt')}: {new Date(link.expires_at).toLocaleDateString()}
+									{:else}
+										{$_('publicProfile.unlimited')}
+									{/if}
+								</p>
+							</div>
+							<div class="flex gap-1 shrink-0">
+								<button class="btn btn-ghost btn-xs" onclick={() => openEditShareLink(link)} aria-label={$_('publicProfile.edit')}>
+									<Pencil class="w-4 h-4" />
+								</button>
+								<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteShareLink(link.id)} aria-label={$_('publicProfile.delete')}>
+									<Trash2 class="w-4 h-4" />
+								</button>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	</div>
+
+	<ShareLinkDialog
+		bind:open={shareLinkDialogOpen}
+		link={editingShareLink}
+		onSave={saveShareLink}
+		onClose={() => (shareLinkDialogOpen = false)}
+	/>
+
+	{#if pendingDeleteShareLinkId !== null}
+		<dialog class="modal modal-open" onclick={(e) => { if (e.target === e.currentTarget) cancelDeleteShareLink(); }}>
+			<div class="modal-box">
+				<form method="dialog">
+					<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick={cancelDeleteShareLink}>✕</button>
+				</form>
+				<h3 class="font-bold text-lg">{$_('publicProfile.delete')}</h3>
+				<p class="text-sm text-base-content/70 mt-1">{$_('publicProfile.deleteConfirm')}</p>
+				<div class="modal-action">
+					<button class="btn btn-sm" onclick={cancelDeleteShareLink}>{$_('common.cancel')}</button>
+					<button class="btn btn-error btn-sm" onclick={confirmDeleteShareLink}>{$_('common.delete')}</button>
+				</div>
+			</div>
+		</dialog>
+	{/if}
+
 	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('profile.dataManagement.title')}</h2>
@@ -1034,6 +1215,7 @@
 		<li><a href="#section-goals" class:menu-active={activeSection === 'section-goals'}>{$_('profile.goals.title')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
 		<li><a href="#section-embed-tokens" class:menu-active={activeSection === 'section-embed-tokens'}>{$_('user.embedTokens')}</a></li>
+		<li><a href="#section-share-profile" class:menu-active={activeSection === 'section-share-profile'}>{$_('profile.shareProfile.title')}</a></li>
 		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>
 		{#if oidcConfig.enabled}
 			<li><a href="#section-oidc" class:menu-active={activeSection === 'section-oidc'}>{$_('oidc.profileTitle')}</a></li>

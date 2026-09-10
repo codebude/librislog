@@ -313,6 +313,42 @@ class EmbedToken(SQLModel, table=True):
     )
 
 
+class PublicProfileAudience(str, Enum):
+    """Who may access a public profile share link."""
+
+    public = "public"                # everyone, including anonymous viewers
+    authenticated = "authenticated"  # logged-in users only
+
+
+class PublicProfileLink(SQLModel, table=True):
+    """A shareable public profile link owned by a user."""
+
+    __tablename__: str = "public_profile_link"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(max_length=255)
+    token_prefix: str = Field(index=True)
+    token_hash: str = Field(index=True, unique=True)
+    audience: PublicProfileAudience = Field(default=PublicProfileAudience.public)
+    visibility_config_json: str = Field(
+        default="{}",
+        sa_column=Column(sa.Text, default="{}"),
+    )
+    expires_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None),
+    )
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow),
+    )
+    revoked_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None),
+    )
+
+
 class ImportMapping(SQLModel, table=True):
     """A saved column-mapping configuration for data import."""
 

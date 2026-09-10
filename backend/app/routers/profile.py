@@ -36,7 +36,7 @@ from app.schemas import (
     UserSettingsRead,
     UserSettingsUpdate,
 )
-from app.routers.statistics import MAX_CUSTOM_RANGE_DAYS
+from app.services.statistics import MAX_CUSTOM_RANGE_DAYS
 from app.time_utils import utcnow
 from app.services.user_deletion import (
     assert_not_last_admin,

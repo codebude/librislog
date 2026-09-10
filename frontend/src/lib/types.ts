@@ -461,6 +461,87 @@ export interface HygieneBatchUpdateResponse {
 	skipped_ids: number[];
 }
 
+export type PublicProfileAudience = 'public' | 'authenticated';
+
+export type PublicProfileSectionKey =
+	| 'username'
+	| 'user_info'
+	| 'currently_reading'
+	| 'last_read'
+	| 'reading_timeline'
+	| 'full_library'
+	| 'statistics';
+
+export type PublicProfileStatisticsKey =
+	| 'total_books'
+	| 'total_authors'
+	| 'avg_books_per_month'
+	| 'busiest_month'
+	| 'avg_page_count'
+	| 'most_popular_language'
+	| 'language_distribution'
+	| 'status_distribution'
+	| 'acquisition_status_distribution'
+	| 'medium_distribution'
+	| 'page_buckets'
+	| 'pages_read_per_month'
+	| 'books_finished_per_month'
+	| 'books_finished_per_year'
+	| 'top_authors'
+	| 'books_with_rating'
+	| 'books_without_rating'
+	| 'average_rating'
+	| 'top_rated_books'
+	| 'worst_rated_books';
+
+export interface PublicProfileVisibilityConfig {
+	sections: PublicProfileSectionKey[];
+	statistics: PublicProfileStatisticsKey[];
+}
+
+export interface PublicProfileLink {
+	id: number;
+	name: string;
+	token_prefix: string;
+	audience: PublicProfileAudience;
+	visibility_config: PublicProfileVisibilityConfig;
+	expires_at: string | null;
+	created_at: string;
+}
+
+export interface PublicProfileLinkCreateResponse {
+	token: string;
+	link: PublicProfileLink;
+}
+
+export interface PublicProfileUserInfo {
+	firstname: string;
+	lastname: string;
+}
+
+export interface PublicProfileBook {
+	id: number;
+	title: string;
+	subtitle: string | null;
+	authors: string[];
+	cover_url: string | null;
+	reading_status: ReadingStatus;
+	page_count: number | null;
+	language: string | null;
+	rating: number | null;
+	date_started: string | null;
+	date_finished: string | null;
+}
+
+export interface PublicProfileResponse {
+	owner: PublicProfileUserInfo;
+	audience: PublicProfileAudience;
+	expires_at: string | null;
+	visibility_config: PublicProfileVisibilityConfig;
+	books: PublicProfileBook[];
+	statistics: Record<string, unknown> | null;
+}
+
 export type DataImportEvent =
 	| { event: 'start'; total_rows: number }
 	| { event: 'progress'; processed: number; total: number; percent: number }
