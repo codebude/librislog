@@ -62,7 +62,8 @@
 	let tz = $state('UTC');
 	let currentThemeMode = $state<ThemeMode>(getThemeMode());
 	let lastReadLimit = $state(5);
-	let libraryLimit = $state(24);
+	let libraryLimit = $state(8);
+	let libraryQuery = $state('');
 	let timelineLimit = $state(5);
 	let previousLocale = $state<string | null>(null);
 
@@ -149,6 +150,16 @@
 		(profile?.books ?? [])
 			.filter((b) => b.reading_status === 'read' && b.date_finished)
 			.sort((a, b) => (a.date_finished! < b.date_finished! ? -1 : 1))
+	);
+
+	const libraryBooks = $derived(profile?.books ?? []);
+
+	const filteredBooks = $derived(
+		libraryBooks.filter((b) => {
+			const q = libraryQuery.trim().toLowerCase();
+			if (!q) return true;
+			return b.title.toLowerCase().includes(q) || (b.authors ?? []).join(' ').toLowerCase().includes(q);
+		})
 	);
 
 	const timelineMonths = $derived(
@@ -381,16 +392,16 @@
 						{#if lastRead.length === 0}
 							<p class="text-sm text-base-content/50">{$_('publicProfile.page.noLastRead')}</p>
 						{:else}
-							<ul class="flex flex-col gap-3">
+							<ul class="grid grid-cols-2 md:grid-cols-3 gap-3">
 								{#each lastRead as book}
-									<li class="flex gap-3">
-										<figure class="w-12 h-16 rounded-lg overflow-hidden bg-base-200 shrink-0">
+									<li class="flex gap-3 p-3 rounded-xl border border-base-200 bg-base-200/40 min-w-0">
+										<figure class="w-10 h-14 rounded-lg overflow-hidden bg-base-100 shrink-0">
 											{#if book.cover_url}
 												<img src={book.cover_url} alt={$_('book.coverOf', { values: { title: book.title } })} class="w-full h-full object-cover" loading="lazy" />
 											{/if}
 										</figure>
 										<div class="min-w-0 flex-1">
-											<p class="font-medium leading-tight line-clamp-2">{book.title}</p>
+											<p class="font-medium leading-tight line-clamp-2 text-sm">{book.title}</p>
 											<p class="text-xs text-base-content/50 truncate">{formatAuthors(book.authors)}</p>
 											{#if book.date_finished}
 												<p class="text-xs text-base-content/50">{$_('publicProfile.page.finishedOn', { values: { date: formatDate(book.date_finished, tz) } })}</p>
@@ -424,7 +435,7 @@
 										<h3 class="font-medium text-sm">{formatMonthLabel(monthKey)}</h3>
 										<div class="mt-1 flex flex-col gap-1 text-sm min-w-0">
 											{#each books as book}
-												<p class="truncate min-w-0"><span class="font-medium">{book.title}</span> {formatAuthors(book.authors)}</p>
+												<p class="truncate min-w-0"><span class="font-medium">{book.title}</span> ({formatAuthors(book.authors)})</p>
 											{/each}
 										</div>
 									</li>
@@ -447,24 +458,35 @@
 						{#if (profile.books ?? []).length === 0}
 							<p class="text-sm text-base-content/50">{$_('publicProfile.page.emptyLibrary')}</p>
 						{:else}
-							<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-								{#each (profile.books ?? []).slice(0, libraryLimit) as book}
-									<div class="flex flex-col gap-1">
-										<figure class="aspect-[2/3] rounded-xl overflow-hidden bg-base-200">
-											{#if book.cover_url}
-												<img src={book.cover_url} alt={$_('book.coverOf', { values: { title: book.title } })} class="w-full h-full object-cover" loading="lazy" />
-											{/if}
-										</figure>
-										<p class="text-xs font-medium leading-tight line-clamp-2">{book.title}</p>
-										<p class="text-[11px] text-base-content/50 truncate">{formatAuthors(book.authors)}</p>
-										<span class={`badge badge-xs ${STATUS_BADGE[book.reading_status]}`}>{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
-									</div>
-								{/each}
-							</div>
-							{#if (profile.books?.length ?? 0) > libraryLimit}
-								<button class="btn btn-ghost btn-sm self-center mt-2" onclick={() => (libraryLimit += 24)}>
-									{$_('publicProfile.page.showMore')}
-								</button>
+							<input
+								type="search"
+								placeholder={$_('import.searchByTitleOrAuthor')}
+								class="input input-bordered input-sm w-full max-w-sm"
+								bind:value={libraryQuery}
+								oninput={() => (libraryLimit = 8)}
+							/>
+							{#if filteredBooks.length === 0}
+								<p class="text-sm text-base-content/50">{$_('search.noResultsFor', { values: { query: libraryQuery.trim() } })}</p>
+							{:else}
+								<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+									{#each filteredBooks.slice(0, libraryLimit) as book}
+										<div class="flex flex-col gap-1">
+											<figure class="aspect-[2/3] rounded-xl overflow-hidden bg-base-200">
+												{#if book.cover_url}
+													<img src={book.cover_url} alt={$_('book.coverOf', { values: { title: book.title } })} class="w-full h-full object-cover" loading="lazy" />
+												{/if}
+											</figure>
+											<p class="text-xs font-medium leading-tight line-clamp-2">{book.title}</p>
+											<p class="text-[11px] text-base-content/50 truncate">{formatAuthors(book.authors)}</p>
+											<span class={`badge badge-xs ${STATUS_BADGE[book.reading_status]}`}>{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
+										</div>
+									{/each}
+								</div>
+								{#if filteredBooks.length > libraryLimit}
+									<button class="btn btn-ghost btn-sm self-center mt-2" onclick={() => (libraryLimit += 8)}>
+										{$_('publicProfile.page.showMore')}
+									</button>
+								{/if}
 							{/if}
 						{/if}
 					</div>
