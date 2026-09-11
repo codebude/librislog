@@ -55,6 +55,14 @@ export interface BookImportCandidateGroup {
 	variants: BookImportCandidate[];
 }
 
+export interface BasketItem {
+	id: string;
+	candidate: BookImportCandidate;
+	readingStatus: ReadingStatus;
+	acquisitionStatus: AcquisitionStatus;
+	medium: Medium | null;
+}
+
 export interface CoverCandidate {
 	source: 'abebooks' | 'openlibrary' | 'amazon' | 'hardcover' | 'thalia';
 	url: string;

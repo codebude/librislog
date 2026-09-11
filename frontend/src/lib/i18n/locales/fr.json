@@ -221,7 +221,8 @@
     "searchImport": "Rechercher et importer",
     "adding": "Ajout...",
     "failedAdd": "Échec de l'ajout du livre",
-    "importFromFile": "Importer depuis un fichier"
+    "importFromFile": "Importer depuis un fichier",
+    "basket": "Panier"
   },
   "import": {
     "searchByTitleOrAuthor": "Rechercher par titre ou auteur...",
@@ -252,7 +253,16 @@
     "groupResultPlural": "résultats",
     "groupExpand": "Afficher les éditions",
     "groupCollapse": "Masquer les éditions",
-    "groupChooseEdition": "Choisir l'édition"
+    "groupChooseEdition": "Choisir l'édition",
+    "editionSelected": "Sélectionnée",
+    "addToBasket": "Ajouter au panier",
+    "inBasket": "Dans le panier",
+    "basketEmpty": "Votre panier est vide. Recherchez des livres à ajouter.",
+    "basketCount": "{count} {count, plural, one {livre} other {livres}}",
+    "importBasket": "Importer le panier",
+    "importingBasket": "Importation...",
+    "basketRemove": "Retirer du panier",
+    "basketImportSuccess": "{count} livres importés avec succès."
   },
   "scanner": {
     "title": "Scanner un code-barres ISBN",

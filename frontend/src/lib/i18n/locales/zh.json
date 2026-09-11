@@ -221,7 +221,8 @@
     "searchImport": "搜索并导入",
     "adding": "添加中...",
     "failedAdd": "添加图书失败",
-    "importFromFile": "从文件导入"
+    "importFromFile": "从文件导入",
+    "basket": "购物篮"
   },
   "import": {
     "searchByTitleOrAuthor": "按标题或作者搜索...",
@@ -252,7 +253,16 @@
     "groupResultPlural": "个结果",
     "groupExpand": "显示版本",
     "groupCollapse": "隐藏版本",
-    "groupChooseEdition": "选择版本"
+    "groupChooseEdition": "选择版本",
+    "editionSelected": "已选择",
+    "addToBasket": "添加到购物篮",
+    "inBasket": "已在购物篮",
+    "basketEmpty": "购物篮为空。搜索图书以添加。",
+    "basketCount": "{count} 本图书",
+    "importBasket": "导入购物篮",
+    "importingBasket": "导入中...",
+    "basketRemove": "从购物篮中移除",
+    "basketImportSuccess": "成功导入 {count} 本图书。"
   },
   "scanner": {
     "title": "扫描 ISBN 条码",

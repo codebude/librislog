@@ -221,7 +221,8 @@
     "searchImport": "Search & Import",
     "adding": "Adding...",
     "failedAdd": "Failed to add book",
-    "importFromFile": "Import from file"
+    "importFromFile": "Import from file",
+    "basket": "Basket"
   },
   "import": {
     "searchByTitleOrAuthor": "Search by title or author...",
@@ -252,7 +253,16 @@
     "groupResultPlural": "results",
     "groupExpand": "Show editions",
     "groupCollapse": "Hide editions",
-    "groupChooseEdition": "Choose edition"
+    "groupChooseEdition": "Choose edition",
+    "editionSelected": "Selected",
+    "addToBasket": "Add to Basket",
+    "inBasket": "In basket",
+    "basketEmpty": "Your basket is empty. Search for books to add.",
+    "basketCount": "{count} {count, plural, one {book} other {books}}",
+    "importBasket": "Import Basket",
+    "importingBasket": "Importing...",
+    "basketRemove": "Remove from basket",
+    "basketImportSuccess": "Imported {count} books successfully."
   },
   "scanner": {
     "title": "Scan ISBN Barcode",

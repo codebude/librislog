@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	authorKey,
+	basketCandidateKey,
 	candidateKey,
 	groupCandidates,
 	normalize,
@@ -91,6 +92,31 @@ describe('candidateKey', () => {
 		const b = makeCandidate('B', { isbn: isbn10 });
 		expect(candidateKey(a)).not.toBe(candidateKey(b));
 		expect(candidateKey(a)).toBe('isbn:9791234567896');
+	});
+});
+
+describe('basketCandidateKey', () => {
+	it('does not distinguish variants by source', () => {
+		const ol = makeCandidate('Dune', { isbn: '9780441013593', source: 'open_library' });
+		const hc = makeCandidate('Dune', { isbn: '9780441013593', source: 'hardcover' });
+		const gb = makeCandidate('Dune', { isbn: '9780441013593', source: 'google_books' });
+
+		expect(basketCandidateKey(ol)).toBe(basketCandidateKey(hc));
+		expect(basketCandidateKey(ol)).toBe(basketCandidateKey(gb));
+	});
+
+	it('treats identical candidates as equal', () => {
+		const a = makeCandidate('Dune', { isbn: '9780441013593', source: 'open_library' });
+		const b = makeCandidate('Dune', { isbn: '9780441013593', source: 'open_library' });
+
+		expect(basketCandidateKey(a)).toBe(basketCandidateKey(b));
+	});
+
+	it('canonicalizes ISBN-10 and ISBN-13 variants from the same source as equal', () => {
+		const a = makeCandidate('Dune', { isbn: '0441013597', source: 'open_library' });
+		const b = makeCandidate('Dune', { isbn: '9780441013593', source: 'open_library' });
+
+		expect(basketCandidateKey(a)).toBe(basketCandidateKey(b));
 	});
 });
 

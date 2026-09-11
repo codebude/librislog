@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AcquisitionStatus, Book, BookImportCandidate, BookImportCandidateGroup, Medium, ReadingStatus, SearchStage } from '$lib/types';
+	import type { AcquisitionStatus, BasketItem, Book, BookImportCandidate, BookImportCandidateGroup, Medium, ReadingStatus, SearchStage } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
@@ -8,17 +8,24 @@
 	import { formatAuthors } from '$lib/utils/authors';
 	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
 	import {
+		basketCandidateKey,
 		canonicalIsbn,
 		groupCandidates,
 		titleAuthorKey
 	} from '$lib/utils/importSearch';
 
 	let {
+		defaultStatus = 'want_to_read',
+		basket = [],
+		onAddToBasket,
 		onImport,
 		onOpenScanner,
 		scannedIsbn = null,
 		onScannedHandled
 	}: {
+		defaultStatus?: ReadingStatus;
+		basket?: BasketItem[];
+		onAddToBasket?: (item: BasketItem) => void;
 		onImport?: (book: Book) => void;
 		onOpenScanner?: () => void;
 		scannedIsbn?: string | null;
@@ -288,6 +295,23 @@
 			importing = null;
 		}
 	}
+
+	function isInBasket(candidate: BookImportCandidate): boolean {
+		const key = basketCandidateKey(candidate);
+		return basket.some((item) => basketCandidateKey(item.candidate) === key);
+	}
+
+	function addSelectedToBasket(group: BookImportCandidateGroup) {
+		if (!acquisitionStatus || isInBasket(selectedCandidate(group))) return;
+		const item: BasketItem = {
+			id: `${basketCandidateKey(selectedCandidate(group))}:${Date.now()}`,
+			candidate: selectedCandidate(group),
+			readingStatus: defaultStatus,
+			acquisitionStatus,
+			medium: medium || null
+		};
+		onAddToBasket?.(item);
+	}
 </script>
 
 <div class="flex flex-col gap-3 sm:pr-4">
@@ -399,6 +423,7 @@
 			{@const selected = selectedCandidate(group)}
 			{@const groupImported = isGroupAlreadyImported(group)}
 			{@const importingKey = `${group.key}:${group.variants.indexOf(selected)}`}
+			{@const inBasket = isInBasket(selected)}
 			<li class="flex flex-col gap-2 p-2 rounded-lg border {groupImported ? 'border-success/40 bg-success/5' : 'border-base-200'}">
 				<div class="flex gap-3 items-start">
 					{#if group.coverUrl}
@@ -444,13 +469,21 @@
 							class="btn btn-xs {groupImported ? 'btn-success btn-outline' : 'btn-primary'}"
 							disabled={groupImported || importing === importingKey || !acquisitionStatus}
 							title={groupImported ? $_('import.alreadyImported') : ''}
-							onclick={() => importBook(group, 'want_to_read')}
+							onclick={() => importBook(group, defaultStatus)}
 						>
 							{importing === importingKey
 								? $_('common.loadingEllipsis')
 								: groupImported
 									? $_('import.imported')
 									: $_('app.add')}
+						</button>
+						<button
+							class="btn btn-xs btn-outline"
+							disabled={groupImported || inBasket || !acquisitionStatus}
+							title={groupImported ? $_('import.alreadyImported') : inBasket ? $_('import.inBasket') : ''}
+							onclick={() => addSelectedToBasket(group)}
+						>
+							{inBasket ? $_('import.inBasket') : $_('import.addToBasket')}
 						</button>
 						{#if group.variants.length > 1}
 							<button
@@ -471,8 +504,9 @@
 							{@const variantImported = isAlreadyImported(variant)}
 							{@const isSelected = selectedIndex(group) === idx}
 							<button
-								class="flex gap-2 items-start p-1 rounded text-left {isSelected ? 'bg-base-200' : 'hover:bg-base-100'}"
+								class="group flex gap-2 items-start p-2 rounded-lg border-2 text-left cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 {isSelected ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-200 bg-base-100 hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm'}"
 								aria-pressed={isSelected}
+								aria-label={`${variant.source}${isSelected ? `, ${$_('import.editionSelected')}` : ''}`}
 								onclick={() => selectedVariantByGroup[group.key] = idx}
 							>
 								{#if variant.cover_url}
@@ -492,9 +526,12 @@
 											variant.language,
 											variant.page_count ? `${variant.page_count} ${$_('book.pages').toLowerCase()}` : null,
 											variant.isbn
-										].filter(Boolean).join(' · ')}
+									].filter(Boolean).join(' · ')}
 									</p>
 								</div>
+								{#if isSelected}
+									<span class="badge badge-primary badge-sm shrink-0">✓ {$_('import.editionSelected')}</span>
+								{/if}
 								{#if variantImported}
 									<span class="badge badge-success badge-outline badge-xs">{$_('import.alreadyImported')}</span>
 								{/if}
