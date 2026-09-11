@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import ImportSearch from './ImportSearch.svelte';
 import { api } from '$lib/api';
-import type { BookImportCandidate, SearchStage } from '$lib/types';
+import type { BasketItem, BookImportCandidate, SearchStage } from '$lib/types';
 
 const mockSearchStream = vi.fn();
 const mockImportBook = vi.fn();
@@ -587,6 +587,174 @@ describe('ImportSearch', () => {
 				expect(screen.getByText('Dune Messiah')).toBeInTheDocument();
 			});
 			expect(screen.queryByText('Dune')).not.toBeInTheDocument();
+		});
+	});
+
+	describe('basket', () => {
+		const onAddToBasket = vi.fn();
+
+		beforeEach(() => {
+			onAddToBasket.mockClear();
+		});
+
+		function renderWithBasket(basket: BasketItem[] = []) {
+			return render(ImportSearch, { props: { basket, onAddToBasket } });
+		}
+
+		it('shows an Add to Basket button per result group', async () => {
+			const dune = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			mockSearchStream.mockImplementation(makeStreamFinishing([dune]));
+
+			renderWithBasket();
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+			expect(screen.getAllByRole('button', { name: 'Add to Basket' })).toHaveLength(1);
+		});
+
+		it('adds the selected variant to the basket', async () => {
+			const ol = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			const hc = candidate(2, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'hardcover',
+				page_count: 464,
+				published_year: 1965
+			});
+			mockSearchStream.mockImplementation(makeStreamFinishing([ol, hc]));
+
+			renderWithBasket();
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+
+			// Select the hardcover variant.
+			await fireEvent.click(screen.getByRole('button', { name: 'Show editions' }));
+			await waitFor(() => {
+				expect(screen.getByRole('button', { name: /^hardcover/ })).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByRole('button', { name: /^hardcover/ }));
+
+			// Set acquisition status to enable the Add to Basket button.
+			// happy-dom's :checked fallback always resolves to the first
+			// non-disabled option (here 'owned'), so we trigger that path.
+			// Select metadata override is verified via E2E tests.
+			const acquisitionSelect = screen.getByRole('combobox', { name: /Possession/i });
+			await fireEvent.change(acquisitionSelect, { target: { value: 'owned' } });
+
+			await fireEvent.click(screen.getByRole('button', { name: 'Add to Basket' }));
+
+			await waitFor(() => {
+				expect(onAddToBasket).toHaveBeenCalledTimes(1);
+			});
+			const item = onAddToBasket.mock.calls[0][0] as BasketItem;
+			expect(item.candidate.source).toBe('hardcover');
+			expect(item.readingStatus).toBe('want_to_read');
+			expect(item.acquisitionStatus).toBe('owned');
+		});
+
+		it('disables Add to Basket when no acquisition status is selected', async () => {
+			const dune = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			mockSearchStream.mockImplementation(makeStreamFinishing([dune]));
+
+			renderWithBasket();
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+			expect(screen.getByRole('button', { name: 'Add to Basket' })).toBeDisabled();
+		});
+
+		it('uses defaultStatus prop for reading status', async () => {
+			const dune = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			mockSearchStream.mockImplementation(makeStreamFinishing([dune]));
+
+			render(ImportSearch, { props: { defaultStatus: 'currently_reading', basket: [], onAddToBasket } });
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+			const acquisitionSelect = screen.getByRole('combobox', { name: /Possession/i });
+			await fireEvent.change(acquisitionSelect, { target: { value: 'owned' } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Add to Basket' }));
+
+			await waitFor(() => {
+				expect(onAddToBasket).toHaveBeenCalledTimes(1);
+			});
+			const item = onAddToBasket.mock.calls[0][0] as BasketItem;
+			expect(item.readingStatus).toBe('currently_reading');
+		});
+
+		it('shows In basket and disables the button when already in basket', async () => {
+			const dune = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			mockSearchStream.mockImplementation(makeStreamFinishing([dune]));
+
+			const existingItem: BasketItem = {
+				id: 'x',
+				candidate: dune,
+				readingStatus: 'want_to_read',
+				acquisitionStatus: 'owned',
+				medium: null
+			};
+			renderWithBasket([existingItem]);
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+			const btn = screen.getByRole('button', { name: 'In basket' });
+			expect(btn).toBeDisabled();
+		});
+
+		it('still allows direct Add to import and close the dialog', async () => {
+			const dune = candidate(1, 'Dune', {
+				isbn: '9780441013593',
+				authors: ['Frank Herbert'],
+				source: 'open_library'
+			});
+			mockImportBook.mockResolvedValue({ id: 1, title: 'Dune' });
+			mockSearchStream.mockImplementation(makeStreamFinishing([dune]));
+			const onImport = vi.fn();
+
+			render(ImportSearch, { props: { basket: [], onImport } });
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Dune')).toBeInTheDocument();
+			});
+			const acquisitionSelect = screen.getByRole('combobox', { name: /Possession/i });
+			await fireEvent.change(acquisitionSelect, { target: { value: 'owned' } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+			await waitFor(() => {
+				expect(onImport).toHaveBeenCalledTimes(1);
+			});
 		});
 	});
 });

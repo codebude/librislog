@@ -2,16 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import AddBookModal from './AddBookModal.svelte';
+import type { BookImportCandidate, SearchStage } from '$lib/types';
 
 // Mock api
 const mockBooksCreate = vi.fn();
-const mockBooksList = vi.fn(async () => []);
+const mockBooksList = vi.fn(async () => ({ books: [], total: 0 }));
+const mockSearchStream = vi.fn();
+const mockImportBook = vi.fn();
 
 vi.mock('$lib/api', () => ({
 	api: {
 		books: {
 			create: (...args: unknown[]) => mockBooksCreate(...args),
 			list: () => mockBooksList()
+		},
+		import: {
+			searchStream: (...args: unknown[]) => mockSearchStream(...args),
+			importBook: (...args: unknown[]) => mockImportBook(...args)
 		}
 	}
 }));
@@ -276,5 +283,168 @@ describe('AddBookModal', () => {
 		await fireEvent.click(resetBtn);
 
 		expect(titleInput).toHaveValue('');
+	});
+
+	describe('basket', () => {
+		function candidate(
+			id: number,
+			title: string,
+			options: Partial<BookImportCandidate> = {}
+		): BookImportCandidate {
+			return {
+				title,
+				subtitle: null,
+				author: options.author ?? null,
+				authors: options.authors ?? [],
+				isbn: options.isbn ?? `978000000000${id}`,
+				cover_url: null,
+				publisher: null,
+				published_year: options.published_year ?? null,
+				page_count: null,
+				language: null,
+				tags: null,
+				blurb: null,
+				source: options.source ?? 'open_library'
+			};
+		}
+
+		async function searchAndAddToBasket(title: string, id: number, expectedCount: number) {
+			const book = candidate(id, title);
+			mockSearchStream.mockImplementation(async function* () {
+				yield { stage: 'complete', results: [book] } as SearchStage;
+			});
+			const importTab = screen.getByRole('tab', { name: 'Search & Import' });
+			await fireEvent.click(importTab);
+			const input = screen.getByPlaceholderText(/Search by title or author/);
+			await fireEvent.input(input, { target: { value: title } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+			await waitFor(() => {
+				expect(screen.getByText(title)).toBeInTheDocument();
+			});
+			const acquisitionSelect = screen.getByRole('combobox', { name: /Possession/i });
+			// happy-dom does not implement :checked for <option>, so Svelte 5's
+			// bind_select_value cannot react to fireEvent.change on selects here.
+			// We still drive the acquisitionStatus wiring; the metadata override
+			// is verified via Playwright E2E, not unit tests.
+			await fireEvent.change(acquisitionSelect, { target: { value: 'owned' } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Add to Basket' }));
+			await waitFor(() => {
+				expect(screen.getByRole('tab', { name: /Basket/ }).textContent).toContain(String(expectedCount));
+			});
+		}
+
+		beforeEach(() => {
+			vi.clearAllMocks();
+			mockBooksList.mockResolvedValue({ books: [], total: 0 });
+			mockImportBook.mockResolvedValue({ id: 1, title: 'Test' });
+		});
+
+		it('shows a Basket tab with the added item count', async () => {
+			render(AddBookModal, { props: { open: true, defaultStatus: 'want_to_read' } });
+			await searchAndAddToBasket('Dune', 1, 1);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			expect(basketTab.textContent).toContain('1');
+		});
+
+		it('does not show a badge when the basket is empty', () => {
+			render(AddBookModal, { props: { open: true } });
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			expect(basketTab.querySelector('.badge')).toBeNull();
+		});
+
+		it('switches to the Basket tab and lists basket items', async () => {
+			render(AddBookModal, { props: { open: true } });
+			await searchAndAddToBasket('Dune', 1, 1);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			await fireEvent.click(basketTab);
+
+			expect(screen.getByText('Dune')).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Import Basket' })).toBeInTheDocument();
+		});
+
+		it('removes an item from the basket', async () => {
+			render(AddBookModal, { props: { open: true } });
+			await searchAndAddToBasket('Dune', 1, 1);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			await fireEvent.click(basketTab);
+
+			const removeBtn = screen.getByRole('button', { name: /remove/i });
+			await fireEvent.click(removeBtn);
+
+			await waitFor(() => {
+				expect(screen.getByRole('tab', { name: /Basket/ }).querySelector('.badge')).toBeNull();
+			});
+			expect(screen.queryByText('Dune')).not.toBeInTheDocument();
+			expect(screen.getByText(/basket is empty/i)).toBeInTheDocument();
+		});
+
+		it('imports each basket item via api.import.importBook', async () => {
+			const onAdded = vi.fn();
+			render(AddBookModal, { props: { open: true, onAdded } });
+
+			await searchAndAddToBasket('Dune', 1, 1);
+			await searchAndAddToBasket('Dune Messiah', 2, 2);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			await fireEvent.click(basketTab);
+			await fireEvent.click(screen.getByRole('button', { name: 'Import Basket' }));
+
+			await waitFor(() => {
+				expect(mockImportBook).toHaveBeenCalledTimes(2);
+			});
+			const firstCall = mockImportBook.mock.calls[0];
+			expect(firstCall[0]).toMatchObject({ title: 'Dune' });
+			expect(firstCall[1]).toBe('want_to_read');
+			expect(firstCall[2]).toBe('owned');
+
+			await waitFor(() => {
+				expect(onAdded).toHaveBeenCalledTimes(2);
+			});
+		});
+
+		it('keeps failed items in the basket on partial failure', async () => {
+			mockImportBook
+				.mockResolvedValueOnce({ id: 1, title: 'Dune' })
+				.mockRejectedValueOnce(new Error('error.isbnAlreadyExists'));
+
+			const onAdded = vi.fn();
+			render(AddBookModal, { props: { open: true, onAdded } });
+
+			await searchAndAddToBasket('Dune', 1, 1);
+			await searchAndAddToBasket('Dune Messiah', 2, 2);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			await fireEvent.click(basketTab);
+			await fireEvent.click(screen.getByRole('button', { name: 'Import Basket' }));
+
+			await waitFor(() => {
+				expect(onAdded).toHaveBeenCalledTimes(1);
+			});
+			await waitFor(() => {
+				expect(screen.getByText('Dune Messiah')).toBeInTheDocument();
+			});
+			expect(screen.queryByText('Dune')).not.toBeInTheDocument();
+		});
+
+		it('closes the dialog on full basket import success', async () => {
+			const onAdded = vi.fn();
+			render(AddBookModal, { props: { open: true, onAdded } });
+
+			await searchAndAddToBasket('Dune', 1, 1);
+
+			const basketTab = screen.getByRole('tab', { name: /Basket/ });
+			await fireEvent.click(basketTab);
+			await fireEvent.click(screen.getByRole('button', { name: 'Import Basket' }));
+
+			await waitFor(() => {
+				expect(onAdded).toHaveBeenCalledTimes(1);
+			});
+			await waitFor(() => {
+				expect(screen.queryByRole('heading', { name: 'Add Book' })).not.toBeInTheDocument();
+			});
+		});
 	});
 });

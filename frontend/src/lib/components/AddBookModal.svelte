@@ -1,14 +1,15 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import ImportSearch from './ImportSearch.svelte';
+	import BasketPanel from './BasketPanel.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import TagInput from './TagInput.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
-	import { ScanBarcode, X } from '@lucide/svelte';
+	import { ScanBarcode, ShoppingBasket, X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -20,10 +21,12 @@
 		onAdded?: (book: Book) => void;
 	} = $props();
 
-	let activeTab = $state<'manual' | 'import'>('manual');
+	let activeTab = $state<'manual' | 'import' | 'basket'>('manual');
 	let submitting = $state(false);
 	let scannerOpen = $state(false);
 	let scannedIsbn = $state<string | null>(null);
+	let basket = $state<BasketItem[]>([]);
+	let basketImporting = $state(false);
 
 	// Manual form state
 	let title = $state('');
@@ -74,6 +77,72 @@
 		medium = '';
 		cover_url = null;
 		activeTab = 'manual';
+		basket = [];
+	}
+
+	function addToBasket(item: BasketItem) {
+		basket = [...basket, item];
+	}
+
+	function removeFromBasket(id: string) {
+		basket = basket.filter((item) => item.id !== id);
+	}
+
+	async function importBasket() {
+		if (basket.length === 0 || basketImporting) return;
+		basketImporting = true;
+		const items = basket;
+		const remaining: BasketItem[] = [];
+		const imported: Book[] = [];
+		let success = 0;
+		let failed = 0;
+
+		try {
+			for (const item of items) {
+				try {
+					const book = await api.import.importBook(
+						item.candidate,
+						item.readingStatus,
+						item.acquisitionStatus,
+						item.medium
+					);
+					imported.push(book);
+					success++;
+				} catch (e: unknown) {
+					remaining.push(item);
+					failed++;
+					const message =
+						e instanceof Error && e.message === 'error.isbnAlreadyExists'
+							? $_('error.isbnAlreadyExists')
+							: e instanceof Error
+								? e.message
+								: $_('import.importFailed');
+					toasts.add(message, 'error');
+				}
+			}
+
+			// Keep items added to the basket while the import was in flight.
+			basket = [...remaining, ...basket.filter((item) => !items.includes(item))];
+
+			// Notify the parent only after the whole run so a single-book
+			// import or a parent that closes the dialog on onAdded cannot
+			// interrupt the remaining items.
+			for (const book of imported) {
+				onAdded?.(book);
+			}
+
+			if (success > 0) {
+				toasts.add($_('import.basketImportSuccess', { values: { count: success } }), 'success');
+			}
+			if (failed === 0 && success > 0) {
+				open = false;
+				reset();
+			} else if (failed > 0) {
+				activeTab = 'basket';
+			}
+		} finally {
+			basketImporting = false;
+		}
 	}
 
 	async function submitManual() {
@@ -158,6 +227,19 @@
 					class="tab {activeTab === 'import' ? 'tab-active' : ''}"
 					onclick={() => (activeTab = 'import')}
 				>{$_('addModal.searchImport')}</button>
+				<button
+					role="tab"
+					class="tab {activeTab === 'basket' ? 'tab-active' : ''}"
+					onclick={() => (activeTab = 'basket')}
+				>
+					<span class="flex items-center gap-1">
+						<ShoppingBasket class="w-4 h-4" />
+						{$_('addModal.basket')}
+						{#if basket.length > 0}
+							<span class="badge badge-sm badge-primary ml-0.5">{basket.length}</span>
+						{/if}
+					</span>
+				</button>
 			</div>
 
 			{#if activeTab === 'manual'}
@@ -272,8 +354,11 @@
 					</button>
 				</div>
 				</form>
-			{:else}
+			{:else if activeTab === 'import'}
 			<ImportSearch
+				defaultStatus={defaultStatus}
+				basket={basket}
+				onAddToBasket={addToBasket}
 				onOpenScanner={() => {
 					scannerOpen = true;
 				}}
@@ -290,6 +375,13 @@
 			<div class="mt-3 text-center">
 				<a href="/data?tab=import" class="link link-primary text-sm">{$_('addModal.importFromFile')}</a>
 			</div>
+		{:else}
+			<BasketPanel
+				basket={basket}
+				importing={basketImporting}
+				onRemove={removeFromBasket}
+				onImport={importBasket}
+			/>
 		{/if}
 		</div>
 	<BarcodeScanner

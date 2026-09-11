@@ -221,7 +221,8 @@
     "searchImport": "Suchen & Importieren",
     "adding": "Füge hinzu...",
     "failedAdd": "Buch konnte nicht hinzugefügt werden",
-    "importFromFile": "Aus Datei importieren"
+    "importFromFile": "Aus Datei importieren",
+    "basket": "Warenkorb"
   },
   "import": {
     "searchByTitleOrAuthor": "Nach Titel oder Autor suchen...",
@@ -252,7 +253,15 @@
     "groupResultPlural": "Ergebnisse",
     "groupExpand": "Ausgaben anzeigen",
     "groupCollapse": "Ausgaben ausblenden",
-    "groupChooseEdition": "Ausgabe wählen"
+    "groupChooseEdition": "Ausgabe wählen",
+    "addToBasket": "Zum Warenkorb hinzufügen",
+    "inBasket": "Im Warenkorb",
+    "basketEmpty": "Dein Warenkorb ist leer. Suche nach Büchern, um sie hinzuzufügen.",
+    "basketCount": "{count} {count, plural, one {Buch} other {Bücher}}",
+    "importBasket": "Warenkorb importieren",
+    "importingBasket": "Importiere...",
+    "basketRemove": "Aus dem Warenkorb entfernen",
+    "basketImportSuccess": "{count} Bücher erfolgreich importiert."
   },
   "scanner": {
     "title": "ISBN-Barcode scannen",

@@ -49,6 +49,13 @@ export function candidateKey(candidate: BookImportCandidate): string {
 	return `ta:${normalize(candidate.title)}|${authorKey(candidate.authors)}`;
 }
 
+// Same-ISBN (or title+author) editions share one basket key regardless of
+// source so the same book from two providers cannot be added twice, which
+// would always fail on import with isbnAlreadyExists.
+export function basketCandidateKey(candidate: BookImportCandidate): string {
+	return candidateKey(candidate);
+}
+
 export function groupCandidates(candidates: BookImportCandidate[]): BookImportCandidateGroup[] {
 	const map = new Map<string, BookImportCandidate[]>();
 	for (const candidate of candidates) {
