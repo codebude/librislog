@@ -532,7 +532,11 @@ describe('ImportSearch', () => {
 			await waitFor(() => {
 				expect(screen.getByRole('button', { name: /^hardcover/ })).toBeInTheDocument();
 			});
-			await fireEvent.click(screen.getByRole('button', { name: /^hardcover/ }));
+			const hardcoverButton = screen.getByRole('button', { name: /^hardcover/ });
+			await fireEvent.click(hardcoverButton);
+			expect(hardcoverButton).toHaveAttribute('aria-pressed', 'true');
+			expect(hardcoverButton).toHaveClass('border-primary', 'bg-primary/10', 'cursor-pointer');
+			expect(hardcoverButton).toHaveTextContent('Selected');
 
 			// Google supplement appends a third variant.
 			await fireEvent.click(screen.getByRole('button', { name: 'Search Google Books too' }));

@@ -254,6 +254,7 @@
     "groupExpand": "显示版本",
     "groupCollapse": "隐藏版本",
     "groupChooseEdition": "选择版本",
+    "editionSelected": "已选择",
     "addToBasket": "添加到购物篮",
     "inBasket": "已在购物篮",
     "basketEmpty": "购物篮为空。搜索图书以添加。",

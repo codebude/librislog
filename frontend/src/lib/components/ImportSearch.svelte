@@ -504,8 +504,9 @@
 							{@const variantImported = isAlreadyImported(variant)}
 							{@const isSelected = selectedIndex(group) === idx}
 							<button
-								class="flex gap-2 items-start p-1 rounded text-left {isSelected ? 'bg-base-200' : 'hover:bg-base-100'}"
+								class="group flex gap-2 items-start p-2 rounded-lg border-2 text-left cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 {isSelected ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-200 bg-base-100 hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm'}"
 								aria-pressed={isSelected}
+								aria-label={`${variant.source}${isSelected ? `, ${$_('import.editionSelected')}` : ''}`}
 								onclick={() => selectedVariantByGroup[group.key] = idx}
 							>
 								{#if variant.cover_url}
@@ -525,9 +526,12 @@
 											variant.language,
 											variant.page_count ? `${variant.page_count} ${$_('book.pages').toLowerCase()}` : null,
 											variant.isbn
-										].filter(Boolean).join(' · ')}
+									].filter(Boolean).join(' · ')}
 									</p>
 								</div>
+								{#if isSelected}
+									<span class="badge badge-primary badge-sm shrink-0">✓ {$_('import.editionSelected')}</span>
+								{/if}
 								{#if variantImported}
 									<span class="badge badge-success badge-outline badge-xs">{$_('import.alreadyImported')}</span>
 								{/if}

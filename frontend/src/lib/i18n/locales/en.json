@@ -254,6 +254,7 @@
     "groupExpand": "Show editions",
     "groupCollapse": "Hide editions",
     "groupChooseEdition": "Choose edition",
+    "editionSelected": "Selected",
     "addToBasket": "Add to Basket",
     "inBasket": "In basket",
     "basketEmpty": "Your basket is empty. Search for books to add.",

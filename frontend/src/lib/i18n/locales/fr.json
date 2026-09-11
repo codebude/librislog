@@ -254,6 +254,7 @@
     "groupExpand": "Afficher les éditions",
     "groupCollapse": "Masquer les éditions",
     "groupChooseEdition": "Choisir l'édition",
+    "editionSelected": "Sélectionnée",
     "addToBasket": "Ajouter au panier",
     "inBasket": "Dans le panier",
     "basketEmpty": "Votre panier est vide. Recherchez des livres à ajouter.",

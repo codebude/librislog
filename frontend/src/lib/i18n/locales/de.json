@@ -254,6 +254,7 @@
     "groupExpand": "Ausgaben anzeigen",
     "groupCollapse": "Ausgaben ausblenden",
     "groupChooseEdition": "Ausgabe wählen",
+    "editionSelected": "Ausgewählt",
     "addToBasket": "Zum Warenkorb hinzufügen",
     "inBasket": "Im Warenkorb",
     "basketEmpty": "Dein Warenkorb ist leer. Suche nach Büchern, um sie hinzuzufügen.",
