@@ -13,6 +13,7 @@ services:
       - ./data:/app/data
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro # only needed if you use custom certificates in you environment
     environment:
+      TELEMETRY_DISABLED: "true" # Development runs must not send telemetry.
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt # only needed if you use custom certificates in you environment
     restart: unless-stopped
