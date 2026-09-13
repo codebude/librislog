@@ -10,7 +10,8 @@ from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.models import Book, ReadingProgress, ReadingStatus, UserSettings
-from app.services.statistics import _extract_book_level_daily_pages
+from app.schemas import StatisticsRange
+from app.services.statistics import _extract_book_level_daily_pages, _statistics_window
 
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
@@ -718,8 +719,8 @@ def test_statistics_range_filters_finished_books(client: Any) -> None:
         client,
         title="Outside",
         reading_status="read",
-        date_started=(now - timedelta(days=45)).isoformat(),
-        date_finished=(now - timedelta(days=40)).isoformat(),
+        date_started=f"{now.year - 1}-01-01T10:00:00+00:00",
+        date_finished=f"{now.year - 1}-01-02T10:00:00+00:00",
     )
     _create_book(
         client,
@@ -729,11 +730,34 @@ def test_statistics_range_filters_finished_books(client: Any) -> None:
         date_finished=(now - timedelta(days=2)).isoformat(),
     )
 
-    response = client.get("/api/statistics?range=30days")
+    response = client.get("/api/statistics?range=this_year")
     assert response.status_code == 200
     data = response.json()
     assert sum(item["count"] for item in data["books_finished_per_month"]) == 1
     assert sum(item["count"] for item in data["books_finished_per_year"]) == 1
+
+
+def test_statistics_calendar_range_windows() -> None:
+    now = datetime(2026, 9, 13, 12, 0, tzinfo=timezone.utc)
+    tz = ZoneInfo("UTC")
+
+    this_year_start, this_year_end = _statistics_window(
+        StatisticsRange.this_year, None, None, tz, now
+    )
+    assert this_year_start == datetime(2026, 1, 1)
+    assert this_year_end == datetime(2026, 9, 13, 12, 0)
+
+    last_year_start, last_year_end = _statistics_window(
+        StatisticsRange.last_year, None, None, tz, now
+    )
+    assert last_year_start == datetime(2025, 1, 1)
+    assert last_year_end == datetime(2025, 12, 31, 23, 59, 59, 999999)
+
+    three_years_start, three_years_end = _statistics_window(
+        StatisticsRange.three_years, None, None, tz, now
+    )
+    assert three_years_start == datetime(2024, 1, 1)
+    assert three_years_end == datetime(2026, 9, 13, 12, 0)
 
 
 def test_statistics_custom_range_and_validation(client: Any) -> None:

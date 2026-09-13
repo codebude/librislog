@@ -452,7 +452,20 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		let copiedShareLinkId = $state<number | null>(null);
 
 		async function loadShareLinks() {
-			shareLinks = await api.profile.listShareLinks();
+			const links = await api.profile.listShareLinks();
+			shareLinks = links;
+
+			const tokens = await Promise.all(
+				links.map(async (link) => {
+					try {
+						const result = await api.profile.revealShareLink(link.id);
+						return [link.id, result.token] as const;
+					} catch {
+						return null;
+					}
+				})
+			);
+			revealedTokens = Object.fromEntries(tokens.filter((entry): entry is [number, string] => entry !== null));
 		}
 
 		function openCreateShareLink() {
@@ -1030,14 +1043,14 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 				<Alert type="success" onClose={() => (createdShareToken = null)} duration={0}>
 					<div class="flex flex-col items-start gap-2 text-xs">
 						<span>{$_('publicProfile.tokenShownOnce')}</span>
-						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] text-base-content break-all">
 							{publicShareUrl(createdShareToken)}
 						</div>
 						<div class="flex gap-2">
-							<button type="button" class="btn btn-success btn-xs" onclick={copyShareToken}>
+							<button type="button" class="btn btn-xs border-base-content/60 bg-base-100/20 text-base-content hover:bg-base-100/40" onclick={copyShareToken}>
 								{shareTokenCopied ? $_('common.copied') : $_('publicProfile.copyLink')}
 							</button>
-							<a class="btn btn-ghost btn-xs" href={publicShareUrl(createdShareToken)} target="_blank" rel="noopener noreferrer">
+							<a class="btn btn-xs border-base-content/60 bg-base-100/20 text-base-content hover:bg-base-100/40" href={publicShareUrl(createdShareToken)} target="_blank" rel="noopener noreferrer">
 								{$_('publicProfile.openLink')}
 							</a>
 						</div>
@@ -1047,11 +1060,11 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			{#if shareLinks.length === 0}
 				<p class="text-sm text-base-content/50">{$_('profile.shareProfile.empty')}</p>
 			{:else}
-				<ul class="flex flex-col gap-2">
+				<ul class="flex flex-col gap-3">
 					{#each shareLinks as link}
 						<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
-							<div class="min-w-0 flex-1">
-								<p class="font-medium flex items-center gap-2 flex-wrap">
+							<div class="min-w-0 flex flex-1 flex-col gap-1">
+								<p class="font-medium flex items-center gap-3 flex-wrap">
 									{link.name}
 									<span class={`badge badge-sm ${link.audience === 'public' ? 'badge-ghost' : 'badge-info'}`}>
 										{link.audience === 'public' ? $_('publicProfile.audiencePublic') : $_('publicProfile.audienceAuthenticated')}

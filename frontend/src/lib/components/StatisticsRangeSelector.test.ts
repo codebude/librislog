@@ -8,10 +8,9 @@ describe('StatisticsRangeSelector', () => {
 		const options = screen.getByRole('combobox').querySelectorAll('option');
 		expect([...options].map((option) => option.textContent)).toEqual([
 			'All time',
-			'Last 3 years',
+			'This year',
 			'Last year',
-			'Last 6 months',
-			'Last 30 days',
+			'Last 3 years',
 			'Custom'
 		]);
 	});

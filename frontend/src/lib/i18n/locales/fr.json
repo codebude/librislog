@@ -39,10 +39,9 @@
     "rangeLast12Months": "12 derniers mois",
     "refreshing": "Mise à jour des statistiques",
     "rangeAllTime": "Depuis toujours",
+    "rangeThisYear": "Cette année",
+    "rangeLastYear": "L'année dernière",
     "rangeLast3Years": "3 dernières années",
-    "rangeLastYear": "Dernière année",
-    "rangeLast6Months": "6 derniers mois",
-    "rangeLast30Days": "30 derniers jours",
     "rangeCustom": "Personnalisé",
     "from": "Du",
     "to": "Au",
@@ -803,7 +802,8 @@
       "language": "Langue",
       "subtitle": "Sous-titre",
       "page_count": "Nombre de pages",
-      "cover_url": "Couverture"
+      "cover_url": "Couverture",
+      "medium": "Support"
     },
     "matchAny": "Correspond à l'un",
     "matchAll": "Correspond à tous",

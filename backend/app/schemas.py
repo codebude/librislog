@@ -262,10 +262,9 @@ class YearlyBooks(SQLModel):
 class StatisticsRange(str, Enum):
     """Shared statistics time-range selector options."""
     alltime = "alltime"
+    this_year = "this_year"
+    last_year = "last_year"
     three_years = "3years"
-    one_year = "1year"
-    six_months = "6months"
-    thirty_days = "30days"
     custom = "custom"
 
 
@@ -573,6 +572,7 @@ class HygieneAttribute(str, Enum):
     subtitle = "subtitle"
     page_count = "page_count"
     cover_url = "cover_url"
+    medium = "medium"
 
 
 class HygieneMissingBook(SQLModel):

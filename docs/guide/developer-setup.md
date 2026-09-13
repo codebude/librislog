@@ -64,7 +64,7 @@ Steps:
 uv sync
 cd backend
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --port 8000
+TELEMETRY_DISABLED=true uv run uvicorn app.main:app --reload --port 8000
 ```
 
 The backend runs on http://localhost:8000 with auto-reload on code changes.

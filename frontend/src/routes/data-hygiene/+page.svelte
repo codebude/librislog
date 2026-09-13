@@ -22,6 +22,7 @@
 		{ key: 'subtitle', labelKey: 'dataHygiene.attributes.subtitle' },
 		{ key: 'page_count', labelKey: 'dataHygiene.attributes.page_count' },
 		{ key: 'cover_url', labelKey: 'dataHygiene.attributes.cover_url' },
+		{ key: 'medium', labelKey: 'dataHygiene.attributes.medium' },
 	];
 
 	let selectedAttributes = $state<HygieneAttribute[]>([]);

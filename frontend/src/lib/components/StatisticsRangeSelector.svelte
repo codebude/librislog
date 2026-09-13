@@ -21,10 +21,9 @@
 
 	const options: Array<[StatisticsRange, string]> = [
 		['alltime', 'statistics.rangeAllTime'],
+		['this_year', 'statistics.rangeThisYear'],
+		['last_year', 'statistics.rangeLastYear'],
 		['3years', 'statistics.rangeLast3Years'],
-		['1year', 'statistics.rangeLastYear'],
-		['6months', 'statistics.rangeLast6Months'],
-		['30days', 'statistics.rangeLast30Days'],
 		['custom', 'statistics.rangeCustom']
 	];
 

@@ -47,7 +47,7 @@ function mockBook(id: number, overrides?: Partial<HygieneMissingBook>): HygieneM
 
 const emptyPerAttribute = {
 	author: 0, isbn: 0, publisher: 0, published_year: 0,
-	blurb: 0, language: 0, subtitle: 0, page_count: 0, cover_url: 0,
+		blurb: 0, language: 0, subtitle: 0, page_count: 0, cover_url: 0, medium: 0,
 };
 
 describe('DataHygienePage', () => {
@@ -88,7 +88,7 @@ describe('DataHygienePage', () => {
 		expect(mockListMissing).toHaveBeenCalledWith({
 			attributes: [
 				'author', 'isbn', 'publisher', 'published_year',
-				'blurb', 'language', 'subtitle', 'page_count', 'cover_url',
+				'blurb', 'language', 'subtitle', 'page_count', 'cover_url', 'medium',
 			],
 			match: 'any',
 			offset: 0,
@@ -96,14 +96,14 @@ describe('DataHygienePage', () => {
 		});
 	});
 
-	it('displays all 9 attribute chips', async () => {
+	it('displays all 10 attribute chips', async () => {
 		render(DataHygienePage);
 
 		const chips = await screen.findAllByRole('button');
 		const attrChips = chips.filter(c =>
-			/Author|ISBN|Publisher|Year|Description|Language|Subtitle|Page count|Cover/.test(c.textContent || '')
+			/Author|ISBN|Publisher|Year|Description|Language|Subtitle|Page count|Cover|Medium/.test(c.textContent || '')
 		);
-		expect(attrChips).toHaveLength(9);
+		expect(attrChips).toHaveLength(10);
 	});
 
 	it('shows per-attribute missing counts on chips', async () => {

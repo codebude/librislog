@@ -39,10 +39,9 @@
     "rangeLast12Months": "最近12个月",
     "refreshing": "正在更新统计数据",
     "rangeAllTime": "全部时间",
+    "rangeThisYear": "今年",
+    "rangeLastYear": "去年",
     "rangeLast3Years": "最近3年",
-    "rangeLastYear": "最近一年",
-    "rangeLast6Months": "最近6个月",
-    "rangeLast30Days": "最近30天",
     "rangeCustom": "自定义",
     "from": "从",
     "to": "到",
@@ -803,7 +802,8 @@
       "language": "语言",
       "subtitle": "副标题",
       "page_count": "页数",
-      "cover_url": "封面"
+      "cover_url": "封面",
+      "medium": "媒介"
     },
     "matchAny": "匹配任一",
     "matchAll": "匹配全部",
