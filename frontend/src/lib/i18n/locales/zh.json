@@ -802,7 +802,8 @@
       "language": "语言",
       "subtitle": "副标题",
       "page_count": "页数",
-      "cover_url": "封面"
+      "cover_url": "封面",
+      "medium": "媒介"
     },
     "matchAny": "匹配任一",
     "matchAll": "匹配全部",

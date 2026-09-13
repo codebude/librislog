@@ -572,6 +572,7 @@ class HygieneAttribute(str, Enum):
     subtitle = "subtitle"
     page_count = "page_count"
     cover_url = "cover_url"
+    medium = "medium"
 
 
 class HygieneMissingBook(SQLModel):

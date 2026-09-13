@@ -802,7 +802,8 @@
       "language": "Language",
       "subtitle": "Subtitle",
       "page_count": "Page count",
-      "cover_url": "Cover"
+      "cover_url": "Cover",
+      "medium": "Medium"
     },
     "matchAny": "Match any",
     "matchAll": "Match all",

@@ -433,7 +433,8 @@ export type HygieneAttribute =
 	| 'language'
 	| 'subtitle'
 	| 'page_count'
-	| 'cover_url';
+	| 'cover_url'
+	| 'medium';
 
 export interface HygieneMissingBook {
 	id: number;

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlmodel import Session, col, select
 
-from app.models import Author, Book, BookAuthor, ReadingStatus, User
+from app.models import Author, Book, BookAuthor, Medium, ReadingStatus, User
 from app.routers import hygiene as hygiene_router
 from app.services.authors import normalize_author_list
 
@@ -28,6 +28,7 @@ def _create_book(session: Session, user_id: int, **overrides: object) -> Book:
         "blurb": "A test book.",
         "cover_url": None,
         "reading_status": ReadingStatus.want_to_read,
+        "medium": Medium.print,
         "user_id": user_id,
     }
     defaults.update(overrides)
@@ -157,6 +158,19 @@ class TestListMissing:
         data = resp.json()
         assert data["total"] == 1
         assert data["books"][0]["title"] == "Zero Pages"
+
+    def test_missing_medium(self, client: TestClient, session: Session) -> None:
+        """Medium is reported as missing when it has not been set."""
+        user_id = 1
+        _create_book(session, user_id, title="Print book", medium=Medium.print)
+        _create_book(session, user_id, title="Missing medium", medium=None)
+
+        resp = client.get("/api/hygiene/missing?attributes=medium")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["books"][0]["title"] == "Missing medium"
+        assert data["total_missing_per_attribute"]["medium"] == 1
 
 
 class TestBatchUpdate:

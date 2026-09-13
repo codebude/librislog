@@ -802,7 +802,8 @@
       "language": "Sprache",
       "subtitle": "Untertitel",
       "page_count": "Seitenanzahl",
-      "cover_url": "Cover"
+      "cover_url": "Cover",
+      "medium": "Medium"
     },
     "matchAny": "Beliebiges",
     "matchAll": "Alle",

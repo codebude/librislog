@@ -802,7 +802,8 @@
       "language": "Langue",
       "subtitle": "Sous-titre",
       "page_count": "Nombre de pages",
-      "cover_url": "Couverture"
+      "cover_url": "Couverture",
+      "medium": "Support"
     },
     "matchAny": "Correspond à l'un",
     "matchAll": "Correspond à tous",
