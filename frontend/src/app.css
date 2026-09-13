@@ -61,6 +61,14 @@
   --noise: 0;
 }
 
+/* Keep dark cards calm while giving the page and nested surfaces clearer depth. */
+html[data-theme="dark"] {
+  --color-base-100: oklch(25.5% 0.018 255);
+  --color-base-200: oklch(19.5% 0.016 255);
+  --color-base-300: oklch(15.5% 0.014 255);
+  --color-base-content: oklch(86% 0.012 255);
+}
+
 html {
 	scroll-behavior: smooth;
 }
