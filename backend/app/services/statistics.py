@@ -112,26 +112,6 @@ def _naive_utc(dt: datetime) -> datetime:
     return dt
 
 
-def _subtract_months(dt: datetime, months: int) -> datetime:
-    """Return *dt* shifted back by *months*, clamping the day if needed."""
-    year, month = dt.year, dt.month - months
-    while month <= 0:
-        month += 12
-        year -= 1
-    last_dom = calendar.monthrange(year, month)[1]
-    day = min(dt.day, last_dom)
-    return dt.replace(year=year, month=month, day=day)
-
-
-def _subtract_years(dt: datetime, years: int) -> datetime:
-    """Return *dt* shifted back by *years*, handling Feb 29 gracefully."""
-    year = dt.year - years
-    try:
-        return dt.replace(year=year)
-    except ValueError:
-        return dt.replace(year=year, month=2, day=28)
-
-
 def _statistics_window(
     range_value: StatisticsRange,
     custom_from: date | None,
@@ -147,7 +127,9 @@ def _statistics_window(
 
     - Custom -> from start of the custom *from* day to end of the custom *to*
       day (inclusive) in *tz*.
-    - Predefined -> ``now - delta`` (inclusive) to ``now``.
+    - This year -> the start of the current calendar year to ``now``.
+    - Last year -> the complete previous calendar year.
+    - Last 3 years -> the start of the calendar year two years ago to ``now``.
     """
     if range_value == StatisticsRange.alltime:
         return (None, None)
@@ -164,14 +146,13 @@ def _statistics_window(
         return (_naive_utc(start), _naive_utc(end))
 
     end = now
-    if range_value == StatisticsRange.thirty_days:
-        start = now - timedelta(days=30)
-    elif range_value == StatisticsRange.six_months:
-        start = _subtract_months(now, 6)
-    elif range_value == StatisticsRange.one_year:
-        start = _subtract_years(now, 1)
+    if range_value == StatisticsRange.this_year:
+        start = datetime(now.year, 1, 1, tzinfo=tz)
+    elif range_value == StatisticsRange.last_year:
+        start = datetime(now.year - 1, 1, 1, tzinfo=tz)
+        end = datetime(now.year - 1, 12, 31, 23, 59, 59, 999999, tzinfo=tz)
     elif range_value == StatisticsRange.three_years:
-        start = _subtract_years(now, 3)
+        start = datetime(now.year - 2, 1, 1, tzinfo=tz)
     else:
         start = now
     return (_naive_utc(start), _naive_utc(end))

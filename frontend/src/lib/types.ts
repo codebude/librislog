@@ -214,7 +214,7 @@ export interface StatisticsResponse {
 	worst_rated_books: TopRatedBook[];
 }
 
-export type StatisticsRange = 'alltime' | '3years' | '1year' | '6months' | '30days' | 'custom';
+export type StatisticsRange = 'alltime' | 'this_year' | 'last_year' | '3years' | 'custom';
 
 export type UserRole = 'admin' | 'user';
 

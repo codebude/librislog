@@ -262,10 +262,9 @@ class YearlyBooks(SQLModel):
 class StatisticsRange(str, Enum):
     """Shared statistics time-range selector options."""
     alltime = "alltime"
+    this_year = "this_year"
+    last_year = "last_year"
     three_years = "3years"
-    one_year = "1year"
-    six_months = "6months"
-    thirty_days = "30days"
     custom = "custom"
 
 
