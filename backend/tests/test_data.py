@@ -285,6 +285,36 @@ def test_data_import_validate_and_execute_continue_on_error(client: TestClient, 
     assert complete["failed"] == 1
 
 
+def test_data_import_preview_allows_read_book_without_finished_date(
+    client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp_dir"))
+    csv_payload = "Title,Author,Status,Availability\nDune,Frank Herbert,read,owned\n"
+    parse_resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.csv", csv_payload, "text/csv")},
+    )
+    file_id = parse_resp.json()["file_id"]
+
+    preview_resp = client.post(
+        "/api/data/import/preview",
+        json={
+            "file_id": file_id,
+            "mapping": {
+                "title": {"source": "Title", "transform": None},
+                "author": {"source": "Author", "transform": None},
+                "reading_status": {"source": "Status", "transform": None},
+                "acquisition_status": {"source": "Availability", "transform": None},
+            },
+        },
+    )
+    assert preview_resp.status_code == 200
+    preview = preview_resp.json()
+    assert preview["errors"] == []
+    assert preview["preview_rows"][0]["errors"] == []
+    assert any("no finished date" in warning for warning in preview["preview_rows"][0]["warnings"])
+
+
 def test_data_import_execute_rollback_all_rolls_back(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp"))
     csv_payload = "Title,Author\nDune,Frank Herbert\n,Missing\n"

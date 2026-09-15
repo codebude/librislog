@@ -561,6 +561,17 @@
       "saveSuccess": "阅读目标已保存",
       "invalidTarget": "{name} 必须是至少为 1 的整数。"
     },
+    "readingDates": {
+      "title": "自动设置阅读日期",
+      "subtitle": "选择 LibrisLog 是否在更改阅读状态时自动填写日期。",
+      "autoStart": "切换为正在阅读时设置开始日期",
+      "autoStartDescription": "启用后，缺少的开始日期会设置为现在。如果不知道何时开始阅读，请禁用此选项。",
+      "autoFinish": "切换为已读或未读完时设置结束日期",
+      "autoFinishDescription": "启用后，缺少的结束日期会设置为现在。如果不知道何时完成阅读，请禁用此选项。",
+      "documentationPrefix": "详细信息请参阅",
+      "documentationLink": "阅读日期文档",
+      "saveSuccess": "阅读日期设置已保存"
+    },
     "dataManagement": {
       "title": "管理我的数据",
       "description": "导出你的书库或从 CSV/JSON 文件导入图书。",
@@ -738,6 +749,7 @@
       "errorRow": "第 {row} 行",
       "previewSource": "来源",
       "previewTransformed": "转换后",
+      "previewWarnings": "警告",
       "none": "（无）",
       "requiredField": "= 必填字段",
       "changeFile": "更改文件",

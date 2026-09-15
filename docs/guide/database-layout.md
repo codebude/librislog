@@ -298,6 +298,8 @@ Per-user settings such as language, timezone, and theme.
 | `timezone` | `VARCHAR(64)` | NOT NULL | default `UTC` |
 | `theme` | `VARCHAR(20)` | NOT NULL | default `light` |
 | `custom_theme` | `VARCHAR(30)` |  |  |
+| `auto_set_date_started` | `BOOLEAN` | NOT NULL | default `true` |
+| `auto_set_date_finished` | `BOOLEAN` | NOT NULL | default `true` |
 
 ### `book_author`
 

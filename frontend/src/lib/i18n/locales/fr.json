@@ -561,6 +561,17 @@
       "saveSuccess": "Objectifs de lecture enregistrés",
       "invalidTarget": "{name} doit être un nombre entier d'au moins 1."
     },
+    "readingDates": {
+      "title": "Automatisation des dates de lecture",
+      "subtitle": "Choisissez si LibrisLog doit renseigner automatiquement les dates lors d'un changement de statut.",
+      "autoStart": "Définir une date de début en passant à En cours de lecture",
+      "autoStartDescription": "Lorsqu'elle est activée, une date de début manquante est définie à maintenant. Désactivez cette option si vous ne savez pas quand vous avez commencé.",
+      "autoFinish": "Définir une date de fin en passant à Lu ou Abandonné",
+      "autoFinishDescription": "Lorsqu'elle est activée, une date de fin manquante est définie à maintenant. Désactivez cette option si vous ne savez pas quand vous avez terminé.",
+      "documentationPrefix": "En savoir plus dans la",
+      "documentationLink": "documentation sur les dates de lecture",
+      "saveSuccess": "Paramètres des dates de lecture enregistrés"
+    },
     "dataManagement": {
       "title": "Gérer mes données",
       "description": "Exporte ta bibliothèque ou importe des livres depuis un fichier CSV/JSON.",
@@ -738,6 +749,7 @@
       "errorRow": "Ligne {row}",
       "previewSource": "Source",
       "previewTransformed": "Transformé",
+      "previewWarnings": "Avertissements",
       "none": "(aucun)",
       "requiredField": "= champ obligatoire",
       "changeFile": "Changer de fichier",

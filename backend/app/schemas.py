@@ -433,6 +433,8 @@ class UserSettingsRead(SQLModel):
     goal_books_per_year_enabled: bool
     goal_books_per_year: int
     gamification_enabled: bool
+    auto_set_date_started: bool
+    auto_set_date_finished: bool
     statistics_range: StatisticsRange
     statistics_custom_from: Optional[date] = None
     statistics_custom_to: Optional[date] = None
@@ -453,9 +455,18 @@ class UserSettingsUpdate(SQLModel):
     goal_books_per_year_enabled: Optional[bool] = None
     goal_books_per_year: Optional[int] = Field(default=None, ge=1)
     gamification_enabled: Optional[bool] = None
+    auto_set_date_started: Optional[bool] = None
+    auto_set_date_finished: Optional[bool] = None
     statistics_range: Optional[StatisticsRange] = None
     statistics_custom_from: Optional[date] = None
     statistics_custom_to: Optional[date] = None
+
+    @field_validator("auto_set_date_started", "auto_set_date_finished")
+    @classmethod
+    def validate_date_automation_setting(cls, value: Optional[bool]) -> Optional[bool]:
+        if value is None:
+            raise ValueError("Reading date automation settings cannot be null")
+        return value
 
     @field_validator('theme')
     @classmethod
@@ -715,6 +726,7 @@ class DataImportPreviewRow(SQLModel):
     source: dict[str, Any]
     transformed: dict[str, Any]
     errors: list[str]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class DataImportPreviewRequest(SQLModel):

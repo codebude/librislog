@@ -561,6 +561,17 @@
       "saveSuccess": "Leseziele gespeichert",
       "invalidTarget": "{name} muss eine ganze Zahl von mindestens 1 sein."
     },
+    "readingDates": {
+      "title": "Automatische Lesedaten",
+      "subtitle": "Lege fest, ob LibrisLog beim Ändern des Lesestatus automatisch Daten eintragen soll.",
+      "autoStart": "Startdatum beim Wechsel zu „Wird gelesen“ setzen",
+      "autoStartDescription": "Wenn aktiviert, wird ein fehlendes Startdatum auf jetzt gesetzt. Deaktiviere dies, wenn du nicht weißt, wann du begonnen hast.",
+      "autoFinish": "Enddatum beim Wechsel zu „Gelesen“ oder „Nicht beendet“ setzen",
+      "autoFinishDescription": "Wenn aktiviert, wird ein fehlendes Enddatum auf jetzt gesetzt. Deaktiviere dies, wenn du nicht weißt, wann du fertig geworden bist.",
+      "documentationPrefix": "Mehr dazu in der",
+      "documentationLink": "Dokumentation zu Lesedaten",
+      "saveSuccess": "Einstellungen für Lesedaten gespeichert"
+    },
     "dataManagement": {
       "title": "Meine Daten verwalten",
       "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",
@@ -738,6 +749,7 @@
       "errorRow": "Zeile {row}",
       "previewSource": "Quelle",
       "previewTransformed": "Transformiert",
+      "previewWarnings": "Warnungen",
       "none": "(keine)",
       "requiredField": "= Pflichtfeld",
       "changeFile": "Datei wechseln",

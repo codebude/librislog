@@ -1,10 +1,12 @@
 	<script lang="ts">
+	import { onMount } from 'svelte';
 	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
+	import { loadUserSettings, userSettings } from '$lib/stores/userSettings';
 	import type { CoverCandidate } from '$lib/types';
 	import StarRating from './StarRating.svelte';
 	import CoverPicker from './CoverPicker.svelte';
@@ -44,6 +46,23 @@
 	let autoSearchCandidates = $state<CoverCandidate[]>([]);
 	let autoSearchRequestId = 0;
 	let scannerOpen = $state(false);
+	let autoSetDateStarted = $state(true);
+	let autoSetDateFinished = $state(true);
+	let readingDateSettingsLoaded = $state(false);
+
+	onMount(() => {
+		void loadUserSettings()
+			.then(() => { readingDateSettingsLoaded = true; })
+			.catch(() => { readingDateSettingsLoaded = true; });
+	});
+
+	$effect(() => {
+		const settings = $userSettings;
+		if (settings) {
+			autoSetDateStarted = settings.auto_set_date_started ?? true;
+			autoSetDateFinished = settings.auto_set_date_finished ?? true;
+		}
+	});
 
 	// Editable fields
 	let title = $state('');
@@ -247,6 +266,14 @@
 			toasts.add($_('error.pageCountRequired'), 'error');
 			return;
 		}
+		if (!readingDateSettingsLoaded) {
+			try {
+				await loadUserSettings();
+			} catch {
+				// Keep the backward-compatible defaults when settings are unavailable.
+			}
+			readingDateSettingsLoaded = true;
+		}
 		if (dateStartedInvalid && dateStartedHasInput) {
 			toasts.add($_('error.invalidDate'), 'error');
 			return;
@@ -264,6 +291,7 @@
 		const statusChanged = reading_status !== book.reading_status;
 		if (
 			!skipAutoDateStarted &&
+			autoSetDateStarted &&
 			book.reading_status === 'want_to_read' &&
 			reading_status === 'read' &&
 			!book.date_started &&
@@ -274,7 +302,7 @@
 			return;
 		}
 		const dfCleared = !df && !!book.date_finished;
-		if (dfCleared && reading_status === 'read' && !statusChanged) {
+		if (dfCleared && autoSetDateFinished && reading_status === 'read' && !statusChanged) {
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
 			return;
 		}

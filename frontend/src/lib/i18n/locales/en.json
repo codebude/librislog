@@ -561,6 +561,17 @@
       "saveSuccess": "Reading goals saved",
       "invalidTarget": "{name} must be a whole number of at least 1."
     },
+    "readingDates": {
+      "title": "Reading Date Automation",
+      "subtitle": "Choose whether LibrisLog should fill in dates automatically when a book changes reading status.",
+      "autoStart": "Set a start date when moving to Currently Reading",
+      "autoStartDescription": "When enabled, a missing start date is set to now. Disable this to leave the date empty when you do not know when you started.",
+      "autoFinish": "Set a finish date when moving to Read or Did Not Finish",
+      "autoFinishDescription": "When enabled, a missing finish date is set to now. Disable this to leave the date empty when you do not know when you finished.",
+      "documentationPrefix": "Learn more in the",
+      "documentationLink": "reading date documentation",
+      "saveSuccess": "Reading date settings saved"
+    },
     "dataManagement": {
       "title": "Manage my data",
       "description": "Export your library or import books from a CSV/JSON file.",
@@ -739,6 +750,7 @@
       "errorRow": "Row {row}",
       "previewSource": "Source",
       "previewTransformed": "Transformed",
+      "previewWarnings": "Warnings",
       "none": "(none)",
       "requiredField": "= required field",
       "changeFile": "Change file",

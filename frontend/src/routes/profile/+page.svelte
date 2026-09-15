@@ -58,8 +58,12 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 	let goalBooksPerYearEnabled = $state(false);
 	let goalBooksPerYear = $state(25);
 	let gamificationEnabled = $state(true);
+	let autoSetDateStarted = $state(true);
+	let autoSetDateFinished = $state(true);
 	let goalsMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let goalsSaving = $state(false);
+	let readingDatesMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let readingDatesSaving = $state(false);
 	let resetDataConfirmation = $state('');
 	let resetDataMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let deleteAccountConfirmation = $state('');
@@ -156,6 +160,8 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		goalBooksPerYearEnabled = settings.goal_books_per_year_enabled;
 		goalBooksPerYear = settings.goal_books_per_year;
 		gamificationEnabled = settings.gamification_enabled;
+		autoSetDateStarted = settings.auto_set_date_started;
+		autoSetDateFinished = settings.auto_set_date_finished;
 		applyThemeToDocument();
 		saveThemeToStorage();
 		saveRestorePoint();
@@ -291,6 +297,22 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			goalsMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
 		} finally {
 			goalsSaving = false;
+		}
+	}
+
+	async function saveReadingDateAutomation() {
+		readingDatesMessage = null;
+		readingDatesSaving = true;
+		try {
+			await api.profile.updateSettings({
+				auto_set_date_started: autoSetDateStarted,
+				auto_set_date_finished: autoSetDateFinished
+			});
+			readingDatesMessage = { type: 'success', text: $_('profile.readingDates.saveSuccess') };
+		} catch (e: unknown) {
+			readingDatesMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		} finally {
+			readingDatesSaving = false;
 		}
 	}
 
@@ -853,6 +875,41 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		</div>
 	</div>
 
+	<div id="section-reading-dates" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.readingDates.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.readingDates.subtitle')}</p>
+			{#if readingDatesMessage}
+				<Alert type={readingDatesMessage.type === 'success' ? 'success' : 'error'} onClose={() => (readingDatesMessage = null)}>
+					{readingDatesMessage.text}
+				</Alert>
+			{/if}
+			<div class="flex flex-col gap-3">
+				<label class="flex items-start gap-3 border border-base-200 rounded-xl p-3 cursor-pointer">
+					<input type="checkbox" class="toggle toggle-sm toggle-primary mt-0.5" name="auto-set-date-started" bind:checked={autoSetDateStarted} />
+					<span>
+						<span class="block text-sm font-medium">{$_('profile.readingDates.autoStart')}</span>
+						<span class="block text-xs text-base-content/60 mt-1">{$_('profile.readingDates.autoStartDescription')}</span>
+					</span>
+				</label>
+				<label class="flex items-start gap-3 border border-base-200 rounded-xl p-3 cursor-pointer">
+					<input type="checkbox" class="toggle toggle-sm toggle-primary mt-0.5" name="auto-set-date-finished" bind:checked={autoSetDateFinished} />
+					<span>
+						<span class="block text-sm font-medium">{$_('profile.readingDates.autoFinish')}</span>
+						<span class="block text-xs text-base-content/60 mt-1">{$_('profile.readingDates.autoFinishDescription')}</span>
+					</span>
+				</label>
+			</div>
+			<p class="text-xs text-base-content/60">
+				{$_('profile.readingDates.documentationPrefix')}
+			<a class="link link-primary" href="https://docs.librislog.app/guide/using-librislog/profile.html#reading-date-automation" target="_blank" rel="noopener noreferrer">{$_('profile.readingDates.documentationLink')}</a>
+			</p>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveReadingDateAutomation} disabled={readingDatesSaving}>
+				{readingDatesSaving ? $_('common.saving') : $_('common.save')}
+			</button>
+		</div>
+	</div>
+
 	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
@@ -1269,6 +1326,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
 		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
 		<li><a href="#section-goals" class:menu-active={activeSection === 'section-goals'}>{$_('profile.goals.title')}</a></li>
+		<li><a href="#section-reading-dates" class:menu-active={activeSection === 'section-reading-dates'}>{$_('profile.readingDates.title')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
 		<li><a href="#section-embed-tokens" class:menu-active={activeSection === 'section-embed-tokens'}>{$_('user.embedTokens')}</a></li>
 		<li><a href="#section-share-profile" class:menu-active={activeSection === 'section-share-profile'}>{$_('profile.shareProfile.title')}</a></li>
