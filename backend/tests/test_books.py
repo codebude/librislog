@@ -1539,6 +1539,21 @@ def test_update_book_rejects_clearing_date_finished_for_read(client: TestClient)
     assert resp.json()["detail"] == "A finished book must have an end date. Change the status if you want to remove the finish date."
 
 
+def test_update_book_allows_clearing_date_finished_when_automation_is_disabled(client: TestClient) -> None:
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_finished": False},
+    )
+    assert settings_response.status_code == 200
+
+    book = _create_book(client, title="Optional Finish Date", reading_status="read", date_finished="2024-06-01")
+    resp = client.patch(f"/api/books/{book['id']}", json={"date_finished": None})
+
+    assert resp.status_code == 200
+    assert resp.json()["reading_status"] == "read"
+    assert resp.json()["date_finished"] is None
+
+
 def test_update_book_allows_clearing_date_finished_when_changing_status(client: TestClient) -> None:
     book = _create_book(client, title="Change Status", reading_status="read", date_finished="2024-06-01")
 

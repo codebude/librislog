@@ -47,6 +47,7 @@
 	let autoSearchRequestId = 0;
 	let scannerOpen = $state(false);
 	let autoSetDateStarted = $state(true);
+	let autoSetDateFinished = $state(true);
 	let readingDateSettingsLoaded = $state(false);
 
 	onMount(() => {
@@ -57,7 +58,10 @@
 
 	$effect(() => {
 		const settings = $userSettings;
-		if (settings) autoSetDateStarted = settings.auto_set_date_started ?? true;
+		if (settings) {
+			autoSetDateStarted = settings.auto_set_date_started ?? true;
+			autoSetDateFinished = settings.auto_set_date_finished ?? true;
+		}
 	});
 
 	// Editable fields
@@ -298,7 +302,7 @@
 			return;
 		}
 		const dfCleared = !df && !!book.date_finished;
-		if (dfCleared && reading_status === 'read' && !statusChanged) {
+		if (dfCleared && autoSetDateFinished && reading_status === 'read' && !statusChanged) {
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
 			return;
 		}

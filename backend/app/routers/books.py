@@ -118,6 +118,7 @@ def _validate_date_finished_for_read(
     book: Book,
     update_data: dict,
     target_status: ReadingStatus,
+    auto_set_date_finished: bool = True,
 ) -> None:
     """Ensure date_finished is not explicitly cleared while the book is read."""
     if "date_finished" not in update_data:
@@ -126,7 +127,11 @@ def _validate_date_finished_for_read(
         return
     if book.date_finished is None:
         return
-    if book.reading_status == ReadingStatus.read and target_status == ReadingStatus.read:
+    if (
+        auto_set_date_finished
+        and book.reading_status == ReadingStatus.read
+        and target_status == ReadingStatus.read
+    ):
         raise HTTPException(status_code=422, detail="A finished book must have an end date. Change the status if you want to remove the finish date.")
 
 
@@ -567,7 +572,12 @@ async def update_book(
         auto_set_date_finished=auto_set_date_finished,
     )
     _validate_dates(update_data)
-    _validate_date_finished_for_read(book, update_data, target_status)
+    _validate_date_finished_for_read(
+        book,
+        update_data,
+        target_status,
+        auto_set_date_finished=auto_set_date_finished,
+    )
 
     book.sqlmodel_update(update_data)
     session.add(book)
@@ -720,7 +730,12 @@ def transition_status(
         auto_set_date_finished=auto_set_date_finished,
     )
     _validate_dates(update_data)
-    _validate_date_finished_for_read(book, update_data, transition.new_status)
+    _validate_date_finished_for_read(
+        book,
+        update_data,
+        transition.new_status,
+        auto_set_date_finished=auto_set_date_finished,
+    )
     book.sqlmodel_update(update_data)
     session.add(book)
     session.commit()
