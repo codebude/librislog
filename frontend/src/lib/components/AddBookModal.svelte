@@ -27,6 +27,14 @@
 	let scannedIsbn = $state<string | null>(null);
 	let basket = $state<BasketItem[]>([]);
 	let basketImporting = $state(false);
+	let searchSessionIds = $state<number[]>([1]);
+	let nextSearchSessionId = 2;
+	const searchPanelStyles = [
+		'border-base-300 border-l-4 border-l-primary bg-primary/10',
+		'border-base-300 border-l-4 border-l-secondary bg-secondary/10',
+		'border-base-300 border-l-4 border-l-accent bg-accent/10',
+		'border-base-300 border-l-4 border-l-info bg-info/10'
+	];
 
 	// Manual form state
 	let title = $state('');
@@ -78,6 +86,17 @@
 		cover_url = null;
 		activeTab = 'manual';
 		basket = [];
+		searchSessionIds = [1];
+		nextSearchSessionId = 2;
+	}
+
+	function addSearchSession() {
+		searchSessionIds = [nextSearchSessionId++, ...searchSessionIds];
+	}
+
+	function removeSearchSession(id: number) {
+		if (searchSessionIds.length === 1) return;
+		searchSessionIds = searchSessionIds.filter((sessionId) => sessionId !== id);
 	}
 
 	function addToBasket(item: BasketItem) {
@@ -354,24 +373,71 @@
 					</button>
 				</div>
 				</form>
-			{:else if activeTab === 'import'}
-			<ImportSearch
-				defaultStatus={defaultStatus}
-				basket={basket}
-				onAddToBasket={addToBasket}
-				onOpenScanner={() => {
-					scannerOpen = true;
-				}}
-				scannedIsbn={scannedIsbn}
-				onScannedHandled={() => {
-					scannedIsbn = null;
-				}}
-				onImport={(book) => {
-					onAdded?.(book);
-					open = false;
-					reset();
-				}}
-			/>
+		{:else if activeTab === 'import'}
+			<div class="flex items-center justify-between gap-3 mb-3 rounded-lg bg-base-200/60 p-3">
+				<p class="text-sm text-base-content/70">{$_('import.parallelSearchDescription')}</p>
+				<button class="btn btn-outline btn-sm shrink-0" type="button" onclick={addSearchSession}>
+					{$_('import.newParallelSearch')}
+				</button>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.medium')}</span>
+					<select class="select select-bordered select-sm" name="import-medium" bind:value={medium}>
+						<option value="">{$_('book.selectMedium')}</option>
+						{#each MEDIUM_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+					<select class="select select-bordered select-sm" name="import-acquisition-status" bind:value={acquisitionStatus}>
+						<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+						{#each ACQUISITION_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+			</div>
+			<div class="flex flex-col gap-4">
+				{#each searchSessionIds as sessionId, index (sessionId)}
+					<section class={`rounded-xl border p-3 ${searchPanelStyles[index % searchPanelStyles.length]}`}>
+						{#if searchSessionIds.length > 1}
+							<div class="flex items-center justify-between mb-2">
+								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: sessionId } })}</h4>
+								<button
+									class="btn btn-ghost btn-xs"
+									type="button"
+									onclick={() => removeSearchSession(sessionId)}
+									aria-label={$_('import.removeParallelSearch')}
+								>
+									{$_('import.removeParallelSearch')}
+								</button>
+							</div>
+						{/if}
+						<ImportSearch
+							defaultStatus={defaultStatus}
+							showMetadataControls={false}
+							acquisitionStatus={acquisitionStatus}
+							medium={medium}
+							focusOnMount={sessionId !== 1 && sessionId === searchSessionIds[0]}
+							basket={basket}
+							onAddToBasket={addToBasket}
+							onOpenScanner={() => {
+								scannerOpen = true;
+							}}
+							scannedIsbn={index === 0 ? scannedIsbn : null}
+							onScannedHandled={index === 0 ? () => { scannedIsbn = null; } : undefined}
+							onImport={(book) => {
+								onAdded?.(book);
+								open = false;
+								reset();
+							}}
+						/>
+					</section>
+				{/each}
+			</div>
 			<div class="mt-3 text-center">
 				<a href="/data?tab=import" class="link link-primary text-sm">{$_('addModal.importFromFile')}</a>
 			</div>

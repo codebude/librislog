@@ -261,7 +261,11 @@
     "importBasket": "导入购物篮",
     "importingBasket": "导入中...",
     "basketRemove": "从购物篮中移除",
-    "basketImportSuccess": "成功导入 {count} 本图书。"
+    "basketImportSuccess": "成功导入 {count} 本图书。",
+    "parallelSearchDescription": "同时运行多个独立搜索。每个搜索会保留自己的结果，并可将图书添加到共享书篮。",
+    "newParallelSearch": "新的并行搜索",
+    "parallelSearchLabel": "搜索 {number}",
+    "removeParallelSearch": "移除搜索"
   },
   "scanner": {
     "title": "扫描 ISBN 条码",

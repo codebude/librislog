@@ -261,7 +261,11 @@
     "importBasket": "Importar cesta",
     "importingBasket": "Importando...",
     "basketRemove": "Quitar de la cesta",
-    "basketImportSuccess": "{count} libros importados correctamente."
+    "basketImportSuccess": "{count} libros importados correctamente.",
+    "parallelSearchDescription": "Ejecuta varias búsquedas independientes al mismo tiempo. Cada búsqueda conserva sus resultados y puede añadir libros a la cesta compartida.",
+    "newParallelSearch": "Nueva búsqueda paralela",
+    "parallelSearchLabel": "Búsqueda {number}",
+    "removeParallelSearch": "Eliminar búsqueda"
   },
   "scanner": {
     "title": "Escanear código de barras ISBN",

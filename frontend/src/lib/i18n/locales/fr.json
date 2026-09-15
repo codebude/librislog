@@ -261,7 +261,11 @@
     "importBasket": "Importer le panier",
     "importingBasket": "Importation...",
     "basketRemove": "Retirer du panier",
-    "basketImportSuccess": "{count} livres importés avec succès."
+    "basketImportSuccess": "{count} livres importés avec succès.",
+    "parallelSearchDescription": "Exécutez plusieurs recherches indépendantes en même temps. Chaque recherche conserve ses résultats et peut ajouter des livres au panier partagé.",
+    "newParallelSearch": "Nouvelle recherche parallèle",
+    "parallelSearchLabel": "Recherche {number}",
+    "removeParallelSearch": "Supprimer la recherche"
   },
   "scanner": {
     "title": "Scanner un code-barres ISBN",

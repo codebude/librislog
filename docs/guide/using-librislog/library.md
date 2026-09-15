@@ -69,6 +69,8 @@ Open Library and Hardcover (if an API token is configured) are queried **in para
 
 While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
 
+The search dialog also supports multiple parallel searches. Click **New parallel search** to open another independent search panel. Each panel keeps its own results while selected books can be added to the shared basket. Choose the possession and medium once above the panels; those values apply to books added from any search.
+
 #### How results are grouped
 
 Different providers often describe the same book slightly differently (title language, page count, publisher, cover). Instead of dropping these variants, LibrisLog keeps every result and groups the ones that represent the same book. Each group shows a **"N results"** badge with a **Show editions** toggle: expand it to review the individual records and pick the one you want to import.

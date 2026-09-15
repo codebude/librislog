@@ -21,7 +21,11 @@
 		onImport,
 		onOpenScanner,
 		scannedIsbn = null,
-		onScannedHandled
+		onScannedHandled,
+		showMetadataControls = true,
+		acquisitionStatus = $bindable<AcquisitionStatus | ''>(''),
+		medium = $bindable<Medium | ''>(''),
+		focusOnMount = false
 	}: {
 		defaultStatus?: ReadingStatus;
 		basket?: BasketItem[];
@@ -30,9 +34,14 @@
 		onOpenScanner?: () => void;
 		scannedIsbn?: string | null;
 		onScannedHandled?: () => void;
+		showMetadataControls?: boolean;
+		acquisitionStatus?: AcquisitionStatus | '';
+		medium?: Medium | '';
+		focusOnMount?: boolean;
 	} = $props();
 
 	let query = $state('');
+	let searchInput = $state<HTMLInputElement | null>(null);
 	let searchType = $state<'title' | 'isbn'>('title');
 	let results = $state<BookImportCandidate[]>([]);
 	let stages = $state<SearchStage[]>([]);
@@ -46,8 +55,6 @@
 	let lastHandledScannedIsbn = $state<string | null>(null);
 	let importedIsbns = $state<Set<string>>(new Set());
 	let importedTitleAuthors = $state<Set<string>>(new Set());
-	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
-	let medium = $state<Medium | ''>('');
 	let searchAbortController: AbortController | null = null;
 	let expandedGroups = $state<Record<string, boolean>>({});
 	let selectedVariantByGroup = $state<Record<string, number>>({});
@@ -61,6 +68,7 @@
 	];
 
 	onMount(async () => {
+		if (focusOnMount) searchInput?.focus();
 		secureContext = isSecureContext();
 		cameraSupported =
 			typeof navigator !== 'undefined' &&
@@ -317,6 +325,7 @@
 <div class="flex flex-col gap-3 sm:pr-4">
 	<div class="flex flex-col sm:flex-row sm:items-center gap-2 grow basis-[0] min-w-[240px]">
 		<input
+			bind:this={searchInput}
 			type="text"
 			name="import-query"
 			class="input input-bordered w-full sm:w-auto sm:grow sm:min-w-0"
@@ -391,26 +400,28 @@
 		</p>
 	{/if}
 
-	<label class="flex flex-col gap-1 text-sm">
-		<span>{$_('book.medium')}</span>
-		<select class="select select-bordered select-sm" name="medium" bind:value={medium}>
-			<option value="">{$_('book.selectMedium')}</option>
-			{#each MEDIUM_OPTIONS as opt}
-				<option value={opt.value}>{$_(opt.label)}</option>
-			{/each}
-		</select>
-	</label>
+	{#if showMetadataControls}
+		<label class="flex flex-col gap-1 text-sm">
+			<span>{$_('book.medium')}</span>
+			<select class="select select-bordered select-sm" name="medium" bind:value={medium}>
+				<option value="">{$_('book.selectMedium')}</option>
+				{#each MEDIUM_OPTIONS as opt}
+					<option value={opt.value}>{$_(opt.label)}</option>
+				{/each}
+			</select>
+		</label>
 
-	<label class="flex flex-col gap-1 text-sm">
-		<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
-		<select class="select select-bordered select-sm" name="acquisition_status" bind:value={acquisitionStatus}>
-			<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
-			<option value="owned">{$_('acquisition.owned')}</option>
-			<option value="borrowed">{$_('acquisition.borrowed')}</option>
-			<option value="digital_access">{$_('acquisition.digital_access')}</option>
-			<option value="to_acquire">{$_('acquisition.to_acquire')}</option>
-		</select>
-	</label>
+		<label class="flex flex-col gap-1 text-sm">
+			<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+			<select class="select select-bordered select-sm" name="acquisition_status" bind:value={acquisitionStatus}>
+				<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+				<option value="owned">{$_('acquisition.owned')}</option>
+				<option value="borrowed">{$_('acquisition.borrowed')}</option>
+				<option value="digital_access">{$_('acquisition.digital_access')}</option>
+				<option value="to_acquire">{$_('acquisition.to_acquire')}</option>
+			</select>
+		</label>
+	{/if}
 
 	{#if results.length === 0 && !searching && stages.length === 0}
 		<p class="text-base-content/50 text-sm text-center py-4">{$_('import.noResultsYet')}</p>
