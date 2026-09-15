@@ -27,6 +27,8 @@
 	let scannedIsbn = $state<string | null>(null);
 	let basket = $state<BasketItem[]>([]);
 	let basketImporting = $state(false);
+	let searchSessionIds = $state<number[]>([1]);
+	let nextSearchSessionId = 2;
 
 	// Manual form state
 	let title = $state('');
@@ -78,6 +80,17 @@
 		cover_url = null;
 		activeTab = 'manual';
 		basket = [];
+		searchSessionIds = [1];
+		nextSearchSessionId = 2;
+	}
+
+	function addSearchSession() {
+		searchSessionIds = [...searchSessionIds, nextSearchSessionId++];
+	}
+
+	function removeSearchSession(id: number) {
+		if (searchSessionIds.length === 1) return;
+		searchSessionIds = searchSessionIds.filter((sessionId) => sessionId !== id);
 	}
 
 	function addToBasket(item: BasketItem) {
@@ -354,24 +367,47 @@
 					</button>
 				</div>
 				</form>
-			{:else if activeTab === 'import'}
-			<ImportSearch
-				defaultStatus={defaultStatus}
-				basket={basket}
-				onAddToBasket={addToBasket}
-				onOpenScanner={() => {
-					scannerOpen = true;
-				}}
-				scannedIsbn={scannedIsbn}
-				onScannedHandled={() => {
-					scannedIsbn = null;
-				}}
-				onImport={(book) => {
-					onAdded?.(book);
-					open = false;
-					reset();
-				}}
-			/>
+		{:else if activeTab === 'import'}
+			<div class="flex items-center justify-between gap-3 mb-3 rounded-lg bg-base-200/60 p-3">
+				<p class="text-sm text-base-content/70">{$_('import.parallelSearchDescription')}</p>
+				<button class="btn btn-outline btn-sm shrink-0" type="button" onclick={addSearchSession}>
+					{$_('import.newParallelSearch')}
+				</button>
+			</div>
+			<div class="flex flex-col gap-4">
+				{#each searchSessionIds as sessionId, index (sessionId)}
+					<section class="rounded-xl border border-base-200 p-3">
+						{#if searchSessionIds.length > 1}
+							<div class="flex items-center justify-between mb-2">
+								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: index + 1 } })}</h4>
+								<button
+									class="btn btn-ghost btn-xs"
+									type="button"
+									onclick={() => removeSearchSession(sessionId)}
+									aria-label={$_('import.removeParallelSearch')}
+								>
+									{$_('import.removeParallelSearch')}
+								</button>
+							</div>
+						{/if}
+						<ImportSearch
+							defaultStatus={defaultStatus}
+							basket={basket}
+							onAddToBasket={addToBasket}
+							onOpenScanner={() => {
+								scannerOpen = true;
+							}}
+							scannedIsbn={index === 0 ? scannedIsbn : null}
+							onScannedHandled={index === 0 ? () => { scannedIsbn = null; } : undefined}
+							onImport={(book) => {
+								onAdded?.(book);
+								open = false;
+								reset();
+							}}
+						/>
+					</section>
+				{/each}
+			</div>
 			<div class="mt-3 text-center">
 				<a href="/data?tab=import" class="link link-primary text-sm">{$_('addModal.importFromFile')}</a>
 			</div>

@@ -100,6 +100,35 @@ describe('AddBookModal', () => {
 		expect(importTab).toHaveClass('tab-active');
 	});
 
+	it('can open multiple independent search panels', async () => {
+		render(AddBookModal, { props: { open: true } });
+		await fireEvent.click(screen.getByRole('tab', { name: 'Search & Import' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'New parallel search' }));
+
+		expect(screen.getAllByPlaceholderText(/Search by title or author/)).toHaveLength(2);
+		expect(screen.getByRole('heading', { name: 'Search 1' })).toBeInTheDocument();
+		expect(screen.getByRole('heading', { name: 'Search 2' })).toBeInTheDocument();
+	});
+
+	it('starts searches in separate panels without waiting for each other', async () => {
+		mockSearchStream.mockImplementation(async function* (query: string) {
+			yield { stage: 'complete', results: [] } as SearchStage;
+		});
+		render(AddBookModal, { props: { open: true } });
+		await fireEvent.click(screen.getByRole('tab', { name: 'Search & Import' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'New parallel search' }));
+
+		const inputs = screen.getAllByPlaceholderText(/Search by title or author/);
+		await fireEvent.input(inputs[0], { target: { value: 'Dune' } });
+		await fireEvent.input(inputs[1], { target: { value: 'Foundation' } });
+		const searchButtons = screen.getAllByRole('button', { name: 'Search' });
+		await fireEvent.click(searchButtons[0]);
+		await fireEvent.click(searchButtons[1]);
+
+		await waitFor(() => expect(mockSearchStream).toHaveBeenCalledTimes(2));
+		expect(mockSearchStream.mock.calls.map((call) => call[0])).toEqual(['Dune', 'Foundation']);
+	});
+
 	it('closes modal when close button clicked', async () => {
 		render(AddBookModal, { props: { open: true } });
 		const closeBtn = screen.getByRole('button', { name: /close/i });

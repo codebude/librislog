@@ -261,7 +261,11 @@
     "importBasket": "Import Basket",
     "importingBasket": "Importing...",
     "basketRemove": "Remove from basket",
-    "basketImportSuccess": "Imported {count} books successfully."
+    "basketImportSuccess": "Imported {count} books successfully.",
+    "parallelSearchDescription": "Run several independent searches at the same time. Each search keeps its own results and can add books to the shared basket.",
+    "newParallelSearch": "New parallel search",
+    "parallelSearchLabel": "Search {number}",
+    "removeParallelSearch": "Remove search"
   },
   "scanner": {
     "title": "Scan ISBN Barcode",

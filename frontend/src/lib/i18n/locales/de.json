@@ -261,7 +261,11 @@
     "importBasket": "Warenkorb importieren",
     "importingBasket": "Importiere...",
     "basketRemove": "Aus dem Warenkorb entfernen",
-    "basketImportSuccess": "{count} Bücher erfolgreich importiert."
+    "basketImportSuccess": "{count} Bücher erfolgreich importiert.",
+    "parallelSearchDescription": "Führe mehrere unabhängige Suchen gleichzeitig aus. Jede Suche behält ihre Ergebnisse und kann Bücher in den gemeinsamen Korb legen.",
+    "newParallelSearch": "Neue parallele Suche",
+    "parallelSearchLabel": "Suche {number}",
+    "removeParallelSearch": "Suche entfernen"
   },
   "scanner": {
     "title": "ISBN-Barcode scannen",
