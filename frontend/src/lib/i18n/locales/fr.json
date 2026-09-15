@@ -506,7 +506,7 @@
     "publicProfileNotFound": "Ce lien de profil public n'est plus valide.",
     "publicProfileLoginRequired": "Ce profil n'est visible que par les utilisateurs connectés. Connecte-toi pour le voir.",
     "importMalformedEvent": "Événement serveur malformé reçu lors de l'importation.",
-    "importUnsupportedContentType": "Type de contenu non pris en charge. Utilise des fichiers CSV ou JSON.",
+    "importUnsupportedContentType": "Type de contenu non pris en charge. Utilise des fichiers CSV, JSON ou Excel (.xlsx).",
     "emailAlreadyRegistered": "Cette adresse e-mail est déjà enregistrée.",
     "userNotFound": "Utilisateur introuvable.",
     "cannotChangeOwnRole": "Tu ne peux pas modifier ton propre rôle d'administrateur.",
@@ -520,7 +520,9 @@
     "importMappingNameConflict": "Un mappage avec ce nom existe déjà.",
     "importMappingNotFound": "Mappage d'importation introuvable.",
     "importFileNotFound": "Fichier d'importation introuvable. Veuillez téléverser le fichier à nouveau.",
-    "importInvalidDelimiter": "Le séparateur CSV doit être un seul caractère."
+    "importInvalidDelimiter": "Le séparateur CSV doit être un seul caractère.",
+    "importUnsupportedFileType": "Type de fichier non pris en charge. Utilise un fichier CSV, JSON ou Excel (.xlsx).",
+    "importInvalidXlsxFile": "Impossible de lire le fichier Excel. Assure-toi qu'il s'agit d'un classeur .xlsx valide."
   },
   "oidc": {
     "orContinueWith": "ou continuer avec",
@@ -578,7 +580,7 @@
     },
     "dataManagement": {
       "title": "Gérer mes données",
-      "description": "Exporte ta bibliothèque ou importe des livres depuis un fichier CSV/JSON.",
+      "description": "Exporte ta bibliothèque ou importe des livres depuis un fichier CSV, JSON ou Excel.",
       "link": "Importer / Exporter",
       "missingCoversDescription": "Attribue rapidement les couvertures manquantes avec des suggestions automatiques.",
       "missingCoversLink": "Gérer les couvertures manquantes"
@@ -723,7 +725,8 @@
     },
     "import": {
       "title": "Importer",
-      "description": "Téléverse un fichier CSV ou JSON, mappe les champs, valide, puis importe.",
+      "description": "Téléverse un fichier CSV, JSON ou Excel (.xlsx), mappe les champs, valide, puis importe.",
+      "sheetLabel": "Feuille : {sheet}",
       "parse": "Analyser le fichier",
       "parsing": "Analyse...",
       "fileSummary": "Lignes : {rows}, champs : {fields}",
@@ -783,9 +786,9 @@
       "confirmImportTitle": "Lancer l'importation ?",
       "confirmDestructive": "Cela écrit des données dans ta bibliothèque et ne peut pas être annulé automatiquement.",
       "deleteMappingConfirm": "Supprimer ce mappage enregistré ?",
-      "dropzone": "Glisse et dépose un fichier CSV/JSON, ou",
+      "dropzone": "Glisse et dépose un fichier CSV, JSON ou Excel, ou",
       "browse": "parcourir",
-      "fileInputLabel": "Choisir un fichier CSV ou JSON",
+      "fileInputLabel": "Choisir un fichier CSV, JSON ou Excel",
       "showLess": "Afficher moins",
       "showAllIssues": "Afficher tous les problèmes ({count})",
       "showAllFailures": "Afficher toutes les lignes échouées ({count})",

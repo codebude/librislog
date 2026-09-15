@@ -377,10 +377,11 @@ export type DataExportFormat = 'csv' | 'json';
 
 export interface DataImportParseResponse {
 	file_id: string;
-	format: 'csv' | 'json';
+	format: 'csv' | 'json' | 'xlsx';
 	source_fields: string[];
 	sample_rows: Record<string, unknown>[];
 	row_count: number;
+	sheet?: string | null;
 }
 
 export interface DataImportMappingListItem {

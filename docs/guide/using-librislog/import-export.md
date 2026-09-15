@@ -72,10 +72,13 @@ Import data from external sources:
 
 - **JSON** — LibrisLog export format
 - **CSV** — Custom field mapping supported
+- **Excel (XLSX)**: Custom field mapping supported
 
 The JSON export mirrors the API shape: `author` is the joined string (separated with `; `), `authors` is the list of names, and `tags` is a list of tag names. All three round-trip through the adaptive import.
 
 For CSV files, a **delimiter** field appears once a `.csv` file is selected (default `,`). Enter the character your file uses to separate columns (e.g. `;` for German/Excel exports) before clicking **Parse file**.
+
+Excel support covers `.xlsx` and `.xlsm` workbooks. LibrisLog reads the workbook's **active worksheet**: the first non-empty row must contain the column headers and every following row is treated as a record. Cell values are read as stored, so percentages, currency, and leading zeros are imported as displayed rather than recomputed, and formula cells use their cached result (a formula without a cached value is imported as empty). If a workbook has several worksheets, save the one you want to import as the active sheet, or export that sheet to CSV first. The parsed sheet name is shown next to the row and field counts after parsing.
 
 ### Field Mapping
 
@@ -120,6 +123,7 @@ Available variables:
 
 Common import formats have predefined mappings:
 - **Goodreads Export** — Maps Goodreads CSV columns automatically
+- **Bookstats Export** — Maps the German "Bookstats" Excel/CSV export, translating German reading/acquisition/medium values, converting Excel serial dates, and merging `Genre` and `Kategorie` into tags
 
 ### Validation
 

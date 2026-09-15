@@ -647,10 +647,11 @@ class DataExportRequest(SQLModel):
 class DataImportParseResponse(SQLModel):
     """Response after parsing an uploaded import file."""
     file_id: str
-    format: Literal["csv", "json"]
+    format: Literal["csv", "json", "xlsx"]
     source_fields: list[str]
     sample_rows: list[dict]
     row_count: int
+    sheet: Optional[str] = None
 
 
 class ImportFieldConfig(SQLModel):

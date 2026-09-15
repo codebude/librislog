@@ -7,10 +7,11 @@ import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from openpyxl import Workbook
 from pytest import MonkeyPatch
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -135,6 +136,118 @@ def test_parse_upload_too_many_rows(monkeypatch: MonkeyPatch) -> None:
 def test_parse_upload_unsupported_file_type() -> None:
     with pytest.raises(ValueError, match="error.importUnsupportedFileType"):
         di.parse_upload(b"x", "test.txt", 1)
+
+
+# ── parse_upload: XLSX ────────────────────────────────────────────────────────
+
+def _make_xlsx_bytes(rows: list[list[Any]], sheet_title: str = "Books") -> bytes:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = sheet_title
+    for row in rows:
+        worksheet.append(row)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+def test_xlsx_cell_to_str_normalization() -> None:
+    assert di._xlsx_cell_to_str(None) == ""
+    assert di._xlsx_cell_to_str("text") == "text"
+    assert di._xlsx_cell_to_str(4) == "4"
+    assert di._xlsx_cell_to_str(4.0) == "4"
+    assert di._xlsx_cell_to_str(3.5) == "3.5"
+    assert di._xlsx_cell_to_str(True) == "True"
+    assert di._xlsx_cell_to_str(datetime(2024, 1, 15, 10, 30)) == "2024-01-15T10:30:00"
+    from datetime import date, time
+
+    assert di._xlsx_cell_to_str(date(2024, 1, 15)) == "2024-01-15"
+    assert di._xlsx_cell_to_str(time(10, 30)) == "10:30:00"
+
+
+def test_parse_upload_xlsx_basic(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes(
+        [["Title", "Author", "Pages"], ["Dune", "Frank Herbert", 412]]
+    )
+    result = di.parse_upload(content, "books.xlsx", 1)
+    assert result["format"] == "xlsx"
+    assert result["sheet"] == "Books"
+    assert result["source_fields"] == ["Title", "Author", "Pages"]
+    assert result["row_count"] == 1
+    assert result["sample_rows"][0] == {
+        "Title": "Dune",
+        "Author": "Frank Herbert",
+        "Pages": "412",
+    }
+
+
+def test_parse_upload_xlsm_extension_uses_xlsx_parser(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes([["Title"], ["Dune"]])
+    result = di.parse_upload(content, "books.xlsm", 1)
+    assert result["format"] == "xlsx"
+    assert result["source_fields"] == ["Title"]
+
+
+def test_parse_upload_xlsx_date_cell_is_iso_string(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes([["Title", "Started"], ["Dune", datetime(2024, 1, 15, 9, 30)]])
+    result = di.parse_upload(content, "books.xlsx", 1)
+    assert result["sample_rows"][0]["Started"] == "2024-01-15T09:30:00"
+
+
+def test_parse_upload_xlsx_skips_empty_rows(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes([["Title"], ["Dune"], [None], [""], ["Messiah"]])
+    result = di.parse_upload(content, "books.xlsx", 1)
+    assert result["row_count"] == 2
+    assert [row["Title"] for row in result["sample_rows"]] == ["Dune", "Messiah"]
+
+
+def test_parse_upload_xlsx_trims_trailing_empty_header_columns(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes([["Title", None, None], ["Dune", None, None]])
+    result = di.parse_upload(content, "books.xlsx", 1)
+    assert result["source_fields"] == ["Title"]
+    assert result["sample_rows"][0] == {"Title": "Dune"}
+
+
+def test_parse_upload_xlsx_empty_sheet_raises(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    content = _make_xlsx_bytes([])
+    with pytest.raises(ValueError, match="error.importMissingHeader"):
+        di.parse_upload(content, "books.xlsx", 1)
+
+
+def test_parse_upload_xlsx_corrupt_file_raises(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    with pytest.raises(ValueError, match="error.importInvalidXlsxFile"):
+        di.parse_upload(b"not-a-real-xlsx", "books.xlsx", 1)
+
+
+def test_parse_upload_xlsx_too_many_rows(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    monkeypatch.setattr(settings, "max_import_row_count", 1)
+    content = _make_xlsx_bytes([["Title"], ["Book1"], ["Book2"]])
+    with pytest.raises(ValueError, match="error.importTooManyRows"):
+        di.parse_upload(content, "books.xlsx", 1)
+
+
+def test_parse_upload_xlsx_uses_active_sheet(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    workbook.active.title = "First"
+    second = workbook.create_sheet("Second")
+    second.append(["Title"])
+    second.append(["FromSecond"])
+    workbook.active = workbook.sheetnames.index("Second")
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    result = di.parse_upload(buffer.getvalue(), "books.xlsx", 1)
+    assert result["sheet"] == "Second"
+    assert result["sample_rows"][0]["Title"] == "FromSecond"
 
 
 def test_parse_upload_temp_file_create_failed(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -1705,5 +1818,53 @@ def test_get_predefined_mapping_known_id() -> None:
     assert result["name"] == "Goodreads Export"
 
 
+def test_get_predefined_mapping_bookstats_id() -> None:
+    result = di.get_predefined_mapping(-2)
+    assert result is not None
+    assert result["name"] == "Bookstats Export"
+    source_fields = cast(list[str], result["source_fields"])
+    mapping_raw = cast(dict[str, dict[str, Any]], result["mapping"])
+    assert "Titel" in source_fields
+    assert mapping_raw["tags"]["source"] == "Genre"
+
+
 def test_get_predefined_mapping_unknown_id() -> None:
     assert di.get_predefined_mapping(-999) is None
+
+
+def test_bookstats_predefined_mapping_transforms() -> None:
+    """The Bookstats preset maps a representative row through all its transforms."""
+    preset = di.get_predefined_mapping(-2)
+    assert preset is not None
+    mapping_raw = cast(dict[str, dict[str, Any]], preset["mapping"])
+    mapping = {target: ImportFieldConfig(**config) for target, config in mapping_raw.items()}
+    row = {
+        "Titel": "Der Distelfink: Roman",
+        "Autor(en)": "Lamm, Laila, Grabinger, Michaela",
+        "ISBN": "9783442473601",
+        "Erscheinungsjahr": "2015",
+        "Genre": "Literatur, Klassiker",
+        "Seitenanzahl": "1024",
+        "Buchart": "Hörbuch",
+        "Erhalten als": "Leihe",
+        "Lesestatus": "Abgebrochen",
+        "Lesebeginn": "44193",
+        "Leseende": "",
+        "Bewertung": "0",
+        "Kategorie": "Horror",
+        "Notizen": "",
+        "Erhalten am": "44193",
+    }
+    transform_cache = di._build_transform_cache(mapping)
+    mapped = di._mapped_row(row, mapping, transform_cache, {})
+
+    assert mapped["title"] == "Der Distelfink: Roman"
+    assert mapped["authors"] == ["Laila Lamm", "Michaela Grabinger"]
+    assert mapped["tags"] == ["Literatur, Klassiker", "Horror"]
+    assert mapped["reading_status"] == "did_not_finish"
+    assert mapped["acquisition_status"] == "borrowed"
+    assert mapped["medium"] == "Audiobook"
+    assert mapped["rating"] == ""
+    assert mapped["date_started"] == "2020-12-28"
+    assert mapped["date_finished"] == ""
+    assert mapped["date_added"] == "2020-12-28"

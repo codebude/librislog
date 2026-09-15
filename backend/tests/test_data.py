@@ -227,11 +227,13 @@ def test_data_import_mapping_crud(client: TestClient) -> None:
     list_resp = client.get("/api/data/import/mappings")
     assert list_resp.status_code == 200
     data = list_resp.json()
-    assert len(data) == 2
+    assert len(data) == 3
     assert data[0]["is_predefined"] is True
     assert data[0]["name"] == "Goodreads Export"
-    assert data[1]["is_predefined"] is False
-    assert data[1]["name"] == "Goodreads"
+    assert data[1]["is_predefined"] is True
+    assert data[1]["name"] == "Bookstats Export"
+    assert data[2]["is_predefined"] is False
+    assert data[2]["name"] == "Goodreads"
 
     get_resp = client.get(f"/api/data/import/mappings/{saved['id']}")
     assert get_resp.status_code == 200
@@ -474,7 +476,63 @@ def test_data_import_parse_unsupported_content_type(client: TestClient) -> None:
         files={"file": ("test.exe", b"invalid", "application/octet-stream")},
     )
     assert resp.status_code == 415
-    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV or JSON files."
+    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV, JSON, or Excel (.xlsx) files."
+
+
+def test_data_import_parse_xlsx(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Books"
+    worksheet.append(["Title", "Author"])
+    worksheet.append(["Dune", "Frank Herbert"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={
+            "file": (
+                "books.xlsx",
+                buffer.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["format"] == "xlsx"
+    assert body["sheet"] == "Books"
+    assert body["source_fields"] == ["Title", "Author"]
+    assert body["row_count"] == 1
+
+
+def test_data_import_parse_accepts_xlsx_with_generic_content_type(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    workbook.active.append(["Title"])
+    workbook.active.append(["Dune"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.xlsx", buffer.getvalue(), "application/octet-stream")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["format"] == "xlsx"
 
 
 def test_data_import_parse_invalid_json(client: TestClient) -> None:
@@ -648,6 +706,16 @@ def test_data_import_mapping_get_predefined(client: TestClient) -> None:
     assert data["is_predefined"] is True
     assert data["id"] == -1
     assert data["name"] == "Goodreads Export"
+
+
+def test_data_import_mapping_get_predefined_bookstats(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-2")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["is_predefined"] is True
+    assert data["id"] == -2
+    assert data["name"] == "Bookstats Export"
+    assert data["mapping"]["tags"]["source"] == "Genre"
 
 
 def test_data_import_mapping_get_predefined_missing(client: TestClient) -> None:

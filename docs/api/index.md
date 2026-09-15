@@ -65,7 +65,7 @@ Books have an optional nullable `medium` field. Accepted values are `Print`, `eB
 
 For updates, `author`/`authors` are optional; if you send an empty `authors` list the book's authors are cleared.
 
-The legacy `author` string is **parsed on commas, tag-style** (e.g. `"Isaac Asimov, Frank Herbert"` becomes two authors). This only applies to the API create/update path. It differs from **file import** (CSV/JSON), where a single author string is split on `;`, ` & `, or ` and ` — never on commas — so a name like `"Asimov, Isaac"` stays one author. See [Import & Export](../guide/using-librislog/import-export.md) for the import behaviour.
+The legacy `author` string is **parsed on commas, tag-style** (e.g. `"Isaac Asimov, Frank Herbert"` becomes two authors). This only applies to the API create/update path. It differs from **file import** (CSV/JSON/XLSX), where a single author string is split on `;`, ` & `, or ` and ` — never on commas — so a name like `"Asimov, Isaac"` stays one author. See [Import & Export](../guide/using-librislog/import-export.md) for the import behaviour.
 
 # Update reading status
 curl -X POST \

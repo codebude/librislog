@@ -8,15 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.8.0 — Camera & Zoom Control, Optional Telemetry
-LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner, optional anonymous installation telemetry with a publicly verifiable census, a new Homer dashboard integration, and several usability and dependency fixes.
+::: tip ⭐ v1.9.0 — Smarter Import Search & Input UX
+LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an import basket for search results, parallel and cancelable searches, Excel (XLSX) import with a new Bookstats preset, configurable reading-date automation, media/medium statistics, and timezone-correct daily page statistics.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | Unreleased | Feature release |
+| [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
 | [v1.6.0](#v1-6-0-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
@@ -37,9 +37,9 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ## v1.9.0: Smarter Import Search & Input UX
 
-<Badge type="warning" text="Unreleased" /> <Badge type="tip" text="Feature release" />
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-15" />
 
-**Summary:** Adds shareable read-only public profile pages with configurable access and content, groups duplicate import-search results into expandable edition groups, lets you collect search results in an import basket and import them all at once, supports multiple parallel import searches, makes running searches cancelable, adds configurable reading-date automation, introduces an adaptive date input with a native picker, adds optional book media and medium statistics, supports localized medium and possession searches, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
+**Summary:** Adds shareable read-only public profile pages with configurable access and content, groups duplicate import-search results into expandable edition groups, lets you collect search results in an import basket and import them all at once, supports multiple parallel import searches, makes running searches cancelable, adds Excel (XLSX) file import, adds a Bookstats import preset, adds configurable reading-date automation, introduces an adaptive date input with a native picker, adds optional book media and medium statistics, supports localized medium and possession searches, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
 
 **Features**
 - 📚 **Edition groups in the import search**: results from different providers that describe the same book (same ISBN, or same title and authors) are now grouped into expandable entries with an "N results" badge. Compare the variants side by side and import the one you want; no result is dropped anymore. The selected edition is highlighted with a border and a "Selected" badge, and every edition row shows a pointer cursor, hover feedback, and a keyboard focus ring. See the [Library guide](/guide/using-librislog/library#how-results-are-grouped) for the exact grouping rules
@@ -56,6 +56,8 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 - 🧺 **Import basket**: search results now offer an **Add to Basket** action next to the existing **Add** button. Collected books appear in a new **Basket** tab with a live count badge, where you can review them, remove individual entries, and import everything in one go. Each entry remembers the reading status, possession status, and medium that were selected when it was added. If some books fail during a basket import, the successful ones are imported and the failed ones stay in the basket so you can retry or remove them. The same book cannot be added twice
 - 🔎 **Parallel import searches**: open multiple independent search panels in the Add Book dialog and run different queries concurrently. Each panel keeps its own results and can add selected books to the shared import basket
 - 📅 **Configurable reading-date automation**: choose independently whether moving a book to Currently Reading, Read, or Did Not Finish should fill a missing start or finish date automatically. Existing dates are preserved, and disabling automation allows intentionally unknown dates without additional transition popups. See the [Profile guide](/guide/using-librislog/profile#reading-date-automation)
+- 📥 **Excel (XLSX) data import**: the Data Import page now accepts `.xlsx` and `.xlsm` workbooks alongside CSV and JSON. LibrisLog reads the workbook's active worksheet, treats the first non-empty row as the header and every following row as a record, shows the parsed sheet name next to the row and field counts, and runs the result through the same mapping, preview, validation, and import flow as CSV. Dates are read as ISO strings, whole numbers stay integers, and empty rows are skipped. See the [Import & Export guide](/guide/using-librislog/import-export#supported-formats)
+- 📥 **Bookstats import preset**: a new built-in, read-only mapping for the German Bookstats export. It translates German reading, acquisition, and medium values, converts Excel serial dates, reorders "Last, First" author names, maps the rating (with `0` as unrated), and merges `Genre` and `Kategorie` into tags. Load it from the saved-mappings dropdown like the Goodreads Export preset. See the [Import & Export guide](/guide/using-librislog/import-export#predefined-mappings)
 
 **Bug fixes**
 - 🗓️ **Timezone-correct daily page statistics**: pages read between two progress updates are now attributed to calendar days in the user's timezone instead of fixed 24h slots, so the pages-per-day view matches your local days. Your heatmap may shift slightly after the upgrade
