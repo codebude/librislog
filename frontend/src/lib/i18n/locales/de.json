@@ -506,7 +506,7 @@
     "publicProfileNotFound": "Dieser öffentliche Profil-Link ist nicht mehr gültig.",
     "publicProfileLoginRequired": "Dieses Profil ist nur für angemeldete Benutzer sichtbar. Bitte melde dich an, um es anzusehen.",
     "importMalformedEvent": "Während des Imports wurde ein fehlerhaftes Server-Ereignis empfangen.",
-    "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV- oder JSON-Dateien verwenden.",
+    "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV-, JSON- oder Excel-Dateien (.xlsx) verwenden.",
     "emailAlreadyRegistered": "Diese E-Mail-Adresse ist bereits registriert.",
     "batchUpdateFailed": "Stapelaktualisierung aufgrund eines unerwarteten Fehlers fehlgeschlagen. Es wurden keine Änderungen gespeichert.",
     "tooManyBooksSelected": "Zu viele Bücher ausgewählt. Bitte maximal {max} auf einmal auswählen.",
@@ -520,7 +520,9 @@
     "importMappingNameConflict": "Ein Mapping mit diesem Namen existiert bereits.",
     "importMappingNotFound": "Import-Mapping nicht gefunden.",
     "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch.",
-    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein."
+    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein.",
+    "importUnsupportedFileType": "Nicht unterstützter Dateityp. Bitte verwende eine CSV-, JSON- oder Excel-Datei (.xlsx).",
+    "importInvalidXlsxFile": "Die Excel-Datei konnte nicht gelesen werden. Stelle sicher, dass es sich um eine gültige .xlsx-Arbeitsmappe handelt."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",
@@ -578,7 +580,7 @@
     },
     "dataManagement": {
       "title": "Meine Daten verwalten",
-      "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",
+      "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV, JSON oder Excel.",
       "link": "Datenseite öffnen",
       "missingCoversDescription": "Fehlende Cover mit automatischen Vorschlägen schnell zuweisen.",
       "missingCoversLink": "Fehlende Cover verwalten"
@@ -723,7 +725,8 @@
     },
     "import": {
       "title": "Import",
-      "description": "Lade eine CSV- oder JSON-Datei hoch, mappe Felder, simuliere und importiere dann.",
+      "description": "Lade eine CSV-, JSON- oder Excel-Datei (.xlsx) hoch, mappe Felder, simuliere und importiere dann.",
+      "sheetLabel": "Arbeitsblatt: {sheet}",
       "parse": "Datei einlesen",
       "parsing": "Lese ein...",
       "fileSummary": "Zeilen: {rows}, Felder: {fields}",
@@ -783,9 +786,9 @@
       "confirmImportTitle": "Import starten?",
       "confirmDestructive": "Dadurch werden Daten in deine Bibliothek geschrieben und es gibt kein automatisches Undo.",
       "deleteMappingConfirm": "Diese gespeicherte Zuordnung löschen?",
-      "dropzone": "CSV/JSON-Datei ziehen & ablegen, oder",
+      "dropzone": "CSV-, JSON- oder Excel-Datei ziehen & ablegen, oder",
       "browse": "durchsuchen",
-      "fileInputLabel": "CSV- oder JSON-Datei auswählen",
+      "fileInputLabel": "CSV-, JSON- oder Excel-Datei auswählen",
       "showLess": "Weniger anzeigen",
       "showAllIssues": "Alle Probleme anzeigen ({count})",
       "showAllFailures": "Alle fehlgeschlagenen Zeilen anzeigen ({count})",

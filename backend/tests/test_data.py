@@ -474,7 +474,63 @@ def test_data_import_parse_unsupported_content_type(client: TestClient) -> None:
         files={"file": ("test.exe", b"invalid", "application/octet-stream")},
     )
     assert resp.status_code == 415
-    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV or JSON files."
+    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV, JSON, or Excel (.xlsx) files."
+
+
+def test_data_import_parse_xlsx(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Books"
+    worksheet.append(["Title", "Author"])
+    worksheet.append(["Dune", "Frank Herbert"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={
+            "file": (
+                "books.xlsx",
+                buffer.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["format"] == "xlsx"
+    assert body["sheet"] == "Books"
+    assert body["source_fields"] == ["Title", "Author"]
+    assert body["row_count"] == 1
+
+
+def test_data_import_parse_accepts_xlsx_with_generic_content_type(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    workbook.active.append(["Title"])
+    workbook.active.append(["Dune"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.xlsx", buffer.getvalue(), "application/octet-stream")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["format"] == "xlsx"
 
 
 def test_data_import_parse_invalid_json(client: TestClient) -> None:

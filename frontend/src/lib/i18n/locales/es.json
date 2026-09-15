@@ -506,7 +506,7 @@
     "publicProfileNotFound": "Este enlace de perfil público ya no es válido.",
     "publicProfileLoginRequired": "Este perfil solo es visible para los usuarios con sesión iniciada. Inicia sesión para verlo.",
     "importMalformedEvent": "Se recibió un evento de servidor malformado durante la importación.",
-    "importUnsupportedContentType": "Tipo de contenido no admitido. Usa archivos CSV o JSON.",
+    "importUnsupportedContentType": "Tipo de contenido no admitido. Usa archivos CSV, JSON o Excel (.xlsx).",
     "emailAlreadyRegistered": "Esta dirección de correo ya está registrada.",
     "userNotFound": "Usuario no encontrado.",
     "cannotChangeOwnRole": "No puedes cambiar tu propio rol de administrador.",
@@ -520,7 +520,9 @@
     "importMappingNameConflict": "Ya existe una asignación con este nombre.",
     "importMappingNotFound": "Asignación de importación no encontrada.",
     "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo.",
-    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter."
+    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter.",
+    "importUnsupportedFileType": "Tipo de archivo no admitido. Usa un archivo CSV, JSON o Excel (.xlsx).",
+    "importInvalidXlsxFile": "No se pudo leer el archivo de Excel. Asegúrate de que sea un libro .xlsx válido."
   },
   "oidc": {
     "orContinueWith": "o continuar con",
@@ -578,7 +580,7 @@
     },
     "dataManagement": {
       "title": "Gestionar mis datos",
-      "description": "Exporta tu biblioteca o importa libros desde un archivo CSV/JSON.",
+      "description": "Exporta tu biblioteca o importa libros desde un archivo CSV, JSON o Excel.",
       "link": "Importar / Exportar",
       "missingCoversDescription": "Asigna rápidamente portadas faltantes con sugerencias automáticas.",
       "missingCoversLink": "Gestionar portadas faltantes"
@@ -723,7 +725,8 @@
     },
     "import": {
       "title": "Importar",
-      "description": "Sube un archivo CSV o JSON, asigna campos, valida y luego importa.",
+      "description": "Sube un archivo CSV, JSON o Excel (.xlsx), asigna campos, valida y luego importa.",
+      "sheetLabel": "Hoja: {sheet}",
       "parse": "Analizar archivo",
       "parsing": "Analizando...",
       "fileSummary": "Filas: {rows}, campos: {fields}",
@@ -783,9 +786,9 @@
       "confirmImportTitle": "¿Iniciar importación?",
       "confirmDestructive": "Esto escribe datos en tu biblioteca y no se puede deshacer automáticamente.",
       "deleteMappingConfirm": "¿Eliminar esta asignación guardada?",
-      "dropzone": "Arrastra y suelta un archivo CSV/JSON, o",
+      "dropzone": "Arrastra y suelta un archivo CSV, JSON o Excel, o",
       "browse": "examinar",
-      "fileInputLabel": "Elegir archivo CSV o JSON",
+      "fileInputLabel": "Elegir archivo CSV, JSON o Excel",
       "showLess": "Mostrar menos",
       "showAllIssues": "Mostrar todos los problemas ({count})",
       "showAllFailures": "Mostrar todas las filas fallidas ({count})",

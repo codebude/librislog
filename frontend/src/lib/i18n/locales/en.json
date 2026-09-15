@@ -506,7 +506,7 @@
     "publicProfileNotFound": "This public profile link is no longer valid.",
     "publicProfileLoginRequired": "This profile is only visible to logged in users. Please log in to view it.",
     "importMalformedEvent": "Received malformed server event during import.",
-    "importUnsupportedContentType": "Unsupported upload content type. Use CSV or JSON files.",
+    "importUnsupportedContentType": "Unsupported upload content type. Use CSV, JSON, or Excel (.xlsx) files.",
     "emailAlreadyRegistered": "This email address is already registered.",
     "userNotFound": "User not found.",
     "cannotChangeOwnRole": "You cannot change your own admin role.",
@@ -520,7 +520,9 @@
     "importMappingNameConflict": "A mapping with this name already exists.",
     "importMappingNotFound": "Import mapping not found.",
     "importFileNotFound": "Import file not found. Please upload the file again.",
-    "importInvalidDelimiter": "CSV delimiter must be a single character."
+    "importInvalidDelimiter": "CSV delimiter must be a single character.",
+    "importUnsupportedFileType": "Unsupported file type. Use a CSV, JSON, or Excel (.xlsx) file.",
+    "importInvalidXlsxFile": "Could not read the Excel file. Make sure it is a valid .xlsx workbook."
   },
   "oidc": {
     "orContinueWith": "or continue with",
@@ -578,7 +580,7 @@
     },
     "dataManagement": {
       "title": "Manage my data",
-      "description": "Export your library or import books from a CSV/JSON file.",
+      "description": "Export your library or import books from a CSV, JSON, or Excel file.",
       "link": "Import / Export",
       "missingCoversDescription": "Quickly assign missing covers with auto-suggestions.",
       "missingCoversLink": "Manage Missing Covers"
@@ -723,11 +725,12 @@
     },
     "import": {
       "title": "Import",
-      "description": "Upload one CSV or JSON file, map fields, validate, then import.",
+      "description": "Upload one CSV, JSON, or Excel (.xlsx) file, map fields, validate, then import.",
       "delimiterLabel": "CSV delimiter",
       "parse": "Parse file",
       "parsing": "Parsing...",
       "fileSummary": "Rows: {rows}, fields: {fields}",
+      "sheetLabel": "Sheet: {sheet}",
       "mappingTitle": "Field mapping",
       "mappingActionsTitle": "Manage mappings",
       "mappingName": "Mapping name",
@@ -785,9 +788,9 @@
       "confirmImportTitle": "Start import?",
       "confirmDestructive": "This writes data to your library and cannot be auto-undone.",
       "deleteMappingConfirm": "Delete this saved mapping?",
-      "dropzone": "Drag & drop a CSV/JSON file, or",
+      "dropzone": "Drag & drop a CSV, JSON, or Excel file, or",
       "browse": "browse",
-      "fileInputLabel": "Choose CSV or JSON file",
+      "fileInputLabel": "Choose CSV, JSON, or Excel file",
       "showLess": "Show less",
       "showAllIssues": "Show all issues ({count})",
       "showAllFailures": "Show all failed rows ({count})",

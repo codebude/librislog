@@ -343,7 +343,7 @@
 					type="file"
 					name="import-file"
 					class="hidden"
-					accept=".csv,.json"
+					accept=".csv,.json,.xlsx,.xlsm"
 					aria-label={$_('data.import.fileInputLabel')}
 					onchange={(e) => {
 						selectedFile = e.currentTarget.files?.[0] ?? null;
@@ -374,6 +374,9 @@
 			{#if parsed}
 				<p class="text-xs text-base-content/60 flex items-center gap-2">
 					<span>{$_('data.import.fileSummary', { values: { rows: parsed.row_count, fields: parsed.source_fields.length } })}</span>
+					{#if parsed.sheet}
+						<span class="badge badge-ghost badge-sm">{$_('data.import.sheetLabel', { values: { sheet: parsed.sheet } })}</span>
+					{/if}
 					<button class="btn btn-ghost btn-xs" onclick={() => { resetFlow(); selectedFile = null; if (fileInput) fileInput.value = ''; }}>{$_('data.import.changeFile')}</button>
 				</p>
 			{/if}

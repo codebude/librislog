@@ -506,7 +506,7 @@
     "publicProfileNotFound": "此公开资料链接已失效。",
     "publicProfileLoginRequired": "此个人资料仅对已登录用户可见。请登录后查看。",
     "importMalformedEvent": "导入期间收到格式错误的服务器事件。",
-    "importUnsupportedContentType": "不支持的上传内容类型。请使用 CSV 或 JSON 文件。",
+    "importUnsupportedContentType": "不支持的上传内容类型。请使用 CSV、JSON 或 Excel（.xlsx）文件。",
     "emailAlreadyRegistered": "此邮箱地址已注册。",
     "userNotFound": "未找到用户。",
     "cannotChangeOwnRole": "你不能更改自己的管理员角色。",
@@ -520,7 +520,9 @@
     "importMappingNameConflict": "同名映射已存在。",
     "importMappingNotFound": "未找到导入映射。",
     "importFileNotFound": "未找到导入文件。请重新上传文件。",
-    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。"
+    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。",
+    "importUnsupportedFileType": "不支持的文件类型。请使用 CSV、JSON 或 Excel（.xlsx）文件。",
+    "importInvalidXlsxFile": "无法读取 Excel 文件。请确认它是有效的 .xlsx 工作簿。"
   },
   "oidc": {
     "orContinueWith": "或继续使用",
@@ -578,7 +580,7 @@
     },
     "dataManagement": {
       "title": "管理我的数据",
-      "description": "导出你的书库或从 CSV/JSON 文件导入图书。",
+      "description": "导出你的书库，或从 CSV、JSON 或 Excel 文件导入图书。",
       "link": "导入 / 导出",
       "missingCoversDescription": "使用自动建议快速分配缺失封面。",
       "missingCoversLink": "管理缺失封面"
@@ -723,7 +725,8 @@
     },
     "import": {
       "title": "导入",
-      "description": "上传 CSV 或 JSON 文件，映射字段，验证，然后导入。",
+      "description": "上传 CSV、JSON 或 Excel（.xlsx）文件，映射字段，验证，然后导入。",
+      "sheetLabel": "工作表：{sheet}",
       "parse": "解析文件",
       "parsing": "解析中...",
       "fileSummary": "行数：{rows}，字段：{fields}",
@@ -783,9 +786,9 @@
       "confirmImportTitle": "开始导入？",
       "confirmDestructive": "这将向你的书库写入数据，无法自动撤消。",
       "deleteMappingConfirm": "删除此已保存的映射？",
-      "dropzone": "拖放 CSV/JSON 文件，或",
+      "dropzone": "拖放 CSV、JSON 或 Excel 文件，或",
       "browse": "浏览",
-      "fileInputLabel": "选择 CSV 或 JSON 文件",
+      "fileInputLabel": "选择 CSV、JSON 或 Excel 文件",
       "showLess": "收起",
       "showAllIssues": "显示所有问题 ({count})",
       "showAllFailures": "显示所有失败行 ({count})",
