@@ -26,6 +26,7 @@
     "languageDistribution": "按语言分布",
     "statusDistribution": "按状态分布",
     "acquisitionStatusDistribution": "按所有权分布",
+    "mediumDistribution": "媒介分布",
     "pageBuckets": "页数统计",
     "pagesToRead": "待读页数",
     "pagesRead": "已读页数",
@@ -34,11 +35,23 @@
     "pagesReadPerMonth": "每月阅读页数",
     "booksFinishedPerMonth": "每月读完数量",
     "booksFinishedPerYear": "每年读完数量",
+    "rangeLabel": "时间范围",
+    "rangeLast12Months": "最近12个月",
+    "refreshing": "正在更新统计数据",
+    "rangeAllTime": "全部时间",
+    "rangeThisYear": "今年",
+    "rangeLastYear": "去年",
+    "rangeLast3Years": "最近3年",
+    "rangeCustom": "自定义",
+    "from": "从",
+    "to": "到",
+    "invalidDateRange": "开始日期不能晚于结束日期",
     "topAuthors": "热门作者",
     "rankedNumber": "#{rank}",
     "coversForAuthor": "{author} 的图书封面",
     "booksCount": "{count} 本书",
     "unknownLanguage": "未知",
+    "unknownMedium": "未知媒介",
     "pagesReadCalendar": "阅读活动（最近365天）",
     "noCalendarData": "过去一年没有阅读数据",
     "pagesOver": "页，共",
@@ -162,6 +175,8 @@
     "dateStarted": "开始日期",
     "acquisitionStatus": "可用性",
     "selectAcquisitionStatus": "选择可用性...",
+    "medium": "媒介",
+    "selectMedium": "选择媒介...",
     "startDatePromptTitle": "设置开始日期？",
     "startDatePromptMessage": "此书没有开始日期。在将其标记为已读前，请设为今天或选择其他日期。",
     "startDatePromptSet": "设置开始日期",
@@ -205,7 +220,8 @@
     "searchImport": "搜索并导入",
     "adding": "添加中...",
     "failedAdd": "添加图书失败",
-    "importFromFile": "从文件导入"
+    "importFromFile": "从文件导入",
+    "basket": "购物篮"
   },
   "import": {
     "searchByTitleOrAuthor": "按标题或作者搜索...",
@@ -219,6 +235,8 @@
     "googleAdded": "Google Books 结果已添加：{count}",
     "scan": "扫描",
     "scanIsbn": "扫描 ISBN 条码",
+    "scanUnavailable": "由于应用未在安全上下文中提供，条码扫描不可用。",
+    "scanUnavailableDocsLink": "了解更多",
     "importFailed": "导入失败",
     "searchFailed": "搜索失败",
     "scannedIsbn": "已扫描 ISBN：{isbn}",
@@ -230,7 +248,24 @@
     "sourceGoogleSearching": "正在搜索 Google Books...",
     "sourceBackendError": "{source} 后端错误（请检查后端日志）",
     "sourceError": "搜索失败：{message}",
-    "resultCount": "{source} - {count} 个结果"
+    "resultCount": "{source} - {count} 个结果",
+    "groupResultPlural": "个结果",
+    "groupExpand": "显示版本",
+    "groupCollapse": "隐藏版本",
+    "groupChooseEdition": "选择版本",
+    "editionSelected": "已选择",
+    "addToBasket": "添加到购物篮",
+    "inBasket": "已在购物篮",
+    "basketEmpty": "购物篮为空。搜索图书以添加。",
+    "basketCount": "{count} 本图书",
+    "importBasket": "导入购物篮",
+    "importingBasket": "导入中...",
+    "basketRemove": "从购物篮中移除",
+    "basketImportSuccess": "成功导入 {count} 本图书。",
+    "parallelSearchDescription": "同时运行多个独立搜索。每个搜索会保留自己的结果，并可将图书添加到共享书篮。",
+    "newParallelSearch": "新的并行搜索",
+    "parallelSearchLabel": "搜索 {number}",
+    "removeParallelSearch": "移除搜索"
   },
   "scanner": {
     "title": "扫描 ISBN 条码",
@@ -238,9 +273,12 @@
     "startError": "无法启动条码扫描器。请检查摄像头权限。",
     "noCamera": "未找到摄像头设备。",
     "switchCamera": "切换摄像头",
+    "currentCamera": "当前摄像头：{camera}",
     "zoom": "缩放",
     "zoomLevel": "缩放 {zoom}x",
-    "close": "关闭扫描器"
+    "close": "关闭扫描器",
+    "secureContextRequired": "摄像头访问需要安全上下文（HTTPS 或 localhost）。",
+    "secureContextDocsLink": "了解更多"
   },
   "coverPicker": {
     "dropzone": "拖放图片到此处，或",
@@ -270,6 +308,7 @@
     "themeCustom": "自定义",
     "themeSelect": "选择自定义主题",
     "timezonePlaceholder": "搜索时区...",
+    "timezoneNoResults": "没有匹配的时区",
     "apiDocsTitle": "API 文档",
     "apiDocsHelp": "直接在应用中探索和测试后端接口。",
     "apiDocsViewLabel": "查看",
@@ -308,6 +347,13 @@
     "digital_access": "可数字访问",
     "to_acquire": "需要获取"
   },
+  "medium": {
+    "print": "纸质书",
+    "ebook": "电子书",
+    "audiobook": "有声书",
+    "comic_graphic_novel": "漫画 / 图像小说",
+    "magazine_newspaper": "杂志 / 报纸"
+  },
   "search": {
     "resultsCount": "找到 {count} 个结果",
     "noResults": "未找到结果",
@@ -319,7 +365,8 @@
       "multiWord": "多词值请用双引号括起来，例如 author:\"Marlen Haushofer\"。",
       "combine": "可以组合多个前缀；结果必须满足所有条件。",
       "negate": "在任何词条前加 - 以将其排除，例如 tag:cars -tag:audi。",
-      "possessionValues": "持有值：owned、borrowed、digital_access、to_acquire"
+      "possessionValues": "持有键：owned、borrowed、digital_access、to_acquire；也接受本地化名称",
+      "mediumValues": "媒介键：print、ebook、audiobook、comic_graphic_novel、magazine_newspaper；也接受本地化名称"
     }
   },
   "languages": {
@@ -449,14 +496,17 @@
   "error": {
     "isbnAlreadyExists": "此 ISBN 已被另一本书使用。",
     "dateInFuture": "日期不能为未来。",
+    "invalidDate": "请输入有效日期。",
     "dateStartedAfterFinished": "开始日期不能晚于完成日期。",
     "dateFinishedRequiredForRead": "已读完的书必须有结束日期。如果要移除结束日期，请更改状态。",
     "invalidLanguageCode": "语言必须是 2 位 ISO 代码（例如：EN、DE、FR）。",
     "invalidConfirmationPhrase": "确认短语不匹配。",
     "cannotDeleteLastAdmin": "无法删除账户：你是最后一个管理员",
     "cannotDeleteOwnAccountHere": "你不能在这里删除自己的账户。请使用“个人资料” > “危险区域”。",
+    "publicProfileNotFound": "此公开资料链接已失效。",
+    "publicProfileLoginRequired": "此个人资料仅对已登录用户可见。请登录后查看。",
     "importMalformedEvent": "导入期间收到格式错误的服务器事件。",
-    "importUnsupportedContentType": "不支持的上传内容类型。请使用 CSV 或 JSON 文件。",
+    "importUnsupportedContentType": "不支持的上传内容类型。请使用 CSV、JSON 或 Excel（.xlsx）文件。",
     "emailAlreadyRegistered": "此邮箱地址已注册。",
     "userNotFound": "未找到用户。",
     "cannotChangeOwnRole": "你不能更改自己的管理员角色。",
@@ -470,7 +520,9 @@
     "importMappingNameConflict": "同名映射已存在。",
     "importMappingNotFound": "未找到导入映射。",
     "importFileNotFound": "未找到导入文件。请重新上传文件。",
-    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。"
+    "importInvalidDelimiter": "CSV 分隔符必须是单个字符。",
+    "importUnsupportedFileType": "不支持的文件类型。请使用 CSV、JSON 或 Excel（.xlsx）文件。",
+    "importInvalidXlsxFile": "无法读取 Excel 文件。请确认它是有效的 .xlsx 工作簿。"
   },
   "oidc": {
     "orContinueWith": "或继续使用",
@@ -493,6 +545,12 @@
     "profileSaveFailed": "保存个人资料失败",
     "passwordChangeSuccess": "密码已更改",
     "passwordChangeFailed": "更改密码失败",
+    "shareProfile": {
+      "title": "分享个人资料",
+      "subtitle": "通过链接发布你的阅读资料的只读视图。",
+      "createLink": "创建新链接",
+      "empty": "暂无公开资料链接。"
+    },
     "goals": {
       "title": "阅读目标",
       "subtitle": "启用目标，即可在仪表板上趣味追踪进度。",
@@ -509,9 +567,20 @@
       "saveSuccess": "阅读目标已保存",
       "invalidTarget": "{name} 必须是至少为 1 的整数。"
     },
+    "readingDates": {
+      "title": "自动设置阅读日期",
+      "subtitle": "选择 LibrisLog 是否在更改阅读状态时自动填写日期。",
+      "autoStart": "切换为正在阅读时设置开始日期",
+      "autoStartDescription": "启用后，缺少的开始日期会设置为现在。如果不知道何时开始阅读，请禁用此选项。",
+      "autoFinish": "切换为已读或未读完时设置结束日期",
+      "autoFinishDescription": "启用后，缺少的结束日期会设置为现在。如果不知道何时完成阅读，请禁用此选项。",
+      "documentationPrefix": "详细信息请参阅",
+      "documentationLink": "阅读日期文档",
+      "saveSuccess": "阅读日期设置已保存"
+    },
     "dataManagement": {
       "title": "管理我的数据",
-      "description": "导出你的书库或从 CSV/JSON 文件导入图书。",
+      "description": "导出你的书库，或从 CSV、JSON 或 Excel 文件导入图书。",
       "link": "导入 / 导出",
       "missingCoversDescription": "使用自动建议快速分配缺失封面。",
       "missingCoversLink": "管理缺失封面"
@@ -542,6 +611,85 @@
         "failed": "删除账户失败",
         "lastAdminError": "无法删除账户：你是最后一个管理员"
       }
+    }
+  },
+  "publicProfile": {
+    "unlimited": "无期限",
+    "validUntil": "有效期至",
+    "expiresAt": "有效期至",
+    "expired": "已过期",
+    "active": "有效",
+    "edit": "编辑",
+    "delete": "删除",
+    "deleteConfirm": "删除此公开主页链接？拥有该链接的人将失去访问权限。",
+    "openLink": "打开链接",
+    "copyLink": "复制链接",
+    "tokenShownOnce": "请立即复制此链接。它只显示一次。",
+    "linkCreated": "公开资料链接已创建。",
+    "linkDeleted": "公开资料链接已删除。",
+    "saveFailed": "无法保存公开资料链接",
+    "loadFailed": "无法加载公开资料链接",
+    "dialogTitleCreate": "创建公开资料链接",
+    "dialogTitleEdit": "编辑公开资料链接",
+    "dialogName": "名称",
+    "dialogNamePlaceholder": "例如：亲友",
+    "accessGroup": "访问权限",
+    "contentGroup": "内容",
+    "validityGroup": "有效期",
+    "audiencePublic": "所有人",
+    "audienceAuthenticated": "仅限已登录用户",
+    "audiencePublicTooltip": "任何拥有链接的人都可以查看此资料，包括未登录的用户。",
+    "audienceAuthenticatedTooltip": "只有已登录用户才能查看此资料。",
+    "selectAllSections": "全选",
+    "selectNoneSections": "取消全选",
+    "selectAllStats": "全选",
+    "selectNoneStats": "取消全选",
+    "statGroups": {
+      "summary": "摘要",
+      "distribution": "分布",
+      "trends": "趋势",
+      "ratings": "评分"
+    },
+    "statistics": {
+      "totalAuthors": "作者总数"
+    },
+    "sections": {
+      "username": "用户名",
+      "usernameTooltip": "将所有者的全名显示为页面标题。",
+      "userInfo": "用户信息",
+      "userInfoTooltip": "显示包含所有者姓名的简短资料卡片。",
+      "currentlyReading": "正在阅读",
+      "currentlyReadingTooltip": "显示当前正在阅读的图书。",
+      "currentlyReadingStarted": "开始于 {date}",
+      "lastRead": "最近阅读",
+      "lastReadTooltip": "显示最近读完的图书。",
+      "readingTimeline": "阅读时间线",
+      "readingTimelineTooltip": "按时序显示所有已读完的图书。",
+      "fullLibrary": "完整书库",
+      "fullLibraryTooltip": "显示所有者的整个书库，可翻页浏览。",
+      "statistics": "统计",
+      "statisticsTooltip": "显示阅读统计（可在下方配置）。"
+    },
+    "page": {
+      "loading": "正在加载公开资料...",
+      "notFound": "此公开资料链接已失效。",
+      "notFoundDesc": "该链接可能已过期或被撤销。",
+      "loginRequired": "需要登录",
+      "loginRequiredDesc": "此个人资料仅对已登录用户可见。请登录后查看。",
+      "loginButton": "登录",
+      "errorTitle": "无法加载公开资料",
+      "errorDesc": "加载此页面时出现问题。请稍后重试。",
+      "retry": "重试",
+      "showMore": "显示更多",
+      "shareHint": "由 {app} 提供支持",
+      "githubLink": "LibrisLog on GitHub",
+      "expiresHint": "此链接将于 {date} 过期。",
+      "finishedOn": "完成于 {date}",
+      "emptyLibrary": "此书库为空。",
+      "noCurrentlyReading": "当前没有正在阅读的图书。",
+      "noLastRead": "暂无已读完的图书。",
+      "timelineMore": "还有 {count} 本",
+      "themeToggle": "切换主题"
     }
   },
   "timeline": {
@@ -577,7 +725,8 @@
     },
     "import": {
       "title": "导入",
-      "description": "上传 CSV 或 JSON 文件，映射字段，验证，然后导入。",
+      "description": "上传 CSV、JSON 或 Excel（.xlsx）文件，映射字段，验证，然后导入。",
+      "sheetLabel": "工作表：{sheet}",
       "parse": "解析文件",
       "parsing": "解析中...",
       "fileSummary": "行数：{rows}，字段：{fields}",
@@ -607,6 +756,7 @@
       "errorRow": "第 {row} 行",
       "previewSource": "来源",
       "previewTransformed": "转换后",
+      "previewWarnings": "警告",
       "none": "（无）",
       "requiredField": "= 必填字段",
       "changeFile": "更改文件",
@@ -636,9 +786,9 @@
       "confirmImportTitle": "开始导入？",
       "confirmDestructive": "这将向你的书库写入数据，无法自动撤消。",
       "deleteMappingConfirm": "删除此已保存的映射？",
-      "dropzone": "拖放 CSV/JSON 文件，或",
+      "dropzone": "拖放 CSV、JSON 或 Excel 文件，或",
       "browse": "浏览",
-      "fileInputLabel": "选择 CSV 或 JSON 文件",
+      "fileInputLabel": "选择 CSV、JSON 或 Excel 文件",
       "showLess": "收起",
       "showAllIssues": "显示所有问题 ({count})",
       "showAllFailures": "显示所有失败行 ({count})",
@@ -671,7 +821,8 @@
       "language": "语言",
       "subtitle": "副标题",
       "page_count": "页数",
-      "cover_url": "封面"
+      "cover_url": "封面",
+      "medium": "媒介"
     },
     "matchAny": "匹配任一",
     "matchAll": "匹配全部",

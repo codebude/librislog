@@ -42,6 +42,8 @@ def test_get_settings_creates_default_when_missing(client: TestClient, session: 
     data = resp.json()
     assert data["language"] == "en"
     assert data["user_id"] == user.id
+    assert data["auto_set_date_started"] is True
+    assert data["auto_set_date_finished"] is True
 
 
 def test_update_settings_creates_default_when_missing(client: TestClient, session: Session) -> None:
@@ -68,6 +70,87 @@ def test_update_settings_creates_default_when_missing(client: TestClient, sessio
     data = resp.json()
     assert data["language"] == "de"
     assert data["user_id"] == user.id
+
+
+def test_statistics_range_settings_are_persisted(client: TestClient) -> None:
+    response = client.patch(
+        "/api/profile/settings",
+        json={
+            "statistics_range": "custom",
+            "statistics_custom_from": "2026-01-01",
+            "statistics_custom_to": "2026-02-01",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["statistics_range"] == "custom"
+    assert data["statistics_custom_from"] == "2026-01-01"
+    assert data["statistics_custom_to"] == "2026-02-01"
+
+    restored = client.get("/api/profile/settings")
+    assert restored.status_code == 200
+    assert restored.json()["statistics_range"] == "custom"
+
+
+def test_reading_date_automation_settings_are_persisted(client: TestClient) -> None:
+    response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False, "auto_set_date_finished": False},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["auto_set_date_started"] is False
+    assert data["auto_set_date_finished"] is False
+
+    restored = client.get("/api/profile/settings")
+    assert restored.status_code == 200
+    assert restored.json()["auto_set_date_started"] is False
+    assert restored.json()["auto_set_date_finished"] is False
+
+    partial = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": True},
+    )
+    assert partial.status_code == 200
+    assert partial.json()["auto_set_date_started"] is True
+    assert partial.json()["auto_set_date_finished"] is False
+
+    null_value = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_finished": None},
+    )
+    assert null_value.status_code == 422
+
+
+def test_statistics_range_settings_reject_invalid_dates(client: TestClient) -> None:
+    response = client.patch(
+        "/api/profile/settings",
+        json={
+            "statistics_range": "custom",
+            "statistics_custom_from": "2026-03-01",
+            "statistics_custom_to": "2026-02-01",
+        },
+    )
+    assert response.status_code == 422
+
+    incomplete = client.patch(
+        "/api/profile/settings",
+        json={"statistics_range": "custom", "statistics_custom_from": "2026-01-01", "statistics_custom_to": None},
+    )
+    assert incomplete.status_code == 422
+
+    excessive = client.patch(
+        "/api/profile/settings",
+        json={
+            "statistics_range": "custom",
+            "statistics_custom_from": "1900-01-01",
+            "statistics_custom_to": "2026-02-01",
+        },
+    )
+    assert excessive.status_code == 422
+
+    null_range = client.patch("/api/profile/settings", json={"statistics_range": None})
+    assert null_range.status_code == 422
 
 
 def test_reset_data_rolls_back_on_exception(client: TestClient, monkeypatch) -> None:

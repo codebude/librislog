@@ -21,6 +21,7 @@
 		{ name: 'tag', example: 'tag:cars' },
 		{ name: 'language', example: 'language:en' },
 		{ name: 'possession', example: 'possession:owned' },
+		{ name: 'medium', example: 'medium:audiobook' },
 		{ name: 'notes', example: 'notes:reading' },
 		{ name: 'description', example: 'description:desert' }
 	];
@@ -75,6 +76,9 @@
 			</p>
 			<p class="text-xs text-base-content/50 mt-2">
 				{$_('search.help.possessionValues')}
+			</p>
+			<p class="text-xs text-base-content/50 mt-1">
+				{$_('search.help.mediumValues')}
 			</p>
 		</div>
 	{/if}

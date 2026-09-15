@@ -289,77 +289,44 @@ def test_map_hardcover_language_uppercased() -> None:
     assert result.language == "DE"
 
 
-# ── _merge_and_deduplicate unit tests ────────────────────────────────────────
+# ── _merge_results unit tests ─────────────────────────────────────────────────
 
-def _make_candidate(title: str, isbn: str | None = None, pages: int | None = None, lang: str | None = None) -> BookImportCandidate:
-    """Create a BookImportCandidate with default values for reuse in dedup tests."""
+def _make_candidate(
+    title: str,
+    isbn: str | None = None,
+    pages: int | None = None,
+    lang: str | None = None,
+    source: str = "open_library",
+) -> BookImportCandidate:
+    """Create a BookImportCandidate with default values for reuse in merge tests."""
     return BookImportCandidate(
         title=title,
         author="Author",
         isbn=isbn,
         page_count=pages,
         language=lang,
-        source="open_library",
+        source=source,
     )
 
 
-def test_merge_and_dedup_same_isbn_pages_lang() -> None:
+def test_merge_results_preserves_all_candidates() -> None:
     a = _make_candidate("Dune", "9780441013593", 412, "EN")
-    b = _make_candidate("Dune", "9780441013593", 412, "EN")
-    result = book_import._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].title == "Dune"
-
-
-def test_merge_and_dedup_same_isbn_diff_pages() -> None:
-    a = _make_candidate("Dune", "9780441013593", 412, "EN")
-    b = _make_candidate("Dune HC", "9780441013593", 688, "EN")
-    result = book_import._merge_and_deduplicate([a], [b])
+    b = _make_candidate("Dune", "9780441013593", 412, "EN", source="hardcover")
+    result = book_import._merge_results([a], [b])
     assert len(result) == 2
+    assert result[0] is a
+    assert result[1] is b
 
 
-def test_merge_and_dedup_same_isbn_diff_lang() -> None:
-    a = _make_candidate("Dune", "9780441013593", 412, "EN")
-    b = _make_candidate("Dune DE", "9780441013593", 412, "DE")
-    result = book_import._merge_and_deduplicate([a], [b])
-    assert len(result) == 2
-
-
-def test_merge_and_dedup_ol_first_order() -> None:
+def test_merge_results_preserves_order() -> None:
     ol = _make_candidate("OL Book", "9781111111111", 200, "EN")
-    hc = _make_candidate("HC Book", "9782222222222", 300, "DE")
-    result = book_import._merge_and_deduplicate([ol], [hc])
-    assert len(result) == 2
+    hc = _make_candidate("HC Book", "9782222222222", 300, "DE", source="hardcover")
+    gb = _make_candidate("GB Book", "9783333333333", 250, "FR", source="google_books")
+    result = book_import._merge_results([ol], [hc, gb])
+    assert len(result) == 3
     assert result[0].title == "OL Book"
     assert result[1].title == "HC Book"
-
-
-def test_merge_and_dedup_prefers_candidate_with_cover() -> None:
-    a = _make_candidate("No Cover", "9780441013593", 412, "EN")
-    b = _make_candidate("Has Cover", "9780441013593", 412, "EN")
-    b.cover_url = "https://example.com/cover.jpg"
-    result = book_import._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].title == "Has Cover"
-
-
-def test_merge_and_dedup_prefers_cover_when_primary_missing_cover() -> None:
-    a = _make_candidate("OL No Cover", "9780441013593", 412, "EN")
-    b = _make_candidate("HC Has Cover", "9780441013593", 412, "EN")
-    b.cover_url = "https://example.com/cover.jpg"
-    result = book_import._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].title == "HC Has Cover"
-
-
-def test_merge_and_dedup_keeps_primary_cover_when_both_have_cover() -> None:
-    a = _make_candidate("OL Cover", "9780441013593", 412, "EN")
-    a.cover_url = "https://ol-cover.jpg"
-    b = _make_candidate("HC Cover", "9780441013593", 412, "EN")
-    b.cover_url = "https://hc-cover.jpg"
-    result = book_import._merge_and_deduplicate([a], [b])
-    assert len(result) == 1
-    assert result[0].title == "OL Cover"
+    assert result[2].title == "GB Book"
 
 
 # ── _hardcover_dedup_key tests ───────────────────────────────────────────────

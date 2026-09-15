@@ -205,7 +205,7 @@ async def search_with_progress(
             for e in hc_events:
                 yield e
 
-            results = _merge_and_deduplicate(ol_results, hc_results)
+            results = _merge_results(ol_results, hc_results)
 
             if not results:
                 if not api_key:
@@ -288,7 +288,7 @@ async def search(
         logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
         logger.info("Hardcover returned %d result(s) for %r", len(hc_results), query)
 
-        results = _merge_and_deduplicate(ol_results, hc_results)
+        results = _merge_results(ol_results, hc_results)
 
         if not results:
             if not api_key:
@@ -829,33 +829,18 @@ def map_hardcover(edition: dict) -> BookImportCandidate | None:
 # ── Merge / Deduplicate ───────────────────────────────────────────────────────
 
 
-def _merge_and_deduplicate(
+def _merge_results(
     primary: list[BookImportCandidate],
     secondary: list[BookImportCandidate],
 ) -> list[BookImportCandidate]:
-    """Merge two candidate lists, deduplicating by (isbn, page_count, language).
+    """Merge two candidate lists, preserving every candidate in input order.
 
-    Primary list items come first in the result.
-    Same ISBN with different page_count/language is kept as separate candidates.
-    When two candidates collide, the one with a cover image is preferred.
+    The frontend is responsible for grouping variants that represent the same
+    book (e.g. by ISBN) and letting the user pick the best record. A user can
+    only own one book per exact ISBN string, so keeping all provider-specific
+    records lets the user compare data quality before importing.
     """
-    seen: dict[str, BookImportCandidate] = {}
-
-    def _key(c: BookImportCandidate) -> str:
-        isbn = (c.isbn or "").replace("-", "").replace(" ", "")
-        pages = str(c.page_count or "")
-        lang = (c.language or "").upper()
-        return f"isbn:{isbn}|pages:{pages}|lang:{lang}"
-
-    for c in primary + secondary:
-        k = _key(c)
-        existing = seen.get(k)
-        if existing is None:
-            seen[k] = c
-        elif existing.cover_url is None and c.cover_url is not None:
-            seen[k] = c
-
-    return list(seen.values())
+    return primary + secondary
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

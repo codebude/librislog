@@ -5,6 +5,7 @@
 	import { _ } from '$lib/i18n';
 	import { onDestroy } from 'svelte';
 	import { RefreshCw, X } from '@lucide/svelte';
+	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
 
 	let {
 		open = $bindable(false),
@@ -16,6 +17,7 @@
 
 	let stream = $state<MediaStream | null>(null);
 	let scannerError = $state<string | null>(null);
+	let notSecure = $state(false);
 	let starting = $state(false);
 	let detectionLocked = $state(false);
 	let videoEl = $state<HTMLVideoElement | null>(null);
@@ -268,6 +270,10 @@
 
 	async function startScanner() {
 		if (starting || stream) return;
+		if (!isSecureContext()) {
+			notSecure = true;
+			return;
+		}
 		if (!navigator.mediaDevices?.getUserMedia) throw new Error($_('scanner.noCamera'));
 		starting = true;
 		scannerError = null;
@@ -320,16 +326,28 @@
 	}
 
 	$effect(() => {
-		if (open && !stream && !starting && !scannerError) {
+		if (open && !stream && !starting && !scannerError && !notSecure) {
 			void startScanner();
 			return;
 		}
 		if (!open) {
 			scannerError = null;
+			notSecure = false;
 			if (stream) {
 				void stopScanner();
 			}
 		}
+	});
+
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') void closeScanner();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
 	});
 
 	onDestroy(() => {
@@ -339,14 +357,7 @@
 
 {#if open}
 	<div class="fixed inset-0 z-[400]">
-		<div
-			class="absolute inset-0 bg-black/45"
-			onclick={closeScanner}
-			onkeydown={(e) => e.key === 'Escape' && closeScanner()}
-			role="button"
-			tabindex="0"
-			aria-label={$_('scanner.close')}
-		></div>
+		<div class="absolute inset-0 bg-black/45"></div>
 
 		<div class="absolute inset-0 z-[401] flex items-center justify-center p-2 sm:p-4">
 			<div class="w-full max-w-4xl h-[88dvh] bg-base-100 rounded-xl shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label={$_('scanner.title')}>
@@ -366,7 +377,18 @@
 						</div>
 					{/if}
 
-					{#if !scannerError}
+					{#if notSecure}
+						<div class="alert alert-warning text-sm">
+							<span>
+								{$_('scanner.secureContextRequired')}{' '}
+								<a href={SECURE_CONTEXT_DOCS_URL} target="_blank" rel="noreferrer" class="link link-primary">
+									{$_('scanner.secureContextDocsLink')}
+								</a>
+							</span>
+						</div>
+					{/if}
+
+					{#if !scannerError && !notSecure}
 						<div class="flex-1 min-h-72 rounded-lg bg-black overflow-hidden relative">
 							<video
 								bind:this={videoEl}
@@ -407,15 +429,23 @@
 								</div>
 							{/if}
 							{#if cameras.length > 1}
-								<button
-									class="btn btn-outline btn-sm gap-2"
-									onclick={() => void switchCamera()}
-									disabled={starting}
-									aria-label={$_('scanner.switchCamera')}
-								>
-									<RefreshCw class="w-4 h-4" />
-									{$_('scanner.switchCamera')}
-								</button>
+								<div class="flex items-center gap-2">
+									<span
+										class="badge badge-ghost badge-sm max-w-40 truncate"
+										title={$_('scanner.currentCamera', { values: { camera: cameras[cameraIndex]?.label ?? '' } })}
+									>
+										{cameras[cameraIndex]?.label}
+									</span>
+									<button
+										class="btn btn-outline btn-sm gap-2"
+										onclick={() => void switchCamera()}
+										disabled={starting}
+										aria-label={$_('scanner.switchCamera')}
+									>
+										<RefreshCw class="w-4 h-4" />
+										{$_('scanner.switchCamera')}
+									</button>
+								</div>
 							{/if}
 						</div>
 					{/if}

@@ -1,14 +1,15 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
+	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import ImportSearch from './ImportSearch.svelte';
+	import BasketPanel from './BasketPanel.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import TagInput from './TagInput.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
-	import { ScanBarcode, X } from '@lucide/svelte';
+	import { ScanBarcode, ShoppingBasket, X } from '@lucide/svelte';
 
 	let {
 		open = $bindable(false),
@@ -20,10 +21,20 @@
 		onAdded?: (book: Book) => void;
 	} = $props();
 
-	let activeTab = $state<'manual' | 'import'>('manual');
+	let activeTab = $state<'manual' | 'import' | 'basket'>('manual');
 	let submitting = $state(false);
 	let scannerOpen = $state(false);
 	let scannedIsbn = $state<string | null>(null);
+	let basket = $state<BasketItem[]>([]);
+	let basketImporting = $state(false);
+	let searchSessionIds = $state<number[]>([1]);
+	let nextSearchSessionId = 2;
+	const searchPanelStyles = [
+		'border-base-300 border-l-4 border-l-primary bg-primary/10',
+		'border-base-300 border-l-4 border-l-secondary bg-secondary/10',
+		'border-base-300 border-l-4 border-l-accent bg-accent/10',
+		'border-base-300 border-l-4 border-l-info bg-info/10'
+	];
 
 	// Manual form state
 	let title = $state('');
@@ -40,8 +51,21 @@
 	let rating = $state('');
 	let status = $state<ReadingStatus>('want_to_read');
 	let acquisitionStatus = $state<AcquisitionStatus | ''>('');
+	let medium = $state<Medium | ''>('');
 	let cover_url = $state<string | null>(null);
 	$effect(() => { status = defaultStatus; });
+
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// Skip while the nested barcode scanner is open.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && !scannerOpen) open = false;
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 
 	function reset() {
 		title = '';
@@ -58,8 +82,86 @@
 		rating = '';
 		status = defaultStatus;
 		acquisitionStatus = '';
+		medium = '';
 		cover_url = null;
 		activeTab = 'manual';
+		basket = [];
+		searchSessionIds = [1];
+		nextSearchSessionId = 2;
+	}
+
+	function addSearchSession() {
+		searchSessionIds = [nextSearchSessionId++, ...searchSessionIds];
+	}
+
+	function removeSearchSession(id: number) {
+		if (searchSessionIds.length === 1) return;
+		searchSessionIds = searchSessionIds.filter((sessionId) => sessionId !== id);
+	}
+
+	function addToBasket(item: BasketItem) {
+		basket = [...basket, item];
+	}
+
+	function removeFromBasket(id: string) {
+		basket = basket.filter((item) => item.id !== id);
+	}
+
+	async function importBasket() {
+		if (basket.length === 0 || basketImporting) return;
+		basketImporting = true;
+		const items = basket;
+		const remaining: BasketItem[] = [];
+		const imported: Book[] = [];
+		let success = 0;
+		let failed = 0;
+
+		try {
+			for (const item of items) {
+				try {
+					const book = await api.import.importBook(
+						item.candidate,
+						item.readingStatus,
+						item.acquisitionStatus,
+						item.medium
+					);
+					imported.push(book);
+					success++;
+				} catch (e: unknown) {
+					remaining.push(item);
+					failed++;
+					const message =
+						e instanceof Error && e.message === 'error.isbnAlreadyExists'
+							? $_('error.isbnAlreadyExists')
+							: e instanceof Error
+								? e.message
+								: $_('import.importFailed');
+					toasts.add(message, 'error');
+				}
+			}
+
+			// Keep items added to the basket while the import was in flight.
+			basket = [...remaining, ...basket.filter((item) => !items.includes(item))];
+
+			// Notify the parent only after the whole run so a single-book
+			// import or a parent that closes the dialog on onAdded cannot
+			// interrupt the remaining items.
+			for (const book of imported) {
+				onAdded?.(book);
+			}
+
+			if (success > 0) {
+				toasts.add($_('import.basketImportSuccess', { values: { count: success } }), 'success');
+			}
+			if (failed === 0 && success > 0) {
+				open = false;
+				reset();
+			} else if (failed > 0) {
+				activeTab = 'basket';
+			}
+		} finally {
+			basketImporting = false;
+		}
 	}
 
 	async function submitManual() {
@@ -84,6 +186,7 @@
 				rating: rating ? parseInt(rating) : null,
 				reading_status: status,
 				acquisition_status: acquisitionStatus,
+				medium: medium || null,
 				cover_url: cover_url || null
 			});
 			onAdded?.(book);
@@ -114,6 +217,13 @@
 		{ value: 'digital_access', label: 'acquisition.digital_access' },
 		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
 	];
+	const MEDIUM_OPTIONS: { value: Medium; label: string }[] = [
+		{ value: 'Print', label: 'medium.print' },
+		{ value: 'eBook', label: 'medium.ebook' },
+		{ value: 'Audiobook', label: 'medium.audiobook' },
+		{ value: 'Comic / Graphic Novel', label: 'medium.comic_graphic_novel' },
+		{ value: 'Magazine / Newspaper', label: 'medium.magazine_newspaper' }
+	];
 </script>
 
 {#if open}
@@ -136,6 +246,19 @@
 					class="tab {activeTab === 'import' ? 'tab-active' : ''}"
 					onclick={() => (activeTab = 'import')}
 				>{$_('addModal.searchImport')}</button>
+				<button
+					role="tab"
+					class="tab {activeTab === 'basket' ? 'tab-active' : ''}"
+					onclick={() => (activeTab = 'basket')}
+				>
+					<span class="flex items-center gap-1">
+						<ShoppingBasket class="w-4 h-4" />
+						{$_('addModal.basket')}
+						{#if basket.length > 0}
+							<span class="badge badge-sm badge-primary ml-0.5">{basket.length}</span>
+						{/if}
+					</span>
+				</button>
 			</div>
 
 			{#if activeTab === 'manual'}
@@ -213,6 +336,15 @@
 				</select>
 				</label>
 				<label class="flex flex-col gap-1">
+					<span class="label label-text">{$_('book.medium')}</span>
+					<select class="select select-bordered" name="medium" bind:value={medium}>
+						<option value="">{$_('book.selectMedium')}</option>
+						{#each MEDIUM_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="flex flex-col gap-1">
 					<span class="label label-text">{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
 					<select class="select select-bordered" name="acquisition_status" bind:value={acquisitionStatus} required>
 						<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
@@ -241,24 +373,81 @@
 					</button>
 				</div>
 				</form>
-			{:else}
-			<ImportSearch
-				onOpenScanner={() => {
-					scannerOpen = true;
-				}}
-				scannedIsbn={scannedIsbn}
-				onScannedHandled={() => {
-					scannedIsbn = null;
-				}}
-				onImport={(book) => {
-					onAdded?.(book);
-					open = false;
-					reset();
-				}}
-			/>
+		{:else if activeTab === 'import'}
+			<div class="flex items-center justify-between gap-3 mb-3 rounded-lg bg-base-200/60 p-3">
+				<p class="text-sm text-base-content/70">{$_('import.parallelSearchDescription')}</p>
+				<button class="btn btn-outline btn-sm shrink-0" type="button" onclick={addSearchSession}>
+					{$_('import.newParallelSearch')}
+				</button>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.medium')}</span>
+					<select class="select select-bordered select-sm" name="import-medium" bind:value={medium}>
+						<option value="">{$_('book.selectMedium')}</option>
+						{#each MEDIUM_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+					<select class="select select-bordered select-sm" name="import-acquisition-status" bind:value={acquisitionStatus}>
+						<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+						{#each ACQUISITION_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+			</div>
+			<div class="flex flex-col gap-4">
+				{#each searchSessionIds as sessionId, index (sessionId)}
+					<section class={`rounded-xl border p-3 ${searchPanelStyles[index % searchPanelStyles.length]}`}>
+						{#if searchSessionIds.length > 1}
+							<div class="flex items-center justify-between mb-2">
+								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: sessionId } })}</h4>
+								<button
+									class="btn btn-ghost btn-xs"
+									type="button"
+									onclick={() => removeSearchSession(sessionId)}
+									aria-label={$_('import.removeParallelSearch')}
+								>
+									{$_('import.removeParallelSearch')}
+								</button>
+							</div>
+						{/if}
+						<ImportSearch
+							defaultStatus={defaultStatus}
+							showMetadataControls={false}
+							acquisitionStatus={acquisitionStatus}
+							medium={medium}
+							focusOnMount={sessionId !== 1 && sessionId === searchSessionIds[0]}
+							basket={basket}
+							onAddToBasket={addToBasket}
+							onOpenScanner={() => {
+								scannerOpen = true;
+							}}
+							scannedIsbn={index === 0 ? scannedIsbn : null}
+							onScannedHandled={index === 0 ? () => { scannedIsbn = null; } : undefined}
+							onImport={(book) => {
+								onAdded?.(book);
+								open = false;
+								reset();
+							}}
+						/>
+					</section>
+				{/each}
+			</div>
 			<div class="mt-3 text-center">
 				<a href="/data?tab=import" class="link link-primary text-sm">{$_('addModal.importFromFile')}</a>
 			</div>
+		{:else}
+			<BasketPanel
+				basket={basket}
+				importing={basketImporting}
+				onRemove={removeFromBasket}
+				onImport={importBasket}
+			/>
 		{/if}
 		</div>
 	<BarcodeScanner
@@ -268,7 +457,6 @@
 			isbn = detected;
 		}}
 	/>
-		<!-- Click-outside to close -->
-		<div class="modal-backdrop" role="button" tabindex="-1" onkeydown={(e) => e.key === 'Escape' && (open = false)}></div>
+		<div class="modal-backdrop"></div>
 	</div>
 {/if}

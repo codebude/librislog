@@ -24,7 +24,7 @@ def _parse_sse(text: str) -> list[dict[str, str | int | bool | None]]:
 def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "medium": "Print"},
     )
     assert create_resp.status_code == 201
 
@@ -46,12 +46,13 @@ def test_data_export_zip_contains_manifest_and_books_json(client: TestClient) ->
         assert manifest["counts"]["books"] == 1
         books = json.loads(zf.read("books.json"))
         assert books[0]["title"] == "Dune"
+        assert books[0]["medium"] == "Print"
 
 
 def test_data_export_csv_format(client: TestClient) -> None:
     create_resp = client.post(
         "/api/books",
-        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read"},
+        json={"title": "Dune", "author": "Frank Herbert", "page_count": 412, "reading_status": "read", "medium": "Audiobook"},
     )
     assert create_resp.status_code == 201
 
@@ -68,6 +69,8 @@ def test_data_export_csv_format(client: TestClient) -> None:
         assert "tags.csv" in names
         books_csv = zf.read("books.csv").decode()
         assert "title,subtitle" in books_csv
+        assert "medium" in books_csv.splitlines()[0]
+        assert "Audiobook" in books_csv
         assert "Dune" in books_csv
 
 
@@ -224,11 +227,13 @@ def test_data_import_mapping_crud(client: TestClient) -> None:
     list_resp = client.get("/api/data/import/mappings")
     assert list_resp.status_code == 200
     data = list_resp.json()
-    assert len(data) == 2
+    assert len(data) == 3
     assert data[0]["is_predefined"] is True
     assert data[0]["name"] == "Goodreads Export"
-    assert data[1]["is_predefined"] is False
-    assert data[1]["name"] == "Goodreads"
+    assert data[1]["is_predefined"] is True
+    assert data[1]["name"] == "Bookstats Export"
+    assert data[2]["is_predefined"] is False
+    assert data[2]["name"] == "Goodreads"
 
     get_resp = client.get(f"/api/data/import/mappings/{saved['id']}")
     assert get_resp.status_code == 200
@@ -280,6 +285,36 @@ def test_data_import_validate_and_execute_continue_on_error(client: TestClient, 
     complete = next(event for event in events if event.get("event") == "complete")
     assert complete["imported"] == 1
     assert complete["failed"] == 1
+
+
+def test_data_import_preview_allows_read_book_without_finished_date(
+    client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path / "import_temp_dir"))
+    csv_payload = "Title,Author,Status,Availability\nDune,Frank Herbert,read,owned\n"
+    parse_resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.csv", csv_payload, "text/csv")},
+    )
+    file_id = parse_resp.json()["file_id"]
+
+    preview_resp = client.post(
+        "/api/data/import/preview",
+        json={
+            "file_id": file_id,
+            "mapping": {
+                "title": {"source": "Title", "transform": None},
+                "author": {"source": "Author", "transform": None},
+                "reading_status": {"source": "Status", "transform": None},
+                "acquisition_status": {"source": "Availability", "transform": None},
+            },
+        },
+    )
+    assert preview_resp.status_code == 200
+    preview = preview_resp.json()
+    assert preview["errors"] == []
+    assert preview["preview_rows"][0]["errors"] == []
+    assert any("no finished date" in warning for warning in preview["preview_rows"][0]["warnings"])
 
 
 def test_data_import_execute_rollback_all_rolls_back(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -441,7 +476,63 @@ def test_data_import_parse_unsupported_content_type(client: TestClient) -> None:
         files={"file": ("test.exe", b"invalid", "application/octet-stream")},
     )
     assert resp.status_code == 415
-    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV or JSON files."
+    assert resp.json()["detail"] == "Unsupported upload content type. Use CSV, JSON, or Excel (.xlsx) files."
+
+
+def test_data_import_parse_xlsx(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Books"
+    worksheet.append(["Title", "Author"])
+    worksheet.append(["Dune", "Frank Herbert"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={
+            "file": (
+                "books.xlsx",
+                buffer.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["format"] == "xlsx"
+    assert body["sheet"] == "Books"
+    assert body["source_fields"] == ["Title", "Author"]
+    assert body["row_count"] == 1
+
+
+def test_data_import_parse_accepts_xlsx_with_generic_content_type(
+    client: TestClient, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    workbook = Workbook()
+    workbook.active.append(["Title"])
+    workbook.active.append(["Dune"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    resp = client.post(
+        "/api/data/import/parse",
+        files={"file": ("books.xlsx", buffer.getvalue(), "application/octet-stream")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["format"] == "xlsx"
 
 
 def test_data_import_parse_invalid_json(client: TestClient) -> None:
@@ -615,6 +706,16 @@ def test_data_import_mapping_get_predefined(client: TestClient) -> None:
     assert data["is_predefined"] is True
     assert data["id"] == -1
     assert data["name"] == "Goodreads Export"
+
+
+def test_data_import_mapping_get_predefined_bookstats(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-2")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["is_predefined"] is True
+    assert data["id"] == -2
+    assert data["name"] == "Bookstats Export"
+    assert data["mapping"]["tags"]["source"] == "Genre"
 
 
 def test_data_import_mapping_get_predefined_missing(client: TestClient) -> None:

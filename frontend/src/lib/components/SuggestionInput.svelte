@@ -112,7 +112,7 @@
 		const before = text.slice(0, idx);
 		const match = text.slice(idx, idx + query.length);
 		const after = text.slice(idx + query.length);
-		return `${before}<mark class="bg-primary-100 text-primary font-medium rounded">${match}</mark>${after}`;
+		return `${before}<mark class="bg-primary/20 text-primary font-medium rounded">${match}</mark>${after}`;
 	}
 </script>
 
@@ -150,19 +150,26 @@
 				class="z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
 				style={dropdownStyle || 'position:absolute;left:0;right:0;margin-top:0.25rem'}
 			>
-				{#each suggestions as suggestion, i}
-					<li
-						role="option"
-						aria-selected={i === highlightedIndex}
-						class="px-3 py-2 cursor-pointer text-sm"
-						class:bg-base-200={i !== highlightedIndex}
-						style={i === highlightedIndex ? 'background-color: oklch(var(--p) / 0.1); color: oklch(var(--p));' : ''}
-						onmousedown={() => selectSuggestion(suggestion)}
-						onmouseenter={() => (highlightedIndex = i)}
-					>
-						{@html highlightMatch(suggestion, inputValue)}
-					</li>
-				{/each}
+			{#each suggestions as suggestion, i}
+				<li
+					role="option"
+					aria-selected={i === highlightedIndex}
+					class="mx-1 my-0.5 px-3 py-2 cursor-pointer text-sm rounded-md border-2 transition-colors"
+					class:bg-base-200={i !== highlightedIndex}
+					class:border-base-300={i !== highlightedIndex}
+					class:text-primary={i === highlightedIndex}
+					class:font-semibold={i === highlightedIndex}
+					style={
+						i === highlightedIndex
+							? 'background-color: oklch(var(--p) / 0.14); border-color: oklch(var(--p)); box-shadow: 0 0 0 1px oklch(var(--p) / 0.35);'
+							: ''
+					}
+					onmousedown={() => selectSuggestion(suggestion)}
+					onmouseenter={() => (highlightedIndex = i)}
+				>
+					{@html highlightMatch(suggestion, inputValue)}
+				</li>
+			{/each}
 			</ul>
 		{/if}
 	</div>

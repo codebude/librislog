@@ -39,6 +39,9 @@ headers. For these integrations you need an **embed token**, used with the
 - [Glance](/api/integrations/glance) — Display your LibrisLog statistics on a
   [Glance](https://github.com/glanceapp/glance) dashboard using the custom API
   widget.
+- [Heimdall](/api/integrations/heimdall): Display your LibrisLog statistics
+  on a [Heimdall](https://github.com/linuxserver/Heimdall) dashboard using the
+  LibrisLog enhanced app.
 - [Home Assistant](/api/integrations/homeassistant) — Expose your LibrisLog
   reading statistics as sensors in
   [Home Assistant](https://www.home-assistant.io/) using the RESTful

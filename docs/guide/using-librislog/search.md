@@ -14,6 +14,7 @@ Use `<field>:<value>` to search in a single field. The field prefixes are always
 | `language` | Language | `language:Japanese` |
 | `tag` | Tag name | `tag:fantasy` |
 | `possession` | Possession status | `possession:owned` |
+| `medium` | Book medium | `medium:audiobook` |
 | `notes` | Private notes | `notes:"to reread"` |
 | `description` | Blurb / description | `description:"middle earth"` |
 
@@ -23,7 +24,7 @@ The `author:` prefix matches **any** author assigned to a book — a book with m
 
 ### Possession values
 
-The `possession` prefix matches the exact possession status. Accepted values include:
+The `possession` prefix matches the exact possession status. The original enum keys are accepted, and localized display values are accepted too, such as German `Im Besitz` for `owned`. Accepted keys include:
 
 - `to_acquire` (or `to acquire`)
 - `owned`
@@ -31,6 +32,12 @@ The `possession` prefix matches the exact possession status. Accepted values inc
 - `digital`
 
 Example: `possession:"to acquire"` shows books you want to buy.
+
+### Medium values
+
+The `medium` prefix matches the selected book medium. The original enum keys are `print`, `ebook`, `audiobook`, `comic_graphic_novel`, and `magazine_newspaper`. Localized display values are also accepted, such as German `Hörbuch` for `audiobook`.
+
+Example: `medium:audiobook` shows audiobook entries. The API list filter accepts both display values and normalized keys.
 
 ## Negation
 
@@ -46,6 +53,7 @@ Separate terms with spaces. All terms are combined with **AND**.
 
 - `author:Murakami -title:Norwegian` — Murakami books except those whose title contains "Norwegian"
 - `tag:fantasy possession:owned` — owned fantasy books
+- `medium:print possession:owned` — owned print books
 
 ## Plain text
 

@@ -1,7 +1,7 @@
 """Pydantic / SQLModel request and response schemas for the API."""
 
 from typing import Optional, Any
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Literal
 
@@ -10,7 +10,7 @@ import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
-from app.models import AcquisitionStatus, ReadingStatus, UserRole
+from app.models import AcquisitionStatus, Medium, ReadingStatus, PublicProfileAudience, UserRole
 
 
 class ReadingProgressCreate(SQLModel):
@@ -74,6 +74,7 @@ class BookCreate(SQLModel):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = ReadingStatus.want_to_read
     acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
+    medium: Optional[Medium] = None
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -96,6 +97,7 @@ class BookUpdate(SQLModel):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: Optional[ReadingStatus] = None
     acquisition_status: Optional[AcquisitionStatus] = None
+    medium: Optional[Medium] = None
     date_started: Optional[datetime] = None
     date_finished: Optional[datetime] = None
 
@@ -144,6 +146,7 @@ class BookImportRequest(SQLModel):
     candidate: BookImportCandidate
     reading_status: ReadingStatus = ReadingStatus.want_to_read
     acquisition_status: AcquisitionStatus = AcquisitionStatus.owned
+    medium: Optional[Medium] = None
 
 
 class BookRead(SQLModel):
@@ -165,6 +168,7 @@ class BookRead(SQLModel):
     rating: Optional[int]
     reading_status: ReadingStatus
     acquisition_status: AcquisitionStatus
+    medium: Optional[Medium] = None
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
@@ -224,6 +228,12 @@ class AcquisitionStatusDistribution(SQLModel):
     to_acquire: int
 
 
+class MediumDistribution(SQLModel):
+    """Count of books per medium, including unset values."""
+    medium: Optional[Medium]
+    count: int
+
+
 class PageBuckets(SQLModel):
     """Page count buckets for the statistics dashboard."""
     pages_to_read: int
@@ -247,6 +257,15 @@ class YearlyBooks(SQLModel):
     """Books finished in a given year."""
     year: int
     count: int
+
+
+class StatisticsRange(str, Enum):
+    """Shared statistics time-range selector options."""
+    alltime = "alltime"
+    this_year = "this_year"
+    last_year = "last_year"
+    three_years = "3years"
+    custom = "custom"
 
 
 class TopAuthor(SQLModel):
@@ -288,6 +307,7 @@ class StatisticsResponse(SQLModel):
     language_distribution: list[LanguageDistribution]
     status_distribution: StatusDistribution
     acquisition_status_distribution: AcquisitionStatusDistribution
+    medium_distribution: list[MediumDistribution]
     page_buckets: PageBuckets
     pages_read_per_month: list[MonthlyPages]
     books_finished_per_month: list[MonthlyBooks]
@@ -413,6 +433,11 @@ class UserSettingsRead(SQLModel):
     goal_books_per_year_enabled: bool
     goal_books_per_year: int
     gamification_enabled: bool
+    auto_set_date_started: bool
+    auto_set_date_finished: bool
+    statistics_range: StatisticsRange
+    statistics_custom_from: Optional[date] = None
+    statistics_custom_to: Optional[date] = None
 
 
 class UserSettingsUpdate(SQLModel):
@@ -430,6 +455,18 @@ class UserSettingsUpdate(SQLModel):
     goal_books_per_year_enabled: Optional[bool] = None
     goal_books_per_year: Optional[int] = Field(default=None, ge=1)
     gamification_enabled: Optional[bool] = None
+    auto_set_date_started: Optional[bool] = None
+    auto_set_date_finished: Optional[bool] = None
+    statistics_range: Optional[StatisticsRange] = None
+    statistics_custom_from: Optional[date] = None
+    statistics_custom_to: Optional[date] = None
+
+    @field_validator("auto_set_date_started", "auto_set_date_finished")
+    @classmethod
+    def validate_date_automation_setting(cls, value: Optional[bool]) -> Optional[bool]:
+        if value is None:
+            raise ValueError("Reading date automation settings cannot be null")
+        return value
 
     @field_validator('theme')
     @classmethod
@@ -546,6 +583,7 @@ class HygieneAttribute(str, Enum):
     subtitle = "subtitle"
     page_count = "page_count"
     cover_url = "cover_url"
+    medium = "medium"
 
 
 class HygieneMissingBook(SQLModel):
@@ -609,10 +647,11 @@ class DataExportRequest(SQLModel):
 class DataImportParseResponse(SQLModel):
     """Response after parsing an uploaded import file."""
     file_id: str
-    format: Literal["csv", "json"]
+    format: Literal["csv", "json", "xlsx"]
     source_fields: list[str]
     sample_rows: list[dict]
     row_count: int
+    sheet: Optional[str] = None
 
 
 class ImportFieldConfig(SQLModel):
@@ -688,6 +727,7 @@ class DataImportPreviewRow(SQLModel):
     source: dict[str, Any]
     transformed: dict[str, Any]
     errors: list[str]
+    warnings: list[str] = Field(default_factory=list)
 
 
 class DataImportPreviewRequest(SQLModel):
@@ -733,6 +773,145 @@ class EmbedTokenCreateResponse(SQLModel):
     """Embed token creation response containing the raw token (shown once)."""
     token: str
     embed_token: EmbedTokenRead
+
+
+class PublicProfileSectionKey(str, Enum):
+    """Stable keys for the selectable sections of a public profile.
+
+    Adding a new section is a small, contained change: add a member here, a
+    registry entry on the frontend, an i18n label/tooltip, and a render
+    component on the public page. Saved configs tolerate unknown keys.
+    """
+
+    username = "username"
+    user_info = "user_info"
+    currently_reading = "currently_reading"
+    last_read = "last_read"
+    reading_timeline = "reading_timeline"
+    full_library = "full_library"
+    statistics = "statistics"
+
+
+class PublicProfileStatisticsKey(str, Enum):
+    """Selectable statistics exposed on a public profile."""
+
+    total_books = "total_books"
+    total_authors = "total_authors"
+    avg_books_per_month = "avg_books_per_month"
+    busiest_month = "busiest_month"
+    avg_page_count = "avg_page_count"
+    most_popular_language = "most_popular_language"
+    language_distribution = "language_distribution"
+    status_distribution = "status_distribution"
+    acquisition_status_distribution = "acquisition_status_distribution"
+    medium_distribution = "medium_distribution"
+    page_buckets = "page_buckets"
+    pages_read_per_month = "pages_read_per_month"
+    books_finished_per_month = "books_finished_per_month"
+    books_finished_per_year = "books_finished_per_year"
+    top_authors = "top_authors"
+    books_with_rating = "books_with_rating"
+    books_without_rating = "books_without_rating"
+    average_rating = "average_rating"
+    top_rated_books = "top_rated_books"
+    worst_rated_books = "worst_rated_books"
+
+
+class PublicProfileVisibilityConfig(SQLModel):
+    """Whitelisted sections and, for statistics, the selected sub-keys."""
+
+    sections: list[PublicProfileSectionKey] = Field(default_factory=list)
+    statistics: list[PublicProfileStatisticsKey] = Field(default_factory=list)
+
+
+class PublicProfileLinkCreate(SQLModel):
+    """Request body to create a new public profile share link."""
+
+    name: str = Field(min_length=1, max_length=255)
+    audience: Optional[PublicProfileAudience] = None
+    language: Optional[str] = Field(default=None, max_length=10)
+    visibility_config: PublicProfileVisibilityConfig = Field(default_factory=PublicProfileVisibilityConfig)
+    expires_at: Optional[datetime] = None
+
+
+class PublicProfileLinkUpdate(SQLModel):
+    """Request body to partially update a public profile share link."""
+
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    audience: Optional[PublicProfileAudience] = None
+    language: Optional[str] = Field(default=None, max_length=10)
+    visibility_config: Optional[PublicProfileVisibilityConfig] = None
+    expires_at: Optional[datetime] = None
+
+
+class PublicProfileLinkRead(SQLModel):
+    """Share-link read response (without the raw token value)."""
+
+    id: int
+    name: str
+    token_prefix: str
+    audience: PublicProfileAudience
+    language: Optional[str] = None
+    visibility_config: PublicProfileVisibilityConfig
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class PublicProfileLinkCreateResponse(SQLModel):
+    """Share-link creation response containing the raw token (shown once)."""
+
+    token: str
+    link: PublicProfileLinkRead
+
+
+class ShareLinkRevealResponse(SQLModel):
+    """Response for the reveal endpoint, returning the raw token."""
+
+    token: str
+
+
+class PublicProfileUserInfo(SQLModel):
+    """Public-safe owner identity shown on a public profile.
+
+    Both names are ``None`` when the owner has enabled no section that
+    displays them (neither ``username`` nor ``user_info``), so the owner's
+    identity cannot leak through the page title or share metadata.
+    """
+
+    firstname: str | None = None
+    lastname: str | None = None
+
+
+class PublicProfileBook(SQLModel):
+    """Public-safe book data whitelisted for public profiles."""
+
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    authors: list[str] = Field(default_factory=list)
+    cover_url: Optional[str] = None
+    reading_status: ReadingStatus
+    page_count: int
+    language: Optional[str] = None
+    rating: Optional[int] = None
+    date_started: Optional[datetime] = None
+    date_finished: Optional[datetime] = None
+
+
+class PublicProfileResponse(SQLModel):
+    """Data returned by the public profile endpoint.
+
+    ``statistics`` is a dict keyed by the selected ``PublicProfileStatisticsKey``
+    values so only the configured statistics are ever serialized.
+    """
+
+    owner: PublicProfileUserInfo
+    audience: PublicProfileAudience
+    language: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    visibility_config: PublicProfileVisibilityConfig
+    books: list[PublicProfileBook] = Field(default_factory=list)
+    statistics: Optional[dict[str, Any]] = None
 
 
 class DataImportExecuteResult(SQLModel):

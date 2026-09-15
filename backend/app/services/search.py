@@ -16,7 +16,8 @@ from typing import Any
 import sqlalchemy as sa
 from sqlmodel import col, or_, select
 
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Tag
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, Tag, normalize_medium_key
+from app.i18n import translate
 
 # Fields that can be targeted with a prefix. The keys are the canonical,
 # always-English prefix names; the values are the book model columns.
@@ -30,11 +31,12 @@ FIELD_COLUMNS: dict[str, Any] = {
 
 # Possession is a special case: it maps to an exact enum comparison.
 POSSESSION_PREFIX = "possession"
+MEDIUM_PREFIX = "medium"
 TAG_PREFIX = "tag"
 AUTHOR_PREFIX = "author"
 
 SUPPORTED_PREFIXES: frozenset[str] = frozenset(
-    [*FIELD_COLUMNS.keys(), POSSESSION_PREFIX, TAG_PREFIX, AUTHOR_PREFIX]
+    [*FIELD_COLUMNS.keys(), POSSESSION_PREFIX, MEDIUM_PREFIX, TAG_PREFIX, AUTHOR_PREFIX]
 )
 
 # Default fields searched by an unprefixed term (unchanged from the previous
@@ -171,17 +173,36 @@ def _unprefixed_condition(value: str, user_id: int) -> Any:
 def _possession_condition(value: str) -> Any | None:
     """Build the exact acquisition-status condition, or ``None`` if invalid."""
     normalized = value.strip().lower().replace(" ", "_")
-    try:
-        status = AcquisitionStatus(normalized)
-    except ValueError:
-        return None
-    return Book.acquisition_status == status
+    for status in AcquisitionStatus:
+        localized_values = {
+            normalize_medium_key(translate(f"acquisition.{status.name}", locale))
+            for locale in ("en", "de", "es", "fr", "zh")
+        }
+        if normalized in {status.name, status.value, *localized_values}:
+            return Book.acquisition_status == status
+    return None
+
+
+def _medium_condition(value: str) -> Any | None:
+    """Build an exact medium condition, accepting display and key forms."""
+    normalized = normalize_medium_key(value)
+    for medium in Medium:
+        enum_value = normalize_medium_key(medium.value)
+        localized_values = {
+            normalize_medium_key(translate(f"medium.{medium.name}", locale))
+            for locale in ("en", "de", "es", "fr", "zh")
+        }
+        if normalized in {medium.name, enum_value, *localized_values}:
+            return Book.medium == medium
+    return None
 
 
 def _field_condition(field: str, value: str, user_id: int) -> Any | None:
     """Build the condition for a single field-specific term."""
     if field == POSSESSION_PREFIX:
         return _possession_condition(value)
+    if field == MEDIUM_PREFIX:
+        return _medium_condition(value)
     if field == TAG_PREFIX:
         return _tag_condition(value, user_id)
     if field == AUTHOR_PREFIX:

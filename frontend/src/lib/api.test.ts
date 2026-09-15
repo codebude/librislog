@@ -285,3 +285,44 @@ describe('api.statistics.gamification', () => {
 		expect(body).toMatchObject({ goal_pages_per_day_enabled: true, goal_pages_per_day: 25 });
 	});
 });
+
+describe('api.import.searchStream', () => {
+	beforeEach(() => {
+		apiKey.set(null);
+		csrfToken.set(null);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('passes abort signal to fetch', async () => {
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			body: new ReadableStream({ start(controller) { controller.close(); } }),
+		} as unknown as Response);
+
+		const controller = new AbortController();
+		const gen = api.import.searchStream('dune', 'title', 'auto', controller.signal);
+		await gen.next();
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(init.signal).toBe(controller.signal);
+	});
+
+	it('builds the stream URL with query, type and mode', async () => {
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			ok: true,
+			body: new ReadableStream({ start(controller) { controller.close(); } }),
+		} as unknown as Response);
+
+		const gen = api.import.searchStream('dune', 'isbn', 'google_only');
+		await gen.next();
+
+		const [url] = fetchMock.mock.calls[0] as [string];
+		expect(url).toContain('/import/search/stream');
+		expect(url).toContain('q=dune');
+		expect(url).toContain('type=isbn');
+		expect(url).toContain('mode=google_only');
+	});
+});

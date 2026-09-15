@@ -2,7 +2,12 @@
 	import type { Book, ReadingProgressEntry } from '$lib/types';
 	import { _ } from '$lib/i18n';
 	import { locale } from '$lib/i18n';
-	import { formatDate, formatDateTime } from '$lib/date';
+	import {
+		formatDate,
+		formatDateTime,
+		fromDateTimeInputValue,
+		toDateTimeInputValue
+	} from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
 	import { api } from '$lib/api';
 	import { toasts } from '$lib/toasts';
@@ -18,6 +23,13 @@
 	import type { ChartData, ChartOptions } from 'chart.js';
 
 	const tz = getTimezone();
+	const MEDIUM_LABEL_KEYS: Record<string, string> = {
+		Print: 'medium.print',
+		eBook: 'medium.ebook',
+		Audiobook: 'medium.audiobook',
+		'Comic / Graphic Novel': 'medium.comic_graphic_novel',
+		'Magazine / Newspaper': 'medium.magazine_newspaper'
+	};
 
 	let {
 		book = $bindable(null),
@@ -170,9 +182,7 @@
 
 	function startEditEntry(entry: ReadingProgressEntry) {
 		editingEntryId = entry.id;
-		const d = new Date(entry.created_at);
-		const pad = (n: number) => n.toString().padStart(2, '0');
-		editingDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		editingDate = toDateTimeInputValue(entry.created_at, tz);
 	}
 
 	function cancelEditEntry() {
@@ -182,8 +192,12 @@
 
 	async function saveEditEntry(entry: ReadingProgressEntry) {
 		if (!editingDate) return;
-		const d = new Date(editingDate);
-		const created_at = d.toISOString();
+		const created_at = fromDateTimeInputValue(editingDate, tz);
+		if (!created_at || created_at === entry.created_at) {
+			editingEntryId = null;
+			editingDate = '';
+			return;
+		}
 		try {
 			const updated = await api.books.progress.update(entry.book_id, entry.id, { created_at });
 			progressEntries = progressEntries.map((e) => (e.id === entry.id ? { ...e, created_at: updated.created_at } : e));
@@ -376,15 +390,27 @@
 			void saveProgress();
 		}
 	});
+
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// When the nested progress-log modal is open, Escape closes that first.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			if (logModalOpen) {
+				logModalOpen = false;
+			} else {
+				open = false;
+			}
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 </script>
 
 {#if open && book}
-	<div
-		class="fixed inset-0 bg-black/40 z-40"
-		role="button"
-		tabindex="-1"
-		onkeydown={(e) => e.key === 'Escape' && (open = false)}
-	></div>
+	<div class="fixed inset-0 bg-black/40 z-40"></div>
 
 	<div role="dialog" aria-label={book.title} class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
 		<div class="flex items-center justify-between p-4 border-b border-base-200 shrink-0">
@@ -458,6 +484,12 @@
 					<div class="text-xs text-base-content/60">{$_('book.acquisitionStatus')}</div>
 					<div>{$_(`acquisition.${book.acquisition_status}`)}</div>
 				</div>
+				{#if book.medium}
+					<div>
+						<div class="text-xs text-base-content/60">{$_('book.medium')}</div>
+						<div>{MEDIUM_LABEL_KEYS[book.medium] ? $_(MEDIUM_LABEL_KEYS[book.medium]) : book.medium}</div>
+					</div>
+				{/if}
 				<div>
 					<div class="text-xs text-base-content/60">{$_('book.tags')}</div>
 					{#if splitTags(book.tags).length > 0}
@@ -585,13 +617,7 @@
 
 	<!-- Progress Log Modal -->
 	{#if logModalOpen}
-		<div
-			class="fixed inset-0 bg-black/40 z-50"
-			role="button"
-			tabindex="-1"
-			onclick={() => (logModalOpen = false)}
-			onkeydown={(e) => e.key === 'Escape' && (logModalOpen = false)}
-		></div>
+		<div class="fixed inset-0 bg-black/40 z-50"></div>
 		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
 			<div class="bg-base-100 rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-y-auto pointer-events-auto" role="dialog" aria-label={$_('book.progressLog')}>
 				<div class="sticky top-0 bg-base-100 z-10 flex items-center justify-between p-4 border-b border-base-200">

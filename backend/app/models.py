@@ -1,8 +1,9 @@
 """SQLModel ORM models for LibrisLog database tables."""
 
 from enum import Enum
+import re
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import sqlalchemy as sa
 from pydantic import model_validator
@@ -53,6 +54,33 @@ class AcquisitionStatus(str, Enum):
     to_acquire = "to_acquire"
 
 
+def normalize_medium_key(value: str) -> str:
+    """Normalize a medium display value or enum key for comparisons."""
+    return re.sub(r"[\s/]+", "_", value.strip().lower())
+
+
+class Medium(str, Enum):
+    """Enum of a book's physical or digital medium format."""
+
+    print = "Print"
+    ebook = "eBook"
+    audiobook = "Audiobook"
+    comic_graphic_novel = "Comic / Graphic Novel"
+    magazine_newspaper = "Magazine / Newspaper"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "Medium | None":
+        """Accept enum keys and normalized display values at API boundaries."""
+        if not isinstance(value, str):
+            return None
+        normalized = normalize_medium_key(value)
+        for member in cls:
+            member_value = normalize_medium_key(member.value)
+            if normalized in {member.name, member_value}:
+                return member
+        return None
+
+
 class UserRole(str, Enum):
     """Enum of possible user roles."""
 
@@ -88,6 +116,7 @@ class Book(SQLModel, table=True):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     reading_status: ReadingStatus = Field(default=ReadingStatus.want_to_read, index=True)
     acquisition_status: AcquisitionStatus = Field(default=AcquisitionStatus.owned, index=True)
+    medium: Optional[Medium] = Field(default=None, index=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     date_added: datetime = Field(
         default_factory=utcnow,
@@ -192,6 +221,11 @@ class UserSettings(SQLModel, table=True):
     goal_books_per_year_enabled: bool = Field(default=False)
     goal_books_per_year: int = Field(default=25, ge=1)
     gamification_enabled: bool = Field(default=True)
+    auto_set_date_started: bool = Field(default=True)
+    auto_set_date_finished: bool = Field(default=True)
+    statistics_range: str = Field(default="alltime", max_length=20)
+    statistics_custom_from: Optional[date] = Field(default=None)
+    statistics_custom_to: Optional[date] = Field(default=None)
 
 
 class ApiKey(SQLModel, table=True):
@@ -278,6 +312,44 @@ class EmbedToken(SQLModel, table=True):
     revoked_at: Optional[datetime] = Field(
         default=None,
         sa_column=Column(UtcDateTime, default=None)
+    )
+
+
+class PublicProfileAudience(str, Enum):
+    """Who may access a public profile share link."""
+
+    public = "public"                # everyone, including anonymous viewers
+    authenticated = "authenticated"  # logged-in users only
+
+
+class PublicProfileLink(SQLModel, table=True):
+    """A shareable public profile link owned by a user."""
+
+    __tablename__: str = "public_profile_link"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    name: str = Field(max_length=255)
+    token_prefix: str = Field(index=True)
+    token: Optional[str] = Field(default=None, nullable=True)
+    token_hash: str = Field(index=True, unique=True)
+    audience: PublicProfileAudience = Field(default=PublicProfileAudience.public)
+    language: Optional[str] = Field(default=None, nullable=True)
+    visibility_config_json: str = Field(
+        default="{}",
+        sa_column=Column(sa.Text, default="{}"),
+    )
+    expires_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None),
+    )
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow),
+    )
+    revoked_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, default=None),
     )
 
 

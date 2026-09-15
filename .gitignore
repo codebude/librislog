@@ -219,6 +219,7 @@ __marimo__/
 
 /ideas.txt
 /backend/data/
+/backend/librislog.db
 /data/
 /data-e2e/
 /backend/data/
@@ -235,4 +236,4 @@ node_modules/
 /.playwright-mcp
 /.sverklo
 .plan/
-/.opencode
+/.opencodebackend/librislog.db

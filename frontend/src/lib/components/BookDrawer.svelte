@@ -1,15 +1,18 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, ReadingStatus } from '$lib/types';
+	import { onMount } from 'svelte';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { toasts } from '$lib/toasts';
 	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '$lib/date';
 	import { getTimezone } from '$lib/stores/timezone';
+	import { loadUserSettings, userSettings } from '$lib/stores/userSettings';
 	import type { CoverCandidate } from '$lib/types';
 	import StarRating from './StarRating.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';
 	import TagInput from './TagInput.svelte';
+	import AdaptiveDateInput from './AdaptiveDateInput.svelte';
 	import DateConflictDialog from './DateConflictDialog.svelte';
 	import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
@@ -43,6 +46,23 @@
 	let autoSearchCandidates = $state<CoverCandidate[]>([]);
 	let autoSearchRequestId = 0;
 	let scannerOpen = $state(false);
+	let autoSetDateStarted = $state(true);
+	let autoSetDateFinished = $state(true);
+	let readingDateSettingsLoaded = $state(false);
+
+	onMount(() => {
+		void loadUserSettings()
+			.then(() => { readingDateSettingsLoaded = true; })
+			.catch(() => { readingDateSettingsLoaded = true; });
+	});
+
+	$effect(() => {
+		const settings = $userSettings;
+		if (settings) {
+			autoSetDateStarted = settings.auto_set_date_started ?? true;
+			autoSetDateFinished = settings.auto_set_date_finished ?? true;
+		}
+	});
 
 	// Editable fields
 	let title = $state('');
@@ -54,6 +74,7 @@
 	let rating = $state<number | null>(null);
 	let reading_status = $state<ReadingStatus>('want_to_read');
 	let acquisition_status = $state<AcquisitionStatus>('owned');
+	let medium = $state<Medium | ''>('');
 	let publisher = $state('');
 	let published_year = $state('');
 	let page_count = $state('');
@@ -61,6 +82,10 @@
 	let tags = $state('');
 	let date_started = $state('');
 	let date_finished = $state('');
+	let dateStartedInvalid = $state(false);
+	let dateFinishedInvalid = $state(false);
+	let dateStartedHasInput = $state(false);
+	let dateFinishedHasInput = $state(false);
 	let cover_url = $state<string | null>(null);
 
 	// ── Android back button: close drawer instead of navigating away ──────────
@@ -94,6 +119,7 @@
 			rating = book.rating;
 			reading_status = book.reading_status;
 			acquisition_status = book.acquisition_status;
+			medium = book.medium ?? '';
 			publisher = book.publisher ?? '';
 			published_year = book.published_year !== null ? String(book.published_year) : '';
 			page_count = book.page_count !== null ? String(book.page_count) : '';
@@ -106,6 +132,29 @@
 			pendingStatus = null;
 			pendingPayload = null;
 		}
+	});
+
+	// Close on Escape right away — the backdrop only receives key events
+	// after it has been clicked, so listen at the window level instead.
+	// Reusable nested overlays handle their own Escape; only handle the
+	// inline start-date / progress prompts here.
+	$effect(() => {
+		if (!open) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			if (scannerOpen || dateConflictOpen || autoSearchOpen) return;
+			if (startDatePromptOpen) {
+				startDatePromptOpen = false;
+				return;
+			}
+			if (pendingProgressBook) {
+				pendingProgressBook = null;
+				return;
+			}
+			open = false;
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
 	});
 
 	function buildNonStatusPayload(includeDates: boolean): Partial<Book> {
@@ -123,7 +172,8 @@
 			blurb: blurb || null,
 			rating,
 			cover_url: cover_url || null,
-			acquisition_status
+			acquisition_status,
+			medium: medium || null
 		};
 
 		if (includeDates) {
@@ -216,6 +266,22 @@
 			toasts.add($_('error.pageCountRequired'), 'error');
 			return;
 		}
+		if (!readingDateSettingsLoaded) {
+			try {
+				await loadUserSettings();
+			} catch {
+				// Keep the backward-compatible defaults when settings are unavailable.
+			}
+			readingDateSettingsLoaded = true;
+		}
+		if (dateStartedInvalid && dateStartedHasInput) {
+			toasts.add($_('error.invalidDate'), 'error');
+			return;
+		}
+		if (dateFinishedInvalid && dateFinishedHasInput) {
+			toasts.add($_('error.invalidDate'), 'error');
+			return;
+		}
 		const ds = date_started.trim();
 		const df = date_finished.trim();
 		if (ds && df && ds > df) {
@@ -225,6 +291,7 @@
 		const statusChanged = reading_status !== book.reading_status;
 		if (
 			!skipAutoDateStarted &&
+			autoSetDateStarted &&
 			book.reading_status === 'want_to_read' &&
 			reading_status === 'read' &&
 			!book.date_started &&
@@ -235,7 +302,7 @@
 			return;
 		}
 		const dfCleared = !df && !!book.date_finished;
-		if (dfCleared && reading_status === 'read' && !statusChanged) {
+		if (dfCleared && autoSetDateFinished && reading_status === 'read' && !statusChanged) {
 			toasts.add($_('error.dateFinishedRequiredForRead'), 'error');
 			return;
 		}
@@ -331,6 +398,13 @@
 		{ value: 'digital_access', label: 'acquisition.digital_access' },
 		{ value: 'to_acquire', label: 'acquisition.to_acquire' }
 	];
+	const MEDIUM_OPTIONS: { value: Medium; label: string }[] = [
+		{ value: 'Print', label: 'medium.print' },
+		{ value: 'eBook', label: 'medium.ebook' },
+		{ value: 'Audiobook', label: 'medium.audiobook' },
+		{ value: 'Comic / Graphic Novel', label: 'medium.comic_graphic_novel' },
+		{ value: 'Magazine / Newspaper', label: 'medium.magazine_newspaper' }
+	];
 
 	const coverSearchUrl = $derived.by(() => {
 		const query = `${title} ${authors.join(' ')}`.trim();
@@ -384,12 +458,7 @@
 
 {#if open && book}
 	<!-- Backdrop -->
-	<div
-		class="fixed inset-0 bg-black/40 z-40"
-		role="button"
-		tabindex="-1"
-		onkeydown={(e) => e.key === 'Escape' && (open = false)}
-	></div>
+	<div class="fixed inset-0 bg-black/40 z-40"></div>
 
 	<!-- Drawer panel -->
 	<div class="fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-xl z-50 flex flex-col overflow-hidden">
@@ -491,6 +560,15 @@
 					{/each}
 				</select>
 			</label>
+			<label class="flex flex-col gap-1">
+				<span class="label label-text">{$_('book.medium')}</span>
+				<select class="select select-bordered select-sm" name="medium" bind:value={medium}>
+					<option value="">{$_('book.selectMedium')}</option>
+					{#each MEDIUM_OPTIONS as opt}
+						<option value={opt.value}>{$_(opt.label)}</option>
+					{/each}
+				</select>
+			</label>
 
 			<div class="flex flex-col gap-1">
 				<span class="label label-text">{$_('common.rating')}</span>
@@ -501,12 +579,30 @@
 
 			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateStarted')}</span>
-				<input type="date" class="input input-bordered input-sm" name="date_started" bind:value={date_started} max={today} />
+				<AdaptiveDateInput
+					name="date_started"
+					bind:value={date_started}
+					bind:invalid={dateStartedInvalid}
+					bind:hasInput={dateStartedHasInput}
+					ariaLabel={$_('book.dateStarted')}
+				/>
+				{#if dateStartedInvalid && dateStartedHasInput}
+					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
+				{/if}
 			</label>
 
 			<label class="flex flex-col gap-1">
 				<span class="label label-text">{$_('book.dateFinished')}</span>
-				<input type="date" class="input input-bordered input-sm" name="date_finished" bind:value={date_finished} max={today} />
+				<AdaptiveDateInput
+					name="date_finished"
+					bind:value={date_finished}
+					bind:invalid={dateFinishedInvalid}
+					bind:hasInput={dateFinishedHasInput}
+					ariaLabel={$_('book.dateFinished')}
+				/>
+				{#if dateFinishedInvalid && dateFinishedHasInput}
+					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
+				{/if}
 			</label>
 
 			<label class="flex flex-col gap-1">
@@ -596,7 +692,10 @@
 				<p class="text-sm text-base-content/70 mt-2">{$_('book.startDatePromptMessage')}</p>
 				<label class="flex flex-col gap-1 mt-4">
 					<span class="label label-text">{$_('book.dateStarted')}</span>
-					<input type="date" class="input input-bordered input-sm" bind:value={promptedStartDate} max={today} />
+					<AdaptiveDateInput
+						bind:value={promptedStartDate}
+						ariaLabel={$_('book.dateStarted')}
+					/>
 				</label>
 				<div class="modal-action">
 					<button
@@ -618,7 +717,7 @@
 					>{$_('book.startDatePromptSet')}</button>
 				</div>
 			</div>
-			<button type="button" class="modal-backdrop" aria-label={$_('common.close')} onclick={() => (startDatePromptOpen = false)}></button>
+			<div class="modal-backdrop"></div>
 		</div>
 	{/if}
 
@@ -660,16 +759,7 @@
 					</button>
 				</div>
 			</div>
-			<button
-				type="button"
-				class="modal-backdrop"
-				aria-label={$_('common.close')}
-				onclick={() => {
-					onSave?.(pbook);
-					open = false;
-					pendingProgressBook = null;
-				}}
-			></button>
+			<div class="modal-backdrop"></div>
 		</div>
 	{/if}
 

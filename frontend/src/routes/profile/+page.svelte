@@ -4,16 +4,28 @@
 	import { api } from '$lib/api';
 	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '$lib/stores/auth';
-	import { Calendar, Info } from '@lucide/svelte';
+	import { Calendar, Check, Copy, ExternalLink, Info, Pencil, Trash2 } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
 	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
 	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '$lib/stores/theme';
 	import Alert from '$lib/components/Alert.svelte';
+	import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+	import AdaptiveDateInput from '$lib/components/AdaptiveDateInput.svelte';
+import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 	import { toasts } from '$lib/toasts';
 	import { localizeError } from '$lib/errors';
 	import { toDateInputValue, today } from '$lib/date';
-	import type { ApiKeyMeta, AppConfig, EmbedTokenMeta, OidcConfig, OidcLinkStatus } from '$lib/types';
+	import type {
+	ApiKeyMeta,
+	AppConfig,
+	EmbedTokenMeta,
+	OidcConfig,
+	OidcLinkStatus,
+	PublicProfileAudience,
+	PublicProfileLink,
+	PublicProfileVisibilityConfig
+} from '$lib/types';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -46,8 +58,12 @@
 	let goalBooksPerYearEnabled = $state(false);
 	let goalBooksPerYear = $state(25);
 	let gamificationEnabled = $state(true);
+	let autoSetDateStarted = $state(true);
+	let autoSetDateFinished = $state(true);
 	let goalsMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let goalsSaving = $state(false);
+	let readingDatesMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let readingDatesSaving = $state(false);
 	let resetDataConfirmation = $state('');
 	let resetDataMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let deleteAccountConfirmation = $state('');
@@ -144,11 +160,14 @@
 		goalBooksPerYearEnabled = settings.goal_books_per_year_enabled;
 		goalBooksPerYear = settings.goal_books_per_year;
 		gamificationEnabled = settings.gamification_enabled;
+		autoSetDateStarted = settings.auto_set_date_started;
+		autoSetDateFinished = settings.auto_set_date_finished;
 		applyThemeToDocument();
 		saveThemeToStorage();
 		saveRestorePoint();
 		keys = await api.profile.listApiKeys();
 		embedTokens = await api.profile.listEmbedTokens();
+		await loadShareLinks();
 		appConfig = await api.app.config();
 		oidcConfig = await api.oidc.config();
 		if (oidcConfig.enabled) {
@@ -281,6 +300,22 @@
 		}
 	}
 
+	async function saveReadingDateAutomation() {
+		readingDatesMessage = null;
+		readingDatesSaving = true;
+		try {
+			await api.profile.updateSettings({
+				auto_set_date_started: autoSetDateStarted,
+				auto_set_date_finished: autoSetDateFinished
+			});
+			readingDatesMessage = { type: 'success', text: $_('profile.readingDates.saveSuccess') };
+		} catch (e: unknown) {
+			readingDatesMessage = { type: 'error', text: e instanceof Error ? e.message : $_('common.saveFailed') };
+		} finally {
+			readingDatesSaving = false;
+		}
+	}
+
 	async function createKey() {
 		const result = await api.profile.createApiKey({ description: description || null });
 		createdKey = result.key;
@@ -315,6 +350,8 @@
 	let embedTokenName = $state('');
 	let embedTokenOrigins = $state('');
 	let embedTokenExpires = $state('');
+	let embedTokenExpiresInvalid = $state(false);
+	let embedTokenExpiresHasInput = $state(false);
 	let createdEmbedToken = $state<string | null>(null);
 	let embedTokenCopied = $state(false);
 	let pendingRotateTokenId = $state<number | null>(null);
@@ -323,6 +360,8 @@
 	let embedTokenMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let editExpiryTokenId = $state<number | null>(null);
 	let editExpiryValue = $state('');
+	let editExpiryInvalid = $state(false);
+	let editExpiryHasInput = $state(false);
 
 	async function loadEmbedTokens() {
 		embedTokens = await api.profile.listEmbedTokens();
@@ -330,6 +369,10 @@
 
 	async function createEmbedToken() {
 		embedTokenMessage = null;
+		if (embedTokenExpiresInvalid && embedTokenExpiresHasInput) {
+			embedTokenMessage = { type: 'error', text: $_('error.invalidDate') };
+			return;
+		}
 		try {
 			const payload: { name: string; allowed_origins?: string | null; expires_at?: string | null } = { name: embedTokenName };
 			if (embedTokenOrigins.trim()) payload.allowed_origins = embedTokenOrigins.trim();
@@ -390,6 +433,10 @@
 
 
 	async function confirmExpirySave() {
+		if (editExpiryInvalid && editExpiryHasInput) {
+			embedTokenMessage = { type: 'error', text: $_('error.invalidDate') };
+			return;
+		}
 		if (editExpiryTokenId !== null && editExpiryValue.length === 10) {
 			await saveEmbedTokenExpiry(editExpiryTokenId, editExpiryValue);
 		}
@@ -416,7 +463,123 @@
 		embedTokens = await api.profile.listEmbedTokens();
 	}
 
-	async function startOidcLink() {
+	let shareLinks = $state<PublicProfileLink[]>([]);
+		let shareLinkDialogOpen = $state(false);
+		let editingShareLink = $state<PublicProfileLink | null>(null);
+		let createdShareToken = $state<string | null>(null);
+		let shareTokenCopied = $state(false);
+		let pendingDeleteShareLinkId = $state<number | null>(null);
+		let shareLinkMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+		let revealedTokens = $state<Record<number, string>>({});
+		let copiedShareLinkId = $state<number | null>(null);
+
+		async function loadShareLinks() {
+			const links = await api.profile.listShareLinks();
+			shareLinks = links;
+
+			const tokens = await Promise.all(
+				links.map(async (link) => {
+					try {
+						const result = await api.profile.revealShareLink(link.id);
+						return [link.id, result.token] as const;
+					} catch {
+						return null;
+					}
+				})
+			);
+			revealedTokens = Object.fromEntries(tokens.filter((entry): entry is [number, string] => entry !== null));
+		}
+
+		function openCreateShareLink() {
+			editingShareLink = null;
+			shareLinkDialogOpen = true;
+		}
+
+		function openEditShareLink(link: PublicProfileLink) {
+			editingShareLink = link;
+			shareLinkDialogOpen = true;
+		}
+
+		function publicShareUrl(token: string): string {
+			return `${window.location.origin}${base}/p/${token}`;
+		}
+
+		async function saveShareLink(payload: {
+			name: string;
+			audience: PublicProfileAudience;
+			visibility_config: PublicProfileVisibilityConfig;
+			expires_at: string | null;
+			language: string | null;
+		}) {
+			shareLinkMessage = null;
+			try {
+				if (editingShareLink) {
+					await api.profile.updateShareLink(editingShareLink.id, payload);
+				} else {
+					const result = await api.profile.createShareLink(payload);
+					createdShareToken = result.token;
+					shareTokenCopied = false;
+				}
+				shareLinkDialogOpen = false;
+				editingShareLink = null;
+				await loadShareLinks();
+			} catch (e: unknown) {
+				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
+			}
+		}
+
+		async function copyShareToken() {
+			if (!createdShareToken) return;
+			await navigator.clipboard.writeText(publicShareUrl(createdShareToken));
+			shareTokenCopied = true;
+		}
+
+		function requestDeleteShareLink(id: number) {
+			pendingDeleteShareLinkId = id;
+		}
+
+		function cancelDeleteShareLink() {
+			pendingDeleteShareLinkId = null;
+		}
+
+		async function confirmDeleteShareLink() {
+			if (pendingDeleteShareLinkId === null) return;
+			const id = pendingDeleteShareLinkId;
+			pendingDeleteShareLinkId = null;
+			try {
+				await api.profile.deleteShareLink(id);
+				await loadShareLinks();
+			} catch (e: unknown) {
+				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
+			}
+		}
+
+		async function ensureRevealedToken(link: PublicProfileLink): Promise<string | null> {
+			if (revealedTokens[link.id]) return revealedTokens[link.id];
+			try {
+				const result = await api.profile.revealShareLink(link.id);
+				revealedTokens = { ...revealedTokens, [link.id]: result.token };
+				return result.token;
+			} catch {
+				return null;
+			}
+		}
+
+		async function copyShareLinkUrl(link: PublicProfileLink) {
+			const token = await ensureRevealedToken(link);
+			if (!token) return;
+			await navigator.clipboard.writeText(publicShareUrl(token));
+			copiedShareLinkId = link.id;
+			setTimeout(() => { copiedShareLinkId = null; }, 1500);
+		}
+
+		async function openShareLinkUrl(link: PublicProfileLink) {
+			const token = await ensureRevealedToken(link);
+			if (!token) return;
+			window.open(publicShareUrl(token), '_blank', 'noopener');
+		}
+
+		async function startOidcLink() {
 		oidcMessage = null;
 		try {
 			const response = await api.oidc.startLink();
@@ -580,19 +743,14 @@
 					{timezoneMessage.text}
 				</Alert>
 			{/if}
-			<input
-				list="timezone-list"
-				name="timezone"
-				class="input input-bordered max-w-xs"
+			<SearchableSelect
 				bind:value={timezone}
-				autocomplete="off"
+				options={allTimezones}
+				name="timezone"
+				ariaLabel={$_('settings.timezone')}
 				placeholder={$_('settings.timezonePlaceholder')}
+				noResultsText={$_('settings.timezoneNoResults')}
 			/>
-			<datalist id="timezone-list">
-				{#each allTimezones as tz}
-					<option value={tz}></option>
-				{/each}
-			</datalist>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneDetected', { values: { tz: browserTz } })}</p>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneSelected', { values: { tz: timezone } })}</p>
 			<button class="btn btn-primary btn-sm self-start" onclick={saveTimezone}>{$_('common.save')}</button>
@@ -717,6 +875,41 @@
 		</div>
 	</div>
 
+	<div id="section-reading-dates" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.readingDates.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.readingDates.subtitle')}</p>
+			{#if readingDatesMessage}
+				<Alert type={readingDatesMessage.type === 'success' ? 'success' : 'error'} onClose={() => (readingDatesMessage = null)}>
+					{readingDatesMessage.text}
+				</Alert>
+			{/if}
+			<div class="flex flex-col gap-3">
+				<label class="flex items-start gap-3 border border-base-200 rounded-xl p-3 cursor-pointer">
+					<input type="checkbox" class="toggle toggle-sm toggle-primary mt-0.5" name="auto-set-date-started" bind:checked={autoSetDateStarted} />
+					<span>
+						<span class="block text-sm font-medium">{$_('profile.readingDates.autoStart')}</span>
+						<span class="block text-xs text-base-content/60 mt-1">{$_('profile.readingDates.autoStartDescription')}</span>
+					</span>
+				</label>
+				<label class="flex items-start gap-3 border border-base-200 rounded-xl p-3 cursor-pointer">
+					<input type="checkbox" class="toggle toggle-sm toggle-primary mt-0.5" name="auto-set-date-finished" bind:checked={autoSetDateFinished} />
+					<span>
+						<span class="block text-sm font-medium">{$_('profile.readingDates.autoFinish')}</span>
+						<span class="block text-xs text-base-content/60 mt-1">{$_('profile.readingDates.autoFinishDescription')}</span>
+					</span>
+				</label>
+			</div>
+			<p class="text-xs text-base-content/60">
+				{$_('profile.readingDates.documentationPrefix')}
+			<a class="link link-primary" href="https://docs.librislog.app/guide/using-librislog/profile.html#reading-date-automation" target="_blank" rel="noopener noreferrer">{$_('profile.readingDates.documentationLink')}</a>
+			</p>
+			<button class="btn btn-primary btn-sm self-start" onclick={saveReadingDateAutomation} disabled={readingDatesSaving}>
+				{readingDatesSaving ? $_('common.saving') : $_('common.save')}
+			</button>
+		</div>
+	</div>
+
 	<div id="section-api-keys" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
@@ -775,7 +968,18 @@
 				<Info class="w-3 h-3 shrink-0" />
 				{$_('user.embedTokenOriginsTooltip')}
 			</p>
-			<input type="date" class="input input-bordered max-w-48" name="embed-token-expires" bind:value={embedTokenExpires} min={today(timezone)} />
+			<AdaptiveDateInput
+				inputClass="input input-bordered max-w-48"
+				name="embed-token-expires"
+				bind:value={embedTokenExpires}
+				bind:invalid={embedTokenExpiresInvalid}
+				bind:hasInput={embedTokenExpiresHasInput}
+				min={today(timezone)}
+				ariaLabel={$_('user.embedTokenExpiresAt')}
+			/>
+			{#if embedTokenExpiresInvalid && embedTokenExpiresHasInput}
+				<p class="text-xs text-error -mt-1">{$_('error.invalidDate')}</p>
+			{/if}
 			<p class="text-xs text-base-content/50 -mt-1">{$_('user.embedTokenExpiresAt')}</p>
 			{#if createdEmbedToken}
 				<Alert type="success" onClose={() => (createdEmbedToken = null)} duration={0}>
@@ -857,10 +1061,17 @@
 						<h3 class="font-bold text-lg">{$_('user.embedTokenEditExpiry')}</h3>
 						<p class="text-sm text-base-content/70 mt-1">{$_('user.embedTokenEditExpiryDescription')}</p>
 						<div class="py-4">
-							<input type="date" class="input input-bordered w-full"
-								bind:value={editExpiryValue}
-								min={today(timezone)}
-							/>
+						<AdaptiveDateInput
+							inputClass="input input-bordered w-full"
+							bind:value={editExpiryValue}
+							bind:invalid={editExpiryInvalid}
+							bind:hasInput={editExpiryHasInput}
+							min={today(timezone)}
+							ariaLabel={$_('user.embedTokenEditExpiry')}
+						/>
+						{#if editExpiryInvalid && editExpiryHasInput}
+							<p class="text-xs text-error mt-1">{$_('error.invalidDate')}</p>
+						{/if}
 						</div>
 						<div class="modal-action">
 							<button class="btn btn-sm" onclick={cancelExpiryEdit}>{$_('common.cancel')}</button>
@@ -871,6 +1082,116 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
+
+	<div id="section-share-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-3">
+			<h2 class="text-lg font-semibold">{$_('profile.shareProfile.title')}</h2>
+			<p class="text-sm text-base-content/70">{$_('profile.shareProfile.subtitle')}</p>
+			{#if shareLinkMessage}
+				<Alert type={shareLinkMessage.type === 'success' ? 'success' : 'error'} onClose={() => (shareLinkMessage = null)}>
+					{shareLinkMessage.text}
+				</Alert>
+			{/if}
+			<div>
+				<button class="btn btn-primary btn-sm" onclick={openCreateShareLink}>{$_('profile.shareProfile.createLink')}</button>
+			</div>
+			{#if createdShareToken}
+				<Alert type="success" onClose={() => (createdShareToken = null)} duration={0}>
+					<div class="flex flex-col items-start gap-2 text-xs">
+						<span>{$_('publicProfile.tokenShownOnce')}</span>
+						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] text-base-content break-all">
+							{publicShareUrl(createdShareToken)}
+						</div>
+						<div class="flex gap-2">
+							<button type="button" class="btn btn-xs border-base-content/60 bg-base-100/20 text-base-content hover:bg-base-100/40" onclick={copyShareToken}>
+								{shareTokenCopied ? $_('common.copied') : $_('publicProfile.copyLink')}
+							</button>
+							<a class="btn btn-xs border-base-content/60 bg-base-100/20 text-base-content hover:bg-base-100/40" href={publicShareUrl(createdShareToken)} target="_blank" rel="noopener noreferrer">
+								{$_('publicProfile.openLink')}
+							</a>
+						</div>
+					</div>
+				</Alert>
+			{/if}
+			{#if shareLinks.length === 0}
+				<p class="text-sm text-base-content/50">{$_('profile.shareProfile.empty')}</p>
+			{:else}
+				<ul class="flex flex-col gap-3">
+					{#each shareLinks as link}
+						<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
+							<div class="min-w-0 flex flex-1 flex-col gap-1">
+								<p class="font-medium flex items-center gap-3 flex-wrap">
+									{link.name}
+									<span class={`badge badge-sm ${link.audience === 'public' ? 'badge-ghost' : 'badge-info'}`}>
+										{link.audience === 'public' ? $_('publicProfile.audiencePublic') : $_('publicProfile.audienceAuthenticated')}
+									</span>
+									{#if link.expires_at && new Date(link.expires_at) < new Date()}
+										<span class="badge badge-error badge-sm">{$_('publicProfile.expired')}</span>
+									{:else}
+										<span class="badge badge-success badge-sm">{$_('publicProfile.active')}</span>
+									{/if}
+								</p>
+								{#if revealedTokens[link.id]}
+									<p class="font-mono text-xs text-base-content/60 break-all">{publicShareUrl(revealedTokens[link.id])}</p>
+								{:else}
+									<p class="font-mono text-xs text-base-content/60">{link.token_prefix}...</p>
+								{/if}
+								<p class="text-xs text-base-content/50">
+									{#if link.expires_at}
+										{$_('publicProfile.expiresAt')}: {new Date(link.expires_at).toLocaleDateString()}
+									{:else}
+										{$_('publicProfile.unlimited')}
+									{/if}
+								</p>
+							</div>
+							<div class="flex gap-1 shrink-0">
+								<button class="btn btn-ghost btn-xs" onclick={() => copyShareLinkUrl(link)} aria-label={copiedShareLinkId === link.id ? $_('common.copied') : $_('publicProfile.copyLink')}>
+									{#if copiedShareLinkId === link.id}
+										<Check class="w-4 h-4" />
+									{:else}
+										<Copy class="w-4 h-4" />
+									{/if}
+								</button>
+								<button class="btn btn-ghost btn-xs" onclick={() => openShareLinkUrl(link)} aria-label={$_('publicProfile.openLink')}>
+									<ExternalLink class="w-4 h-4" />
+								</button>
+								<button class="btn btn-ghost btn-xs" onclick={() => openEditShareLink(link)} aria-label={$_('publicProfile.edit')}>
+									<Pencil class="w-4 h-4" />
+								</button>
+								<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteShareLink(link.id)} aria-label={$_('publicProfile.delete')}>
+									<Trash2 class="w-4 h-4" />
+								</button>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	</div>
+
+	<ShareLinkDialog
+		bind:open={shareLinkDialogOpen}
+		link={editingShareLink}
+		defaultLanguage={language}
+		onSave={saveShareLink}
+		onClose={() => (shareLinkDialogOpen = false)}
+	/>
+
+	{#if pendingDeleteShareLinkId !== null}
+		<dialog class="modal modal-open" onclick={(e) => { if (e.target === e.currentTarget) cancelDeleteShareLink(); }}>
+			<div class="modal-box">
+				<form method="dialog">
+					<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick={cancelDeleteShareLink}>✕</button>
+				</form>
+				<h3 class="font-bold text-lg">{$_('publicProfile.delete')}</h3>
+				<p class="text-sm text-base-content/70 mt-1">{$_('publicProfile.deleteConfirm')}</p>
+				<div class="modal-action">
+					<button class="btn btn-sm" onclick={cancelDeleteShareLink}>{$_('common.cancel')}</button>
+					<button class="btn btn-error btn-sm" onclick={confirmDeleteShareLink}>{$_('common.delete')}</button>
+				</div>
+			</div>
+		</dialog>
 	{/if}
 
 	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
@@ -1005,8 +1326,10 @@
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
 		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
 		<li><a href="#section-goals" class:menu-active={activeSection === 'section-goals'}>{$_('profile.goals.title')}</a></li>
+		<li><a href="#section-reading-dates" class:menu-active={activeSection === 'section-reading-dates'}>{$_('profile.readingDates.title')}</a></li>
 		<li><a href="#section-api-keys" class:menu-active={activeSection === 'section-api-keys'}>{$_('user.apiKeys')}</a></li>
 		<li><a href="#section-embed-tokens" class:menu-active={activeSection === 'section-embed-tokens'}>{$_('user.embedTokens')}</a></li>
+		<li><a href="#section-share-profile" class:menu-active={activeSection === 'section-share-profile'}>{$_('profile.shareProfile.title')}</a></li>
 		<li><a href="#section-data" class:menu-active={activeSection === 'section-data'}>{$_('profile.dataManagement.title')}</a></li>
 		{#if oidcConfig.enabled}
 			<li><a href="#section-oidc" class:menu-active={activeSection === 'section-oidc'}>{$_('oidc.profileTitle')}</a></li>

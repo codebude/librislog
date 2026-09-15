@@ -43,6 +43,51 @@ The **"Show reading streaks & goals on dashboard"** switch above the goals disab
 
 See [Dashboard → Reading Streaks & Goals](/guide/using-librislog/dashboard#reading-streaks-goals) for details on how streaks and goal progress are calculated.
 
+## Reading Date Automation
+
+By default, LibrisLog fills in missing reading dates when you change a book's status:
+
+- Moving a book to **Currently Reading** sets its start date to the current date and time if no start date exists.
+- Moving a book to **Read** or **Did Not Finish** sets its finish date to the current date and time if no finish date exists.
+
+Existing dates entered by you are preserved and are never overwritten automatically.
+
+You can disable these behaviors independently in the **Reading Date Automation** section of your profile. When disabled, the status still changes, but the corresponding date remains empty. This is useful when you know a book's status but do not know when you started or finished it.
+
+Books without the relevant dates are omitted from date-based views and calculations, such as the reading timeline, finished-books-by-month charts, reading duration, and date-based goals. They remain included in status-based totals, such as the number of books marked **Read**.
+
+Disabling automation does not remove existing dates or disable date-conflict protection. It only prevents LibrisLog from creating a missing date automatically.
+
+## URL/Profile Sharing
+
+Create a read-only public view of your reading profile and share it with a URL. The shared page does not expose editing controls, notes, blurbs, or your email address.
+
+### Create a Profile URL
+
+1. Open **Profile** and scroll to **Share Profile**.
+2. Click **Create New URL**.
+3. Enter a name for the link, such as `Friends & family`.
+4. Choose who can access it:
+   - **Everyone** — anyone with the URL can view the profile, without logging in.
+   - **Logged-in users only** — viewers must be signed in to LibrisLog.
+5. Under **Content**, select the profile sections to share. Statistics can be enabled separately and configured by group.
+6. Choose the language for this URL. The public page uses the link's language independently of your viewer's current UI language.
+7. Under **Validity**, leave the link unlimited or set an expiration date.
+8. Save the link.
+
+The complete URL is shown once after creation. Copy it immediately or open it in a new tab. For security, the full token is not shown in the link list unless you explicitly reveal it through the link actions.
+
+### Manage Existing URLs
+
+Each link appears in the **Share Profile** list with its name, access level, status, token prefix, and expiry information. The available actions are:
+
+- **Copy link** — copy the URL to the clipboard.
+- **Open link** — open the read-only profile page in a new tab.
+- **Edit** — change the access level, shared sections, statistics, language, or expiry date.
+- **Delete** — revoke the link immediately. Anyone using it will lose access.
+
+Treat an **Everyone** URL like a public page: anyone who receives it can view the selected information until the link expires or is deleted. Create separate links when you want different audiences or different languages.
+
 ## API Keys
 
 Create and manage API keys for headless access to the REST API. Each key can have an optional description. Keys are shown once at creation — copy it immediately, as it cannot be retrieved later.
@@ -69,7 +114,7 @@ details and a list of supported dashboard integrations.
 
 Two data management tools are available:
 
-- **Import / Export** — Export your library as JSON, CSV, or ZIP, or import from Goodreads CSV or generic CSV with field mapping and Python transforms. See [Import & Export](/guide/using-librislog/import-export).
+- **Import / Export** — Export your library as JSON, CSV, or ZIP, or import from the Goodreads or Bookstats presets, Excel (XLSX), or generic CSV/JSON with field mapping and Python transforms. See [Import & Export](/guide/using-librislog/import-export).
 - **Data Hygiene** — Find books with missing metadata and batch-update them. See [Data Hygiene](/guide/using-librislog/data-hygiene).
 
 ## OIDC

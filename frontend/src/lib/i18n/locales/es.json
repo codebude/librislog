@@ -26,6 +26,7 @@
     "languageDistribution": "Libros por idioma",
     "statusDistribution": "Libros por estado",
     "acquisitionStatusDistribution": "Libros por propiedad",
+    "mediumDistribution": "Distribución por medio",
     "pageBuckets": "Estadísticas de páginas",
     "pagesToRead": "Páginas por leer",
     "pagesRead": "Páginas leídas",
@@ -34,11 +35,23 @@
     "pagesReadPerMonth": "Páginas leídas por mes",
     "booksFinishedPerMonth": "Libros terminados por mes",
     "booksFinishedPerYear": "Libros terminados por año",
+    "rangeLabel": "Período",
+    "rangeLast12Months": "Últimos 12 meses",
+    "refreshing": "Actualizando estadísticas",
+    "rangeAllTime": "Todo el tiempo",
+    "rangeThisYear": "Este año",
+    "rangeLastYear": "El año pasado",
+    "rangeLast3Years": "Últimos 3 años",
+    "rangeCustom": "Personalizado",
+    "from": "Desde",
+    "to": "Hasta",
+    "invalidDateRange": "La fecha inicial no puede ser posterior a la fecha final",
     "topAuthors": "Autores destacados",
     "rankedNumber": "#{rank}",
     "coversForAuthor": "Portadas de {author}",
     "booksCount": "{count} {count, plural, one {libro} other {libros}}",
     "unknownLanguage": "Desconocido",
+    "unknownMedium": "Medio desconocido",
     "pagesReadCalendar": "Actividad lectora (últimos 365 días)",
     "noCalendarData": "No hay datos de lectura para el último año",
     "pagesOver": "páginas en",
@@ -162,6 +175,8 @@
     "dateStarted": "Fecha de inicio",
     "acquisitionStatus": "Disponibilidad",
     "selectAcquisitionStatus": "Selecciona disponibilidad...",
+    "medium": "Medio",
+    "selectMedium": "Selecciona medio...",
     "startDatePromptTitle": "¿Establecer fecha de inicio?",
     "startDatePromptMessage": "Este libro no tiene fecha de inicio. Establécela en hoy o elige otra fecha antes de marcarlo como leído.",
     "startDatePromptSet": "Establecer fecha de inicio",
@@ -205,7 +220,8 @@
     "searchImport": "Buscar e importar",
     "adding": "Añadiendo...",
     "failedAdd": "Error al añadir libro",
-    "importFromFile": "Importar desde archivo"
+    "importFromFile": "Importar desde archivo",
+    "basket": "Cesta"
   },
   "import": {
     "searchByTitleOrAuthor": "Buscar por título o autor...",
@@ -219,6 +235,8 @@
     "googleAdded": "Resultados de Google Books añadidos: {count}",
     "scan": "Escanear",
     "scanIsbn": "Escanear código de barras ISBN",
+    "scanUnavailable": "El escaneo de códigos de barras no está disponible porque la aplicación no se sirve en un contexto seguro.",
+    "scanUnavailableDocsLink": "Más información",
     "importFailed": "Importación fallida",
     "searchFailed": "Búsqueda fallida",
     "scannedIsbn": "ISBN escaneado: {isbn}",
@@ -230,7 +248,24 @@
     "sourceGoogleSearching": "Buscando en Google Books...",
     "sourceBackendError": "Error de backend de {source} (revisa los registros del servidor)",
     "sourceError": "Búsqueda fallida: {message}",
-    "resultCount": "{source} - {count} resultado{suffix}"
+    "resultCount": "{source} - {count} resultado{suffix}",
+    "groupResultPlural": "resultados",
+    "groupExpand": "Mostrar ediciones",
+    "groupCollapse": "Ocultar ediciones",
+    "groupChooseEdition": "Elegir edición",
+    "editionSelected": "Seleccionada",
+    "addToBasket": "Añadir a la cesta",
+    "inBasket": "En la cesta",
+    "basketEmpty": "Tu cesta está vacía. Busca libros para añadirlos.",
+    "basketCount": "{count} {count, plural, one {libro} other {libros}}",
+    "importBasket": "Importar cesta",
+    "importingBasket": "Importando...",
+    "basketRemove": "Quitar de la cesta",
+    "basketImportSuccess": "{count} libros importados correctamente.",
+    "parallelSearchDescription": "Ejecuta varias búsquedas independientes al mismo tiempo. Cada búsqueda conserva sus resultados y puede añadir libros a la cesta compartida.",
+    "newParallelSearch": "Nueva búsqueda paralela",
+    "parallelSearchLabel": "Búsqueda {number}",
+    "removeParallelSearch": "Eliminar búsqueda"
   },
   "scanner": {
     "title": "Escanear código de barras ISBN",
@@ -238,9 +273,12 @@
     "startError": "No se pudo iniciar el escáner. Comprueba los permisos de la cámara.",
     "noCamera": "No se encontró ningún dispositivo de cámara.",
     "switchCamera": "Cambiar cámara",
+    "currentCamera": "Cámara actual: {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
-    "close": "Cerrar escáner"
+    "close": "Cerrar escáner",
+    "secureContextRequired": "El acceso a la cámara requiere un contexto seguro (HTTPS o localhost).",
+    "secureContextDocsLink": "Más información"
   },
   "coverPicker": {
     "dropzone": "Arrastra una imagen aquí, o",
@@ -270,6 +308,7 @@
     "themeCustom": "Personalizar",
     "themeSelect": "Selecciona un tema personalizado",
     "timezonePlaceholder": "Buscar zona horaria...",
+    "timezoneNoResults": "No hay ninguna zona horaria coincidente",
     "apiDocsTitle": "Documentación de la API",
     "apiDocsHelp": "Explora y prueba los endpoints del backend directamente desde la app.",
     "apiDocsViewLabel": "Ver",
@@ -308,6 +347,13 @@
     "digital_access": "Acceso digital",
     "to_acquire": "Necesita adquirirse"
   },
+  "medium": {
+    "print": "Impreso",
+    "ebook": "eBook",
+    "audiobook": "Audiolibro",
+    "comic_graphic_novel": "Cómic / Novela gráfica",
+    "magazine_newspaper": "Revista / Periódico"
+  },
   "search": {
     "resultsCount": "{count, plural, one {resultado} other {resultados}} encontrados",
     "noResults": "No se encontraron resultados",
@@ -319,7 +365,8 @@
       "multiWord": "Envuelve los valores de varias palabras entre comillas dobles, p. ej. author:\"Marlen Haushofer\".",
       "combine": "Puedes combinar varios prefijos; los resultados deben coincidir con todos.",
       "negate": "Antepón - a cualquier término para excluirlo, p. ej. tag:cars -tag:audi.",
-      "possessionValues": "valores de posesión: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "claves de posesión: owned, borrowed, digital_access, to_acquire; también se aceptan etiquetas localizadas",
+      "mediumValues": "claves de medio: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper; también se aceptan etiquetas localizadas"
     }
   },
   "languages": {
@@ -449,14 +496,17 @@
   "error": {
     "isbnAlreadyExists": "Este ISBN ya está siendo usado por otro libro.",
     "dateInFuture": "La fecha no puede ser futura.",
+    "invalidDate": "Introduce una fecha valida.",
     "dateStartedAfterFinished": "La fecha de inicio no puede ser posterior a la de finalización.",
     "dateFinishedRequiredForRead": "Un libro terminado debe tener una fecha de fin. Cambia el estado si quieres eliminar la fecha de finalización.",
     "invalidLanguageCode": "El idioma debe ser un código ISO de 2 letras (por ejemplo: EN, DE, FR).",
     "invalidConfirmationPhrase": "La frase de confirmación no coincide.",
     "cannotDeleteLastAdmin": "No se puede eliminar la cuenta: eres el último administrador",
     "cannotDeleteOwnAccountHere": "No puedes eliminar tu propia cuenta aquí. Usa Perfil > Zona de peligro.",
+    "publicProfileNotFound": "Este enlace de perfil público ya no es válido.",
+    "publicProfileLoginRequired": "Este perfil solo es visible para los usuarios con sesión iniciada. Inicia sesión para verlo.",
     "importMalformedEvent": "Se recibió un evento de servidor malformado durante la importación.",
-    "importUnsupportedContentType": "Tipo de contenido no admitido. Usa archivos CSV o JSON.",
+    "importUnsupportedContentType": "Tipo de contenido no admitido. Usa archivos CSV, JSON o Excel (.xlsx).",
     "emailAlreadyRegistered": "Esta dirección de correo ya está registrada.",
     "userNotFound": "Usuario no encontrado.",
     "cannotChangeOwnRole": "No puedes cambiar tu propio rol de administrador.",
@@ -470,7 +520,9 @@
     "importMappingNameConflict": "Ya existe una asignación con este nombre.",
     "importMappingNotFound": "Asignación de importación no encontrada.",
     "importFileNotFound": "Archivo de importación no encontrado. Vuelve a subir el archivo.",
-    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter."
+    "importInvalidDelimiter": "El delimitador CSV debe ser un solo carácter.",
+    "importUnsupportedFileType": "Tipo de archivo no admitido. Usa un archivo CSV, JSON o Excel (.xlsx).",
+    "importInvalidXlsxFile": "No se pudo leer el archivo de Excel. Asegúrate de que sea un libro .xlsx válido."
   },
   "oidc": {
     "orContinueWith": "o continuar con",
@@ -493,6 +545,12 @@
     "profileSaveFailed": "Error al guardar el perfil",
     "passwordChangeSuccess": "Contraseña cambiada",
     "passwordChangeFailed": "Error al cambiar la contraseña",
+    "shareProfile": {
+      "title": "Compartir perfil",
+      "subtitle": "Publica una vista de solo lectura de tu perfil de lectura detrás de un enlace.",
+      "createLink": "Crear nueva URL",
+      "empty": "Aún no hay enlaces de perfil público."
+    },
     "goals": {
       "title": "Metas de lectura",
       "subtitle": "Activa metas para seguirlas de forma lúdica en el panel.",
@@ -509,9 +567,20 @@
       "saveSuccess": "Metas de lectura guardadas",
       "invalidTarget": "{name} debe ser un número entero de al menos 1."
     },
+    "readingDates": {
+      "title": "Fechas de lectura automáticas",
+      "subtitle": "Elige si LibrisLog debe completar las fechas automáticamente al cambiar el estado de lectura.",
+      "autoStart": "Establecer la fecha de inicio al pasar a Actualmente leyendo",
+      "autoStartDescription": "Cuando está activado, una fecha de inicio vacía se establece ahora. Desactívalo si no sabes cuándo empezaste.",
+      "autoFinish": "Establecer la fecha de finalización al pasar a Leído o No terminado",
+      "autoFinishDescription": "Cuando está activado, una fecha de finalización vacía se establece ahora. Desactívalo si no sabes cuándo terminaste.",
+      "documentationPrefix": "Más información en la",
+      "documentationLink": "documentación sobre fechas de lectura",
+      "saveSuccess": "Configuración de fechas de lectura guardada"
+    },
     "dataManagement": {
       "title": "Gestionar mis datos",
-      "description": "Exporta tu biblioteca o importa libros desde un archivo CSV/JSON.",
+      "description": "Exporta tu biblioteca o importa libros desde un archivo CSV, JSON o Excel.",
       "link": "Importar / Exportar",
       "missingCoversDescription": "Asigna rápidamente portadas faltantes con sugerencias automáticas.",
       "missingCoversLink": "Gestionar portadas faltantes"
@@ -542,6 +611,85 @@
         "failed": "Error al eliminar la cuenta",
         "lastAdminError": "No se puede eliminar la cuenta: eres el último administrador"
       }
+    }
+  },
+  "publicProfile": {
+    "unlimited": "Sin límite",
+    "validUntil": "Válido hasta",
+    "expiresAt": "Caduca el",
+    "expired": "Caducado",
+    "active": "Activo",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar este enlace de perfil público? Quienes tengan el enlace perderán el acceso.",
+    "openLink": "Abrir enlace",
+    "copyLink": "Copiar enlace",
+    "tokenShownOnce": "Copia este enlace ahora. Solo se muestra una vez.",
+    "linkCreated": "Enlace de perfil público creado.",
+    "linkDeleted": "Enlace de perfil público eliminado.",
+    "saveFailed": "No se pudo guardar el enlace de perfil público",
+    "loadFailed": "No se pudieron cargar los enlaces de perfil público",
+    "dialogTitleCreate": "Crear enlace de perfil público",
+    "dialogTitleEdit": "Editar enlace de perfil público",
+    "dialogName": "Nombre",
+    "dialogNamePlaceholder": "p. ej. Amigos y familia",
+    "accessGroup": "Acceso",
+    "contentGroup": "Contenido",
+    "validityGroup": "Validez",
+    "audiencePublic": "Todos",
+    "audienceAuthenticated": "Solo usuarios con sesión iniciada",
+    "audiencePublicTooltip": "Cualquier persona con el enlace puede ver el perfil, incluso sin iniciar sesión.",
+    "audienceAuthenticatedTooltip": "Solo los usuarios con sesión iniciada pueden ver el perfil.",
+    "selectAllSections": "Seleccionar todo",
+    "selectNoneSections": "Seleccionar ninguno",
+    "selectAllStats": "Seleccionar todo",
+    "selectNoneStats": "Seleccionar ninguno",
+    "statGroups": {
+      "summary": "Resumen",
+      "distribution": "Distribución",
+      "trends": "Tendencias",
+      "ratings": "Valoraciones"
+    },
+    "statistics": {
+      "totalAuthors": "Total de autores"
+    },
+    "sections": {
+      "username": "Nombre de usuario",
+      "usernameTooltip": "Mostrar el nombre completo del propietario como encabezado de la página.",
+      "userInfo": "Información del usuario",
+      "userInfoTooltip": "Mostrar una breve tarjeta de perfil con el nombre del propietario.",
+      "currentlyReading": "Leyendo actualmente",
+      "currentlyReadingTooltip": "Mostrar libros que se están leyendo actualmente.",
+      "currentlyReadingStarted": "Empezado el {date}",
+      "lastRead": "Últimos leídos",
+      "lastReadTooltip": "Mostrar los libros terminados más recientes.",
+      "readingTimeline": "Cronología de lectura",
+      "readingTimelineTooltip": "Mostrar todos los libros terminados en una cronología cronológica.",
+      "fullLibrary": "Biblioteca completa",
+      "fullLibraryTooltip": "Mostrar toda la biblioteca del propietario, con paginación.",
+      "statistics": "Estadísticas",
+      "statisticsTooltip": "Mostrar estadísticas de lectura (configurables abajo)."
+    },
+    "page": {
+      "loading": "Cargando perfil público...",
+      "notFound": "Este enlace de perfil público ya no es válido.",
+      "notFoundDesc": "El enlace puede haber caducado o haber sido revocado.",
+      "loginRequired": "Inicio de sesión requerido",
+      "loginRequiredDesc": "Este perfil solo es visible para los usuarios con sesión iniciada. Inicia sesión para verlo.",
+      "loginButton": "Iniciar sesión",
+      "errorTitle": "No se pudo cargar el perfil público",
+      "errorDesc": "Algo salió mal al cargar esta página. Inténtalo de nuevo más tarde.",
+      "retry": "Reintentar",
+      "showMore": "Mostrar más",
+      "shareHint": "Desarrollado por {app}",
+      "githubLink": "LibrisLog en GitHub",
+      "expiresHint": "Este enlace caduca el {date}.",
+      "finishedOn": "Terminado el {date}",
+      "emptyLibrary": "Esta biblioteca está vacía.",
+      "noCurrentlyReading": "No se está leyendo nada actualmente.",
+      "noLastRead": "Aún no hay libros terminados.",
+      "timelineMore": "y {count} más",
+      "themeToggle": "Cambiar tema"
     }
   },
   "timeline": {
@@ -577,7 +725,8 @@
     },
     "import": {
       "title": "Importar",
-      "description": "Sube un archivo CSV o JSON, asigna campos, valida y luego importa.",
+      "description": "Sube un archivo CSV, JSON o Excel (.xlsx), asigna campos, valida y luego importa.",
+      "sheetLabel": "Hoja: {sheet}",
       "parse": "Analizar archivo",
       "parsing": "Analizando...",
       "fileSummary": "Filas: {rows}, campos: {fields}",
@@ -607,6 +756,7 @@
       "errorRow": "Fila {row}",
       "previewSource": "Origen",
       "previewTransformed": "Transformado",
+      "previewWarnings": "Advertencias",
       "none": "(ninguno)",
       "requiredField": "= campo obligatorio",
       "changeFile": "Cambiar archivo",
@@ -636,9 +786,9 @@
       "confirmImportTitle": "¿Iniciar importación?",
       "confirmDestructive": "Esto escribe datos en tu biblioteca y no se puede deshacer automáticamente.",
       "deleteMappingConfirm": "¿Eliminar esta asignación guardada?",
-      "dropzone": "Arrastra y suelta un archivo CSV/JSON, o",
+      "dropzone": "Arrastra y suelta un archivo CSV, JSON o Excel, o",
       "browse": "examinar",
-      "fileInputLabel": "Elegir archivo CSV o JSON",
+      "fileInputLabel": "Elegir archivo CSV, JSON o Excel",
       "showLess": "Mostrar menos",
       "showAllIssues": "Mostrar todos los problemas ({count})",
       "showAllFailures": "Mostrar todas las filas fallidas ({count})",
@@ -671,7 +821,8 @@
       "language": "Idioma",
       "subtitle": "Subtítulo",
       "page_count": "Nº de páginas",
-      "cover_url": "Portada"
+      "cover_url": "Portada",
+      "medium": "Medio"
     },
     "matchAny": "Coincidir cualquiera",
     "matchAll": "Coincidir todos",

@@ -91,9 +91,10 @@ async def parse_import_file(
     delimiter: str = Form(","),
     current_user: User = Depends(require_user),
 ) -> DataImportParseResponse:
-    """Parse an uploaded CSV or JSON import file and return field info and samples.
+    """Parse an uploaded CSV, JSON, or XLSX import file and return field info and samples.
 
-    ``delimiter`` is the single-character CSV field separator (ignored for JSON).
+    ``delimiter`` is the single-character CSV field separator (ignored for JSON
+    and XLSX).
     """
     assert current_user.id is not None
     allowed_content_types = {
@@ -102,11 +103,18 @@ async def parse_import_file(
         "application/vnd.ms-excel",
         "application/json",
         "text/plain",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel.sheet.macroEnabled.12",
     }
-    if file.content_type and file.content_type not in allowed_content_types:
-        raise HTTPException(status_code=415, detail="Unsupported upload content type. Use CSV or JSON files.")
+    filename = file.filename or "upload"
+    allowed_extensions = (".csv", ".json", ".xlsx", ".xlsm")
+    extension_ok = filename.lower().endswith(allowed_extensions)
+    if file.content_type and file.content_type not in allowed_content_types and not extension_ok:
+        raise HTTPException(
+            status_code=415, detail="Unsupported upload content type. Use CSV, JSON, or Excel (.xlsx) files."
+        )
     try:
-        payload = parse_upload(await file.read(), file.filename or "upload", current_user.id, delimiter)
+        payload = parse_upload(await file.read(), filename, current_user.id, delimiter)
     except (ValueError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return DataImportParseResponse.model_validate(payload)

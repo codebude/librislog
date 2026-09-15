@@ -32,10 +32,12 @@ from app.schemas import (
     EmbedTokenRead,
     EmbedTokenUpdate,
     ProfileUpdate,
+    StatisticsRange,
     UserRead,
     UserSettingsRead,
     UserSettingsUpdate,
 )
+from app.services.statistics import MAX_CUSTOM_RANGE_DAYS
 from app.time_utils import utcnow
 from app.services.user_deletion import (
     assert_not_last_admin,
@@ -98,6 +100,7 @@ def get_settings(
         session.add(settings)
         session.commit()
         session.refresh(settings)
+    assert settings.user_id is not None
     return UserSettingsRead(
         user_id=settings.user_id,
         language=settings.language,
@@ -113,6 +116,11 @@ def get_settings(
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
         gamification_enabled=settings.gamification_enabled,
+        auto_set_date_started=settings.auto_set_date_started,
+        auto_set_date_finished=settings.auto_set_date_finished,
+        statistics_range=StatisticsRange(settings.statistics_range),
+        statistics_custom_from=settings.statistics_custom_from,
+        statistics_custom_to=settings.statistics_custom_to,
     )
 
 
@@ -130,12 +138,24 @@ def update_settings(
     if not settings:
         settings = UserSettings(user_id=current_user.id, language="en")
     update_data = body.model_dump(exclude_unset=True)
+    if "statistics_range" in update_data and update_data["statistics_range"] is None:
+        raise HTTPException(status_code=422, detail="statistics_range cannot be null")
+    custom_from = update_data.get("statistics_custom_from", settings.statistics_custom_from)
+    custom_to = update_data.get("statistics_custom_to", settings.statistics_custom_to)
+    statistics_range = update_data.get("statistics_range", settings.statistics_range)
+    if statistics_range == "custom" and (custom_from is None or custom_to is None):
+        raise HTTPException(status_code=422, detail="Custom range requires both dates")
+    if custom_from is not None and custom_to is not None and custom_from > custom_to:
+        raise HTTPException(status_code=422, detail="statistics_custom_from cannot be after statistics_custom_to")
+    if custom_from is not None and custom_to is not None and (custom_to - custom_from).days > MAX_CUSTOM_RANGE_DAYS:
+        raise HTTPException(status_code=422, detail="Statistics custom range cannot exceed 25 years")
     settings.sqlmodel_update(update_data)
     if settings.theme != 'custom':
         settings.custom_theme = None
     session.add(settings)
     session.commit()
     session.refresh(settings)
+    assert settings.user_id is not None
     return UserSettingsRead(
         user_id=settings.user_id,
         language=settings.language,
@@ -151,6 +171,11 @@ def update_settings(
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
         gamification_enabled=settings.gamification_enabled,
+        auto_set_date_started=settings.auto_set_date_started,
+        auto_set_date_finished=settings.auto_set_date_finished,
+        statistics_range=StatisticsRange(settings.statistics_range),
+        statistics_custom_from=settings.statistics_custom_from,
+        statistics_custom_to=settings.statistics_custom_to,
     )
 
 
@@ -351,7 +376,7 @@ def rotate_embed_token(
 
     token.revoked_at = now
     session.add(token)
-
+    assert current_user.id is not None
     plain_token = generate_embed_token()
     new_token = EmbedToken(
         user_id=current_user.id,

@@ -22,6 +22,7 @@ function mockBook(overrides?: Partial<Book>): Book {
 		rating: 4,
 		reading_status: 'currently_reading',
 		acquisition_status: 'owned',
+		medium: null,
 		date_added: '2024-01-01T00:00:00.000Z',
 		date_started: null,
 		date_finished: null,

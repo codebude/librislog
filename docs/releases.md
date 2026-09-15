@@ -8,33 +8,70 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.8.0 — Camera & Zoom Control, Optional Telemetry
-LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner, optional anonymous installation telemetry with a publicly verifiable census, a new Homer dashboard integration, and several usability and dependency fixes.
+::: tip ⭐ v1.9.0 — Smarter Import Search & Input UX
+LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an import basket for search results, parallel and cancelable searches, Excel (XLSX) import with a new Bookstats preset, configurable reading-date automation, media/medium statistics, and timezone-correct daily page statistics.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.8.0](#v1-8-0-—-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
-| [v1.7.0](#v1-7-0-—-reading-streaks-goals) | 2026-08-26 | Feature release |
-| [v1.6.0](#v1-6-0-—-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
-| [v1.5.2](#v1-5-2-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.1](#v1-5-1-—-maintenance) | 2026-06-22 | Maintenance |
-| [v1.5.0](#v1-5-0-—-password-reset-usability) | 2026-06-22 | Feature release |
-| [v1.4.0](#v1-4-0-—-embeddable-views-arm64) | 2026-06-14 | Feature release |
-| [v1.3.1](#v1-3-1-—-maintenance) | 2026-06-09 | Maintenance |
-| [v1.3.0](#v1-3-0-—-more-languages) | 2026-06-09 | Feature release |
-| [v1.2.2](#v1-2-2-—-maintenance) | 2026-06-08 | Maintenance |
-| [v1.2.1](#v1-2-1-—-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
-| [v1.2.0](#v1-2-0-—-startup-screen-update-checks) | 2026-06-01 | Feature release |
-| [v1.1.1](#v1-1-1-—-maintenance) | 2026-06-01 | Maintenance |
-| [v1.1.0](#v1-1-0-—-polish-missing-covers) | 2026-05-31 | Feature release |
-| [v1.0.0](#v1-0-0-—-initial-release) | 2026-05-28 | Initial release |
+| [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
+| [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
+| [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
+| [v1.6.0](#v1-6-0-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
+| [v1.5.2](#v1-5-2-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.1](#v1-5-1-maintenance) | 2026-06-22 | Maintenance |
+| [v1.5.0](#v1-5-0-password-reset-usability) | 2026-06-22 | Feature release |
+| [v1.4.0](#v1-4-0-embeddable-views-arm64) | 2026-06-14 | Feature release |
+| [v1.3.1](#v1-3-1-maintenance) | 2026-06-09 | Maintenance |
+| [v1.3.0](#v1-3-0-more-languages) | 2026-06-09 | Feature release |
+| [v1.2.2](#v1-2-2-maintenance) | 2026-06-08 | Maintenance |
+| [v1.2.1](#v1-2-1-import-reliability-multi-user-consistency) | 2026-06-08 | Feature release |
+| [v1.2.0](#v1-2-0-startup-screen-update-checks) | 2026-06-01 | Feature release |
+| [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
+| [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
+| [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
 
 ---
 
-## v1.8.0 — Camera & Zoom Control, Optional Telemetry
+## v1.9.0: Smarter Import Search & Input UX
+
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-15" />
+
+**Summary:** Adds shareable read-only public profile pages with configurable access and content, groups duplicate import-search results into expandable edition groups, lets you collect search results in an import basket and import them all at once, supports multiple parallel import searches, makes running searches cancelable, adds Excel (XLSX) file import, adds a Bookstats import preset, adds configurable reading-date automation, introduces an adaptive date input with a native picker, adds optional book media and medium statistics, supports localized medium and possession searches, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
+
+**Features**
+- 📚 **Edition groups in the import search**: results from different providers that describe the same book (same ISBN, or same title and authors) are now grouped into expandable entries with an "N results" badge. Compare the variants side by side and import the one you want; no result is dropped anymore. The selected edition is highlighted with a border and a "Selected" badge, and every edition row shows a pointer cursor, hover feedback, and a keyboard focus ring. See the [Library guide](/guide/using-librislog/library#how-results-are-grouped) for the exact grouping rules
+- 🗂️ **Optional book medium**: classify books as Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper from manual entry, search import, and book editing. Mediums can be filtered in the library, searched with `medium:`, imported/exported, and reviewed in the statistics distribution
+- 🌍 **Localized search values**: `medium:` and `possession:` searches accept both their original enum keys and localized display values, such as `medium:Hörbuch` and `possession:Im Besitz`
+- 🛑 **Cancelable book search**: while an import search is running, the Search button becomes a Cancel button, so you can stop the request and refine your query
+- ⌨️ **Escape closes dialogs and drawers**: overlays such as the sidebar, the book drawer, and the import modal can now be closed with the Escape key
+- 📅 **Adaptive date input**: date fields in the book form now use a segmented year/month/day input that no longer assumes the month or day after the first keystroke, validates values as you type, and accepts pasting a complete date. A calendar button next to the field opens the native date picker
+- 🌐 **Searchable timezone picker**: the timezone setting on the profile page is now a searchable dropdown covering all IANA timezones
+- 📷 **Secure context detection in the barcode scanner**: if LibrisLog is served outside a secure context (plain HTTP on a remote host), the scan button is hidden and the scanner explains why the camera cannot start, instead of showing a black box. See the [Library guide](/guide/using-librislog/library#isbn-barcode-scan) for details
+- 🎥 **Active camera name in the scanner**: the barcode scanner now shows the name of the active camera in a badge next to the switch button, so you always know which lens is being used
+- 🔗 **Heimdall dashboard integration**: new documentation for the LibrisLog enhanced app, which shows your reading statistics directly on [Heimdall](https://github.com/linuxserver/Heimdall) tiles
+- 🔗 **Shareable public profile pages**: create named, read-only profile URLs from the Profile page. Configure each link independently for public or logged-in-only access, selected profile sections and statistics, language, and an optional expiration date. Shared pages include responsive book cards, a mobile-safe reading timeline with incremental loading and hidden-book hints, full-library search with incremental loading, selectable 12-month/3-year/all-time trend ranges with value tooltips, distribution and rating panels, and the owner's generated avatar. Existing links can be copied, opened, edited, or revoked. The full URL token is only revealed on demand and is shown once after creation. See the [Profile guide](/guide/using-librislog/profile#urlprofile-sharing) for setup and security details
+- 🧺 **Import basket**: search results now offer an **Add to Basket** action next to the existing **Add** button. Collected books appear in a new **Basket** tab with a live count badge, where you can review them, remove individual entries, and import everything in one go. Each entry remembers the reading status, possession status, and medium that were selected when it was added. If some books fail during a basket import, the successful ones are imported and the failed ones stay in the basket so you can retry or remove them. The same book cannot be added twice
+- 🔎 **Parallel import searches**: open multiple independent search panels in the Add Book dialog and run different queries concurrently. Each panel keeps its own results and can add selected books to the shared import basket
+- 📅 **Configurable reading-date automation**: choose independently whether moving a book to Currently Reading, Read, or Did Not Finish should fill a missing start or finish date automatically. Existing dates are preserved, and disabling automation allows intentionally unknown dates without additional transition popups. See the [Profile guide](/guide/using-librislog/profile#reading-date-automation)
+- 📥 **Excel (XLSX) data import**: the Data Import page now accepts `.xlsx` and `.xlsm` workbooks alongside CSV and JSON. LibrisLog reads the workbook's active worksheet, treats the first non-empty row as the header and every following row as a record, shows the parsed sheet name next to the row and field counts, and runs the result through the same mapping, preview, validation, and import flow as CSV. Dates are read as ISO strings, whole numbers stay integers, and empty rows are skipped. See the [Import & Export guide](/guide/using-librislog/import-export#supported-formats)
+- 📥 **Bookstats import preset**: a new built-in, read-only mapping for the German Bookstats export. It translates German reading, acquisition, and medium values, converts Excel serial dates, reorders "Last, First" author names, maps the rating (with `0` as unrated), and merges `Genre` and `Kategorie` into tags. Load it from the saved-mappings dropdown like the Goodreads Export preset. See the [Import & Export guide](/guide/using-librislog/import-export#predefined-mappings)
+
+**Bug fixes**
+- 🗓️ **Timezone-correct daily page statistics**: pages read between two progress updates are now attributed to calendar days in the user's timezone instead of fixed 24h slots, so the pages-per-day view matches your local days. Your heatmap may shift slightly after the upgrade
+- 🕐 **Timezone-aware progress date editing**: editing a progress entry's date in the book detail view now interprets the value in your profile timezone instead of the browser's, so entries stay on the correct calendar day and streaks remain accurate
+- 🏷️ **Better contrast for selected suggestion items**: the selected entry in tag and author suggestion dropdowns now has stronger contrast and a visible border in all themes
+- ⚠️ **Undated read imports remain usable**: import previews show a non-blocking warning when a book is marked Read without a finish date, instead of treating the intentionally missing date as an import error
+
+**Breaking changes:** None.
+
+[Compare with v1.8.0](https://github.com/codebude/librislog/compare/v1.8.0...main)
+
+---
+
+## v1.8.0: Camera & Zoom Control, Optional Telemetry
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-02" />
 
@@ -57,7 +94,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.7.0 — Reading Streaks & Goals
+## v1.7.0: Reading Streaks & Goals
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-08-26" />
 
@@ -90,7 +127,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.6.0 — Reading Progress & Possession Tracking
+## v1.6.0: Reading Progress & Possession Tracking
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-08-23" />
 
@@ -112,7 +149,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.2 — Maintenance
+## v1.5.2: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-22" />
 
@@ -128,7 +165,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.1 — Maintenance
+## v1.5.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-22" />
 
@@ -143,7 +180,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.5.0 — Password Reset & Usability
+## v1.5.0: Password Reset & Usability
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-22" />
 
@@ -165,7 +202,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.4.0 — Embeddable Views & ARM64
+## v1.4.0: Embeddable Views & ARM64
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-14" />
 
@@ -187,7 +224,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.3.1 — Maintenance
+## v1.3.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-09" />
 
@@ -202,7 +239,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.3.0 — More Languages
+## v1.3.0: More Languages
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-09" />
 
@@ -219,7 +256,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.2 — Maintenance
+## v1.2.2: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-08" />
 
@@ -234,7 +271,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.1 — Import Reliability & Multi-User Consistency
+## v1.2.1: Import Reliability & Multi-User Consistency
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-08" />
 
@@ -256,7 +293,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.2.0 — Startup Screen & Update Checks
+## v1.2.0: Startup Screen & Update Checks
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-06-01" />
 
@@ -272,7 +309,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.1.1 — Maintenance
+## v1.1.1: Maintenance
 
 <Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-06-01" />
 
@@ -289,7 +326,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.1.0 — Polish & Missing Covers
+## v1.1.0: Polish & Missing Covers
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-05-31" />
 
@@ -307,7 +344,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ---
 
-## v1.0.0 — Initial Release
+## v1.0.0: Initial Release
 
 <Badge type="tip" text="Initial release" /> <Badge type="info" text="2026-05-28" />
 

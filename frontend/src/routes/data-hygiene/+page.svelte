@@ -22,6 +22,7 @@
 		{ key: 'subtitle', labelKey: 'dataHygiene.attributes.subtitle' },
 		{ key: 'page_count', labelKey: 'dataHygiene.attributes.page_count' },
 		{ key: 'cover_url', labelKey: 'dataHygiene.attributes.cover_url' },
+		{ key: 'medium', labelKey: 'dataHygiene.attributes.medium' },
 	];
 
 	let selectedAttributes = $state<HygieneAttribute[]>([]);
@@ -250,6 +251,17 @@
 			batchField = null;
 			batchFieldWasAutoSelected = false;
 		}
+	});
+
+	// Close the cover viewer on Escape right away — the backdrop only
+	// receives key events after it has been clicked.
+	$effect(() => {
+		if (!coverViewer) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') closeCoverViewer();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
 	});
 </script>
 
@@ -493,13 +505,7 @@
 </div>
 
 {#if coverViewer}
-	<div
-		class="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"
-		role="button"
-		tabindex="-1"
-		onclick={closeCoverViewer}
-		onkeydown={(e) => e.key === 'Escape' && closeCoverViewer()}
-	></div>
+	<div class="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"></div>
 	<div class="fixed inset-0 z-[130] p-3 sm:p-6 flex items-center justify-center pointer-events-none">
 		<div class="w-full max-w-4xl pointer-events-auto">
 			<div class="relative bg-base-100 rounded-2xl shadow-2xl border border-base-300 overflow-hidden">

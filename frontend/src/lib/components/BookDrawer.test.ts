@@ -8,6 +8,10 @@ const mockTransitionStatus = vi.fn(async (_id: number, _data: unknown) => ({ boo
 const mockSuggestionsAuthors = vi.fn(async (_q: string) => ['Author 1']);
 const mockSuggestionsPublishers = vi.fn(async (_q: string) => ['Publisher 1']);
 const mockSuggestionsTags = vi.fn(async (_q: string) => ['Tag 1']);
+const mockGetSettings = vi.fn(async () => ({
+	auto_set_date_started: true,
+	auto_set_date_finished: true
+}));
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({
@@ -20,6 +24,9 @@ vi.mock('$lib/api', () => ({
 				publishers: (q: string) => mockSuggestionsPublishers(q),
 				tags: (q: string) => mockSuggestionsTags(q)
 			}
+		},
+		profile: {
+			getSettings: () => mockGetSettings()
 		}
 	}
 }));
@@ -66,6 +73,7 @@ const mockBook = {
 	rating: 4,
 	reading_status: 'want_to_read' as const,
 	acquisition_status: 'owned' as const,
+	medium: null,
 	date_added: '2024-01-01T00:00:00Z',
 	date_started: null,
 	date_finished: null,
@@ -95,8 +103,8 @@ describe('BookDrawer', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
 		expect(screen.getByRole('textbox', { name: /ISBN/ })).toBeInTheDocument();
-		expect(screen.getByLabelText(/Year/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Pages/)).toBeInTheDocument();
+		expect(screen.getByRole('spinbutton', { name: /^Year$/ })).toBeInTheDocument();
+		expect(screen.getByRole('spinbutton', { name: /Pages/ })).toBeInTheDocument();
 		expect(screen.getByLabelText(/Language/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Status/)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
@@ -143,6 +151,21 @@ describe('BookDrawer', () => {
 		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
 	});
 
+	it('closes on Escape', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(screen.queryByText('Test Book')).not.toBeInTheDocument();
+	});
+
+	it('does not close when backdrop is clicked', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+		const panel = document.querySelector('.fixed.top-0.right-0.h-full.w-full.max-w-md');
+		const backdrop = panel?.previousElementSibling;
+		expect(backdrop).toBeTruthy();
+		await fireEvent.click(backdrop as Element);
+		expect(screen.getByText('Test Book')).toBeInTheDocument();
+	});
+
 	it('has close button', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		// Close button uses aria-label="Close" with ✕ as text
@@ -151,8 +174,8 @@ describe('BookDrawer', () => {
 
 	it('shows date inputs', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
-		expect(screen.getByLabelText(/Date started/)).toBeInTheDocument();
-		expect(screen.getByLabelText(/Date finished/)).toBeInTheDocument();
+		expect(document.querySelector('input[name="date_started"]')).toBeInTheDocument();
+		expect(document.querySelector('input[name="date_finished"]')).toBeInTheDocument();
 	});
 
 	it('has rating selector', () => {
@@ -181,5 +204,30 @@ describe('BookDrawer', () => {
 		render(BookDrawer, { props: { book: mockBook, open: true } });
 		const autoSearchBtn = screen.getByRole('button', { name: 'Auto-search covers' });
 		expect(autoSearchBtn).not.toBeDisabled();
+	});
+
+	it('blocks save and shows error when date_started is invalid', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+
+		const day = screen.getByLabelText('Date started') as HTMLInputElement;
+		await fireEvent.input(day, { target: { value: '31' } });
+		await fireEvent.blur(day);
+
+		const saveBtn = screen.getByRole('button', { name: 'Save' });
+		await fireEvent.click(saveBtn);
+
+		expect(mockBooksUpdate).not.toHaveBeenCalled();
+		expect(mockTransitionStatus).not.toHaveBeenCalled();
+		expect(mockToastsAdd).toHaveBeenCalledWith('Please enter a valid date.', 'error');
+	});
+
+	it('shows inline helper text when date_started is invalid', async () => {
+		render(BookDrawer, { props: { book: mockBook, open: true } });
+
+		const day = screen.getByLabelText('Date started') as HTMLInputElement;
+		await fireEvent.input(day, { target: { value: '31' } });
+		await fireEvent.blur(day);
+
+		expect(screen.getByText('Please enter a valid date.')).toBeInTheDocument();
 	});
 });

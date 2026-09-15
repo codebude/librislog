@@ -26,7 +26,9 @@ import type {
 	DashboardQuote,
 	GamificationResponse,
 	StatisticsResponse,
+	StatisticsRange,
 	LibraryStats,
+	Medium,
 	ReadingProgressEntry,
 	StatusTransitionRequest,
 	StatusTransitionResponse,
@@ -39,6 +41,12 @@ import type {
 	SortOrder,
 	OidcConfig,
 	OidcLinkStatus,
+	PublicProfileAudience,
+	PublicProfileLink,
+	PublicProfileLinkCreateResponse,
+	PublicProfileResponse,
+	PublicProfileVisibilityConfig,
+	ShareLinkRevealResponse,
 	User,
 	UserCreateResponse,
 	UserAdminUpdate,
@@ -71,6 +79,35 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 	const res = await fetch(`${BASE}${path}`, {
 		headers,
+		credentials: 'same-origin',
+		...options
+	});
+
+	const contentType = res.headers.get('content-type') ?? '';
+	const isJson = contentType.includes('application/json');
+
+	if (!res.ok) {
+		const err = new Error(`HTTP ${res.status}`) as Error & { status?: number };
+		err.status = res.status;
+		if (isJson) {
+			const detail = await res.json().catch(() => ({}));
+			err.message = detail?.detail ?? `HTTP ${res.status}`;
+			throw err;
+		}
+		const text = await res.text().catch(() => '');
+		err.message = text || `HTTP ${res.status}`;
+		throw err;
+	}
+	if (res.status === 204) return undefined as T;
+	if (!isJson) {
+		throw new Error(`Unexpected non-JSON response for ${path}`);
+	}
+	return res.json() as Promise<T>;
+}
+
+async function publicRequest<T>(path: string, options?: RequestInit): Promise<T> {
+	const res = await fetch(`${BASE}${path}`, {
+		headers: { 'Content-Type': 'application/json' },
 		credentials: 'same-origin',
 		...options
 	});
@@ -212,6 +249,49 @@ export const api = {
 			return request<void>(`/profile/embed-tokens/${id}`, { method: 'DELETE' });
 		},
 
+		listShareLinks(): Promise<PublicProfileLink[]> {
+			return request<PublicProfileLink[]>('/profile/share-links');
+		},
+
+		createShareLink(data: {
+			name: string;
+			audience: PublicProfileAudience;
+			language?: string | null;
+			visibility_config: PublicProfileVisibilityConfig;
+			expires_at?: string | null;
+		}): Promise<PublicProfileLinkCreateResponse> {
+			return request<PublicProfileLinkCreateResponse>('/profile/share-links', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
+		},
+
+		updateShareLink(
+			id: number,
+			data: Partial<{
+				name: string;
+				audience: PublicProfileAudience;
+				language: string | null;
+				visibility_config: PublicProfileVisibilityConfig;
+				expires_at: string | null;
+			}>
+		): Promise<PublicProfileLink> {
+			return request<PublicProfileLink>(`/profile/share-links/${id}`, {
+				method: 'PATCH',
+				body: JSON.stringify(data)
+			});
+		},
+
+		deleteShareLink(id: number): Promise<void> {
+			return request<void>(`/profile/share-links/${id}`, { method: 'DELETE' });
+		},
+
+		revealShareLink(id: number): Promise<ShareLinkRevealResponse> {
+			return request<ShareLinkRevealResponse>(`/profile/share-links/${id}/reveal`, {
+				method: 'POST'
+			});
+		},
+
 		resetData(confirmation: string): Promise<DataResetResponse> {
 			return request<DataResetResponse>('/profile/reset-data', {
 				method: 'POST',
@@ -257,9 +337,18 @@ export const api = {
 		}
 	},
 
+	publicProfile: {
+		get(token: string): Promise<PublicProfileResponse> {
+			return publicRequest<PublicProfileResponse>(`/public-profiles/${encodeURIComponent(token)}`);
+		}
+	},
+
 	statistics: {
-		get(): Promise<StatisticsResponse> {
-			return request<StatisticsResponse>('/statistics');
+		get(range: StatisticsRange = 'alltime', customFrom?: string | null, customTo?: string | null): Promise<StatisticsResponse> {
+			const params = new URLSearchParams({ range });
+			if (customFrom) params.set('from', customFrom);
+			if (customTo) params.set('to', customTo);
+			return request<StatisticsResponse>(`/statistics?${params.toString()}`);
 		},
 
 		getPagesPerDay(days: number = 365): Promise<DailyPagesResponse> {
@@ -336,6 +425,7 @@ export const api = {
 		list(params?: {
 			status?: ReadingStatus;
 			acquisition_status?: AcquisitionStatus;
+			medium?: Medium;
 			q?: string;
 			has_cover?: boolean;
 			sort?: SortField;
@@ -347,6 +437,7 @@ export const api = {
 			const qs = new URLSearchParams();
 			if (params?.status) qs.set('status', params.status);
 			if (params?.acquisition_status) qs.set('acquisition_status', params.acquisition_status);
+			if (params?.medium) qs.set('medium', params.medium);
 			if (params?.q) qs.set('q', params.q);
 			if (params?.has_cover !== undefined) qs.set('has_cover', String(params.has_cover));
 			if (params?.sort) qs.set('sort', params.sort);
@@ -473,21 +564,22 @@ export const api = {
 			);
 		},
 
-		importBook(candidate: BookImportCandidate, status: ReadingStatus, acquisitionStatus: AcquisitionStatus): Promise<Book> {
+		importBook(candidate: BookImportCandidate, status: ReadingStatus, acquisitionStatus: AcquisitionStatus, medium?: Medium | null): Promise<Book> {
 			return request<Book>('/import', {
 				method: 'POST',
-				body: JSON.stringify({ candidate, reading_status: status, acquisition_status: acquisitionStatus })
+				body: JSON.stringify({ candidate, reading_status: status, acquisition_status: acquisitionStatus, medium })
 			});
 		},
 
 		async *searchStream(
 			q: string,
 			type: 'title' | 'isbn' = 'title',
-			mode: ImportSearchMode = 'auto'
+			mode: ImportSearchMode = 'auto',
+			signal?: AbortSignal
 		): AsyncGenerator<SearchStage> {
 			const res = await fetch(
 				`${BASE}/import/search/stream?q=${encodeURIComponent(q)}&type=${type}&mode=${mode}`,
-				{ headers: authHeaders() }
+				{ headers: authHeaders(), signal }
 			);
 			if (!res.ok || !res.body) {
 				const detail = await res.json().catch(() => ({}));

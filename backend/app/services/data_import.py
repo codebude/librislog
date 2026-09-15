@@ -1,4 +1,4 @@
-"""CSV/JSON data import pipeline — parsing, validation, mapping, and execution."""
+"""CSV/JSON/XLSX data import pipeline: parsing, validation, mapping, and execution."""
 
 import csv
 import hashlib
@@ -6,16 +6,22 @@ import json
 import logging
 import re
 import secrets
-from datetime import datetime, timezone
+import zipfile
+from datetime import date, datetime, time, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, Optional
+from xml.etree.ElementTree import ParseError
 
 import httpx
+from defusedxml.common import DefusedXmlException
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
 from app.config import settings
-from app.models import AcquisitionStatus, Book, ReadingProgress, ReadingStatus, User
+from app.models import AcquisitionStatus, Book, Medium, ReadingProgress, ReadingStatus, User, normalize_medium_key
 from app.schemas import ImportFieldConfig
 
 logger = logging.getLogger(__name__)
@@ -40,6 +46,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "rating",
     "reading_status",
     "acquisition_status",
+    "medium",
     "date_added",
     "date_started",
     "date_finished",
@@ -81,6 +88,10 @@ _ALIASES: dict[str, str] = {
     "acquisition": "acquisition_status",
     "availability": "acquisition_status",
     "ownership": "acquisition_status",
+    "medium": "medium",
+    "book medium": "medium",
+    "format": "medium",
+    "media type": "medium",
     "date added": "date_added",
     "added": "date_added",
     "date started": "date_started",
@@ -146,18 +157,103 @@ def _to_flat_row(row: dict) -> dict[str, object]:
     return flat
 
 
+def _xlsx_cell_to_str(value: object) -> str:
+    """Normalize an XLSX cell value to a string, matching CSV semantics.
+
+    Dates and times are rendered as ISO-8601 strings, integral floats lose
+    their trailing ``.0`` (so ``_parse_int`` accepts them), and empty cells
+    become an empty string.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _parse_xlsx(content: bytes) -> tuple[list[str], list[dict], str]:
+    """Convert the active worksheet of an XLSX/XLSM workbook into flat rows.
+
+    The first non-empty row is treated as the header. Subsequent rows are
+    converted to string values (cell values only, formulas use their cached
+    result) and fully empty rows are skipped.
+
+    Returns:
+        A tuple of (source_fields, rows, sheet_name).
+
+    Raises:
+        ValueError: If the header is missing or the file cannot be parsed.
+    """
+    try:
+        workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
+    except (
+        InvalidFileException,
+        zipfile.BadZipFile,
+        ParseError,
+        DefusedXmlException,
+        KeyError,
+        OSError,
+    ) as exc:
+        raise ValueError("error.importInvalidXlsxFile") from exc
+
+    try:
+        worksheet = workbook.active
+        if worksheet is None:
+            raise ValueError("error.importInvalidXlsxFile")
+        sheet_name = worksheet.title or ""
+
+        source_fields: list[str] = []
+        rows: list[dict] = []
+        header_found = False
+        for raw_row in worksheet.iter_rows(values_only=True):
+            values = list(raw_row)
+            if not header_found:
+                if all(cell is None or str(cell) == "" for cell in values):
+                    continue
+                header_found = True
+                last = max(
+                    (idx for idx, cell in enumerate(values) if cell is not None and str(cell) != ""),
+                    default=-1,
+                )
+                source_fields = [str(cell) if cell is not None else "" for cell in values[: last + 1]]
+                continue
+
+            if all(cell is None or str(cell) == "" for cell in values):
+                continue
+            if len(rows) >= settings.max_import_row_count:
+                raise ValueError("error.importTooManyRows")
+            rows.append(
+                {
+                    field: _xlsx_cell_to_str(values[idx] if idx < len(values) else None)
+                    for idx, field in enumerate(source_fields)
+                }
+            )
+
+        if not header_found:
+            raise ValueError("error.importMissingHeader")
+    finally:
+        workbook.close()
+
+    return source_fields, rows, sheet_name
+
+
 def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = ",") -> dict:
-    """Parse an uploaded CSV or JSON file and persist the parsed result to disk.
+    """Parse an uploaded CSV, JSON, or XLSX file and persist the result to disk.
 
     Args:
         content: Raw file bytes.
         filename: Original filename (used to detect format).
         user_id: Owner of the upload.
         delimiter: Single-character field separator used for CSV files
-            (ignored for JSON).
+            (ignored for JSON and XLSX).
 
     Returns:
-        A dict with file_id, format, source_fields, sample_rows, and row_count.
+        A dict with file_id, format, source_fields, sample_rows, row_count,
+        and (for XLSX) sheet.
 
     Raises:
         ValueError: On validation failures.
@@ -168,6 +264,7 @@ def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = "
         raise ValueError("error.importFileTooLarge")
 
     lower = filename.lower()
+    sheet: str | None = None
     if lower.endswith(".csv"):
         if len(delimiter) != 1:
             raise ValueError("error.importInvalidDelimiter")
@@ -192,6 +289,9 @@ def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = "
             rows.append(flat)
             source_set.update(flat.keys())
         source_fields = sorted(source_set)
+    elif lower.endswith((".xlsx", ".xlsm")):
+        parsed_format = "xlsx"
+        source_fields, rows, sheet = _parse_xlsx(content)
     else:
         raise ValueError("error.importUnsupportedFileType")
 
@@ -209,6 +309,7 @@ def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = "
             "format": parsed_format,
             "source_fields": source_fields,
             "rows": rows,
+            "sheet": sheet,
             "created_at": utcnow().isoformat(),
         }
         path = _temp_file_path(user_id, file_id)
@@ -227,6 +328,7 @@ def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = "
         "source_fields": source_fields,
         "sample_rows": rows[:5],
         "row_count": len(rows),
+        "sheet": sheet,
     }
 
 
@@ -305,6 +407,19 @@ def _parse_acquisition_status(value: object) -> AcquisitionStatus:
     except ValueError as exc:
         choices = ", ".join(status.value for status in AcquisitionStatus)
         raise ValueError(_format_value_error("acquisition_status", f"one of: {choices}", value)) from exc
+
+
+def _parse_medium(value: object) -> Medium | None:
+    """Parse an optional book medium from an import row."""
+    if value is None or not str(value).strip():
+        return None
+    normalized = normalize_medium_key(str(value))
+    for medium in Medium:
+        enum_value = normalize_medium_key(medium.value)
+        if normalized in {medium.name, enum_value}:
+            return medium
+    choices = ", ".join(medium.value for medium in Medium)
+    raise ValueError(_format_value_error("medium", f"one of: {choices}", value))
 
 
 def _parse_year(value: object, field: str) -> int | None:
@@ -565,6 +680,7 @@ def validate_import(
             reading_status = _parse_reading_status(row_data.get("reading_status"))
             if require_acquisition_status:
                 _parse_acquisition_status(row_data.get("acquisition_status"))
+            _parse_medium(row_data.get("medium"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -667,6 +783,7 @@ def preview_import(
 
     for idx, row in enumerate(rows[:limit], start=1):
         row_errors: list[str] = []
+        row_warnings: list[str] = []
         row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)}, row_errors)
 
         # Validate required fields and data types for preview
@@ -685,6 +802,7 @@ def preview_import(
             reading_status = _parse_reading_status(row_data.get("reading_status"))
             if require_acquisition_status:
                 _parse_acquisition_status(row_data.get("acquisition_status"))
+            _parse_medium(row_data.get("medium"))
             _normalize_language(
                 None if row_data.get("language") is None else str(row_data.get("language"))
             )
@@ -722,7 +840,7 @@ def preview_import(
             )
 
         if reading_status == ReadingStatus.read and not date_finished:
-            row_errors.append(
+            row_warnings.append(
                 "Marked as 'read' but has no finished date; "
                 "without a finish date the book will not count toward monthly statistics"
             )
@@ -737,6 +855,7 @@ def preview_import(
             "source": source_display,
             "transformed": transformed_display,
             "errors": row_errors,
+            "warnings": row_warnings,
         })
 
     return {"preview_rows": preview_rows, "row_count": len(rows), "errors": []}
@@ -807,6 +926,7 @@ async def execute_import(
                     if require_acquisition_status
                     else AcquisitionStatus.owned
                 )
+                medium = _parse_medium(row_data.get("medium"))
 
                 language = _normalize_language(
                     None if row_data.get("language") is None else str(row_data.get("language"))
@@ -869,6 +989,7 @@ async def execute_import(
                     rating=rating,
                     reading_status=reading_status,
                     acquisition_status=acquisition_status,
+                    medium=medium,
                     date_added=date_added or utcnow(),
                     date_started=date_started,
                     date_finished=date_finished,
@@ -938,6 +1059,80 @@ async def execute_import(
     }
 
 
+_BOOKSTATS_SOURCE_FIELDS: list[str] = [
+    "Titel", "Autor(en)", "ISBN", "ASIN", "Erscheinungsjahr", "Genre",
+    "Seitenanzahl", "Dauer (Stunden)", "Dauer (Minuten)", "Buchart", "Preis",
+    "Erhalten als", "Lesestatus", "Lesebeginn", "Leseende", "Bewertung",
+    "Kategorie", "Notizen", "Erhalten am",
+]
+
+_BOOKSTATS_AUTHORS_TRANSFORM = """\
+raw = str(value).strip()
+result = []
+if not raw:
+    return result
+chunks = re.split(r';| & | and ', raw)
+for chunk in chunks:
+    chunk = chunk.strip()
+    if not chunk:
+        continue
+    parts = []
+    for p in chunk.split(','):
+        p = p.strip()
+        if p:
+            parts.append(p)
+    if len(parts) <= 1:
+        result.append(chunk)
+    elif len(parts) == 2:
+        if parts[0].count(' ') == 0:
+            result.append(parts[1] + ' ' + parts[0])
+        else:
+            result.append(parts[0])
+            result.append(parts[1])
+    elif len(parts) % 2 == 0:
+        for i in range(0, len(parts), 2):
+            result.append(parts[i + 1] + ' ' + parts[i])
+    else:
+        result.append(chunk)
+return result"""
+
+_BOOKSTATS_TAGS_TRANSFORM = """\
+result = []
+genre = str(value).strip()
+if genre:
+    result.append(genre)
+kategorie = str(row.get('Kategorie', '')).strip()
+if kategorie and kategorie.lower() != genre.lower():
+    result.append(kategorie)
+return result"""
+
+_BOOKSTATS_READING_STATUS_TRANSFORM = """\
+mapping = {'gelesen': 'read', 'am lesen': 'currently_reading', 'ungelesen': 'want_to_read', 'abgebrochen': 'did_not_finish'}
+return mapping.get(str(value).strip().lower(), 'want_to_read')"""
+
+_BOOKSTATS_ACQUISITION_TRANSFORM = """\
+mapping = {'kauf': 'owned', 'geschenk': 'owned', 'leihe': 'borrowed'}
+return mapping.get(str(value).strip().lower(), 'owned')"""
+
+_BOOKSTATS_MEDIUM_TRANSFORM = """\
+mapping = {'taschenbuch': 'Print', 'hardcover': 'Print', 'e-book': 'eBook', 'ebook': 'eBook', 'hörbuch': 'Audiobook', 'hoerbuch': 'Audiobook'}
+return mapping.get(str(value).strip().lower())"""
+
+_BOOKSTATS_RATING_TRANSFORM = """\
+raw = str(value).strip()
+if not raw or raw == '0':
+    return None
+return raw"""
+
+_BOOKSTATS_DATE_TRANSFORM = """\
+raw = str(value).strip()
+if not raw:
+    return None
+if raw.replace('.', '', 1).isdigit():
+    return (datetime.datetime(1899, 12, 30) + datetime.timedelta(days=int(float(raw)))).strftime('%Y-%m-%d')
+return raw"""
+
+
 PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
     {
         "id": -1,
@@ -1001,6 +1196,27 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
                 ),
             },
             "cover_url": {"source": "", "transform": None},
+        },
+    },
+    {
+        "id": -2,
+        "name": "Bookstats Export",
+        "source_fields": list(_BOOKSTATS_SOURCE_FIELDS),
+        "mapping": {
+            "title": {"source": "Titel", "transform": None},
+            "authors": {"source": "Autor(en)", "transform": _BOOKSTATS_AUTHORS_TRANSFORM},
+            "isbn": {"source": "ISBN", "transform": None},
+            "published_year": {"source": "Erscheinungsjahr", "transform": None},
+            "page_count": {"source": "Seitenanzahl", "transform": None},
+            "tags": {"source": "Genre", "transform": _BOOKSTATS_TAGS_TRANSFORM},
+            "reading_status": {"source": "Lesestatus", "transform": _BOOKSTATS_READING_STATUS_TRANSFORM},
+            "acquisition_status": {"source": "Erhalten als", "transform": _BOOKSTATS_ACQUISITION_TRANSFORM},
+            "medium": {"source": "Buchart", "transform": _BOOKSTATS_MEDIUM_TRANSFORM},
+            "rating": {"source": "Bewertung", "transform": _BOOKSTATS_RATING_TRANSFORM},
+            "date_started": {"source": "Lesebeginn", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "date_finished": {"source": "Leseende", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "date_added": {"source": "Erhalten am", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "notes": {"source": "Notizen", "transform": None},
         },
     },
 ]

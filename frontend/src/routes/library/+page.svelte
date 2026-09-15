@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
 	import { api } from '$lib/api';
 	import { _ } from '$lib/i18n';
 	import { page } from '$app/stores';
@@ -74,6 +74,7 @@
 	let totalCount = $state(0);
 	let searchQuery = $state('');
 	let acquisitionFilter = $state<AcquisitionStatus | ''>('');
+	let mediumFilter = $state<Medium | ''>('');
 	let smartSort = $state(true);
 	let sort = $state<SortField>('date_added');
 	let order = $state<SortOrder>('desc');
@@ -162,6 +163,7 @@
 			const response = await api.books.list({
 				status: activeStatus === 'all' ? undefined : activeStatus,
 				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
+				medium: mediumFilter || undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
 				sort,
@@ -196,6 +198,7 @@
 			const response = await api.books.list({
 				status: activeStatus === 'all' ? undefined : activeStatus,
 				acquisition_status: activeStatus === 'want_to_read' && acquisitionFilter ? acquisitionFilter : undefined,
+				medium: mediumFilter || undefined,
 				q: searchQuery || undefined,
 				smart_sort: smartSort,
 				sort,
@@ -229,6 +232,7 @@
 		void sort;
 		void order;
 		void acquisitionFilter;
+		void mediumFilter;
 		fetchBooks();
 	});
 
@@ -342,6 +346,17 @@
 			</select>
 		</label>
 	{/if}
+	<label class="flex items-center gap-2 text-sm">
+		<span>{$_('book.medium')}</span>
+		<select class="select select-bordered select-sm pr-8 min-w-fit" name="medium_filter" bind:value={mediumFilter}>
+			<option value="">{$_('common.all')}</option>
+			<option value="Print">{$_('medium.print')}</option>
+			<option value="eBook">{$_('medium.ebook')}</option>
+			<option value="Audiobook">{$_('medium.audiobook')}</option>
+			<option value="Comic / Graphic Novel">{$_('medium.comic_graphic_novel')}</option>
+			<option value="Magazine / Newspaper">{$_('medium.magazine_newspaper')}</option>
+		</select>
+	</label>
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-4">
 		<h1 class="text-xl font-bold">{$_(STATUS_LABEL_KEYS[activeStatus])}</h1>

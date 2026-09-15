@@ -2,14 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import DataImport from './DataImport.svelte';
+import type { DataImportParseResponse } from '$lib/types';
 
-const mockParseImportFile = vi.fn(async (_file: File) => ({
-	file_id: 'test-file-123',
-	format: 'csv' as const,
-	source_fields: ['Book Title', 'Author Name', 'ISBN'],
-	sample_rows: [{ 'Book Title': 'Dune', 'Author Name': 'Frank Herbert', 'ISBN': '978-3-16-148410-0' }],
-	row_count: 1
-}));
+const mockParseImportFile = vi.fn(
+	async (_file: File): Promise<DataImportParseResponse> => ({
+		file_id: 'test-file-123',
+		format: 'csv',
+		source_fields: ['Book Title', 'Author Name', 'ISBN'],
+		sample_rows: [{ 'Book Title': 'Dune', 'Author Name': 'Frank Herbert', 'ISBN': '978-3-16-148410-0' }],
+		row_count: 1
+	})
+);
 const mockSuggestMapping = vi.fn(async (_fileId: string) => ({
 	suggested_mapping: { title: 'Book Title', authors: 'Author Name', isbn: 'ISBN' },
 	db_fields: ['title', 'authors', 'isbn', 'publisher', 'page_count']
@@ -63,7 +66,7 @@ describe('DataImport', () => {
 	it('renders title and description', () => {
 		render(DataImport);
 		expect(screen.getByRole('heading', { name: 'Import' })).toBeInTheDocument();
-		expect(screen.getByText(/Upload one CSV or JSON file/)).toBeInTheDocument();
+		expect(screen.getByText(/Upload one CSV, JSON, or Excel/)).toBeInTheDocument();
 	});
 
 	it('has dropzone for file upload', () => {
@@ -170,6 +173,36 @@ describe('DataImport', () => {
 
 		await waitFor(() => {
 			expect(screen.getByLabelText('Create 100% progress entry for books imported as \'Read\'')).toBeInTheDocument();
+		});
+	});
+
+	it('accepts xlsx and xlsm files in the file input', () => {
+		render(DataImport);
+		const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+		const accept = input.getAttribute('accept') ?? '';
+		expect(accept).toContain('.xlsx');
+		expect(accept).toContain('.xlsm');
+	});
+
+	it('shows the parsed sheet name for xlsx files', async () => {
+		mockParseImportFile.mockResolvedValueOnce({
+			file_id: 'xlsx-file-123',
+			format: 'xlsx' as const,
+			source_fields: ['Title'],
+			sample_rows: [{ Title: 'Dune' }],
+			row_count: 1,
+			sheet: 'Books'
+		});
+		render(DataImport);
+		const file = new File(['test'], 'books.xlsx', {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		});
+		const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+		await fireEvent.change(input, { target: { files: [file] } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Parse file' }));
+
+		await waitFor(() => {
+			expect(screen.getByText('Sheet: Books')).toBeInTheDocument();
 		});
 	});
 });

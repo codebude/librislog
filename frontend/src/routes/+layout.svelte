@@ -42,7 +42,8 @@
 			pathname.startsWith('/setup') ||
 			pathname.startsWith('/login') ||
 			pathname.startsWith('/reset-password') ||
-			pathname.startsWith('/auth/oidc')
+			pathname.startsWith('/auth/oidc') ||
+			pathname.startsWith('/p/')
 		);
 	}
 

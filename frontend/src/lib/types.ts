@@ -1,5 +1,6 @@
 export type ReadingStatus = 'want_to_read' | 'currently_reading' | 'read' | 'did_not_finish';
 export type AcquisitionStatus = 'owned' | 'borrowed' | 'digital_access' | 'to_acquire';
+export type Medium = 'Print' | 'eBook' | 'Audiobook' | 'Comic / Graphic Novel' | 'Magazine / Newspaper';
 
 export interface Book {
 	id: number;
@@ -19,6 +20,7 @@ export interface Book {
 	rating: number | null; // 1–5
 	reading_status: ReadingStatus;
 	acquisition_status: AcquisitionStatus;
+	medium: Medium | null;
 	date_added: string; // ISO datetime
 	date_started: string | null;
 	date_finished: string | null;
@@ -43,6 +45,22 @@ export interface BookImportCandidate {
 	tags: string | null;
 	blurb: string | null;
 	source: string;
+}
+
+export interface BookImportCandidateGroup {
+	key: string;
+	title: string;
+	authors: string[] | null;
+	coverUrl: string | null;
+	variants: BookImportCandidate[];
+}
+
+export interface BasketItem {
+	id: string;
+	candidate: BookImportCandidate;
+	readingStatus: ReadingStatus;
+	acquisitionStatus: AcquisitionStatus;
+	medium: Medium | null;
 }
 
 export interface CoverCandidate {
@@ -122,6 +140,11 @@ export interface AcquisitionStatusDistribution {
 	to_acquire: number;
 }
 
+export interface MediumDistribution {
+	medium: Medium | null;
+	count: number;
+}
+
 export interface PageBuckets {
 	pages_to_read: number;
 	pages_read: number;
@@ -178,6 +201,7 @@ export interface StatisticsResponse {
 	language_distribution: LanguageDistribution[];
 	status_distribution: StatusDistribution;
 	acquisition_status_distribution: AcquisitionStatusDistribution;
+	medium_distribution: MediumDistribution[];
 	page_buckets: PageBuckets;
 	pages_read_per_month: MonthlyPages[];
 	books_finished_per_month: MonthlyBooks[];
@@ -189,6 +213,8 @@ export interface StatisticsResponse {
 	top_rated_books: TopRatedBook[];
 	worst_rated_books: TopRatedBook[];
 }
+
+export type StatisticsRange = 'alltime' | 'this_year' | 'last_year' | '3years' | 'custom';
 
 export type UserRole = 'admin' | 'user';
 
@@ -228,6 +254,11 @@ export interface UserSettings {
 	goal_books_per_year_enabled: boolean;
 	goal_books_per_year: number;
 	gamification_enabled: boolean;
+	auto_set_date_started: boolean;
+	auto_set_date_finished: boolean;
+	statistics_range: StatisticsRange;
+	statistics_custom_from: string | null;
+	statistics_custom_to: string | null;
 }
 
 export type GoalType = 'pages_per_day' | 'pages_per_month' | 'books_per_month' | 'books_per_year';
@@ -346,10 +377,11 @@ export type DataExportFormat = 'csv' | 'json';
 
 export interface DataImportParseResponse {
 	file_id: string;
-	format: 'csv' | 'json';
+	format: 'csv' | 'json' | 'xlsx';
 	source_fields: string[];
 	sample_rows: Record<string, unknown>[];
 	row_count: number;
+	sheet?: string | null;
 }
 
 export interface DataImportMappingListItem {
@@ -380,6 +412,7 @@ export interface DataImportPreviewRow {
 	source: Record<string, unknown>;
 	transformed: Record<string, unknown>;
 	errors: string[];
+	warnings?: string[];
 }
 
 export interface DataImportPreviewResponse {
@@ -404,7 +437,8 @@ export type HygieneAttribute =
 	| 'language'
 	| 'subtitle'
 	| 'page_count'
-	| 'cover_url';
+	| 'cover_url'
+	| 'medium';
 
 export interface HygieneMissingBook {
 	id: number;
@@ -438,6 +472,93 @@ export interface HygieneBatchUpdateResponse {
 	updated: number;
 	skipped: number;
 	skipped_ids: number[];
+}
+
+export type PublicProfileAudience = 'public' | 'authenticated';
+
+export type PublicProfileSectionKey =
+	| 'username'
+	| 'user_info'
+	| 'currently_reading'
+	| 'last_read'
+	| 'reading_timeline'
+	| 'full_library'
+	| 'statistics';
+
+export type PublicProfileStatisticsKey =
+	| 'total_books'
+	| 'total_authors'
+	| 'avg_books_per_month'
+	| 'busiest_month'
+	| 'avg_page_count'
+	| 'most_popular_language'
+	| 'language_distribution'
+	| 'status_distribution'
+	| 'acquisition_status_distribution'
+	| 'medium_distribution'
+	| 'page_buckets'
+	| 'pages_read_per_month'
+	| 'books_finished_per_month'
+	| 'books_finished_per_year'
+	| 'top_authors'
+	| 'books_with_rating'
+	| 'books_without_rating'
+	| 'average_rating'
+	| 'top_rated_books'
+	| 'worst_rated_books';
+
+export interface PublicProfileVisibilityConfig {
+	sections: PublicProfileSectionKey[];
+	statistics: PublicProfileStatisticsKey[];
+}
+
+export interface PublicProfileLink {
+	id: number;
+	name: string;
+	token_prefix: string;
+	audience: PublicProfileAudience;
+	language: string | null;
+	visibility_config: PublicProfileVisibilityConfig;
+	expires_at: string | null;
+	created_at: string;
+}
+
+export interface PublicProfileLinkCreateResponse {
+	token: string;
+	link: PublicProfileLink;
+}
+
+export interface ShareLinkRevealResponse {
+	token: string;
+}
+
+export interface PublicProfileUserInfo {
+	firstname: string;
+	lastname: string;
+}
+
+export interface PublicProfileBook {
+	id: number;
+	title: string;
+	subtitle: string | null;
+	authors: string[];
+	cover_url: string | null;
+	reading_status: ReadingStatus;
+	page_count: number | null;
+	language: string | null;
+	rating: number | null;
+	date_started: string | null;
+	date_finished: string | null;
+}
+
+export interface PublicProfileResponse {
+	owner: PublicProfileUserInfo;
+	audience: PublicProfileAudience;
+	language: string | null;
+	expires_at: string | null;
+	visibility_config: PublicProfileVisibilityConfig;
+	books: PublicProfileBook[];
+	statistics: Record<string, unknown> | null;
 }
 
 export type DataImportEvent =

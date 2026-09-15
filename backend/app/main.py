@@ -13,12 +13,12 @@ from starlette.responses import Response
 from app._build_info import __git_sha__, __version__
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, statistics, users
+from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, public_profile, share_links, statistics, users
 from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
 from app.services.telemetry import send_telemetry_once
 
-_TELEMETRY_INTERVAL_SECONDS = 24 * 3600
+_TELEMETRY_INTERVAL_SECONDS = 23 * 3600
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,8 @@ app.include_router(cover_candidates.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(profile.router)
+app.include_router(share_links.router)
+app.include_router(public_profile.router)
 app.include_router(oidc.router)
 app.include_router(progress.router)
 app.include_router(docs.router)

@@ -86,7 +86,7 @@ def test_parse_bare_prefix() -> None:
 
 
 def test_parse_all_supported_prefixes() -> None:
-    query = "author:a title:t publisher:p tag:g language:en possession:owned notes:n description:d"
+    query = "author:a title:t publisher:p tag:g language:en possession:owned medium:audiobook notes:n description:d"
     fields = [t.field for t in parse_search_query(query)]
     assert fields == [
         "author",
@@ -95,6 +95,7 @@ def test_parse_all_supported_prefixes() -> None:
         "tag",
         "language",
         "possession",
+        "medium",
         "notes",
         "description",
     ]
@@ -104,6 +105,7 @@ def test_possession_condition_accepts_enum_values() -> None:
     from app.services.search import _possession_condition
 
     assert _possession_condition("owned") is not None
+    assert _possession_condition("Im Besitz") is not None
     assert _possession_condition("digital_access") is not None
     assert _possession_condition("to acquire") is not None
     assert _possession_condition("owned") is not None
@@ -113,3 +115,17 @@ def test_possession_condition_rejects_unknown_value() -> None:
     from app.services.search import _possession_condition
 
     assert _possession_condition("not-a-status") is None
+
+
+def test_medium_condition_accepts_display_and_key_values() -> None:
+    from app.services.search import _medium_condition
+
+    assert _medium_condition("Audiobook") is not None
+    assert _medium_condition("Hörbuch") is not None
+    assert _medium_condition("comic_graphic_novel") is not None
+    assert _medium_condition("Comic / Graphic Novel") is not None
+    assert _medium_condition("unknown") is None
+
+
+def test_parse_negated_medium_term() -> None:
+    assert _terms("-medium:print") == [("medium", "print", True)]

@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { _, locale } from '$lib/i18n';
 	import { api } from '$lib/api';
-	import type { Book, DailyPagesResponse, StatisticsResponse } from '$lib/types';
+	import type { Book, DailyPagesResponse, StatisticsRange, StatisticsResponse } from '$lib/types';
 	import { toasts } from '$lib/toasts';
 	import { formatLanguageCode } from '$lib/utils/language';
 	import BarChart from '$lib/components/BarChart.svelte';
@@ -11,6 +11,7 @@
 	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '$lib/components/BookDrawer.svelte';
 	import RatedBooksSection from '$lib/components/RatedBooksSection.svelte';
+	import StatisticsRangeSelector from '$lib/components/StatisticsRangeSelector.svelte';
 	import { RotateCcw } from '@lucide/svelte';
 
 	type Segment = {
@@ -25,6 +26,7 @@
 	};
 
 	let loading = $state(true);
+	let refreshing = $state(false);
 	let stats = $state<StatisticsResponse | null>(null);
 	let calendarData = $state<DailyPagesResponse | null>(null);
 	let calendarLoading = $state(false);
@@ -35,35 +37,111 @@
 	let pagesChart = $state<import('chart.js').Chart<'bar'> | null>(null);
 	let booksMonthChart = $state<import('chart.js').Chart<'bar'> | null>(null);
 	let booksYearChart = $state<import('chart.js').Chart<'bar'> | null>(null);
+	let statisticsRange = $state<StatisticsRange>('alltime');
+	let customFrom = $state('');
+	let customTo = $state('');
+	let rangeInvalid = $state(false);
+	let settingsLoading = $state(true);
+	let rangeReady = false;
+	let rangeReloadTimer: ReturnType<typeof setTimeout> | null = null;
+	let isPageActive: () => boolean = () => true;
+	let statisticsRequestId = 0;
 
 	onMount(() => {
 		let active = true;
-		void loadStatistics(() => active);
-		void loadCalendarData(() => active);
+		isPageActive = () => active;
+		void loadSettingsAndStatistics(() => active);
 		return () => {
 			active = false;
+			if (rangeReloadTimer) clearTimeout(rangeReloadTimer);
 		};
 	});
 
-	async function loadStatistics(isActive: () => boolean) {
-		loading = true;
+	async function loadSettingsAndStatistics(isActive: () => boolean) {
+		settingsLoading = true;
 		try {
-			const data = await api.statistics.get();
+			try {
+				const settings = await api.profile.getSettings();
+				if (!isActive()) return;
+				statisticsRange = settings.statistics_range ?? 'alltime';
+				customFrom = settings.statistics_custom_from ?? '';
+				customTo = settings.statistics_custom_to ?? '';
+			} catch {
+				// Keep the legacy all-time default if settings are unavailable.
+			}
+			if (!isActive()) return;
+			await loadStatistics(isActive);
+			await loadCalendarData(isActive);
+			rangeReady = true;
+		} catch (e: unknown) {
 			if (isActive()) {
+				const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
+				toasts.add(message, 'error');
+			}
+		} finally {
+			if (isActive()) settingsLoading = false;
+		}
+	}
+
+	async function loadStatistics(isActive: () => boolean) {
+		const requestId = ++statisticsRequestId;
+		const isInitialLoad = stats === null;
+		if (isInitialLoad) loading = true;
+		else refreshing = true;
+		try {
+			const requestedRange = validCustomRange() ? statisticsRange : 'alltime';
+			const data = await api.statistics.get(requestedRange, requestedRange === 'custom' ? customFrom : null, requestedRange === 'custom' ? customTo : null);
+			if (isActive() && requestId === statisticsRequestId) {
 				stats = data;
 			}
 		} catch (e: unknown) {
-			if (isActive()) {
+			if (isActive() && requestId === statisticsRequestId) {
 				const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 				toasts.add(message, 'error');
 				stats = null;
 			}
 		} finally {
-			if (isActive()) {
-				loading = false;
+			if (isActive() && requestId === statisticsRequestId) {
+				if (isInitialLoad) loading = false;
+				else refreshing = false;
 			}
 		}
 	}
+
+	function validCustomRange(): boolean {
+		return statisticsRange !== 'custom' || (!!customFrom && !!customTo && customFrom <= customTo);
+	}
+
+	function scheduleRangeReload() {
+		if (!rangeReady || !validCustomRange()) return;
+		if (rangeReloadTimer) clearTimeout(rangeReloadTimer);
+		rangeReloadTimer = setTimeout(() => {
+			void persistAndReload();
+		}, 300);
+	}
+
+	async function persistAndReload() {
+		if (!validCustomRange()) return;
+		try {
+			await api.profile.updateSettings({
+				statistics_range: statisticsRange,
+				statistics_custom_from: customFrom || null,
+				statistics_custom_to: customTo || null
+			});
+			await loadStatistics(isPageActive);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'save' } });
+			toasts.add(message, 'error');
+		}
+	}
+
+	$effect(() => {
+		// Track these values so edits schedule a debounced persistence/reload.
+		statisticsRange;
+		customFrom;
+		customTo;
+		if (rangeReady) scheduleRangeReload();
+	});
 
 	async function loadCalendarData(isActive: () => boolean) {
 		calendarLoading = true;
@@ -133,6 +211,24 @@
 			{ label: $_('acquisition.digital_access'), value: stats.acquisition_status_distribution.digital_access, className: 'bg-info' },
 			{ label: $_('acquisition.to_acquire'), value: stats.acquisition_status_distribution.to_acquire, className: 'bg-warning' }
 		].filter((item) => item.value > 0);
+	});
+
+	const mediumLabelKeys: Record<string, string> = {
+		Print: 'medium.print',
+		eBook: 'medium.ebook',
+		Audiobook: 'medium.audiobook',
+		'Comic / Graphic Novel': 'medium.comic_graphic_novel',
+		'Magazine / Newspaper': 'medium.magazine_newspaper'
+	};
+
+	const mediumSegments = $derived.by<Segment[]>(() => {
+		if (!stats) return [];
+		const colors = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-info', 'bg-success', 'bg-warning'];
+		return (stats.medium_distribution ?? []).map((entry, idx) => ({
+			label: entry.medium ? $_(mediumLabelKeys[entry.medium] ?? entry.medium) : $_('statistics.unknownMedium'),
+			value: entry.count,
+			className: colors[idx % colors.length]
+		}));
 	});
 
 	const pageSegments = $derived.by<Segment[]>(() => {
@@ -332,6 +428,29 @@
 
 			<div class="card bg-base-100 border border-base-200 shadow-sm">
 				<div class="card-body">
+					<h2 class="card-title text-base">{$_('statistics.mediumDistribution')}</h2>
+					<div role="img" aria-label={$_('statistics.mediumDistribution')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
+						{#if total(mediumSegments) === 0}
+							<div class="w-full h-full"></div>
+						{:else}
+							{#each mediumSegments as segment}
+								<div class={`h-full ${segment.className}`} style={`width:${safePercentage(segment.value, total(mediumSegments))}%`}></div>
+							{/each}
+						{/if}
+					</div>
+					<div class="flex flex-wrap gap-3 text-sm">
+						{#each mediumSegments as segment}
+							<div class="flex items-center gap-2">
+								<span class={`inline-block w-3 h-3 rounded ${segment.className}`}></span>
+								<span>{segment.label}: {formatNumber(segment.value, 0)}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
+
+			<div class="card bg-base-100 border border-base-200 shadow-sm">
+				<div class="card-body">
 					<h2 class="card-title text-base">{$_('statistics.pageBuckets')}</h2>
 					<div role="img" aria-label={$_('statistics.pageBuckets')} class="flex h-8 w-full overflow-hidden rounded-xl bg-base-200">
 						{#if total(pageSegments) === 0}
@@ -356,6 +475,16 @@
 		</div>
 
 		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.sectionCharts')}</div>
+		<div class="flex justify-end">
+			<StatisticsRangeSelector
+				bind:range={statisticsRange}
+				bind:customFrom
+				bind:customTo
+				bind:invalid={rangeInvalid}
+				disabled={settingsLoading || loading || refreshing}
+				refreshing={refreshing}
+			/>
+		</div>
 
 		<div class="grid grid-cols-1 gap-4">
 			<div class="card bg-base-100 border border-base-200 shadow-sm">

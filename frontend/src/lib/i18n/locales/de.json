@@ -26,6 +26,7 @@
     "languageDistribution": "Bücher nach Sprache",
     "statusDistribution": "Bücher nach Status",
     "acquisitionStatusDistribution": "Bücher nach Besitz",
+    "mediumDistribution": "Medienverteilung",
     "pageBuckets": "Seitenstatistik",
     "pagesToRead": "Zu lesen",
     "pagesRead": "Gelesen",
@@ -34,11 +35,23 @@
     "pagesReadPerMonth": "Gelesene Seiten pro Monat",
     "booksFinishedPerMonth": "Beendete Bücher pro Monat",
     "booksFinishedPerYear": "Beendete Bücher pro Jahr",
+    "rangeLabel": "Zeitraum",
+    "rangeLast12Months": "Letzte 12 Monate",
+    "refreshing": "Statistiken werden aktualisiert",
+    "rangeAllTime": "Gesamte Zeit",
+    "rangeThisYear": "Dieses Jahr",
+    "rangeLastYear": "Letztes Jahr",
+    "rangeLast3Years": "Letzte 3 Jahre",
+    "rangeCustom": "Benutzerdefiniert",
+    "from": "Von",
+    "to": "Bis",
+    "invalidDateRange": "Das Startdatum darf nicht nach dem Enddatum liegen",
     "topAuthors": "Top-Autoren",
     "rankedNumber": "#{rank}",
     "coversForAuthor": "Buchcover für {author}",
     "booksCount": "{count} {count, plural, one {Buch} other {Bücher}}",
     "unknownLanguage": "Unbekannt",
+    "unknownMedium": "Unbekanntes Medium",
     "pagesReadCalendar": "Leseaktivität (letzte 365 Tage)",
     "noCalendarData": "Keine Leseaktivität im letzten Jahr verfügbar",
     "pagesOver": "Seiten an",
@@ -162,6 +175,8 @@
     "dateStarted": "Begonnen am",
     "acquisitionStatus": "Besitzstatus",
     "selectAcquisitionStatus": "Besitzstatus auswählen...",
+    "medium": "Medium",
+    "selectMedium": "Medium auswählen...",
     "startDatePromptTitle": "Startdatum festlegen?",
     "startDatePromptMessage": "Dieses Buch hat kein Startdatum. Lege es auf heute fest oder wähle ein anderes Datum, bevor du es als gelesen markierst.",
     "startDatePromptSet": "Startdatum festlegen",
@@ -205,7 +220,8 @@
     "searchImport": "Suchen & Importieren",
     "adding": "Füge hinzu...",
     "failedAdd": "Buch konnte nicht hinzugefügt werden",
-    "importFromFile": "Aus Datei importieren"
+    "importFromFile": "Aus Datei importieren",
+    "basket": "Warenkorb"
   },
   "import": {
     "searchByTitleOrAuthor": "Nach Titel oder Autor suchen...",
@@ -219,6 +235,8 @@
     "googleAdded": "Google-Books-Ergebnisse hinzugefügt: {count}",
     "scan": "Scannen",
     "scanIsbn": "ISBN-Barcode scannen",
+    "scanUnavailable": "Barcode-Scannen ist nicht verfügbar, weil die App nicht in einem sicheren Kontext bereitgestellt wird.",
+    "scanUnavailableDocsLink": "Mehr erfahren",
     "importFailed": "Import fehlgeschlagen",
     "searchFailed": "Suche fehlgeschlagen",
     "scannedIsbn": "ISBN gescannt: {isbn}",
@@ -230,7 +248,24 @@
     "sourceGoogleSearching": "Durchsuche Google Books...",
     "sourceBackendError": "{source}-Backendfehler (Backend-Logs prüfen)",
     "sourceError": "Suche fehlgeschlagen: {message}",
-    "resultCount": "{source} - {count} Ergebnis{suffix}"
+    "resultCount": "{source} - {count} Ergebnis{suffix}",
+    "groupResultPlural": "Ergebnisse",
+    "groupExpand": "Ausgaben anzeigen",
+    "groupCollapse": "Ausgaben ausblenden",
+    "groupChooseEdition": "Ausgabe wählen",
+    "editionSelected": "Ausgewählt",
+    "addToBasket": "Zum Warenkorb hinzufügen",
+    "inBasket": "Im Warenkorb",
+    "basketEmpty": "Dein Warenkorb ist leer. Suche nach Büchern, um sie hinzuzufügen.",
+    "basketCount": "{count} {count, plural, one {Buch} other {Bücher}}",
+    "importBasket": "Warenkorb importieren",
+    "importingBasket": "Importiere...",
+    "basketRemove": "Aus dem Warenkorb entfernen",
+    "basketImportSuccess": "{count} Bücher erfolgreich importiert.",
+    "parallelSearchDescription": "Führe mehrere unabhängige Suchen gleichzeitig aus. Jede Suche behält ihre Ergebnisse und kann Bücher in den gemeinsamen Korb legen.",
+    "newParallelSearch": "Neue parallele Suche",
+    "parallelSearchLabel": "Suche {number}",
+    "removeParallelSearch": "Suche entfernen"
   },
   "scanner": {
     "title": "ISBN-Barcode scannen",
@@ -238,9 +273,12 @@
     "startError": "Barcode-Scanner konnte nicht gestartet werden. Prüfe die Kameraberechtigungen.",
     "noCamera": "Kein Kameragerät gefunden.",
     "switchCamera": "Kamera wechseln",
+    "currentCamera": "Aktuelle Kamera: {camera}",
     "zoom": "Zoom",
     "zoomLevel": "Zoom {zoom}x",
-    "close": "Scanner schließen"
+    "close": "Scanner schließen",
+    "secureContextRequired": "Kamerazugriff erfordert einen sicheren Kontext (HTTPS oder localhost).",
+    "secureContextDocsLink": "Mehr erfahren"
   },
   "coverPicker": {
     "dropzone": "Bild hierher ziehen oder",
@@ -270,6 +308,7 @@
     "themeCustom": "Anpassen",
     "themeSelect": "Wähle ein benutzerdefiniertes Design",
     "timezonePlaceholder": "Zeitzone suchen...",
+    "timezoneNoResults": "Keine passende Zeitzone",
     "apiDocsTitle": "API-Dokumentation",
     "apiDocsHelp": "Erkunde und teste Backend-Endpunkte direkt in der App.",
     "apiDocsViewLabel": "Ansicht",
@@ -308,6 +347,13 @@
     "digital_access": "Digital verfügbar",
     "to_acquire": "Muss noch beschafft werden"
   },
+  "medium": {
+    "print": "Print",
+    "ebook": "eBook",
+    "audiobook": "Hörbuch",
+    "comic_graphic_novel": "Comic / Graphic Novel",
+    "magazine_newspaper": "Magazin / Zeitung"
+  },
   "search": {
     "resultsCount": "{count, plural, one {Ergebnis} other {Ergebnisse}} gefunden",
     "noResults": "Keine Ergebnisse gefunden",
@@ -319,7 +365,8 @@
       "multiWord": "Setze mehrteilige Werte in doppelte Anführungszeichen, z. B. author:\"Marlen Haushofer\".",
       "combine": "Du kannst mehrere Präfixe kombinieren; die Ergebnisse müssen allen entsprechen.",
       "negate": "Stelle einem Begriff ein - voran, um ihn auszuschließen, z. B. tag:cars -tag:audi.",
-      "possessionValues": "Possession-Werte: owned, borrowed, digital_access, to_acquire"
+      "possessionValues": "Possession-Schlüssel: owned, borrowed, digital_access, to_acquire; lokalisierte Bezeichnungen werden ebenfalls akzeptiert",
+      "mediumValues": "Medium-Schlüssel: print, ebook, audiobook, comic_graphic_novel, magazine_newspaper; lokalisierte Bezeichnungen werden ebenfalls akzeptiert"
     }
   },
   "languages": {
@@ -449,14 +496,17 @@
   "error": {
     "isbnAlreadyExists": "Diese ISBN wird bereits von einem anderen Buch verwendet.",
     "dateInFuture": "Datum darf nicht in der Zukunft liegen.",
+    "invalidDate": "Bitte gib ein gueltiges Datum ein.",
     "dateStartedAfterFinished": "Startdatum darf nicht nach dem Enddatum liegen.",
     "dateFinishedRequiredForRead": "Ein gelesenes Buch muss ein Enddatum haben. Ändere den Status, wenn du das Enddatum entfernen möchtest.",
     "invalidLanguageCode": "Sprache muss ein 2-stelliger ISO-Code sein (z. B. EN, DE, FR).",
     "invalidConfirmationPhrase": "Bestätigungsphrase stimmt nicht überein.",
     "cannotDeleteLastAdmin": "Konto kann nicht gelöscht werden: du bist der letzte Administrator",
     "cannotDeleteOwnAccountHere": "Das eigene Konto kann hier nicht gelöscht werden. Verwende Profil > Gefahrenbereich.",
+    "publicProfileNotFound": "Dieser öffentliche Profil-Link ist nicht mehr gültig.",
+    "publicProfileLoginRequired": "Dieses Profil ist nur für angemeldete Benutzer sichtbar. Bitte melde dich an, um es anzusehen.",
     "importMalformedEvent": "Während des Imports wurde ein fehlerhaftes Server-Ereignis empfangen.",
-    "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV- oder JSON-Dateien verwenden.",
+    "importUnsupportedContentType": "Nicht unterstützter Upload-Inhaltstyp. Bitte CSV-, JSON- oder Excel-Dateien (.xlsx) verwenden.",
     "emailAlreadyRegistered": "Diese E-Mail-Adresse ist bereits registriert.",
     "batchUpdateFailed": "Stapelaktualisierung aufgrund eines unerwarteten Fehlers fehlgeschlagen. Es wurden keine Änderungen gespeichert.",
     "tooManyBooksSelected": "Zu viele Bücher ausgewählt. Bitte maximal {max} auf einmal auswählen.",
@@ -470,7 +520,9 @@
     "importMappingNameConflict": "Ein Mapping mit diesem Namen existiert bereits.",
     "importMappingNotFound": "Import-Mapping nicht gefunden.",
     "importFileNotFound": "Importdatei nicht gefunden. Bitte lade die Datei erneut hoch.",
-    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein."
+    "importInvalidDelimiter": "CSV-Trennzeichen muss ein einzelnes Zeichen sein.",
+    "importUnsupportedFileType": "Nicht unterstützter Dateityp. Bitte verwende eine CSV-, JSON- oder Excel-Datei (.xlsx).",
+    "importInvalidXlsxFile": "Die Excel-Datei konnte nicht gelesen werden. Stelle sicher, dass es sich um eine gültige .xlsx-Arbeitsmappe handelt."
   },
   "oidc": {
     "orContinueWith": "oder weiter mit",
@@ -493,6 +545,12 @@
     "profileSaveFailed": "Profil konnte nicht gespeichert werden",
     "passwordChangeSuccess": "Passwort geändert",
     "passwordChangeFailed": "Passwort konnte nicht geändert werden",
+    "shareProfile": {
+      "title": "Profil teilen",
+      "subtitle": "Veröffentliche eine schreibgeschützte Ansicht deines Leseprofils hinter einem Link.",
+      "createLink": "Neue URL erstellen",
+      "empty": "Noch keine öffentlichen Profil-Links vorhanden."
+    },
     "goals": {
       "title": "Leseziele",
       "subtitle": "Aktiviere Ziele, um sie spielerisch auf dem Dashboard zu verfolgen.",
@@ -509,9 +567,20 @@
       "saveSuccess": "Leseziele gespeichert",
       "invalidTarget": "{name} muss eine ganze Zahl von mindestens 1 sein."
     },
+    "readingDates": {
+      "title": "Automatische Lesedaten",
+      "subtitle": "Lege fest, ob LibrisLog beim Ändern des Lesestatus automatisch Daten eintragen soll.",
+      "autoStart": "Startdatum beim Wechsel zu „Wird gelesen“ setzen",
+      "autoStartDescription": "Wenn aktiviert, wird ein fehlendes Startdatum auf jetzt gesetzt. Deaktiviere dies, wenn du nicht weißt, wann du begonnen hast.",
+      "autoFinish": "Enddatum beim Wechsel zu „Gelesen“ oder „Nicht beendet“ setzen",
+      "autoFinishDescription": "Wenn aktiviert, wird ein fehlendes Enddatum auf jetzt gesetzt. Deaktiviere dies, wenn du nicht weißt, wann du fertig geworden bist.",
+      "documentationPrefix": "Mehr dazu in der",
+      "documentationLink": "Dokumentation zu Lesedaten",
+      "saveSuccess": "Einstellungen für Lesedaten gespeichert"
+    },
     "dataManagement": {
       "title": "Meine Daten verwalten",
-      "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV/JSON.",
+      "description": "Exportiere deine Bibliothek oder importiere Bücher aus CSV, JSON oder Excel.",
       "link": "Datenseite öffnen",
       "missingCoversDescription": "Fehlende Cover mit automatischen Vorschlägen schnell zuweisen.",
       "missingCoversLink": "Fehlende Cover verwalten"
@@ -542,6 +611,85 @@
         "failed": "Konto konnte nicht gelöscht werden",
         "lastAdminError": "Konto kann nicht gelöscht werden: Sie sind der letzte Administrator"
       }
+    }
+  },
+  "publicProfile": {
+    "unlimited": "Unbegrenzt",
+    "validUntil": "Gültig bis",
+    "expiresAt": "Läuft ab am",
+    "expired": "Abgelaufen",
+    "active": "Aktiv",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "deleteConfirm": "Diesen öffentlichen Profillink löschen? Alle mit dem Link verlieren den Zugriff.",
+    "openLink": "Link öffnen",
+    "copyLink": "Link kopieren",
+    "tokenShownOnce": "Kopiere diesen Link jetzt. Er wird nur einmal angezeigt.",
+    "linkCreated": "Öffentlicher Profil-Link erstellt.",
+    "linkDeleted": "Öffentlicher Profil-Link gelöscht.",
+    "saveFailed": "Der öffentliche Profil-Link konnte nicht gespeichert werden",
+    "loadFailed": "Öffentliche Profil-Links konnten nicht geladen werden",
+    "dialogTitleCreate": "Öffentlichen Profil-Link erstellen",
+    "dialogTitleEdit": "Öffentlichen Profil-Link bearbeiten",
+    "dialogName": "Name",
+    "dialogNamePlaceholder": "z. B. Freunde & Familie",
+    "accessGroup": "Zugriff",
+    "contentGroup": "Inhalt",
+    "validityGroup": "Gültigkeit",
+    "audiencePublic": "Alle",
+    "audienceAuthenticated": "Nur angemeldete Benutzer",
+    "audiencePublicTooltip": "Jeder mit dem Link kann das Profil ansehen, auch ohne Anmeldung.",
+    "audienceAuthenticatedTooltip": "Nur angemeldete Benutzer können das Profil ansehen.",
+    "selectAllSections": "Alle auswählen",
+    "selectNoneSections": "Keine auswählen",
+    "selectAllStats": "Alle auswählen",
+    "selectNoneStats": "Keine auswählen",
+    "statGroups": {
+      "summary": "Zusammenfassung",
+      "distribution": "Verteilung",
+      "trends": "Trends",
+      "ratings": "Bewertungen"
+    },
+    "statistics": {
+      "totalAuthors": "Gesamtzahl Autoren"
+    },
+    "sections": {
+      "username": "Benutzername",
+      "usernameTooltip": "Zeige den vollständigen Namen des Besitzers als Seitenüberschrift.",
+      "userInfo": "Benutzerinfo",
+      "userInfoTooltip": "Zeige eine kurze Profilkarte mit dem Namen des Besitzers.",
+      "currentlyReading": "Aktuell gelesen",
+      "currentlyReadingTooltip": "Zeige Bücher, die gerade gelesen werden.",
+      "currentlyReadingStarted": "Begonnen am {date}",
+      "lastRead": "Zuletzt gelesen",
+      "lastReadTooltip": "Zeige die zuletzt beendeten Bücher.",
+      "readingTimeline": "Leseverlauf",
+      "readingTimelineTooltip": "Zeige alle beendeten Bücher in einer chronologischen Zeitleiste.",
+      "fullLibrary": "Vollständige Bibliothek",
+      "fullLibraryTooltip": "Zeige die gesamte Bibliothek des Besitzers, durchsuchbar mit Seitenumbruch.",
+      "statistics": "Statistiken",
+      "statisticsTooltip": "Zeige Lesestatistiken (unten konfigurierbar)."
+    },
+    "page": {
+      "loading": "Öffentliches Profil wird geladen...",
+      "notFound": "Dieser öffentliche Profil-Link ist nicht mehr gültig.",
+      "notFoundDesc": "Der Link ist möglicherweise abgelaufen oder wurde widerrufen.",
+      "loginRequired": "Anmeldung erforderlich",
+      "loginRequiredDesc": "Dieses Profil ist nur für angemeldete Benutzer sichtbar. Bitte melde dich an, um es anzusehen.",
+      "loginButton": "Anmelden",
+      "errorTitle": "Das öffentliche Profil konnte nicht geladen werden",
+      "errorDesc": "Beim Laden dieser Seite ist etwas schiefgelaufen. Bitte versuche es später erneut.",
+      "retry": "Erneut versuchen",
+      "showMore": "Mehr anzeigen",
+      "shareHint": "Bereitgestellt von {app}",
+      "githubLink": "LibrisLog auf GitHub",
+      "expiresHint": "Dieser Link läuft am {date} ab.",
+      "finishedOn": "Beendet am {date}",
+      "emptyLibrary": "Diese Bibliothek ist leer.",
+      "noCurrentlyReading": "Es wird gerade nichts gelesen.",
+      "noLastRead": "Noch keine beendeten Bücher.",
+      "timelineMore": "und {count} weitere",
+      "themeToggle": "Design umschalten"
     }
   },
   "timeline": {
@@ -577,7 +725,8 @@
     },
     "import": {
       "title": "Import",
-      "description": "Lade eine CSV- oder JSON-Datei hoch, mappe Felder, simuliere und importiere dann.",
+      "description": "Lade eine CSV-, JSON- oder Excel-Datei (.xlsx) hoch, mappe Felder, simuliere und importiere dann.",
+      "sheetLabel": "Arbeitsblatt: {sheet}",
       "parse": "Datei einlesen",
       "parsing": "Lese ein...",
       "fileSummary": "Zeilen: {rows}, Felder: {fields}",
@@ -607,6 +756,7 @@
       "errorRow": "Zeile {row}",
       "previewSource": "Quelle",
       "previewTransformed": "Transformiert",
+      "previewWarnings": "Warnungen",
       "none": "(keine)",
       "requiredField": "= Pflichtfeld",
       "changeFile": "Datei wechseln",
@@ -636,9 +786,9 @@
       "confirmImportTitle": "Import starten?",
       "confirmDestructive": "Dadurch werden Daten in deine Bibliothek geschrieben und es gibt kein automatisches Undo.",
       "deleteMappingConfirm": "Diese gespeicherte Zuordnung löschen?",
-      "dropzone": "CSV/JSON-Datei ziehen & ablegen, oder",
+      "dropzone": "CSV-, JSON- oder Excel-Datei ziehen & ablegen, oder",
       "browse": "durchsuchen",
-      "fileInputLabel": "CSV- oder JSON-Datei auswählen",
+      "fileInputLabel": "CSV-, JSON- oder Excel-Datei auswählen",
       "showLess": "Weniger anzeigen",
       "showAllIssues": "Alle Probleme anzeigen ({count})",
       "showAllFailures": "Alle fehlgeschlagenen Zeilen anzeigen ({count})",
@@ -671,7 +821,8 @@
       "language": "Sprache",
       "subtitle": "Untertitel",
       "page_count": "Seitenanzahl",
-      "cover_url": "Cover"
+      "cover_url": "Cover",
+      "medium": "Medium"
     },
     "matchAny": "Beliebiges",
     "matchAll": "Alle",

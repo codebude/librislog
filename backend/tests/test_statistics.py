@@ -10,7 +10,8 @@ from pytest import MonkeyPatch
 from sqlmodel import Session, select
 
 from app.models import Book, ReadingProgress, ReadingStatus, UserSettings
-from app.routers.statistics import _extract_book_level_daily_pages
+from app.schemas import StatisticsRange
+from app.services.statistics import _extract_book_level_daily_pages, _statistics_window
 
 
 def _create_book(client: Any, **overrides: Any) -> dict[str, Any]:
@@ -403,7 +404,7 @@ def test_extract_book_level_skips_non_positive_total_days() -> None:
 
 
 def test_clamp_window_entirely_before() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
     end = datetime(2025, 1, 5, tzinfo=timezone.utc)
@@ -413,7 +414,7 @@ def test_clamp_window_entirely_before() -> None:
 
 
 def test_clamp_window_start_before_window() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 5, tzinfo=timezone.utc)
     end = datetime(2025, 1, 15, tzinfo=timezone.utc)
@@ -425,7 +426,7 @@ def test_clamp_window_start_before_window() -> None:
 
 
 def test_clamp_window_entirely_after() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 25, tzinfo=timezone.utc)
     end = datetime(2025, 1, 30, tzinfo=timezone.utc)
@@ -435,7 +436,7 @@ def test_clamp_window_entirely_after() -> None:
 
 
 def test_clamp_window_end_after_window() -> None:
-    from app.routers.statistics import _clamp_window
+    from app.services.statistics import _clamp_window
 
     start = datetime(2025, 1, 15, tzinfo=timezone.utc)
     end = datetime(2025, 1, 25, tzinfo=timezone.utc)
@@ -543,7 +544,7 @@ def test_statistics_includes_virtual_entry_for_non_read_book_with_progress(clien
 
 
 def test_compute_pages_per_month_skips_non_positive_delta() -> None:
-    from app.routers.statistics import _compute_pages_per_month_from_progress
+    from app.services.statistics import _compute_pages_per_month_from_progress
 
     entries = [
         SimpleNamespace(book_id=1, page=100, created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)),
@@ -556,7 +557,7 @@ def test_compute_pages_per_month_skips_non_positive_delta() -> None:
 def test_compute_pages_per_month_skips_non_positive_day_diff(monkeypatch: MonkeyPatch) -> None:
     import builtins
 
-    from app.routers.statistics import _compute_pages_per_month_from_progress
+    from app.services.statistics import _compute_pages_per_month_from_progress
 
     # Bypass internal sorting so we can feed prev/curr in the order needed.
     monkeypatch.setattr(builtins, "sorted", lambda iterable, **kwargs: list(iterable))
@@ -570,7 +571,7 @@ def test_compute_pages_per_month_skips_non_positive_day_diff(monkeypatch: Monkey
 
 
 def test_compute_pages_per_month_from_books_skips_invalid() -> None:
-    from app.routers.statistics import _compute_pages_per_month_from_books
+    from app.services.statistics import _compute_pages_per_month_from_books
 
     books = [
         Book(id=1, title="No dates", reading_status=ReadingStatus.read, user_id=1),
@@ -590,7 +591,7 @@ def test_compute_pages_per_month_from_books_skips_invalid() -> None:
 
 def test_compute_pages_per_month_from_books_skips_non_positive_total_days() -> None:
     """total_days <= 0 should be skipped even when date_finished is not < date_started."""
-    from app.routers.statistics import _compute_pages_per_month_from_books
+    from app.services.statistics import _compute_pages_per_month_from_books
 
     class FakeDateTime:
         def __lt__(self, other: object) -> bool:
@@ -615,7 +616,7 @@ def test_compute_pages_per_month_from_books_skips_non_positive_total_days() -> N
 
 
 def test_extract_progress_daily_pages_skips_outside_window() -> None:
-    from app.routers.statistics import _extract_progress_daily_pages
+    from app.services.statistics import _extract_progress_daily_pages
 
     entries = [
         SimpleNamespace(book_id=1, page=0, created_at=datetime(2025, 1, 1, tzinfo=timezone.utc)),
@@ -630,8 +631,32 @@ def test_extract_progress_daily_pages_skips_outside_window() -> None:
     assert result == {}
 
 
+def test_extract_progress_daily_pages_splits_delta_across_calendar_days() -> None:
+    """A delta spanning two calendar days must be split, even when the span is <24h."""
+    from app.services.statistics import _extract_progress_daily_pages
+
+    entries = [
+        SimpleNamespace(book_id=1, page=202, created_at=datetime(2026, 9, 2, 21, 16, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=320, created_at=datetime(2026, 9, 3, 20, 54, tzinfo=timezone.utc)),
+    ]
+    result = _extract_progress_daily_pages(entries, ZoneInfo("Europe/Berlin"))
+    assert result == {"2026-09-02": 59.0, "2026-09-03": 59.0}
+
+
+def test_extract_progress_daily_pages_keeps_last_day_of_partial_span() -> None:
+    """The final calendar day must not be dropped when prev is later in the day than curr."""
+    from app.services.statistics import _extract_progress_daily_pages
+
+    entries = [
+        SimpleNamespace(book_id=1, page=10, created_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc)),
+        SimpleNamespace(book_id=1, page=30, created_at=datetime(2026, 5, 2, 22, 0, tzinfo=timezone.utc)),
+    ]
+    result = _extract_progress_daily_pages(entries, ZoneInfo("UTC"))
+    assert result == {"2026-05-01": 10.0, "2026-05-02": 10.0}
+
+
 def test_extract_book_level_daily_pages_skips_outside_window() -> None:
-    from app.routers.statistics import _extract_book_level_daily_pages
+    from app.services.statistics import _extract_book_level_daily_pages
 
     book = Book(
         title="Old",
@@ -650,6 +675,26 @@ def test_extract_book_level_daily_pages_skips_outside_window() -> None:
     assert result == {}
 
 
+def test_statistics_monthly_pages_clamp_to_selected_window() -> None:
+    from app.services.statistics import _compute_pages_per_month_from_books
+
+    book = Book(
+        title="Windowed",
+        reading_status=ReadingStatus.read,
+        user_id=1,
+        page_count=100,
+        date_started=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        date_finished=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )
+    result = _compute_pages_per_month_from_books(
+        [book],
+        ZoneInfo("UTC"),
+        datetime(2026, 1, 6),
+        datetime(2026, 1, 10, 23, 59, 59),
+    )
+    assert result == {"2026-01": 50.0}
+
+
 # ── Rating stats ─────────────────────────────────────────────────────────
 
 
@@ -666,3 +711,76 @@ def test_statistics_top_and_worst_rated_books(client: Any) -> None:
     assert data["average_rating"] == 3.5
     assert [b["title"] for b in data["top_rated_books"]] == ["Best", "Good", "Okay", "Bad"]
     assert [b["title"] for b in data["worst_rated_books"]] == ["Bad", "Okay", "Good", "Best"]
+
+
+def test_statistics_range_filters_finished_books(client: Any) -> None:
+    now = datetime.now(timezone.utc)
+    _create_book(
+        client,
+        title="Outside",
+        reading_status="read",
+        date_started=f"{now.year - 1}-01-01T10:00:00+00:00",
+        date_finished=f"{now.year - 1}-01-02T10:00:00+00:00",
+    )
+    _create_book(
+        client,
+        title="Inside",
+        reading_status="read",
+        date_started=(now - timedelta(days=5)).isoformat(),
+        date_finished=(now - timedelta(days=2)).isoformat(),
+    )
+
+    response = client.get("/api/statistics?range=this_year")
+    assert response.status_code == 200
+    data = response.json()
+    assert sum(item["count"] for item in data["books_finished_per_month"]) == 1
+    assert sum(item["count"] for item in data["books_finished_per_year"]) == 1
+
+
+def test_statistics_calendar_range_windows() -> None:
+    now = datetime(2026, 9, 13, 12, 0, tzinfo=timezone.utc)
+    tz = ZoneInfo("UTC")
+
+    this_year_start, this_year_end = _statistics_window(
+        StatisticsRange.this_year, None, None, tz, now
+    )
+    assert this_year_start == datetime(2026, 1, 1)
+    assert this_year_end == datetime(2026, 9, 13, 12, 0)
+
+    last_year_start, last_year_end = _statistics_window(
+        StatisticsRange.last_year, None, None, tz, now
+    )
+    assert last_year_start == datetime(2025, 1, 1)
+    assert last_year_end == datetime(2025, 12, 31, 23, 59, 59, 999999)
+
+    three_years_start, three_years_end = _statistics_window(
+        StatisticsRange.three_years, None, None, tz, now
+    )
+    assert three_years_start == datetime(2024, 1, 1)
+    assert three_years_end == datetime(2026, 9, 13, 12, 0)
+
+
+def test_statistics_custom_range_and_validation(client: Any) -> None:
+    _create_book(
+        client,
+        title="Included",
+        reading_status="read",
+        date_started="2026-01-01T00:00:00Z",
+        date_finished="2026-02-01T00:00:00Z",
+    )
+    _create_book(
+        client,
+        title="Excluded",
+        reading_status="read",
+        date_started="2026-03-01T00:00:00Z",
+        date_finished="2026-04-01T00:00:00Z",
+    )
+
+    response = client.get("/api/statistics?range=custom&from=2026-01-01&to=2026-02-28")
+    assert response.status_code == 200
+    assert sum(item["count"] for item in response.json()["books_finished_per_month"]) == 1
+
+    assert client.get("/api/statistics?range=custom&from=2026-01-01").status_code == 400
+    assert client.get("/api/statistics?range=custom&from=2026-03-01&to=2026-02-01").status_code == 400
+    assert client.get("/api/statistics?range=alltime&from=2026-01-01&to=2026-02-01").status_code == 400
+    assert client.get("/api/statistics?range=custom&from=1900-01-01&to=2026-02-01").status_code == 400

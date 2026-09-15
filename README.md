@@ -65,7 +65,7 @@ Open **http://localhost:8001** and create your account.
 - **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
 - **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
 - **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
-- **Import any format you have.** Goodreads CSV with automatic field mapping, generic CSV with per-field Python transforms, JSON, ZIP with covers.
+- **Import any format you have.** Goodreads or Bookstats exports with automatic field mapping, generic CSV or Excel (XLSX) with per-field Python transforms, JSON, ZIP with covers.
 - **Point your phone at an ISBN barcode.** Real-time barcode scanning in the browser — no native app required.
 - **Cover art from multiple sources.** Automatic search across AbeBooks, Open Library, Amazon, and Hardcover — plus manual upload or URL paste.
 - **Full REST API.** OpenAPI-documented backend you can script against — build your own frontend, connect home automation, or pipe data into your own tools.
@@ -81,7 +81,7 @@ Open **http://localhost:8001** and create your account.
 - **Reading progress** — Page-level slider, full progress timeline per book with edit/history
 - **Statistics dashboard** — Calendar heatmap, distribution charts, books finished per period, top authors
 - **Book import** — Search Open Library, Google Books, Hardcover.app. Scan ISBN barcodes on mobile. Manual entry for anything not found
-- **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from Goodreads or any CSV with custom field mapping
+- **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from the Goodreads or Bookstats presets, or any CSV/Excel file with custom field mapping
 - **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
 - **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
 - **Multi-user** — Admin/user roles, per-user libraries, optional OIDC login
