@@ -24,7 +24,8 @@
 		onScannedHandled,
 		showMetadataControls = true,
 		acquisitionStatus = $bindable<AcquisitionStatus | ''>(''),
-		medium = $bindable<Medium | ''>('')
+		medium = $bindable<Medium | ''>(''),
+		focusOnMount = false
 	}: {
 		defaultStatus?: ReadingStatus;
 		basket?: BasketItem[];
@@ -36,9 +37,11 @@
 		showMetadataControls?: boolean;
 		acquisitionStatus?: AcquisitionStatus | '';
 		medium?: Medium | '';
+		focusOnMount?: boolean;
 	} = $props();
 
 	let query = $state('');
+	let searchInput = $state<HTMLInputElement | null>(null);
 	let searchType = $state<'title' | 'isbn'>('title');
 	let results = $state<BookImportCandidate[]>([]);
 	let stages = $state<SearchStage[]>([]);
@@ -65,6 +68,7 @@
 	];
 
 	onMount(async () => {
+		if (focusOnMount) searchInput?.focus();
 		secureContext = isSecureContext();
 		cameraSupported =
 			typeof navigator !== 'undefined' &&
@@ -321,6 +325,7 @@
 <div class="flex flex-col gap-3 sm:pr-4">
 	<div class="flex flex-col sm:flex-row sm:items-center gap-2 grow basis-[0] min-w-[240px]">
 		<input
+			bind:this={searchInput}
 			type="text"
 			name="import-query"
 			class="input input-bordered w-full sm:w-auto sm:grow sm:min-w-0"

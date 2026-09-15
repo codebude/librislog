@@ -108,6 +108,11 @@ describe('AddBookModal', () => {
 		expect(screen.getAllByPlaceholderText(/Search by title or author/)).toHaveLength(2);
 		expect(screen.getByRole('heading', { name: 'Search 1' })).toBeInTheDocument();
 		expect(screen.getByRole('heading', { name: 'Search 2' })).toBeInTheDocument();
+		expect(screen.getAllByRole('heading', { name: /Search [12]/ }).map((heading) => heading.textContent)).toEqual([
+			'Search 2',
+			'Search 1'
+		]);
+		await waitFor(() => expect(document.activeElement).toBe(screen.getAllByPlaceholderText(/Search by title or author/)[0]));
 	});
 
 	it('starts searches in separate panels without waiting for each other', async () => {

@@ -85,7 +85,7 @@
 	}
 
 	function addSearchSession() {
-		searchSessionIds = [...searchSessionIds, nextSearchSessionId++];
+		searchSessionIds = [nextSearchSessionId++, ...searchSessionIds];
 	}
 
 	function removeSearchSession(id: number) {
@@ -399,7 +399,7 @@
 					<section class="rounded-xl border border-base-200 p-3">
 						{#if searchSessionIds.length > 1}
 							<div class="flex items-center justify-between mb-2">
-								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: index + 1 } })}</h4>
+								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: sessionId } })}</h4>
 								<button
 									class="btn btn-ghost btn-xs"
 									type="button"
@@ -415,6 +415,7 @@
 							showMetadataControls={false}
 							acquisitionStatus={acquisitionStatus}
 							medium={medium}
+							focusOnMount={sessionId !== 1 && sessionId === searchSessionIds[0]}
 							basket={basket}
 							onAddToBasket={addToBasket}
 							onOpenScanner={() => {
