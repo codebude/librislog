@@ -374,6 +374,26 @@
 					{$_('import.newParallelSearch')}
 				</button>
 			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.medium')}</span>
+					<select class="select select-bordered select-sm" name="import-medium" bind:value={medium}>
+						<option value="">{$_('book.selectMedium')}</option>
+						{#each MEDIUM_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+				<label class="flex flex-col gap-1 text-sm">
+					<span>{$_('book.acquisitionStatus')} <span class="text-error">*</span></span>
+					<select class="select select-bordered select-sm" name="import-acquisition-status" bind:value={acquisitionStatus}>
+						<option value="" disabled>{$_('book.selectAcquisitionStatus')}</option>
+						{#each ACQUISITION_OPTIONS as opt}
+							<option value={opt.value}>{$_(opt.label)}</option>
+						{/each}
+					</select>
+				</label>
+			</div>
 			<div class="flex flex-col gap-4">
 				{#each searchSessionIds as sessionId, index (sessionId)}
 					<section class="rounded-xl border border-base-200 p-3">
@@ -392,6 +412,9 @@
 						{/if}
 						<ImportSearch
 							defaultStatus={defaultStatus}
+							showMetadataControls={false}
+							acquisitionStatus={acquisitionStatus}
+							medium={medium}
 							basket={basket}
 							onAddToBasket={addToBasket}
 							onOpenScanner={() => {

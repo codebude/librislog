@@ -69,7 +69,7 @@ Open Library and Hardcover (if an API token is configured) are queried **in para
 
 While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
 
-The search dialog also supports multiple parallel searches. Click **New parallel search** to open another independent search panel. Each panel keeps its own results while selected books can be added to the shared basket.
+The search dialog also supports multiple parallel searches. Click **New parallel search** to open another independent search panel. Each panel keeps its own results while selected books can be added to the shared basket. Choose the possession and medium once above the panels; those values apply to books added from any search.
 
 #### How results are grouped
 
