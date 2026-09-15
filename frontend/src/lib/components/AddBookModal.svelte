@@ -29,6 +29,12 @@
 	let basketImporting = $state(false);
 	let searchSessionIds = $state<number[]>([1]);
 	let nextSearchSessionId = 2;
+	const searchPanelStyles = [
+		'border-base-300 border-l-4 border-l-primary bg-primary/10',
+		'border-base-300 border-l-4 border-l-secondary bg-secondary/10',
+		'border-base-300 border-l-4 border-l-accent bg-accent/10',
+		'border-base-300 border-l-4 border-l-info bg-info/10'
+	];
 
 	// Manual form state
 	let title = $state('');
@@ -396,7 +402,7 @@
 			</div>
 			<div class="flex flex-col gap-4">
 				{#each searchSessionIds as sessionId, index (sessionId)}
-					<section class="rounded-xl border border-base-200 p-3">
+					<section class={`rounded-xl border p-3 ${searchPanelStyles[index % searchPanelStyles.length]}`}>
 						{#if searchSessionIds.length > 1}
 							<div class="flex items-center justify-between mb-2">
 								<h4 class="text-sm font-semibold">{$_('import.parallelSearchLabel', { values: { number: sessionId } })}</h4>
