@@ -254,6 +254,8 @@ export interface UserSettings {
 	goal_books_per_year_enabled: boolean;
 	goal_books_per_year: number;
 	gamification_enabled: boolean;
+	auto_set_date_started: boolean;
+	auto_set_date_finished: boolean;
 	statistics_range: StatisticsRange;
 	statistics_custom_from: string | null;
 	statistics_custom_to: string | null;
@@ -409,6 +411,7 @@ export interface DataImportPreviewRow {
 	source: Record<string, unknown>;
 	transformed: Record<string, unknown>;
 	errors: string[];
+	warnings?: string[];
 }
 
 export interface DataImportPreviewResponse {

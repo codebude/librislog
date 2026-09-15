@@ -221,6 +221,8 @@ class UserSettings(SQLModel, table=True):
     goal_books_per_year_enabled: bool = Field(default=False)
     goal_books_per_year: int = Field(default=25, ge=1)
     gamification_enabled: bool = Field(default=True)
+    auto_set_date_started: bool = Field(default=True)
+    auto_set_date_finished: bool = Field(default=True)
     statistics_range: str = Field(default="alltime", max_length=20)
     statistics_custom_from: Optional[date] = Field(default=None)
     statistics_custom_to: Optional[date] = Field(default=None)

@@ -478,6 +478,14 @@
 									{/each}
 								</div>
 							{/if}
+							{#if (row.warnings ?? []).length > 0}
+								<div class="mt-2 text-xs text-warning-content bg-warning/20 rounded p-2">
+									<p class="font-semibold">{$_('data.import.previewWarnings')}</p>
+									{#each row.warnings ?? [] as warning}
+										<p>• {formatError(warning)}</p>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{/each}
 				{/if}

@@ -1493,7 +1493,8 @@ def test_preview_import_read_without_finished_date(
     result = di.preview_import(
         file_id, user, {"title": ImportFieldConfig(source="title"), "reading_status": ImportFieldConfig(source="status")}
     )
-    assert any("no finished date" in e for e in result["preview_rows"][0]["errors"])
+    assert result["preview_rows"][0]["errors"] == []
+    assert any("no finished date" in warning for warning in result["preview_rows"][0]["warnings"])
 
 
 def test_preview_import_require_acquisition_status_invalid(

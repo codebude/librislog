@@ -12,7 +12,7 @@ from sqlmodel import Session, col, func, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingStatus, Tag, User
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingStatus, Tag, User, UserSettings
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -60,23 +60,36 @@ def _utcnow() -> datetime:
     return utcnow()
 
 
+def _reading_date_automation_settings(session: Session, user_id: int) -> tuple[bool, bool]:
+    """Return start/finish date automation preferences, defaulting to enabled."""
+    settings = session.exec(
+        select(UserSettings).where(UserSettings.user_id == user_id)
+    ).first()
+    if settings is None:
+        return True, True
+    return settings.auto_set_date_started, settings.auto_set_date_finished
+
+
 def _apply_status_transition_dates(
     book: Book,
     target_status: ReadingStatus,
     update_data: dict,
     skip_auto_date_started: bool = False,
+    *,
+    auto_set_date_started: bool = True,
+    auto_set_date_finished: bool = True,
 ) -> None:
     """Auto-fill date_started / date_finished when transitioning to a new status."""
     if target_status == book.reading_status:
         return
 
-    if target_status == ReadingStatus.currently_reading:
+    if target_status == ReadingStatus.currently_reading and auto_set_date_started:
         if skip_auto_date_started:
             update_data.setdefault("date_started", None)
         elif book.date_started is None and update_data.get("date_started") is None:
             update_data["date_started"] = _utcnow()
 
-    if target_status in (ReadingStatus.read, ReadingStatus.did_not_finish):
+    if target_status in (ReadingStatus.read, ReadingStatus.did_not_finish) and auto_set_date_finished:
         if update_data.get("date_finished") is None:
             update_data["date_finished"] = _utcnow()
 
@@ -242,11 +255,14 @@ def list_books(
     book_ids = [b.id for b in books if b.id is not None]
     book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
     book_authors_map = load_authors_batch(session, book_ids) if book_ids else {}
-    return BookListResponse(
-        books=[
+    book_reads: list[BookRead] = []
+    for book in books:
+        assert book.id is not None
+        book_reads.append(
             _build_book_read_with_tags(book, book_tags_map.get(book.id), book_authors_map.get(book.id))
-            for book in books
-        ],
+        )
+    return BookListResponse(
+        books=book_reads,
         total=total,
     )
 
@@ -511,6 +527,9 @@ async def update_book(
     )
     authors_provided = authors_payload is not None
     target_status = update_data.get("reading_status", book.reading_status)
+    auto_set_date_started, auto_set_date_finished = _reading_date_automation_settings(
+        session, current_user.id
+    )
 
     # Download external cover URL -> local file.
     if "cover_url" in update_data and is_external_cover_url(update_data["cover_url"]):
@@ -540,7 +559,13 @@ async def update_book(
             if not shared:
                 delete_cover_file(old_filename, settings.covers_dir)
 
-    _apply_status_transition_dates(book, target_status, update_data)
+    _apply_status_transition_dates(
+        book,
+        target_status,
+        update_data,
+        auto_set_date_started=auto_set_date_started,
+        auto_set_date_finished=auto_set_date_finished,
+    )
     _validate_dates(update_data)
     _validate_date_finished_for_read(book, update_data, target_status)
 
@@ -577,6 +602,7 @@ def transition_status(
     session: Session = Depends(get_session),
 ) -> StatusTransitionResponse:
     """Change a book's reading status with date-conflict detection and resolution."""
+    assert current_user.id is not None
     logger.debug(
         "transition_status — id=%s new_status=%s force_date_started=%r force_date_finished=%r",
         book_id, transition.new_status, transition.force_date_started, transition.force_date_finished,
@@ -588,6 +614,9 @@ def transition_status(
     conflict: DateConflict | None = None
     update_data: dict = {"reading_status": transition.new_status}
     now = _utcnow()
+    auto_set_date_started, auto_set_date_finished = _reading_date_automation_settings(
+        session, current_user.id
+    )
 
     # date_finished handling is split into two passes:
     #   1. Inline below — conflict detection when moving TO read/did_not_finish
@@ -602,17 +631,17 @@ def transition_status(
         and book.date_started is not None
         and not transition.skip_auto_date_started
     ):
-        if transition.force_date_started is None:
+        if transition.force_date_started is None and auto_set_date_started:
             conflict = DateConflict(
                 field="date_started",
                 existing_date=book.date_started,
                 suggested_date=now,
             )
             return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=conflict)
-        update_data["date_started"] = transition.force_date_started
 
         if (
-            book.date_finished is not None
+            transition.force_date_started is not None
+            and book.date_finished is not None
             and transition.force_date_started > book.date_finished
         ):
             conflict = DateConflict(
@@ -642,6 +671,7 @@ def transition_status(
         and book.date_started is None
         and book.date_finished is not None
         and transition.force_date_started is None
+        and auto_set_date_started
         and not transition.skip_auto_date_started
     ):
         conflict = DateConflict(
@@ -681,7 +711,14 @@ def transition_status(
     if transition.force_date_finished is not None:
         update_data["date_finished"] = transition.force_date_finished
 
-    _apply_status_transition_dates(book, transition.new_status, update_data, transition.skip_auto_date_started)
+    _apply_status_transition_dates(
+        book,
+        transition.new_status,
+        update_data,
+        transition.skip_auto_date_started,
+        auto_set_date_started=auto_set_date_started,
+        auto_set_date_finished=auto_set_date_finished,
+    )
     _validate_dates(update_data)
     _validate_date_finished_for_read(book, update_data, transition.new_status)
     book.sqlmodel_update(update_data)

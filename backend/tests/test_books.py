@@ -663,6 +663,96 @@ def test_update_book_sets_date_finished_when_moving_to_read(client: TestClient, 
     assert resp.json()["date_finished"].startswith("2026-05-11T10:30:00")
 
 
+def test_transition_status_respects_disabled_date_automation(client: TestClient) -> None:
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False, "auto_set_date_finished": False},
+    )
+    assert settings_response.status_code == 200
+
+    book = _create_book(client, title="Undated transition")
+    reading = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={"new_status": "currently_reading"},
+    )
+    assert reading.status_code == 200
+    assert reading.json()["book"]["date_started"] is None
+
+    finished = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={"new_status": "read"},
+    )
+    assert finished.status_code == 200
+    assert finished.json()["book"]["date_finished"] is None
+
+
+def test_transition_status_respects_each_date_automation_setting_independently(client: TestClient) -> None:
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False, "auto_set_date_finished": True},
+    )
+    assert settings_response.status_code == 200
+
+    book = _create_book(client, title="Independent start setting")
+    reading = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={"new_status": "currently_reading"},
+    )
+    assert reading.status_code == 200
+    assert reading.json()["book"]["date_started"] is None
+
+    finished = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={"new_status": "read"},
+    )
+    assert finished.status_code == 200
+    assert finished.json()["book"]["date_finished"] is not None
+
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": True, "auto_set_date_finished": False},
+    )
+    assert settings_response.status_code == 200
+
+    second_book = _create_book(client, title="Independent finish setting")
+    second_reading = client.post(
+        f"/api/books/{second_book['id']}/transition-status",
+        json={"new_status": "currently_reading"},
+    )
+    assert second_reading.status_code == 200
+    assert second_reading.json()["book"]["date_started"] is not None
+
+    second_finished = client.post(
+        f"/api/books/{second_book['id']}/transition-status",
+        json={"new_status": "read"},
+    )
+    assert second_finished.status_code == 200
+    assert second_finished.json()["book"]["date_finished"] is None
+
+
+def test_update_book_respects_disabled_date_automation(client: TestClient) -> None:
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False, "auto_set_date_finished": False},
+    )
+    assert settings_response.status_code == 200
+
+    book = _create_book(client, title="Undated update")
+    reading = client.patch(
+        f"/api/books/{book['id']}",
+        json={"reading_status": "currently_reading"},
+    )
+    assert reading.status_code == 200
+    assert reading.json()["date_started"] is None
+
+    finished = client.patch(
+        f"/api/books/{book['id']}",
+        json={"reading_status": "read"},
+    )
+    assert finished.status_code == 200
+    assert finished.json()["date_finished"] is None
+
+
 def test_update_book_does_not_override_existing_date_started(client: TestClient, monkeypatch: MonkeyPatch) -> None:
     book = _create_book(
         client,
@@ -916,6 +1006,37 @@ def test_transition_status_chained_detects_started_after_finished(client: TestCl
         "existing_date": "2024-02-02T00:00:00Z",
         "suggested_date": "2026-05-11T10:30:00Z",
     }
+
+
+def test_transition_status_keeps_started_after_finished_conflict_with_auto_start_disabled(
+    client: TestClient,
+) -> None:
+    settings_response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False},
+    )
+    assert settings_response.status_code == 200
+
+    book = _create_book(
+        client,
+        title="Explicit invalid start",
+        reading_status="read",
+        date_started="2024-01-01",
+        date_finished="2024-02-02",
+    )
+    response = client.post(
+        f"/api/books/{book['id']}/transition-status",
+        json={
+            "new_status": "currently_reading",
+            "force_date_started": "2026-05-11T10:30:00Z",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["book"]["reading_status"] == "read"
+    assert data["book"]["date_started"] == "2024-01-01T00:00:00Z"
+    assert data["book"]["date_finished"] == "2024-02-02T00:00:00Z"
+    assert data["date_conflict"]["field"] == "started_after_finished"
 
 
 def test_transition_status_chained_option_a_clear_finished(client: TestClient, monkeypatch: MonkeyPatch) -> None:

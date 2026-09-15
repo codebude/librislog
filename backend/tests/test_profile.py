@@ -42,6 +42,8 @@ def test_get_settings_creates_default_when_missing(client: TestClient, session: 
     data = resp.json()
     assert data["language"] == "en"
     assert data["user_id"] == user.id
+    assert data["auto_set_date_started"] is True
+    assert data["auto_set_date_finished"] is True
 
 
 def test_update_settings_creates_default_when_missing(client: TestClient, session: Session) -> None:
@@ -88,6 +90,36 @@ def test_statistics_range_settings_are_persisted(client: TestClient) -> None:
     restored = client.get("/api/profile/settings")
     assert restored.status_code == 200
     assert restored.json()["statistics_range"] == "custom"
+
+
+def test_reading_date_automation_settings_are_persisted(client: TestClient) -> None:
+    response = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": False, "auto_set_date_finished": False},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["auto_set_date_started"] is False
+    assert data["auto_set_date_finished"] is False
+
+    restored = client.get("/api/profile/settings")
+    assert restored.status_code == 200
+    assert restored.json()["auto_set_date_started"] is False
+    assert restored.json()["auto_set_date_finished"] is False
+
+    partial = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_started": True},
+    )
+    assert partial.status_code == 200
+    assert partial.json()["auto_set_date_started"] is True
+    assert partial.json()["auto_set_date_finished"] is False
+
+    null_value = client.patch(
+        "/api/profile/settings",
+        json={"auto_set_date_finished": None},
+    )
+    assert null_value.status_code == 422
 
 
 def test_statistics_range_settings_reject_invalid_dates(client: TestClient) -> None:

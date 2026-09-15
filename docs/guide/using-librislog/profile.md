@@ -43,6 +43,21 @@ The **"Show reading streaks & goals on dashboard"** switch above the goals disab
 
 See [Dashboard → Reading Streaks & Goals](/guide/using-librislog/dashboard#reading-streaks-goals) for details on how streaks and goal progress are calculated.
 
+## Reading Date Automation
+
+By default, LibrisLog fills in missing reading dates when you change a book's status:
+
+- Moving a book to **Currently Reading** sets its start date to the current date and time if no start date exists.
+- Moving a book to **Read** or **Did Not Finish** sets its finish date to the current date and time if no finish date exists.
+
+Existing dates entered by you are preserved and are never overwritten automatically.
+
+You can disable these behaviors independently in the **Reading Date Automation** section of your profile. When disabled, the status still changes, but the corresponding date remains empty. This is useful when you know a book's status but do not know when you started or finished it.
+
+Books without the relevant dates are omitted from date-based views and calculations, such as the reading timeline, finished-books-by-month charts, reading duration, and date-based goals. They remain included in status-based totals, such as the number of books marked **Read**.
+
+Disabling automation does not remove existing dates or disable date-conflict protection. It only prevents LibrisLog from creating a missing date automatically.
+
 ## URL/Profile Sharing
 
 Create a read-only public view of your reading profile and share it with a URL. The shared page does not expose editing controls, notes, blurbs, or your email address.

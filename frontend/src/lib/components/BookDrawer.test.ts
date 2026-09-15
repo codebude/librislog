@@ -8,6 +8,10 @@ const mockTransitionStatus = vi.fn(async (_id: number, _data: unknown) => ({ boo
 const mockSuggestionsAuthors = vi.fn(async (_q: string) => ['Author 1']);
 const mockSuggestionsPublishers = vi.fn(async (_q: string) => ['Publisher 1']);
 const mockSuggestionsTags = vi.fn(async (_q: string) => ['Tag 1']);
+const mockGetSettings = vi.fn(async () => ({
+	auto_set_date_started: true,
+	auto_set_date_finished: true
+}));
 const mockToastsAdd = vi.fn();
 
 vi.mock('$lib/api', () => ({
@@ -20,6 +24,9 @@ vi.mock('$lib/api', () => ({
 				publishers: (q: string) => mockSuggestionsPublishers(q),
 				tags: (q: string) => mockSuggestionsTags(q)
 			}
+		},
+		profile: {
+			getSettings: () => mockGetSettings()
 		}
 	}
 }));

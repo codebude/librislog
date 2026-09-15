@@ -1,5 +1,5 @@
 import { addMessages, init, locale, register, waitLocale, _ } from 'svelte-i18n';
-import { api } from '$lib/api';
+import { loadUserSettings } from '$lib/stores/userSettings';
 
 export const SUPPORTED_LOCALES = ['en', 'de', 'zh', 'es', 'fr'] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -50,7 +50,7 @@ export async function setupI18n() {
 
 	let initialLocale = configuredDefaultLocale;
 	try {
-		const settings = await api.profile.getSettings();
+		const settings = await loadUserSettings();
 		if (isSupportedLocale(settings.language)) {
 			initialLocale = settings.language;
 		}

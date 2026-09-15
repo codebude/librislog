@@ -686,6 +686,7 @@ def preview_import(
 
     for idx, row in enumerate(rows[:limit], start=1):
         row_errors: list[str] = []
+        row_warnings: list[str] = []
         row_data = _mapped_row(row, mapping, transform_cache, {"row": idx, "total": len(rows)}, row_errors)
 
         # Validate required fields and data types for preview
@@ -742,7 +743,7 @@ def preview_import(
             )
 
         if reading_status == ReadingStatus.read and not date_finished:
-            row_errors.append(
+            row_warnings.append(
                 "Marked as 'read' but has no finished date; "
                 "without a finish date the book will not count toward monthly statistics"
             )
@@ -757,6 +758,7 @@ def preview_import(
             "source": source_display,
             "transformed": transformed_display,
             "errors": row_errors,
+            "warnings": row_warnings,
         })
 
     return {"preview_rows": preview_rows, "row_count": len(rows), "errors": []}

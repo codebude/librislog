@@ -32,6 +32,7 @@ from app.schemas import (
     EmbedTokenRead,
     EmbedTokenUpdate,
     ProfileUpdate,
+    StatisticsRange,
     UserRead,
     UserSettingsRead,
     UserSettingsUpdate,
@@ -99,6 +100,7 @@ def get_settings(
         session.add(settings)
         session.commit()
         session.refresh(settings)
+    assert settings.user_id is not None
     return UserSettingsRead(
         user_id=settings.user_id,
         language=settings.language,
@@ -114,7 +116,9 @@ def get_settings(
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
         gamification_enabled=settings.gamification_enabled,
-        statistics_range=settings.statistics_range,
+        auto_set_date_started=settings.auto_set_date_started,
+        auto_set_date_finished=settings.auto_set_date_finished,
+        statistics_range=StatisticsRange(settings.statistics_range),
         statistics_custom_from=settings.statistics_custom_from,
         statistics_custom_to=settings.statistics_custom_to,
     )
@@ -151,6 +155,7 @@ def update_settings(
     session.add(settings)
     session.commit()
     session.refresh(settings)
+    assert settings.user_id is not None
     return UserSettingsRead(
         user_id=settings.user_id,
         language=settings.language,
@@ -166,7 +171,9 @@ def update_settings(
         goal_books_per_year_enabled=settings.goal_books_per_year_enabled,
         goal_books_per_year=settings.goal_books_per_year,
         gamification_enabled=settings.gamification_enabled,
-        statistics_range=settings.statistics_range,
+        auto_set_date_started=settings.auto_set_date_started,
+        auto_set_date_finished=settings.auto_set_date_finished,
+        statistics_range=StatisticsRange(settings.statistics_range),
         statistics_custom_from=settings.statistics_custom_from,
         statistics_custom_to=settings.statistics_custom_to,
     )
@@ -369,7 +376,7 @@ def rotate_embed_token(
 
     token.revoked_at = now
     session.add(token)
-
+    assert current_user.id is not None
     plain_token = generate_embed_token()
     new_token = EmbedToken(
         user_id=current_user.id,
