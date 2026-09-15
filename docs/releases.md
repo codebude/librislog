@@ -8,15 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.8.0 — Camera & Zoom Control, Optional Telemetry
-LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner, optional anonymous installation telemetry with a publicly verifiable census, a new Homer dashboard integration, and several usability and dependency fixes.
+::: tip ⭐ v1.9.0 — Smarter Import Search & Input UX
+LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an import basket for search results, parallel and cancelable searches, Excel (XLSX) import with a new Bookstats preset, configurable reading-date automation, media/medium statistics, and timezone-correct daily page statistics.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | Unreleased | Feature release |
+| [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
 | [v1.6.0](#v1-6-0-reading-progress-possession-tracking) | 2026-08-23 | Feature release |
@@ -37,7 +37,7 @@ LibrisLog v1.8.0 brings camera selection and zoom control to the barcode scanner
 
 ## v1.9.0: Smarter Import Search & Input UX
 
-<Badge type="warning" text="Unreleased" /> <Badge type="tip" text="Feature release" />
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-09-15" />
 
 **Summary:** Adds shareable read-only public profile pages with configurable access and content, groups duplicate import-search results into expandable edition groups, lets you collect search results in an import basket and import them all at once, supports multiple parallel import searches, makes running searches cancelable, adds Excel (XLSX) file import, adds a Bookstats import preset, adds configurable reading-date automation, introduces an adaptive date input with a native picker, adds optional book media and medium statistics, supports localized medium and possession searches, detects insecure camera contexts, and fixes timezone handling in the daily page statistics and progress log editing.
 
