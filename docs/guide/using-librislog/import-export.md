@@ -123,6 +123,7 @@ Available variables:
 
 Common import formats have predefined mappings:
 - **Goodreads Export** — Maps Goodreads CSV columns automatically
+- **Bookstats Export** — Maps the German "Bookstats" Excel/CSV export, translating German reading/acquisition/medium values, converting Excel serial dates, and merging `Genre` and `Kategorie` into tags
 
 ### Validation
 

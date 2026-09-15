@@ -1059,6 +1059,80 @@ async def execute_import(
     }
 
 
+_BOOKSTATS_SOURCE_FIELDS: list[str] = [
+    "Titel", "Autor(en)", "ISBN", "ASIN", "Erscheinungsjahr", "Genre",
+    "Seitenanzahl", "Dauer (Stunden)", "Dauer (Minuten)", "Buchart", "Preis",
+    "Erhalten als", "Lesestatus", "Lesebeginn", "Leseende", "Bewertung",
+    "Kategorie", "Notizen", "Erhalten am",
+]
+
+_BOOKSTATS_AUTHORS_TRANSFORM = """\
+raw = str(value).strip()
+result = []
+if not raw:
+    return result
+chunks = re.split(r';| & | and ', raw)
+for chunk in chunks:
+    chunk = chunk.strip()
+    if not chunk:
+        continue
+    parts = []
+    for p in chunk.split(','):
+        p = p.strip()
+        if p:
+            parts.append(p)
+    if len(parts) <= 1:
+        result.append(chunk)
+    elif len(parts) == 2:
+        if parts[0].count(' ') == 0:
+            result.append(parts[1] + ' ' + parts[0])
+        else:
+            result.append(parts[0])
+            result.append(parts[1])
+    elif len(parts) % 2 == 0:
+        for i in range(0, len(parts), 2):
+            result.append(parts[i + 1] + ' ' + parts[i])
+    else:
+        result.append(chunk)
+return result"""
+
+_BOOKSTATS_TAGS_TRANSFORM = """\
+result = []
+genre = str(value).strip()
+if genre:
+    result.append(genre)
+kategorie = str(row.get('Kategorie', '')).strip()
+if kategorie and kategorie.lower() != genre.lower():
+    result.append(kategorie)
+return result"""
+
+_BOOKSTATS_READING_STATUS_TRANSFORM = """\
+mapping = {'gelesen': 'read', 'am lesen': 'currently_reading', 'ungelesen': 'want_to_read', 'abgebrochen': 'did_not_finish'}
+return mapping.get(str(value).strip().lower(), 'want_to_read')"""
+
+_BOOKSTATS_ACQUISITION_TRANSFORM = """\
+mapping = {'kauf': 'owned', 'geschenk': 'owned', 'leihe': 'borrowed'}
+return mapping.get(str(value).strip().lower(), 'owned')"""
+
+_BOOKSTATS_MEDIUM_TRANSFORM = """\
+mapping = {'taschenbuch': 'Print', 'hardcover': 'Print', 'e-book': 'eBook', 'ebook': 'eBook', 'hörbuch': 'Audiobook', 'hoerbuch': 'Audiobook'}
+return mapping.get(str(value).strip().lower())"""
+
+_BOOKSTATS_RATING_TRANSFORM = """\
+raw = str(value).strip()
+if not raw or raw == '0':
+    return None
+return raw"""
+
+_BOOKSTATS_DATE_TRANSFORM = """\
+raw = str(value).strip()
+if not raw:
+    return None
+if raw.replace('.', '', 1).isdigit():
+    return (datetime.datetime(1899, 12, 30) + datetime.timedelta(days=int(float(raw)))).strftime('%Y-%m-%d')
+return raw"""
+
+
 PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
     {
         "id": -1,
@@ -1122,6 +1196,27 @@ PREDEFINED_MAPPINGS: list[dict[str, Any]] = [
                 ),
             },
             "cover_url": {"source": "", "transform": None},
+        },
+    },
+    {
+        "id": -2,
+        "name": "Bookstats Export",
+        "source_fields": list(_BOOKSTATS_SOURCE_FIELDS),
+        "mapping": {
+            "title": {"source": "Titel", "transform": None},
+            "authors": {"source": "Autor(en)", "transform": _BOOKSTATS_AUTHORS_TRANSFORM},
+            "isbn": {"source": "ISBN", "transform": None},
+            "published_year": {"source": "Erscheinungsjahr", "transform": None},
+            "page_count": {"source": "Seitenanzahl", "transform": None},
+            "tags": {"source": "Genre", "transform": _BOOKSTATS_TAGS_TRANSFORM},
+            "reading_status": {"source": "Lesestatus", "transform": _BOOKSTATS_READING_STATUS_TRANSFORM},
+            "acquisition_status": {"source": "Erhalten als", "transform": _BOOKSTATS_ACQUISITION_TRANSFORM},
+            "medium": {"source": "Buchart", "transform": _BOOKSTATS_MEDIUM_TRANSFORM},
+            "rating": {"source": "Bewertung", "transform": _BOOKSTATS_RATING_TRANSFORM},
+            "date_started": {"source": "Lesebeginn", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "date_finished": {"source": "Leseende", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "date_added": {"source": "Erhalten am", "transform": _BOOKSTATS_DATE_TRANSFORM},
+            "notes": {"source": "Notizen", "transform": None},
         },
     },
 ]

@@ -7,7 +7,7 @@ import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -1818,5 +1818,53 @@ def test_get_predefined_mapping_known_id() -> None:
     assert result["name"] == "Goodreads Export"
 
 
+def test_get_predefined_mapping_bookstats_id() -> None:
+    result = di.get_predefined_mapping(-2)
+    assert result is not None
+    assert result["name"] == "Bookstats Export"
+    source_fields = cast(list[str], result["source_fields"])
+    mapping_raw = cast(dict[str, dict[str, Any]], result["mapping"])
+    assert "Titel" in source_fields
+    assert mapping_raw["tags"]["source"] == "Genre"
+
+
 def test_get_predefined_mapping_unknown_id() -> None:
     assert di.get_predefined_mapping(-999) is None
+
+
+def test_bookstats_predefined_mapping_transforms() -> None:
+    """The Bookstats preset maps a representative row through all its transforms."""
+    preset = di.get_predefined_mapping(-2)
+    assert preset is not None
+    mapping_raw = cast(dict[str, dict[str, Any]], preset["mapping"])
+    mapping = {target: ImportFieldConfig(**config) for target, config in mapping_raw.items()}
+    row = {
+        "Titel": "Der Distelfink: Roman",
+        "Autor(en)": "Lamm, Laila, Grabinger, Michaela",
+        "ISBN": "9783442473601",
+        "Erscheinungsjahr": "2015",
+        "Genre": "Literatur, Klassiker",
+        "Seitenanzahl": "1024",
+        "Buchart": "Hörbuch",
+        "Erhalten als": "Leihe",
+        "Lesestatus": "Abgebrochen",
+        "Lesebeginn": "44193",
+        "Leseende": "",
+        "Bewertung": "0",
+        "Kategorie": "Horror",
+        "Notizen": "",
+        "Erhalten am": "44193",
+    }
+    transform_cache = di._build_transform_cache(mapping)
+    mapped = di._mapped_row(row, mapping, transform_cache, {})
+
+    assert mapped["title"] == "Der Distelfink: Roman"
+    assert mapped["authors"] == ["Laila Lamm", "Michaela Grabinger"]
+    assert mapped["tags"] == ["Literatur, Klassiker", "Horror"]
+    assert mapped["reading_status"] == "did_not_finish"
+    assert mapped["acquisition_status"] == "borrowed"
+    assert mapped["medium"] == "Audiobook"
+    assert mapped["rating"] == ""
+    assert mapped["date_started"] == "2020-12-28"
+    assert mapped["date_finished"] == ""
+    assert mapped["date_added"] == "2020-12-28"

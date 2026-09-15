@@ -227,11 +227,13 @@ def test_data_import_mapping_crud(client: TestClient) -> None:
     list_resp = client.get("/api/data/import/mappings")
     assert list_resp.status_code == 200
     data = list_resp.json()
-    assert len(data) == 2
+    assert len(data) == 3
     assert data[0]["is_predefined"] is True
     assert data[0]["name"] == "Goodreads Export"
-    assert data[1]["is_predefined"] is False
-    assert data[1]["name"] == "Goodreads"
+    assert data[1]["is_predefined"] is True
+    assert data[1]["name"] == "Bookstats Export"
+    assert data[2]["is_predefined"] is False
+    assert data[2]["name"] == "Goodreads"
 
     get_resp = client.get(f"/api/data/import/mappings/{saved['id']}")
     assert get_resp.status_code == 200
@@ -704,6 +706,16 @@ def test_data_import_mapping_get_predefined(client: TestClient) -> None:
     assert data["is_predefined"] is True
     assert data["id"] == -1
     assert data["name"] == "Goodreads Export"
+
+
+def test_data_import_mapping_get_predefined_bookstats(client: TestClient) -> None:
+    resp = client.get("/api/data/import/mappings/-2")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["is_predefined"] is True
+    assert data["id"] == -2
+    assert data["name"] == "Bookstats Export"
+    assert data["mapping"]["tags"]["source"] == "Genre"
 
 
 def test_data_import_mapping_get_predefined_missing(client: TestClient) -> None:

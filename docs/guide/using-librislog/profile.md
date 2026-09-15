@@ -114,7 +114,7 @@ details and a list of supported dashboard integrations.
 
 Two data management tools are available:
 
-- **Import / Export** — Export your library as JSON, CSV, or ZIP, or import from Goodreads CSV or generic CSV with field mapping and Python transforms. See [Import & Export](/guide/using-librislog/import-export).
+- **Import / Export** — Export your library as JSON, CSV, or ZIP, or import from the Goodreads or Bookstats presets, Excel (XLSX), or generic CSV/JSON with field mapping and Python transforms. See [Import & Export](/guide/using-librislog/import-export).
 - **Data Hygiene** — Find books with missing metadata and batch-update them. See [Data Hygiene](/guide/using-librislog/data-hygiene).
 
 ## OIDC
