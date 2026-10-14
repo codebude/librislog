@@ -72,7 +72,7 @@ The backend runs on http://localhost:8000 with auto-reload on code changes.
 ## Local Development — Frontend
 
 Requirements:
-- Node.js 20+ (see `frontend/.nvmrc`)
+- Node.js 22.17+ (see `frontend/.nvmrc`) — SvelteKit 3 requires it when building the frontend
 
 Steps:
 

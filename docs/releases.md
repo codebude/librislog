@@ -16,7 +16,7 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 
 | Version | Date | Type |
 |---|---|---|
-| [Unreleased](#unreleased-more-book-sources) | — | In development |
+| [Unreleased](#unreleased-more-book-sources-upgrades) | — | In development |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
@@ -36,11 +36,11 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 
 ---
 
-## Unreleased: More Book Sources
+## Unreleased: More Book Sources & Upgrades
 
 <Badge type="warning" text="In development" />
 
-**Summary:** Adds three more metadata sources to the import search, brings back coverage for non-English editions that Open Library misses, adds an on/off switch for every import source, and keeps the Add Book dialog header reachable while scrolling.
+**Summary:** Adds three more metadata sources to the import search, brings back coverage for non-English editions that Open Library misses, adds an on/off switch for every import source, keeps the Add Book dialog header reachable while scrolling, and updates the frontend framework and dependency set.
 
 **Features**
 - 📚 **Bibliothèque nationale de France (BnF)** as a search source, queried over the public SRU endpoint. No API key needed. Strong coverage of French editions: an ISBN such as `9791020923554` returns no result from Open Library but a full record from BnF, with title, subtitle, authors, publisher, year, page count, language, and subject headings. BnF answers one ISBN with several records, including a commercial barcode stub; those are grouped per ISBN so only the richest record is imported
@@ -54,6 +54,9 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 **Improvements**
 - 📌 **Sticky Add Book dialog header.** The dialog title and the close button stay pinned to the top of the window while the content scrolls, so closing the dialog no longer requires scrolling back up after a long list of results
 - 🔍 **Search results report each source.** The progress list names every source that was queried, including those that were skipped and why
+
+**Dependencies**
+- ⬆️ Updated backend and frontend dependencies, most notably SvelteKit 3 and Vitest 5. Building the frontend from source now needs Node.js 22.17 or newer
 
 **Bug fixes / security**
 - 🛡️ **Remote SRU responses are parsed with entity expansion disabled.** The BnF and Library of Congress responses are untrusted remote XML and are now parsed defensively, so a hostile or malformed response cannot exhaust memory or read local files through entity references
