@@ -62,10 +62,15 @@ A book can have **multiple authors**: type a name and press **Enter** to add it 
 
 Search external sources for book metadata:
 - **Open Library** — Free, no API key required
-- **Google Books** — Requires API key (set in `.env`)
+- **BnF** (Bibliothèque nationale de France) — Free, no API key required; strong French-language coverage
+- **Inventaire.io** — Free, no API key required; ISBN searches only, and the only new source that provides cover images
+- **Library of Congress** — Free, no API key required; US/English coverage. Uses unencrypted HTTP, see [Configuration](/guide/configuration)
 - **Hardcover.app** — Requires API token (set in `.env`)
+- **Google Books** — Requires API key (set in `.env`), fallback only
 
-Open Library and Hardcover (if an API token is configured) are queried **in parallel** for both title and ISBN searches. Google Books is only used as a **fallback** when the other sources return no results, or on demand via the **Search Google Books too** button, which adds Google Books results to the current results.
+All enabled sources are queried **in parallel** for both title and ISBN searches. Inventaire is the exception: it has no title-search route, so on a title search it is reported as skipped. Google Books is only used as a **fallback** when the other sources return no results, or on demand via the **Search Google Books too** button, which adds Google Books results to the current results.
+
+Each source can be switched off individually. See [Configuration](/guide/configuration) for the settings and for the rule that at least one source must stay enabled.
 
 While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
 

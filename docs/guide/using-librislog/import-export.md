@@ -11,9 +11,14 @@ The most common way to add books is by searching external sources:
 1. Click "Add Book" in the library
 2. Enter a title, author, or ISBN in the search box
 3. The app queries:
-   - **Open Library** (always, no key required)
-   - **Google Books** (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
+   - **Open Library** (no key required)
+   - **BnF** (no key required; strong French-language coverage)
+   - **Inventaire.io** (no key required; ISBN searches only, provides cover images)
+   - **Library of Congress** (no key required; US/English coverage, unencrypted HTTP)
    - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set — see [API Keys](/guide/api-keys))
+   - **Google Books** as a fallback (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
+
+   Every source can be disabled individually; see [Configuration](/guide/configuration).
 4. Select a result to import with full metadata and cover
 5. Choose an availability value and, optionally, a medium (Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper) before saving
 

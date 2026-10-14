@@ -65,10 +65,33 @@ The Mailpit web UI is available at http://localhost:8025 to inspect sent emails.
 
 ## Book Import Sources
 
-| Variable | Description |
-|----------|-------------|
-| `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | 
-| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (see [API Keys](/guide/api-keys)) |
+Every search source can be switched on or off individually. At least one source must
+remain enabled: if all of them are disabled, the backend refuses to start and logs an
+error naming the variables to set.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPEN_LIBRARY_IMPORT_SEARCH_ENABLED` | Query Open Library | `true` |
+| `BNF_IMPORT_SEARCH_ENABLED` | Query BnF (French national library), title and ISBN | `true` |
+| `INVENTAIRE_IMPORT_SEARCH_ENABLED` | Query Inventaire.io, ISBN only | `true` |
+| `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED` | Query the Library of Congress, title and ISBN | `true` |
+| `HARDCOVER_IMPORT_SEARCH_ENABLED` | Query Hardcover.app (also needs an API token) | `true` |
+| `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED` | Allow the Google Books fallback | `true` |
+| `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | empty |
+| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (see [API Keys](/guide/api-keys)) | empty |
+
+BnF, Inventaire, and the Library of Congress need no API key. Inventaire answers ISBN
+lookups only; it has no title search, so on a title search it is reported as skipped.
+Google Books runs last, only when every other enabled source returned nothing. Setting
+`GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false` also turns off the on-demand **Search Google
+Books too** button.
+
+> **Warning:** The Library of Congress SRU endpoint (`http://lx2.loc.gov:210/LCDB`) is
+> only reachable over **plain HTTP**. Queries are therefore unencrypted and can be
+> observed or altered on the network path. It is the official, documented LC SRU server
+> and returns public bibliographic data only, but set
+> `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED=false` if unencrypted egress to port 210
+> is not acceptable in your environment. The other sources are all HTTPS.
 
 ## Cover Scraping
 
@@ -122,7 +145,8 @@ TELEMETRY_DISABLED=true
 
 - `API_KEY_ENCRYPTION_KEY` must be a real secret key (minimum 32 characters). Do not use the placeholder value from `.env.example`. If left as placeholder or set to a weak value, API key creation will fail.
 - When `OIDC_ENABLED=true`, all three OIDC variables must be set.
-- `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library.
+- `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library, BnF, Inventaire, and the Library of Congress.
+- At least one book import source must be enabled. Setting every `*_IMPORT_SEARCH_ENABLED` variable to `false` stops the backend from starting.
 
 ## Example .env
 
