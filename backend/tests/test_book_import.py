@@ -11,6 +11,20 @@ from app.schemas import BookImportCandidate
 from app.services import book_import as bi
 
 
+@pytest.fixture(autouse=True)
+def _all_sources_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Turn every import source on for this module.
+
+    The orchestration tests here assert on which sources run, not on the shipped
+    defaults, which are covered in test_main.py. Enabling them explicitly also keeps
+    the suite independent of whatever the developer's .env happens to contain.
+    """
+    for spec in bi._build_sources(""):
+        monkeypatch.setattr(bi.settings, f"{spec.stage}_import_search_enabled", True)
+    # Google Books is the fallback, not a registry entry.
+    monkeypatch.setattr(bi.settings, "google_books_import_search_enabled", True)
+
+
 # ── SourceBackendError ─────────────────────────────────────────────────────────
 
 def test_source_backend_error_with_status() -> None:

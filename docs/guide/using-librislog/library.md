@@ -65,12 +65,12 @@ Search external sources for book metadata:
 - **BnF** (Bibliothèque nationale de France) — Free, no API key required; strong French-language coverage
 - **Inventaire.io** — Free, no API key required; ISBN searches only, and the only new source that provides cover images
 - **Library of Congress** — Free, no API key required; US/English coverage. Uses unencrypted HTTP, see [Configuration](/guide/configuration)
-- **Hardcover.app** — Requires API token (set in `.env`)
-- **Google Books** — Requires API key (set in `.env`), fallback only
+- **Hardcover.app** — Requires API token, off in `.env.example` by default
+- **Google Books** — Requires API key, off in `.env.example` by default, fallback only
 
 All enabled sources are queried **in parallel** for both title and ISBN searches. Inventaire is the exception: it has no title-search route, so on a title search it is reported as skipped. Google Books is only used as a **fallback** when the other sources return no results, or on demand via the **Search Google Books too** button, which adds Google Books results to the current results.
 
-Each source can be switched off individually. See [Configuration](/guide/configuration) for the settings and for the rule that at least one source must stay enabled.
+Each source can be switched off individually. Hardcover and Google Books are set to `false` in `.env.example`, because neither can answer without credentials: add the key or token and set the matching `*_IMPORT_SEARCH_ENABLED` to `true`. A source that is on but has no credential is listed as skipped and is never contacted. See [Configuration](/guide/configuration) for the settings and for the rule that at least one source must stay usable.
 
 While a search is running, the **Search** button changes to **Cancel**, so you can stop the request at any time and refine your query.
 

@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     hardcover_app_api_token: str = ""
     thalia_cover_search_enabled: bool = False
     open_library_import_search_enabled: bool = True
+    # Hardcover and Google Books need credentials to answer at all. The built-in default
+    # stays true so upgrading never silently drops a source someone had configured
+    # before these switches existed; without a token/key the source is skipped anyway.
+    # .env.example and the docs recommend setting these to false when unused.
     hardcover_import_search_enabled: bool = True
     google_books_import_search_enabled: bool = True
     bnf_import_search_enabled: bool = True

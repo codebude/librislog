@@ -15,10 +15,12 @@ The most common way to add books is by searching external sources:
    - **BnF** (no key required; strong French-language coverage)
    - **Inventaire.io** (no key required; ISBN searches only, provides cover images)
    - **Library of Congress** (no key required; US/English coverage, unencrypted HTTP)
-   - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set — see [API Keys](/guide/api-keys))
-   - **Google Books** as a fallback (if `GOOGLE_BOOKS_API_KEY` is set — see [API Keys](/guide/api-keys))
+   - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set **and** `HARDCOVER_IMPORT_SEARCH_ENABLED=true` — see [API Keys](/guide/api-keys))
+   - **Google Books** as a fallback (if `GOOGLE_BOOKS_API_KEY` is set **and** `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=true` — see [API Keys](/guide/api-keys))
 
-   Every source can be disabled individually; see [Configuration](/guide/configuration).
+   Every source can be disabled individually. Hardcover and Google Books are set to
+   `false` in `.env.example` because they need credentials; see
+   [Configuration](/guide/configuration).
 4. Select a result to import with full metadata and cover
 5. Choose an availability value and, optionally, a medium (Print, eBook, Audiobook, Comic / Graphic Novel, or Magazine / Newspaper) before saving
 

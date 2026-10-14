@@ -77,25 +77,38 @@ async def _telemetry_heartbeat() -> None:
 
 
 def _validate_import_sources() -> None:
-    """Ensure at least one import search provider is enabled.
+    """Ensure at least one import search provider can actually answer a query.
 
-    The list of providers is taken from the book import registry, so a newly added
-    source cannot silently escape this check.
+    Counting enabled flags alone is not enough: Hardcover and Google Books require a
+    token/API key, so being switched on without credentials still means no source can
+    answer. This checks for a provider that is both enabled and usable.
     """
     from app.services import book_import
 
-    active = [spec.stage for spec in book_import._build_sources("") if spec.enabled()]
-    if book_import._google_fallback_enabled():
+    active: list[str] = []
+    for spec in book_import._build_sources(""):
+        if not spec.enabled():
+            continue
+        if spec.stage == "hardcover" and not settings.hardcover_app_api_token.strip():
+            continue
+        active.append(spec.stage)
+
+    if book_import._google_fallback_enabled() and settings.google_books_api_key.strip():
         active.append("google_books")
 
     if not active:
-        variables = ", ".join(
-            sorted(f"{spec.stage.upper()}_IMPORT_SEARCH_ENABLED" for spec in book_import._build_sources(""))
+        keyless = ", ".join(
+            sorted(
+                f"{spec.stage.upper()}_IMPORT_SEARCH_ENABLED"
+                for spec in book_import._build_sources("")
+                if spec.stage not in {"hardcover", "google_books"}
+            )
         )
         raise RuntimeError(
-            "At least one import search provider must be enabled. "
-            f"Set at least one of {variables}, or "
-            "GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED, to true."
+            "No usable book import source is configured. "
+            f"Set at least one of {keyless} to true, or provide "
+            "HARDCOVER_APP_API_TOKEN with HARDCOVER_IMPORT_SEARCH_ENABLED=true, "
+            "or GOOGLE_BOOKS_API_KEY with GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=true."
         )
 
 

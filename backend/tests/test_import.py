@@ -35,6 +35,9 @@ def _only_legacy_sources(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "bnf_import_search_enabled", False)
     monkeypatch.setattr(settings, "inventaire_import_search_enabled", False)
     monkeypatch.setattr(settings, "library_of_congress_import_search_enabled", False)
+    # Hardcover and Google Books ship disabled; these tests still exercise them.
+    monkeypatch.setattr(settings, "hardcover_import_search_enabled", True)
+    monkeypatch.setattr(settings, "google_books_import_search_enabled", True)
 
 
 # ── Fake response data ─────────────────────────────────────────────────────────
