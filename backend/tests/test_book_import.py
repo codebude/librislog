@@ -11,6 +11,20 @@ from app.schemas import BookImportCandidate
 from app.services import book_import as bi
 
 
+@pytest.fixture(autouse=True)
+def _all_sources_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Turn every import source on for this module.
+
+    The orchestration tests here assert on which sources run, not on the shipped
+    defaults, which are covered in test_main.py. Enabling them explicitly also keeps
+    the suite independent of whatever the developer's .env happens to contain.
+    """
+    for spec in bi._build_sources(""):
+        monkeypatch.setattr(bi.settings, f"{spec.stage}_import_search_enabled", True)
+    # Google Books is the fallback, not a registry entry.
+    monkeypatch.setattr(bi.settings, "google_books_import_search_enabled", True)
+
+
 # ── SourceBackendError ─────────────────────────────────────────────────────────
 
 def test_source_backend_error_with_status() -> None:
@@ -81,6 +95,9 @@ async def test_search_with_progress_auto_ol_and_hc(monkeypatch: pytest.MonkeyPat
     fake_ol = BookImportCandidate(title="OL Book", source="open_library")
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[fake_ol]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
@@ -91,17 +108,27 @@ async def test_search_with_progress_auto_ol_and_hc(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.anyio
-async def test_search_with_progress_auto_hc_skipped_no_token() -> None:
+async def test_search_with_progress_auto_hc_skipped_no_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
     events = []
     async for e in bi.search_with_progress("query", "title"):
         events.append(e)
     assert any(e.get("stage") == "hardcover" and e.get("status") == "skipped" for e in events)
+    # A skipped source must be reported exactly once: never also as a result count.
+    hardcover = [e for e in events if e.get("stage") == "hardcover"]
+    assert len(hardcover) == 1
 
 
 @pytest.mark.anyio
 async def test_search_with_progress_auto_fallback_google(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
     fake_gb = BookImportCandidate(title="GB Book", source="google_books")
     monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake_gb]))
 
@@ -117,6 +144,9 @@ async def test_search_with_progress_auto_fallback_google(monkeypatch: pytest.Mon
 async def test_search_with_progress_auto_fallback_google_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         bi, "_search_google_books",
         AsyncMock(side_effect=bi.SourceBackendError("google_books", 500)),
@@ -131,11 +161,14 @@ async def test_search_with_progress_auto_fallback_google_error(monkeypatch: pyte
 @pytest.mark.anyio
 async def test_search_with_progress_general_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(side_effect=RuntimeError("boom")))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title"):
         events.append(e)
-    assert any(e.get("stage") == "error" for e in events)
+    assert any(e.get("stage") == "open_library" and e.get("status") == "error" for e in events)
 
 
 # ── search ─────────────────────────────────────────────────────────────────────
@@ -147,6 +180,9 @@ async def test_search_ol_exception(monkeypatch: pytest.MonkeyPatch) -> None:
         AsyncMock(side_effect=bi.SourceBackendError("open_library", 503)),
     )
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -159,6 +195,9 @@ async def test_search_ol_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
         AsyncMock(side_effect=RuntimeError("boom")),
     )
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -173,6 +212,9 @@ async def test_search_ol_generic_exception_with_hc(monkeypatch: pytest.MonkeyPat
     )
     fake_hc = BookImportCandidate(title="HC Book", source="hardcover")
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[fake_hc]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title", hardcover_api_token="token")
     assert len(results) == 1
@@ -185,6 +227,9 @@ async def test_search_hc_exception(monkeypatch: pytest.MonkeyPatch) -> None:
         bi, "_search_hardcover",
         AsyncMock(side_effect=RuntimeError("boom")),
     )
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title", hardcover_api_token="token")
     assert results == []
@@ -194,6 +239,9 @@ async def test_search_hc_exception(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_search_fallback_google_no_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -203,6 +251,9 @@ async def test_search_fallback_google_no_key(monkeypatch: pytest.MonkeyPatch) ->
 async def test_search_fallback_google_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
     fake = BookImportCandidate(title="Book", source="google_books")
     monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake]))
 
@@ -214,6 +265,9 @@ async def test_search_fallback_google_success(monkeypatch: pytest.MonkeyPatch) -
 async def test_search_fallback_google_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         bi, "_search_google_books",
         AsyncMock(side_effect=bi.SourceBackendError("google_books", 500)),
@@ -1074,6 +1128,9 @@ async def test_search_with_progress_ol_error_event(monkeypatch: pytest.MonkeyPat
         AsyncMock(side_effect=bi.SourceBackendError("open_library", 500)),
     )
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title"):
@@ -1214,6 +1271,9 @@ async def test_search_with_progress_hc_done_event(monkeypatch: pytest.MonkeyPatc
     fake_hc = BookImportCandidate(title="HC Book", source="hardcover")
     monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_hardcover", AsyncMock(return_value=[fake_hc]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
@@ -1230,8 +1290,577 @@ async def test_search_with_progress_hc_error_event(monkeypatch: pytest.MonkeyPat
         bi, "_search_hardcover",
         AsyncMock(side_effect=RuntimeError("boom")),
     )
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
         events.append(e)
     assert any(e.get("stage") == "hardcover" and e.get("status") == "error" for e in events)
+
+
+# ── BnF ──────────────────────────────────────────────────────────────────────────
+
+# Two records for one ISBN: a commercial barcode stub and the real bibliographic
+# record, as catalogue.bnf.fr actually answers a bib.isbn query.
+BNF_SAMPLE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <records>
+    <record>
+      <recordData>
+        <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <dc:title>L'heure du Sud : ou l'invention d'un nouvel ordre mondial (Ed. 2024)</dc:title>
+          <dc:creator>Badie, Bertrand</dc:creator>
+          <dc:creator>Vidal, Dominique</dc:creator>
+          <dc:publisher>Editions les Liens qui liberent (Paris)</dc:publisher>
+          <dc:date>2024</dc:date>
+          <dc:format>1 volume 295 p ; 22 cm</dc:format>
+          <dc:language>fre</dc:language>
+          <dc:identifier>http://catalogue.bnf.fr/ark:/12148/cb48773987b</dc:identifier>
+          <dc:identifier>ISBN 9791020923554</dc:identifier>
+          <dc:description>Code à barres commercial : EAN 9791020923554</dc:description>
+        </oai_dc:dc>
+      </recordData>
+    </record>
+    <record>
+      <recordData>
+        <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <dc:title>L'heure du Sud : ou l'invention d'un nouvel ordre mondial / sous la direction de Bertrand Badie</dc:title>
+          <dc:contributor>Badie, Bertrand (1950-....).Editeur scientifique</dc:contributor>
+          <dc:publisher>les Liens qui liberent (Paris)</dc:publisher>
+          <dc:date>2024</dc:date>
+          <dc:format>1 vol. (295 p.) : ill. ; 22 cm</dc:format>
+          <dc:language>fre</dc:language>
+          <dc:identifier>http://catalogue.bnf.fr/ark:/12148/cb47695466k</dc:identifier>
+          <dc:identifier>ISBN 9791020923554</dc:identifier>
+          <dc:subject>Relations internationales -- 2001-....</dc:subject>
+        </oai_dc:dc>
+      </recordData>
+    </record>
+  </records>
+</searchRetrieveResponse>
+"""
+
+
+def test_map_bnf_response_basic() -> None:
+    candidates = bi.map_bnf_response(BNF_SAMPLE_XML)
+    # Both records carry the same ISBN, so only the richer one survives.
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert c.title == "L'heure du Sud"
+    assert c.subtitle == "ou l'invention d'un nouvel ordre mondial"
+    assert c.authors == ["Badie, Bertrand"]
+    assert c.isbn == "9791020923554"
+    assert c.publisher == "les Liens qui liberent"
+    assert c.published_year == 2024
+    assert c.page_count == 295
+    assert c.language == "FR"
+    assert c.tags == "Relations internationales"
+    assert c.source == "bnf"
+    assert c.cover_url is None
+
+
+def test_map_bnf_response_empty() -> None:
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <records/>
+</searchRetrieveResponse>"""
+    assert bi.map_bnf_response(xml) == []
+
+
+def test_map_bnf_response_malformed_xml() -> None:
+    assert bi.map_bnf_response("<invalid") == []
+
+
+def test_map_bnf_response_no_records() -> None:
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+</searchRetrieveResponse>"""
+    assert bi.map_bnf_response(xml) == []
+
+
+# ── Inventaire ─────────────────────────────────────────────────────────────────
+
+INVENTAIRE_SAMPLE = {
+    # Shape verified against https://inventaire.io/api/entities/by-uris:
+    # claim values are plain strings, and P629/P50/P123 relatives come back as entities.
+    "entities": {
+        "inv:edition123": {
+            "type": "edition",
+            "originalLang": "fr",
+            "labels": {"fromclaims": "L'heure du Sud"},
+            "claims": {
+                "wdt:P1476": ["L'heure du Sud"],
+                "wdt:P1680": ["ou l'invention d'un nouvel ordre mondial"],
+                "wdt:P212": ["979-10-209-2355-4"],
+                "wdt:P577": ["2024"],
+                "wdt:P1104": ["295"],
+                "wdt:P123": ["wd:Q3236382"],
+                "wdt:P629": ["inv:work123"],
+                "invp:P2": ["abcdef123456"],
+            },
+        },
+        "inv:work123": {
+            "type": "work",
+            "labels": {"fr": "L'heure du Sud"},
+            "claims": {"wdt:P50": ["wd:Q7934"]},
+        },
+        "wd:Q7934": {
+            "type": "human",
+            "labels": {"en": "Bertrand Badie"},
+        },
+        "wd:Q3236382": {
+            "type": "publisher",
+            "labels": {"en": "Editions les Liens qui liberent"},
+        },
+    },
+    "redirects": {"isbn:9791020923554": "inv:edition123"},
+}
+
+
+def test_map_inventaire_response_basic() -> None:
+    candidates = bi.map_inventaire_response(INVENTAIRE_SAMPLE)
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert c.title == "L'heure du Sud"
+    assert c.subtitle == "ou l'invention d'un nouvel ordre mondial"
+    assert c.isbn == "9791020923554"
+    assert c.published_year == 2024
+    assert c.page_count == 295
+    assert c.language == "FR"
+    assert c.source == "inventaire"
+    assert c.cover_url == "https://inventaire.io/img/entities/abcdef123456"
+    assert c.authors == ["Bertrand Badie"]
+    assert c.publisher == "Editions les Liens qui liberent"
+
+
+def test_map_inventaire_response_authors_fall_back_to_edition_claims() -> None:
+    data = {
+        "entities": {
+            "inv:edition123": {
+                "type": "edition",
+                "labels": {"fromclaims": "Plain Edition"},
+                "claims": {
+                    "wdt:P1476": ["Plain Edition"],
+                    "wdt:P212": ["9782072716645"],
+                    "wdt:P50": ["wd:Q43499"],
+                },
+            },
+            "inv:work123": {"type": "work", "labels": {}, "claims": {}},
+            "wd:Q43499": {"type": "human", "labels": {"en": "Erasmus"}},
+        },
+        "redirects": {"isbn:9782072716645": "inv:edition123"},
+    }
+    candidates = bi.map_inventaire_response(data)
+    assert candidates[0].authors == ["Erasmus"]
+
+
+def test_map_inventaire_response_without_title_is_skipped() -> None:
+    data = {
+        "entities": {"inv:edition123": {"type": "edition", "labels": {}, "claims": {}}},
+        "redirects": {"isbn:9791020923554": "inv:edition123"},
+    }
+    assert bi.map_inventaire_response(data) == []
+
+
+def test_map_inventaire_response_empty() -> None:
+    assert bi.map_inventaire_response({"entities": {}, "redirects": {}}) == []
+
+
+def test_map_inventaire_response_no_entities() -> None:
+    assert bi.map_inventaire_response({}) == []
+
+
+# ── Library of Congress ───────────────────────────────────────────────────────
+
+LOC_SAMPLE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <records>
+    <record>
+      <recordData>
+        <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+          <mods:titleInfo>
+            <mods:title>Dune</mods:title>
+            <mods:subTitle>Book One of the Dune Chronicles</mods:subTitle>
+          </mods:titleInfo>
+          <mods:name type="personal">
+            <mods:namePart>Herbert, Frank.</mods:namePart>
+          </mods:name>
+          <mods:name type="corporate">
+            <mods:namePart>Chilton Books</mods:namePart>
+          </mods:name>
+          <mods:originInfo>
+            <mods:publisher>Chilton Books</mods:publisher>
+            <mods:dateIssued>1965</mods:dateIssued>
+          </mods:originInfo>
+          <mods:language>
+            <mods:languageTerm type="code" authority="iso639-2b">eng</mods:languageTerm>
+          </mods:language>
+          <mods:physicalDescription>
+            <mods:extent>412 p. ; 22 cm.</mods:extent>
+          </mods:physicalDescription>
+          <mods:subject>
+            <mods:topic>Science fiction</mods:topic>
+          </mods:subject>
+          <mods:identifier type="isbn">9780441013593</mods:identifier>
+          <mods:identifier type="lccn">65021248</mods:identifier>
+        </mods:mods>
+      </recordData>
+    </record>
+  </records>
+</searchRetrieveResponse>
+"""
+
+
+def test_map_loc_response_basic() -> None:
+    candidates = bi.map_loc_response(LOC_SAMPLE_XML)
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert c.title == "Dune"
+    assert c.subtitle == "Book One of the Dune Chronicles"
+    assert c.author == "Frank Herbert"
+    assert c.authors == ["Frank Herbert"]
+    assert c.publisher == "Chilton Books"
+    assert c.published_year == 1965
+    assert c.page_count == 412
+    assert c.language == "EN"
+    assert c.isbn == "9780441013593"
+    assert c.tags == "Science fiction"
+    assert c.source == "library_of_congress"
+    assert c.cover_url is None
+
+
+def test_map_loc_response_reads_topics_nested_in_subject() -> None:
+    """MODS nests topics under <subject>, so only a descendant search finds them."""
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <recordData>
+    <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+      <mods:titleInfo><mods:title>Nested Topics</mods:title></mods:titleInfo>
+      <mods:subject>
+        <mods:topic>Outer</mods:topic>
+        <mods:geographic><mods:topic>Inner</mods:topic></mods:geographic>
+      </mods:subject>
+    </mods:mods>
+  </recordData>
+</searchRetrieveResponse>"""
+    candidates = bi.map_loc_response(xml)
+    assert candidates[0].tags == "Outer, Inner"
+
+
+def test_map_loc_response_accepts_spaced_isbn() -> None:
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <recordData>
+    <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+      <mods:titleInfo><mods:title>Spaced</mods:title></mods:titleInfo>
+      <mods:identifier type="isbn">0-441-01359-8</mods:identifier>
+    </mods:mods>
+  </recordData>
+</searchRetrieveResponse>"""
+    candidates = bi.map_loc_response(xml)
+    assert candidates[0].isbn == "9780441013593"
+
+
+def test_map_loc_response_empty() -> None:
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <records/>
+</searchRetrieveResponse>"""
+    assert bi.map_loc_response(xml) == []
+
+
+def test_map_loc_response_malformed_xml() -> None:
+    assert bi.map_loc_response("<invalid") == []
+
+
+# ── Skip reasons and event bookkeeping ─────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_search_with_progress_emits_one_terminal_event_per_stage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Each stage reports exactly one terminal event; no stage ends up twice."""
+    monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[BookImportCandidate(title="B", source="bnf")]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi.settings, "library_of_congress_import_search_enabled", True)
+
+    events = []
+    async for e in bi.search_with_progress("query", "isbn"):
+        events.append(e)
+
+    terminal = {"done", "skipped", "error"}
+    by_stage: dict[str, list[str]] = {}
+    for e in events:
+        if e.get("stage") in ("complete", "error"):
+            continue
+        by_stage.setdefault(e["stage"], []).append(e.get("status"))
+
+    for stage, statuses in by_stage.items():
+        assert statuses.count("searching") <= 1, (stage, statuses)
+        assert len([s for s in statuses if s in terminal]) == 1, (stage, statuses)
+
+
+@pytest.mark.anyio
+async def test_search_with_progress_skips_inventaire_for_title_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Inventaire has no title search, so it must be skipped rather than report 0."""
+    inventaire = AsyncMock(return_value=[])
+    monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", inventaire)
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+
+    events = []
+    async for e in bi.search_with_progress("query", "title"):
+        events.append(e)
+
+    inventaire_events = [e for e in events if e.get("stage") == "inventaire"]
+    assert len(inventaire_events) == 1
+    assert inventaire_events[0]["status"] == "skipped"
+    assert inventaire_events[0]["reason"] == "title_search_unsupported"
+    inventaire.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_search_with_progress_google_only_mode_respects_the_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(bi.settings, "google_books_import_search_enabled", False)
+    google = AsyncMock(return_value=[])
+
+    events = []
+    async for e in bi.search_with_progress("query", "title", api_key="key", mode="google_only"):
+        events.append(e)
+
+    assert any(
+        e.get("stage") == "google_books" and e.get("reason") == "disabled" for e in events
+    )
+    google.assert_not_awaited()
+
+
+# ── Parser edge cases found against live payloads ──────────────────────────────
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Herbert, Frank.", "Frank Herbert"),
+        ("Herbert, Frank,", "Frank Herbert"),
+        ("Horydczak, Theodor,", "Theodor Horydczak"),
+        ("Mary Shelley", "Mary Shelley"),
+    ],
+)
+def test_reverse_loc_author_handles_trailing_separators(raw: str, expected: str) -> None:
+    assert bi._reverse_loc_author(raw) == expected
+
+
+def test_split_bnf_title_strips_accented_edition_statements() -> None:
+    assert bi._split_bnf_title("L'heure du Sud : ou l'invention (Éd. 2024)") == (
+        "L'heure du Sud",
+        "ou l'invention",
+    )
+    assert bi._split_bnf_title("Série noire : intégrale (Édition 2020)") == (
+        "Série noire",
+        "intégrale",
+    )
+    assert bi._split_bnf_title("Dune / Frank Herbert") == ("Dune", None)
+
+
+def test_clean_bnf_tag_drops_subdivisions() -> None:
+    assert bi._clean_bnf_tag("Relations internationales -- 2001-....") == "Relations internationales"
+    assert bi._clean_bnf_tag("Pays en développement") == "Pays en développement"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ['Le Seigneur des "Anneaux"', 'He said "hello"', 'back\\slash', '"', "   "],
+)
+def test_sanitize_cql_term_removes_quotes_and_backslashes(raw: str) -> None:
+    cleaned = bi._sanitize_cql_term(raw)
+    assert '"' not in cleaned
+    assert "\\" not in cleaned
+
+
+@pytest.mark.anyio
+async def test_search_bnf_title_with_quotes_still_queries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A quote in a title must not break the CQL query into a silent empty result."""
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["query"] = request.url.params.get("query", "")
+        return httpx.Response(200, text="<empty/>")
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        results = await bi._search_bnf('Le Seigneur des "Anneaux"', "title", client)
+
+    assert results == []
+    assert '""' not in seen["query"]
+    assert seen["query"].count('"') % 2 == 0
+
+
+# ── Hardened XML parsing ───────────────────────────────────────────────────────
+
+_BILLION_LAUGHS = """<?xml version="1.0"?>
+<!DOCTYPE lolz [
+ <!ENTITY lol "lol">
+ <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+ <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <recordData><mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+    <mods:titleInfo><mods:title>&lol3;</mods:title></mods:titleInfo>
+  </mods:mods></recordData>
+</searchRetrieveResponse>"""
+
+_XXE_FILE_READ = """<?xml version="1.0"?>
+<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <recordData><mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+    <mods:titleInfo><mods:title>&xxe;</mods:title></mods:titleInfo>
+  </mods:mods></recordData>
+</searchRetrieveResponse>"""
+
+
+def test_map_loc_response_rejects_entity_expansion() -> None:
+    """A hostile SRU payload must not be expanded, and must yield no candidates."""
+    assert bi.map_loc_response(_BILLION_LAUGHS) == []
+
+
+def test_map_loc_response_rejects_external_entity() -> None:
+    """External entity references must not be resolved to local files."""
+    assert bi.map_loc_response(_XXE_FILE_READ) == []
+
+
+def test_map_bnf_response_rejects_entity_expansion() -> None:
+    payload = _BILLION_LAUGHS.replace("mods:mods", "oai_dc:dc").replace(
+        'xmlns:mods="http://www.loc.gov/mods/v3"',
+        'xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"',
+    ).replace("mods:titleInfo", "").replace("mods:title", "dc:title").replace(
+        "</mods:titleInfo>", ""
+    ).replace("</mods:title>", "</dc:title>")
+    assert bi.map_bnf_response(payload) == []
+
+
+# ── Google fallback gating ─────────────────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_search_uses_google_when_all_parallel_sources_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With every parallel source off, Google Books must still answer as the fallback."""
+    for flag, value in (
+        ("open_library_import_search_enabled", False),
+        ("bnf_import_search_enabled", False),
+        ("inventaire_import_search_enabled", False),
+        ("library_of_congress_import_search_enabled", False),
+        ("hardcover_import_search_enabled", False),
+        ("google_books_import_search_enabled", True),
+    ):
+        monkeypatch.setattr(bi.settings, flag, value)
+
+    fake_gb = BookImportCandidate(title="GB Book", source="google_books")
+    monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake_gb]))
+
+    results = await bi.search("query", "title", api_key="key")
+    assert [r.source for r in results] == ["google_books"]
+
+
+@pytest.mark.anyio
+async def test_search_skips_google_when_fallback_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Disabling the fallback must stop the Google request entirely."""
+    for flag, value in (
+        ("open_library_import_search_enabled", False),
+        ("bnf_import_search_enabled", False),
+        ("inventaire_import_search_enabled", False),
+        ("library_of_congress_import_search_enabled", False),
+        ("hardcover_import_search_enabled", False),
+        ("google_books_import_search_enabled", False),
+    ):
+        monkeypatch.setattr(bi.settings, flag, value)
+
+    google = AsyncMock(return_value=[BookImportCandidate(title="GB", source="google_books")])
+    monkeypatch.setattr(bi, "_search_google_books", google)
+
+    results = await bi.search("query", "title", api_key="key")
+    assert results == []
+    google.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_search_with_progress_reports_disabled_google_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    for flag, value in (
+        ("open_library_import_search_enabled", False),
+        ("bnf_import_search_enabled", False),
+        ("inventaire_import_search_enabled", False),
+        ("library_of_congress_import_search_enabled", False),
+        ("hardcover_import_search_enabled", False),
+        ("google_books_import_search_enabled", False),
+    ):
+        monkeypatch.setattr(bi.settings, flag, value)
+
+    google = AsyncMock(return_value=[BookImportCandidate(title="GB", source="google_books")])
+    monkeypatch.setattr(bi, "_search_google_books", google)
+
+    events = []
+    async for e in bi.search_with_progress("query", "title", api_key="key"):
+        events.append(e)
+
+    assert any(
+        e.get("stage") == "google_books" and e.get("reason") == "disabled" for e in events
+    )
+    google.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_search_with_progress_still_completes_without_parallel_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Google-only deployment is valid and must still emit a complete event."""
+    for flag, value in (
+        ("open_library_import_search_enabled", False),
+        ("bnf_import_search_enabled", False),
+        ("inventaire_import_search_enabled", False),
+        ("library_of_congress_import_search_enabled", False),
+        ("hardcover_import_search_enabled", False),
+        ("google_books_import_search_enabled", True),
+    ):
+        monkeypatch.setattr(bi.settings, flag, value)
+
+    fake_gb = BookImportCandidate(title="GB Book", source="google_books")
+    monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake_gb]))
+
+    events = []
+    async for e in bi.search_with_progress("query", "title", api_key="key"):
+        events.append(e)
+
+    complete = [e for e in events if e.get("stage") == "complete"]
+    assert len(complete) == 1
+    assert len(complete[0]["results"]) == 1
+
+
+# ── _parse_page_count ──────────────────────────────────────────────────────────
+
+def test_parse_page_count_valid() -> None:
+    assert bi._parse_page_count("1 vol. (265 p.) ; 20 cm") == 265
+    assert bi._parse_page_count("412 p. ; 22 cm.") == 412
+    assert bi._parse_page_count("1,234 p.") == 1234
+    assert bi._parse_page_count("528 p. : 23 cm.") == 528
+
+
+def test_parse_page_count_invalid() -> None:
+    assert bi._parse_page_count("no pages") is None
+    assert bi._parse_page_count("") is None
+
+
+# ── Source registry ─────────────────────────────────────────────────────────────
+
+def test_book_sources_registry() -> None:
+    stages = [s.stage for s in bi._build_sources("")]
+    assert "open_library" in stages
+    assert "bnf" in stages
+    assert "inventaire" in stages
+    assert "library_of_congress" in stages
+    assert "hardcover" in stages

@@ -23,6 +23,23 @@ from app.schemas import BookImportCandidate
 from app.services import book_import
 
 
+@pytest.fixture(autouse=True)
+def _only_legacy_sources(monkeypatch: MonkeyPatch) -> None:
+    """Run this module's tests with only Open Library, Hardcover and Google Books active.
+
+    The tests here predate the BnF / Inventaire / Library of Congress providers and
+    assert on exact result counts from the original two parallel sources. Disabling
+    the newer keyless providers keeps those expectations valid and keeps the suite
+    free of real network calls. Their own behaviour is covered in test_book_import.py.
+    """
+    monkeypatch.setattr(settings, "bnf_import_search_enabled", False)
+    monkeypatch.setattr(settings, "inventaire_import_search_enabled", False)
+    monkeypatch.setattr(settings, "library_of_congress_import_search_enabled", False)
+    # Hardcover and Google Books ship disabled; these tests still exercise them.
+    monkeypatch.setattr(settings, "hardcover_import_search_enabled", True)
+    monkeypatch.setattr(settings, "google_books_import_search_enabled", True)
+
+
 # ── Fake response data ─────────────────────────────────────────────────────────
 
 OPEN_LIBRARY_DUNE_DOC = {
@@ -1004,6 +1021,32 @@ def test_import_book_cover_failure_skips_cover(client: TestClient, monkeypatch: 
     resp = client.post("/api/import", json=payload)
     assert resp.status_code == 201
     assert resp.json()["cover_url"] is None
+
+
+def test_import_book_rejects_private_cover_url(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    """A candidate cover URL pointing at a private address must never be fetched (SSRF)."""
+    monkeypatch.setattr(settings, "covers_dir", str(tmp_path))
+    fetched: list[str] = []
+
+    async def fake_download(url: str, covers_dir: str, http_client: httpx.AsyncClient, user_id: int | None) -> str | None:
+        fetched.append(url)  # pragma: no cover - must never run
+        return "cover.jpg"
+
+    monkeypatch.setattr(import_router, "download_cover", fake_download)
+
+    payload = {
+        "candidate": {
+            "title": "Internal Service",
+            "isbn": "9780000000001",
+            "cover_url": "http://169.254.169.254/latest/meta-data/",
+            "source": "bnf",
+        },
+        "reading_status": "want_to_read",
+    }
+    resp = client.post("/api/import", json=payload)
+    assert resp.status_code == 201
+    assert resp.json()["cover_url"] is None
+    assert fetched == []
 
 
 def test_import_book_no_cover_url_skips_download(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:

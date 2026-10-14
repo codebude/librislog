@@ -96,6 +96,13 @@ function makeStreamFinishing(results: BookImportCandidate[]) {
 	};
 }
 
+function makeStreamWithStages(stages: SearchStage[]) {
+	return async function* (_q: unknown, _t: unknown, _m: unknown, _signal?: AbortSignal) {
+		for (const stage of stages) yield stage;
+		yield stageComplete([]);
+	};
+}
+
 async function typeQueryAndSearch() {
 	const input = screen.getByPlaceholderText(/Search by title or author/);
 	await fireEvent.input(input, { target: { value: 'dune' } });
@@ -110,6 +117,95 @@ describe('ImportSearch', () => {
 
 	afterEach(() => {
 		cleanup();
+	});
+
+	describe('source stage reporting', () => {
+		it('renders a row per reported source with its human readable name', async () => {
+			mockSearchStream.mockImplementation(
+				makeStreamWithStages([
+					{ stage: 'open_library', status: 'done', count: 0 },
+					{ stage: 'bnf', status: 'done', count: 1 },
+					{ stage: 'inventaire', status: 'done', count: 1 },
+					{ stage: 'library_of_congress', status: 'error', reason: 'backend_error' },
+					{ stage: 'hardcover', status: 'skipped', reason: 'no_api_token' }
+				])
+			);
+
+			render(ImportSearch, {});
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('BnF - 1 result')).toBeInTheDocument();
+				expect(screen.getByText('Inventaire - 1 result')).toBeInTheDocument();
+				expect(screen.getByText('Open Library - 0 results')).toBeInTheDocument();
+				expect(screen.getByText(/Library of Congress backend error/)).toBeInTheDocument();
+				expect(screen.getByText(/Hardcover skipped/)).toBeInTheDocument();
+			});
+		});
+
+		it('shows a searching row for a source before its result arrives', async () => {
+			mockSearchStream.mockImplementation(
+				makeStreamWithStages([
+					{ stage: 'inventaire', status: 'searching' },
+					{ stage: 'inventaire', status: 'done', count: 2 }
+				])
+			);
+
+			render(ImportSearch, {});
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Inventaire - 2 results')).toBeInTheDocument();
+			});
+			// The searching row was replaced by the terminal one, not stacked on top of it.
+			expect(screen.queryByText('Searching Inventaire...')).not.toBeInTheDocument();
+		});
+
+		it('does not crash on an unknown source stage', async () => {
+			mockSearchStream.mockImplementation(
+				makeStreamWithStages([
+					{ stage: 'some_new_source', status: 'done', count: 1 } as unknown as SearchStage
+				])
+			);
+
+			render(ImportSearch, {});
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('some_new_source - 1 result')).toBeInTheDocument();
+			});
+		});
+
+		it('never renders a raw i18n key for a searching stage', async () => {
+			// The test translator falls back to the message id, so a missing key would
+			// otherwise show up as "import.sourceSearching" with no visible failure.
+			mockSearchStream.mockImplementation(
+				makeStreamWithStages([{ stage: 'library_of_congress', status: 'searching' }])
+			);
+
+			render(ImportSearch, {});
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Searching Library of Congress...')).toBeInTheDocument();
+			});
+			expect(screen.queryByText(/import\./)).not.toBeInTheDocument();
+		});
+
+		it('reports ISBN-only sources as skipped on a title search', async () => {
+			mockSearchStream.mockImplementation(
+				makeStreamWithStages([
+					{ stage: 'inventaire', status: 'skipped', reason: 'title_search_unsupported' }
+				])
+			);
+
+			render(ImportSearch, {});
+			await typeQueryAndSearch();
+
+			await waitFor(() => {
+				expect(screen.getByText('Inventaire skipped (ISBN searches only)')).toBeInTheDocument();
+			});
+		});
 	});
 
 	describe('cancelable search', () => {
@@ -267,8 +363,8 @@ describe('ImportSearch', () => {
 			await fireEvent.click(screen.getByRole('button', { name: 'Show editions' }));
 
 			await waitFor(() => {
-				expect(screen.getByText('hardcover')).toBeInTheDocument();
-				expect(screen.getAllByText('open_library').length).toBeGreaterThanOrEqual(1);
+				expect(screen.getByText('Hardcover')).toBeInTheDocument();
+				expect(screen.getAllByText('Open Library').length).toBeGreaterThanOrEqual(1);
 			});
 		});
 
@@ -296,9 +392,9 @@ describe('ImportSearch', () => {
 			// Select the hardcover variant and then import.
 			await fireEvent.click(screen.getByRole('button', { name: 'Show editions' }));
 			await waitFor(() => {
-				expect(screen.getByText('hardcover')).toBeInTheDocument();
+				expect(screen.getByText('Hardcover')).toBeInTheDocument();
 			});
-			const variantButtons = screen.getAllByRole('button').filter((b) => b.textContent?.includes('hardcover'));
+			const variantButtons = screen.getAllByRole('button').filter((b) => b.textContent?.includes('Hardcover'));
 			await fireEvent.click(variantButtons[0]);
 
 			const acquisitionSelect = screen.getByRole('combobox', { name: /Possession/i });
@@ -530,9 +626,9 @@ describe('ImportSearch', () => {
 			// Select the hardcover variant.
 			await fireEvent.click(screen.getByRole('button', { name: 'Show editions' }));
 			await waitFor(() => {
-				expect(screen.getByRole('button', { name: /^hardcover/ })).toBeInTheDocument();
+				expect(screen.getByRole('button', { name: /^Hardcover/ })).toBeInTheDocument();
 			});
-			const hardcoverButton = screen.getByRole('button', { name: /^hardcover/ });
+			const hardcoverButton = screen.getByRole('button', { name: /^Hardcover/ });
 			await fireEvent.click(hardcoverButton);
 			expect(hardcoverButton).toHaveAttribute('aria-pressed', 'true');
 			expect(hardcoverButton).toHaveClass('border-primary', 'bg-primary/10', 'cursor-pointer');
@@ -647,9 +743,9 @@ describe('ImportSearch', () => {
 			// Select the hardcover variant.
 			await fireEvent.click(screen.getByRole('button', { name: 'Show editions' }));
 			await waitFor(() => {
-				expect(screen.getByRole('button', { name: /^hardcover/ })).toBeInTheDocument();
+				expect(screen.getByRole('button', { name: /^Hardcover/ })).toBeInTheDocument();
 			});
-			await fireEvent.click(screen.getByRole('button', { name: /^hardcover/ }));
+			await fireEvent.click(screen.getByRole('button', { name: /^Hardcover/ }));
 
 			// Set acquisition status to enable the Add to Basket button.
 			// happy-dom's :checked fallback always resolves to the first

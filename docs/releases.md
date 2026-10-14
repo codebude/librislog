@@ -16,6 +16,7 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 
 | Version | Date | Type |
 |---|---|---|
+| [Unreleased](#unreleased-more-book-sources) | — | In development |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
@@ -32,6 +33,33 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## Unreleased: More Book Sources
+
+<Badge type="warning" text="In development" />
+
+**Summary:** Adds three more metadata sources to the import search, brings back coverage for non-English editions that Open Library misses, adds an on/off switch for every import source, and keeps the Add Book dialog header reachable while scrolling.
+
+**Features**
+- 📚 **Bibliothèque nationale de France (BnF)** as a search source, queried over the public SRU endpoint. No API key needed. Strong coverage of French editions: an ISBN such as `9791020923554` returns no result from Open Library but a full record from BnF, with title, subtitle, authors, publisher, year, page count, language, and subject headings. BnF answers one ISBN with several records, including a commercial barcode stub; those are grouped per ISBN so only the richest record is imported
+- 🔗 **Inventaire.io** as a search source, queried over its public entities API. No API key needed. It aggregates data from several national libraries and is the only new source that supplies cover images. Inventaire answers ISBN lookups only, because it exposes no title search, so it is reported as skipped on a title search instead of returning an empty result
+- 🏛️ **Library of Congress** as a search source, queried over the official SRU server. No API key needed. Coverage is US and English oriented, so it complements rather than replaces the other sources. **This source is only reachable over plain HTTP**, so its queries and responses travel unencrypted; it can be switched off if that is not acceptable in your network. See the [Configuration guide](/guide/configuration)
+- 🔀 **Every import source can be switched on or off individually.** Six new `*_IMPORT_SEARCH_ENABLED` settings cover Open Library, BnF, Inventaire.io, the Library of Congress, Hardcover, and the Google Books fallback. Sources that are switched off are not queried at all
+- 🔑 **Hardcover and Google Books are set to `false` in `.env.example`.** Neither can answer a query without credentials, so the example config recommends switching them off unless a token or key is configured. The built-in default stays `true`, so existing installs that never set the variable keep their current behavior after upgrading. A source left on without its credential is reported as skipped and makes no request
+- 🚦 **Startup guard for unusable sources.** If no source can answer, the backend refuses to start and names the settings to change, instead of silently returning no search results forever. That includes the case where only Hardcover and Google Books are enabled without their credentials
+- 🌍 **Localized source names.** Import sources are shown under their translated name in the search progress list and in the edition chips, in all five UI languages
+
+**Improvements**
+- 📌 **Sticky Add Book dialog header.** The dialog title and the close button stay pinned to the top of the window while the content scrolls, so closing the dialog no longer requires scrolling back up after a long list of results
+- 🔍 **Search results report each source.** The progress list names every source that was queried, including those that were skipped and why
+
+**Bug fixes / security**
+- 🛡️ **Remote SRU responses are parsed with entity expansion disabled.** The BnF and Library of Congress responses are untrusted remote XML and are now parsed defensively, so a hostile or malformed response cannot exhaust memory or read local files through entity references
+- 🛡️ **Import rejects cover URLs that point at private addresses.** A book candidate is submitted by the client, so its cover URL is untrusted input. URLs resolving to loopback, private, or link-local addresses are now rejected before download instead of being fetched
+
+**Breaking changes:** None. Existing installs keep working untouched: every source defaults to `true`, so no configured source is lost on upgrade. To follow the recommended configuration, set `HARDCOVER_IMPORT_SEARCH_ENABLED=false` and `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false` unless you have configured a token or key. If your deployment blocks outbound plain HTTP on port 210, set `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED=false`.
 
 ---
 
