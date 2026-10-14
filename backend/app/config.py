@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     cover_import_timeout_seconds: int = 15
     hardcover_app_api_token: str = ""
     thalia_cover_search_enabled: bool = False
+    open_library_import_search_enabled: bool = True
+    hardcover_import_search_enabled: bool = True
+    google_books_import_search_enabled: bool = True
+    bnf_import_search_enabled: bool = True
+    inventaire_import_search_enabled: bool = True
+    library_of_congress_import_search_enabled: bool = True
     embed_enabled: bool = True
     mail_server: str = ""
     mail_port: int = 587

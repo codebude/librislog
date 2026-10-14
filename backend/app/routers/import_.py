@@ -17,6 +17,7 @@ from app.models import Book, User
 from app.schemas import BookImportCandidate, BookImportRequest, BookRead
 from app.services import book_import
 from app.services.authors import resolve_authors_payload, sync_book_authors
+from app.services.cover_import import is_safe_cover_import_url
 from app.services.cover_storage import download_cover
 from app.services.tags import build_book_read, sync_book_tags
 
@@ -134,6 +135,10 @@ async def import_book(
 
     # Attempt to download and cache the cover locally; fall back to external URL.
     cover_url = c.cover_url
+    if cover_url and not is_safe_cover_import_url(cover_url):
+        # The candidate is user-submitted, so its cover URL is untrusted input.
+        logger.warning("Rejecting cover URL for unsafe address: %s", cover_url)
+        cover_url = None
     if cover_url:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             filename = await download_cover(cover_url, settings.covers_dir, client, current_user.id)

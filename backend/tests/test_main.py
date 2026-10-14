@@ -193,6 +193,56 @@ async def test_proxy_headers_middleware_skips_when_no_header() -> None:
     assert received["scheme"] == "http"
 
 
+# ── Import source startup validation ───────────────────────────────────────────
+
+def _import_source_flags() -> list[str]:
+    """Every per-source enable flag, derived from the registry itself."""
+    from app.services import book_import
+
+    return [f"{spec.stage}_import_search_enabled" for spec in book_import._build_sources("")]
+
+
+@pytest.mark.anyio
+async def test_lifespan_refuses_to_start_without_any_import_source(monkeypatch) -> None:
+    """Disabling every book import source must stop startup with an actionable error."""
+    from app.config import settings
+    from app.services import book_import
+    import app.main as main_module
+
+    for flag in _import_source_flags():
+        monkeypatch.setattr(settings, flag, False)
+    monkeypatch.setattr(settings, "google_books_import_search_enabled", False)
+
+    with patch("app.main._periodic_maintenance", new=AsyncMock()):
+        with pytest.raises(RuntimeError) as exc_info:
+            async with main_module.lifespan(main_module.app):
+                pass
+
+    message = str(exc_info.value)
+    assert "At least one import search provider" in message
+    # The error must name the variables the operator can set.
+    for stage in (s.stage for s in book_import._build_sources("")):
+        assert f"{stage.upper()}_IMPORT_SEARCH_ENABLED" in message
+    assert "GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED" in message
+
+
+@pytest.mark.anyio
+async def test_lifespan_starts_with_a_single_import_source(monkeypatch) -> None:
+    """One enabled source is enough to start."""
+    from app.config import settings
+    import app.main as main_module
+
+    for flag in _import_source_flags():
+        monkeypatch.setattr(settings, flag, False)
+    monkeypatch.setattr(settings, "google_books_import_search_enabled", False)
+    monkeypatch.setattr(settings, "bnf_import_search_enabled", True)
+
+    with patch("app.main._periodic_maintenance", new=AsyncMock()):
+        with patch("app.main._telemetry_heartbeat", new=AsyncMock()):
+            async with main_module.lifespan(main_module.app):
+                pass
+
+
 @pytest.mark.anyio
 async def test_lifespan_logs_warning_when_mail_not_configured(monkeypatch) -> None:
     """Lifespan should warn when MAIL_SERVER or MAIL_FROM are not configured."""

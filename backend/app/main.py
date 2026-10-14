@@ -76,9 +76,33 @@ async def _telemetry_heartbeat() -> None:
         await asyncio.sleep(_TELEMETRY_INTERVAL_SECONDS)
 
 
+def _validate_import_sources() -> None:
+    """Ensure at least one import search provider is enabled.
+
+    The list of providers is taken from the book import registry, so a newly added
+    source cannot silently escape this check.
+    """
+    from app.services import book_import
+
+    active = [spec.stage for spec in book_import._build_sources("") if spec.enabled()]
+    if book_import._google_fallback_enabled():
+        active.append("google_books")
+
+    if not active:
+        variables = ", ".join(
+            sorted(f"{spec.stage.upper()}_IMPORT_SEARCH_ENABLED" for spec in book_import._build_sources(""))
+        )
+        raise RuntimeError(
+            "At least one import search provider must be enabled. "
+            f"Set at least one of {variables}, or "
+            "GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED, to true."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: create required directories and start background tasks."""
+    _validate_import_sources()
     Path(settings.covers_dir).mkdir(parents=True, exist_ok=True)
     Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
     cleanup_temp_files()
