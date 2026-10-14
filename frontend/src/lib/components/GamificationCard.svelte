@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { BookOpen, CalendarDays, CalendarRange, Flame, Library, Trophy } from '@lucide/svelte';
-	import type { GoalProgress, GoalType } from '$lib/types';
-	import { _ } from '$lib/i18n';
+	import type { GoalProgress, GoalType } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
 
 	interface Props {
 		currentStreak: number;

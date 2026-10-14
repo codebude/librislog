@@ -1,13 +1,13 @@
 	<script lang="ts">
 	import { onMount } from 'svelte';
-	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
-	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '$lib/date';
-	import { getTimezone } from '$lib/stores/timezone';
-	import { loadUserSettings, userSettings } from '$lib/stores/userSettings';
-	import type { CoverCandidate } from '$lib/types';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
+	import { formatDate, fromDateInputValue, toDateInputValue, today as tzToday } from '#lib/date.js';
+	import { getTimezone } from '#lib/stores/timezone.js';
+	import { loadUserSettings, userSettings } from '#lib/stores/userSettings.js';
+	import type { CoverCandidate } from '#lib/types.js';
 	import StarRating from './StarRating.svelte';
 	import CoverPicker from './CoverPicker.svelte';
 	import SuggestionInput from './SuggestionInput.svelte';

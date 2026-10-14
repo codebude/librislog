@@ -1,8 +1,8 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
+	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
 	import ImportSearch from './ImportSearch.svelte';
 	import BasketPanel from './BasketPanel.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';

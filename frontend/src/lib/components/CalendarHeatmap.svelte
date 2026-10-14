@@ -1,11 +1,11 @@
 <script lang="ts">
-	import '$lib/chartjs/register';
+	import '#lib/chartjs/register.js';
 	import { Chart } from 'svelte-chartjs';
-	import { mixDaisyColors, getDaisyColorRgb } from '$lib/chartjs/theme';
-	import { locale } from '$lib/i18n';
-	import { themeApplyCount } from '$lib/stores/theme';
+	import { mixDaisyColors, getDaisyColorRgb } from '#lib/chartjs/theme.js';
+	import { locale } from '#lib/i18n/index.js';
+	import { themeApplyCount } from '#lib/stores/theme.js';
 	import { onMount } from 'svelte';
-	import type { DailyPages } from '$lib/types';
+	import type { DailyPages } from '#lib/types.js';
 	import type { Chart as ChartJS, ChartData, ChartOptions, ScriptableContext, TooltipItem } from 'chart.js';
 
 	let {

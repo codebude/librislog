@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
+import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '#lib/utils/secureContext.js';
 
 describe('isSecureContext', () => {
 	const originalDescriptor = Object.getOwnPropertyDescriptor(window, 'isSecureContext');

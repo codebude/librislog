@@ -1,22 +1,22 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, Book, Medium, ReadingStatus, LibraryStats, SortField, SortOrder } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { page } from '$app/stores';
+	import type { AcquisitionStatus, Book, Medium, ReadingStatus, LibraryStats, SortField, SortOrder } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import { toasts } from '$lib/toasts';
-	import { shouldShowActionToast } from '$lib/errors';
-	import BookCard from '$lib/components/BookCard.svelte';
-	import BookListItem from '$lib/components/BookListItem.svelte';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import AddBookModal from '$lib/components/AddBookModal.svelte';
-	import SearchBar from '$lib/components/SearchBar.svelte';
-	import SearchHelp from '$lib/components/SearchHelp.svelte';
+	import { toasts } from '#lib/toasts.js';
+	import { shouldShowActionToast } from '#lib/errors.js';
+	import BookCard from '#lib/components/BookCard.svelte';
+	import BookListItem from '#lib/components/BookListItem.svelte';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
+	import AddBookModal from '#lib/components/AddBookModal.svelte';
+	import SearchBar from '#lib/components/SearchBar.svelte';
+	import SearchHelp from '#lib/components/SearchHelp.svelte';
 	import { BookOpen as BookOpenIcon, Book as BookIcon, Check, Library, X } from '@lucide/svelte';
 
-	type Tab = {
+	type Tab = { 
 		status: ReadingStatus | 'all';
 		labelKey: string;
 		Icon: typeof BookOpenIcon;
@@ -39,12 +39,10 @@
 	};
 
 	const PAGE_SIZE = 40;
+	let activeStatus = $derived<ReadingStatus | 'all'>(page.url.searchParams.get('status') as ReadingStatus | 'all' ?? 'want_to_read');
 
-	let activeStatus = $derived<ReadingStatus | 'all'>(
-		($page.url.searchParams.get('status') as ReadingStatus | 'all') ?? 'want_to_read'
-	);
 	let requestedBookId = $derived.by(() => {
-		const raw = $page.url.searchParams.get('bookId');
+		const raw = page.url.searchParams.get('bookId');
 		if (!raw) return null;
 		const parsed = Number.parseInt(raw, 10);
 		return Number.isNaN(parsed) ? null : parsed;
@@ -58,12 +56,10 @@
 	let loadingMore = $state(false);
 	let hasMore = $state(true);
 	let nextOffset = $state(0);
-	let viewMode = $state<'large' | 'small' | 'list'>(
-		typeof window !== 'undefined' &&
-		(localStorage.getItem('libraryViewMode') === 'small' || localStorage.getItem('libraryViewMode') === 'list')
-			? (localStorage.getItem('libraryViewMode') as 'large' | 'small' | 'list')
-			: 'large'
-	);
+
+	let viewMode = $state<'large' | 'small' | 'list'>(typeof window !== 'undefined' && (localStorage.getItem('libraryViewMode') === 'small' || localStorage.getItem('libraryViewMode') === 'list')
+		? localStorage.getItem('libraryViewMode') as 'large' | 'small' | 'list'
+		: 'large');
 
 	function setViewMode(mode: 'large' | 'small' | 'list') {
 		viewMode = mode;
@@ -265,7 +261,7 @@
 			drawerOpen = false;
 			books = books.filter((b) => b.id !== updated.id);
 		} else {
-			books = books.map((b) => (b.id === updated.id ? updated : b));
+			books = books.map((b) => b.id === updated.id ? updated : b);
 		}
 		void refreshStatusCounts();
 	}
@@ -365,7 +361,7 @@
 			<SearchBar
 				bind:value={searchQuery}
 				placeholder={$_('common.searchBooks')}
-				onSearch={(q) => (searchQuery = q)}
+				onSearch={(q) => searchQuery = q}
 			/>
 			<SearchHelp />
 			{#if searchQuery}
@@ -381,11 +377,15 @@
 				onclick={() => setViewMode('large')}
 				aria-label="Large cards"
 			>
-				<svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-					<rect x="1" y="1" width="6" height="6" rx="1"/>
-					<rect x="9" y="1" width="6" height="6" rx="1"/>
-					<rect x="1" y="9" width="6" height="6" rx="1"/>
-					<rect x="9" y="9" width="6" height="6" rx="1"/>
+				<svg
+					class="w-4 h-4"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+				>
+					<rect x="1" y="1" width="6" height="6" rx="1"></rect>
+					<rect x="9" y="1" width="6" height="6" rx="1"></rect>
+					<rect x="1" y="9" width="6" height="6" rx="1"></rect>
+					<rect x="9" y="9" width="6" height="6" rx="1"></rect>
 				</svg>
 			</button>
 			<button
@@ -394,16 +394,20 @@
 				onclick={() => setViewMode('small')}
 				aria-label="Small cards"
 			>
-				<svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-					<rect x="1" y="1" width="4" height="4" rx="0.5"/>
-					<rect x="6" y="1" width="4" height="4" rx="0.5"/>
-					<rect x="11" y="1" width="4" height="4" rx="0.5"/>
-					<rect x="1" y="6" width="4" height="4" rx="0.5"/>
-					<rect x="6" y="6" width="4" height="4" rx="0.5"/>
-					<rect x="11" y="6" width="4" height="4" rx="0.5"/>
-					<rect x="1" y="11" width="4" height="4" rx="0.5"/>
-					<rect x="6" y="11" width="4" height="4" rx="0.5"/>
-					<rect x="11" y="11" width="4" height="4" rx="0.5"/>
+				<svg
+					class="w-4 h-4"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+				>
+					<rect x="1" y="1" width="4" height="4" rx="0.5"></rect>
+					<rect x="6" y="1" width="4" height="4" rx="0.5"></rect>
+					<rect x="11" y="1" width="4" height="4" rx="0.5"></rect>
+					<rect x="1" y="6" width="4" height="4" rx="0.5"></rect>
+					<rect x="6" y="6" width="4" height="4" rx="0.5"></rect>
+					<rect x="11" y="6" width="4" height="4" rx="0.5"></rect>
+					<rect x="1" y="11" width="4" height="4" rx="0.5"></rect>
+					<rect x="6" y="11" width="4" height="4" rx="0.5"></rect>
+					<rect x="11" y="11" width="4" height="4" rx="0.5"></rect>
 				</svg>
 			</button>
 			<button
@@ -412,10 +416,14 @@
 				onclick={() => setViewMode('list')}
 				aria-label="List view"
 			>
-				<svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-					<rect x="1" y="2" width="14" height="2" rx="0.5"/>
-					<rect x="1" y="7" width="14" height="2" rx="0.5"/>
-					<rect x="1" y="12" width="14" height="2" rx="0.5"/>
+				<svg
+					class="w-4 h-4"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+				>
+					<rect x="1" y="2" width="14" height="2" rx="0.5"></rect>
+					<rect x="1" y="7" width="14" height="2" rx="0.5"></rect>
+					<rect x="1" y="12" width="14" height="2" rx="0.5"></rect>
 				</svg>
 			</button>
 		</div>
@@ -438,9 +446,11 @@
 				<option value="asc">{$_('common.asc')}</option>
 			</select>
 		</div>
-		<button class="btn btn-primary btn-sm" onclick={() => (addBookOpen = true)}>
-			+ {$_('app.addBook')}
-		</button>
+
+		<button
+			class="btn btn-primary btn-sm"
+			onclick={() => addBookOpen = true}
+		>+ {$_('app.addBook')}</button>
 	</div>
 
 	{#if loading}
@@ -451,12 +461,20 @@
 		<div class="text-center py-16 text-base-content/40">
 			<BookOpenIcon class="w-12 h-12 mx-auto mb-2 opacity-50" />
 			<p>{$_('common.noBooksYet')}</p>
-			<button class="btn btn-primary btn-sm mt-4" onclick={() => (addBookOpen = true)}>{$_('common.addFirstBook')}</button>
+
+			<button
+				class="btn btn-primary btn-sm mt-4"
+				onclick={() => addBookOpen = true}
+			>{$_('common.addFirstBook')}</button>
 		</div>
 	{:else if viewMode === 'list'}
 		<div class="flex flex-col gap-1.5">
 			{#each books as book (book.id)}
-				<BookListItem {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
+				<BookListItem
+					book={book}
+					onClick={openDetailView}
+					currentPage={progressMap[book.id] ?? 0}
+				/>
 			{/each}
 		</div>
 		<div bind:this={loadMoreAnchor} class="h-1"></div>
@@ -472,7 +490,12 @@
 				: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}"
 		>
 			{#each books as book (book.id)}
-				<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} compact={viewMode === 'small'} />
+				<BookCard
+					book={book}
+					onClick={openDetailView}
+					currentPage={progressMap[book.id] ?? 0}
+					compact={viewMode === 'small'}
+				/>
 			{/each}
 		</div>
 		<div bind:this={loadMoreAnchor} class="h-1"></div>

@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { _, locale } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import type { Book, DailyPagesResponse, StatisticsRange, StatisticsResponse } from '$lib/types';
-	import { toasts } from '$lib/toasts';
-	import { formatLanguageCode } from '$lib/utils/language';
-	import BarChart from '$lib/components/BarChart.svelte';
-	import CalendarHeatmap from '$lib/components/CalendarHeatmap.svelte';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import RatedBooksSection from '$lib/components/RatedBooksSection.svelte';
-	import StatisticsRangeSelector from '$lib/components/StatisticsRangeSelector.svelte';
+	import { _, locale } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import type { Book, DailyPagesResponse, StatisticsRange, StatisticsResponse } from '#lib/types.js';
+	import { toasts } from '#lib/toasts.js';
+	import { formatLanguageCode } from '#lib/utils/language.js';
+	import BarChart from '#lib/components/BarChart.svelte';
+	import CalendarHeatmap from '#lib/components/CalendarHeatmap.svelte';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
+	import RatedBooksSection from '#lib/components/RatedBooksSection.svelte';
+	import StatisticsRangeSelector from '#lib/components/StatisticsRangeSelector.svelte';
 	import { RotateCcw } from '@lucide/svelte';
 
 	type Segment = {

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import en from '$lib/i18n/locales/en.json';
-import type { PublicProfileSectionKey, PublicProfileStatisticsKey } from '$lib/types';
+import en from '#lib/i18n/locales/en.json';
+import type { PublicProfileSectionKey, PublicProfileStatisticsKey } from '#lib/types.js';
 import {
 	PUBLIC_PROFILE_SECTIONS,
 	PUBLIC_PROFILE_STATISTICS,

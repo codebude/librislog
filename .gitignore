@@ -50,6 +50,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+# Vitest 5 writes generated reports and artifacts here
+.vitest/
 
 # Translations
 *.mo

@@ -1,11 +1,19 @@
 /// <reference types="vitest/config" />
+import adapter from '@sveltejs/adapter-static';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit(), svelteTesting()],
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			adapter: adapter({ fallback: '200.html' }),
+			version: { name: process.env.APP_VERSION || 'v0.0.0-dev' }
+		}),
+		svelteTesting()
+	],
 	server: {
 		host: '0.0.0.0',
 		proxy: {

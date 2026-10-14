@@ -1,4 +1,4 @@
-import { version } from '$lib/version';
+import { version } from '#lib/version.js';
 
 export interface UpdateInfo {
 	latestVersion: string;

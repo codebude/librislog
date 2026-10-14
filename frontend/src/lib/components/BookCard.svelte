@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Book } from '$lib/types';
-	import { _ } from '$lib/i18n';
+	import type { Book } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
 	import StarRating from './StarRating.svelte';
 	import { ShoppingCart } from '@lucide/svelte';
-	import { formatAuthors } from '$lib/utils/authors';
+	import { formatAuthors } from '#lib/utils/authors.js';
 
 	let {
 		book,

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import dayjs from 'dayjs';
-	import type { Book } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _, locale } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
-	import { shouldShowActionToast } from '$lib/errors';
-	import { getTimezone } from '$lib/stores/timezone';
-	import { formatAuthors } from '$lib/utils/authors';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
+	import type { Book } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _, locale } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
+	import { shouldShowActionToast } from '#lib/errors.js';
+	import { getTimezone } from '#lib/stores/timezone.js';
+	import { formatAuthors } from '#lib/utils/authors.js';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
 
 	const PAGE_SIZE = 40;
 

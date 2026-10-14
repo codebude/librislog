@@ -1,4 +1,4 @@
-import type { BookImportCandidate, BookImportCandidateGroup } from '$lib/types';
+import type { BookImportCandidate, BookImportCandidateGroup } from '#lib/types.js';
 
 export function normalize(value: string | null | undefined): string {
 	return (value ?? '').trim().toLowerCase();

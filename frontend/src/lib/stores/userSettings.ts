@@ -1,6 +1,6 @@
 import { get, writable } from 'svelte/store';
-import type { UserSettings } from '$lib/types';
-import { api } from '$lib/api';
+import type { UserSettings } from '#lib/types.js';
+import { api } from '#lib/api.js';
 
 export const userSettings = writable<UserSettings | null>(null);
 

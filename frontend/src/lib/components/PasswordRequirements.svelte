@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
+	import { _ } from '#lib/i18n/index.js';
 	import {
 		complexityRequirementLabels,
 		getPasswordChecks,
 		passwordChecksPassed,
 		passwordStrengthClass,
 		passwordStrengthPercent
-	} from '$lib/password';
+	} from '#lib/password.js';
 
 	let { password = '' } = $props<{ password: string }>();
 

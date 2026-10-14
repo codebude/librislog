@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { formatLanguageCode } from '$lib/utils/language';
+import { formatLanguageCode } from '#lib/utils/language.js';
 
 describe('formatLanguageCode', () => {
 	it('returns dash for null', () => {

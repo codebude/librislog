@@ -1,5 +1,5 @@
 export type ThemeMode = 'light' | 'dark' | 'custom';
-import { invalidateColorCache } from '$lib/chartjs/theme';
+import { invalidateColorCache } from '#lib/chartjs/theme.js';
 
 const DAISYUI_THEMES = [
 	'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro',

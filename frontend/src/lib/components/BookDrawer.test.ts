@@ -14,7 +14,7 @@ const mockGetSettings = vi.fn(async () => ({
 }));
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		books: {
 			update: (id: number, data: unknown) => mockBooksUpdate(id, data),
@@ -48,7 +48,7 @@ vi.mock('html5-qrcode/esm/code-decoder', () => {
 	return { Html5QrcodeShim };
 });
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

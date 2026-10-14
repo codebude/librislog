@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { page } from '$app/stores';
-	import { base } from '$app/paths';
-	import { _, setLocale, SUPPORTED_LOCALES, locale } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
+	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
+	import { _, setLocale, SUPPORTED_LOCALES, locale } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import AnimalAvatar from '#lib/components/AnimalAvatar.svelte';
 	import { Moon, Palette, Star, Sun } from '@lucide/svelte';
 	import {
 		applyThemeToDocument,
@@ -12,20 +12,24 @@
 		getThemeMode,
 		saveThemeToStorage,
 		type ThemeMode
-	} from '$lib/stores/theme';
-	import { getTimezone } from '$lib/stores/timezone';
-	import { formatDate } from '$lib/date';
-	import { formatAuthors } from '$lib/utils/authors';
-	import { formatLanguageCode } from '$lib/utils/language';
+	} from '#lib/stores/theme.js';
+	import { getTimezone } from '#lib/stores/timezone.js';
+	import { formatDate } from '#lib/date.js';
+	import { formatAuthors } from '#lib/utils/authors.js';
+	import { formatLanguageCode } from '#lib/utils/language.js';
 	import {
 		PUBLIC_PROFILE_SECTIONS,
 		PUBLIC_PROFILE_STATISTICS,
 		PUBLIC_PROFILE_STATISTICS_GROUPS
-	} from '$lib/publicProfile/sections';
-	import type { PublicProfileBook, PublicProfileResponse, PublicProfileSectionKey } from '$lib/types';
+	} from '#lib/publicProfile/sections.js';
+
+	import type {
+		PublicProfileBook,
+		PublicProfileResponse,
+		PublicProfileSectionKey
+	} from '#lib/types.js';
 
 	const GITHUB_URL = 'https://github.com/codebude/librislog';
-
 	const GITHUB_ANCHOR = `<a class="link link-neutral ml-1" href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer">LibrisLog</a>`;
 
 	const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -93,17 +97,17 @@
 
 	function safePercentage(value: number, sum: number): number {
 		if (sum <= 0) return 0;
-		return Math.min(100, Math.max(3, (value / sum) * 100));
+		return Math.min(100, Math.max(3, value / sum * 100));
 	}
 
 	function actualPercentage(value: number, sum: number): number {
-		return sum > 0 ? (value / sum) * 100 : 0;
+		return sum > 0 ? value / sum * 100 : 0;
 	}
 
 	async function load() {
 		status = 'loading';
 		try {
-			profile = await api.publicProfile.get($page.params.token ?? '');
+			profile = await api.publicProfile.get(page.params.token ?? '');
 			if (profile.language && SUPPORTED_LOCALES.includes(profile.language as (typeof SUPPORTED_LOCALES)[number])) {
 				previousLocale = $locale ?? null;
 				setLocale(profile.language as (typeof SUPPORTED_LOCALES)[number]);
@@ -140,46 +144,35 @@
 		return profile?.statistics?.[key];
 	}
 
-	const currentlyReading = $derived(
-		(profile?.books ?? []).filter((b) => b.reading_status === 'currently_reading')
-	);
-
-	const lastReadAll = $derived(
-		(profile?.books ?? [])
-			.filter((b) => b.reading_status === 'read' && b.date_finished)
-			.sort((a, b) => (a.date_finished! < b.date_finished! ? 1 : -1))
-	);
-
+	const currentlyReading = $derived((profile?.books ?? []).filter((b) => b.reading_status === 'currently_reading'));
+	const lastReadAll = $derived((profile?.books ?? []).filter((b) => b.reading_status === 'read' && b.date_finished).sort((a, b) => a.date_finished! < b.date_finished! ? 1 : -1));
 	const lastRead = $derived(lastReadAll.slice(0, lastReadLimit));
-
-	const timelineBooks = $derived(
-		(profile?.books ?? [])
-			.filter((b) => b.reading_status === 'read' && b.date_finished)
-			.sort((a, b) => (a.date_finished! < b.date_finished! ? -1 : 1))
-	);
-
+	const timelineBooks = $derived((profile?.books ?? []).filter((b) => b.reading_status === 'read' && b.date_finished).sort((a, b) => a.date_finished! < b.date_finished! ? -1 : 1));
 	const libraryBooks = $derived(profile?.books ?? []);
 
 	const filteredBooks = $derived(
 		libraryBooks.filter((b) => {
-			const q = libraryQuery.trim().toLowerCase();
-			if (!q) return true;
-			return b.title.toLowerCase().includes(q) || (b.authors ?? []).join(' ').toLowerCase().includes(q);
+		const q = libraryQuery.trim().toLowerCase();
+		if (!q) return true;
+		return b.title.toLowerCase().includes(q) || (b.authors ?? []).join(' ').toLowerCase().includes(q);
 		})
 	);
 
-	const timelineMonths = $derived(
-		[...timelineBooks.slice(-timelineLimit).reduce((map, book) => {
-			const key = book.date_finished!.slice(0, 7);
-			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(book);
-			return map;
-		}, new Map<string, PublicProfileBook[]>())]
-			.sort(([a], [b]) => (a < b ? 1 : -1))
-	);
+	const timelineMonths = $derived([
+		...timelineBooks.slice(-timelineLimit).reduce(
+			(map, book) => {
+				const key = (book.date_finished!).slice(0, 7);
+
+				if (!map.has(key)) map.set(key, []);
+				(map.get(key)!).push(book);
+				return map;
+			},
+			new Map<string, PublicProfileBook[]>()
+		)
+	].sort(([a], [b]) => a < b ? 1 : -1));
 
 	function timelineHiddenCount(monthKey: string, visibleCount: number): number {
-		return timelineBooks.filter((book) => book.date_finished!.slice(0, 7) === monthKey).length - visibleCount;
+		return timelineBooks.filter((book) => (book.date_finished!).slice(0, 7) === monthKey).length - visibleCount;
 	}
 
 	const summaryStats = $derived(PUBLIC_PROFILE_STATISTICS.filter((s) => s.group === 'summary' && statValue(s.key) !== undefined).map((s) => s.key));
@@ -228,7 +221,7 @@
 			]
 		};
 		const fixed = mappings[key] ?? [];
-		const direct = (raw as Record<string, number>);
+		const direct = raw as Record<string, number>;
 		if (key === 'status_distribution') {
 			return (mappings.status_distribution as [string, string][])
 				.map(([label, className], idx) => ({
@@ -267,7 +260,11 @@
 		const raw = statValue(key) as { month: string; pages: number }[] | { month: string; count: number }[] | { year: number; count: number }[] | undefined;
 		if (!raw) return [];
 		const isYearly = raw.length > 0 && 'year' in raw[0];
-		const rangeSize = trendRange === '12months' ? (isYearly ? 1 : 12) : trendRange === '3years' ? (isYearly ? 3 : 36) : null;
+
+		const rangeSize = trendRange === '12months'
+			? isYearly ? 1 : 12
+			: trendRange === '3years' ? isYearly ? 3 : 36 : null;
+
 		const latest = isYearly
 			? Math.max(...raw.map((entry) => (entry as { year: number }).year))
 			: Math.max(...raw.map((entry) => {
@@ -289,7 +286,7 @@
 
 	function barWidth(value: number, max: number): string {
 		if (max <= 0) return '4px';
-		return `${Math.max(4, Math.round((value / max) * 100))}px`;
+		return `${Math.max(4, Math.round(value / max * 100))}px`;
 	}
 </script>
 
@@ -302,11 +299,17 @@
 </svelte:head>
 
 <div class="min-h-screen bg-base-200 text-base-content">
-	<header class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-200">
-		<div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-			<a href={base + '/'} class="flex items-center gap-2">
-				<span class="text-lg font-bold tracking-tight">{$_('app.title')}</span>
-			</a>
+	<header
+		class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-200"
+	>
+		<div
+			class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3"
+		>
+			<a
+				href={resolve('/')}
+				class="flex items-center gap-2"
+			><span class="text-lg font-bold tracking-tight">{$_('app.title')}</span></a>
+
 			<div class="flex items-center gap-2">
 				<button
 					class="btn btn-ghost btn-sm btn-circle"
@@ -323,7 +326,15 @@
 					rel="noopener noreferrer"
 					aria-label={$_('publicProfile.page.githubLink')}
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+					>
+						<path
+							d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0"
+						></path>
+					</svg>
 				</a>
 			</div>
 		</div>
@@ -349,7 +360,11 @@
 					<p class="text-3xl">🔒</p>
 					<h1 class="text-lg font-semibold">{$_('publicProfile.page.loginRequired')}</h1>
 					<p class="text-sm text-base-content/60">{$_('publicProfile.page.loginRequiredDesc')}</p>
-					<a class="btn btn-primary mt-2" href={base + '/login'}>{$_('publicProfile.page.loginButton')}</a>
+
+					<a
+						class="btn btn-primary mt-2"
+						href={resolve('/login')}
+					>{$_('publicProfile.page.loginButton')}</a>
 				</div>
 			</div>
 		{:else if status === 'error'}
@@ -447,9 +462,10 @@
 								{/each}
 							</ul>
 							{#if lastReadAll.length > lastRead.length}
-								<button class="btn btn-ghost btn-sm self-start mt-1" onclick={() => (lastReadLimit += 10)}>
-									{$_('publicProfile.page.showMore')}
-								</button>
+								<button
+									class="btn btn-ghost btn-sm self-start mt-1"
+									onclick={() => lastReadLimit += 10}
+								>{$_('publicProfile.page.showMore')}</button>
 							{/if}
 						{/if}
 					</div>
@@ -474,16 +490,16 @@
 										<div class="mt-3 divide-y divide-base-200">
 											{#each books as book}
 													<div class="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0">
-														{#if book.cover_url}
+													{#if book.cover_url}
 															<img src={book.cover_url} alt="" class="h-12 w-8 shrink-0 rounded object-cover" loading="lazy" />
-														{:else}
-															<div class="h-12 w-8 shrink-0 rounded bg-base-200"></div>
-														{/if}
-														<div class="min-w-0 flex-1">
-															<p class="truncate text-sm font-medium">{book.title}</p>
-															<p class="truncate text-xs text-base-content/50">({formatAuthors(book.authors)})</p>
-														</div>
+													{:else}
+														<div class="h-12 w-8 shrink-0 rounded bg-base-200"></div>
+													{/if}
+													<div class="min-w-0 flex-1">
+														<p class="truncate text-sm font-medium">{book.title}</p>
+														<p class="truncate text-xs text-base-content/50">({formatAuthors(book.authors)})</p>
 													</div>
+												</div>
 											{/each}
 										</div>
 										{#if timelineHiddenCount(monthKey, books.length) > 0}
@@ -493,9 +509,10 @@
 								{/each}
 							</ol>
 							{#if timelineBooks.length > timelineLimit}
-								<button class="btn btn-ghost btn-sm self-start mt-1" onclick={() => (timelineLimit += 5)}>
-									{$_('publicProfile.page.showMore')}
-								</button>
+								<button
+									class="btn btn-ghost btn-sm self-start mt-1"
+									onclick={() => timelineLimit += 5}
+								>{$_('publicProfile.page.showMore')}</button>
 							{/if}
 						{/if}
 					</div>
@@ -514,7 +531,7 @@
 								placeholder={$_('import.searchByTitleOrAuthor')}
 								class="input input-bordered input-sm w-full max-w-sm"
 								bind:value={libraryQuery}
-								oninput={() => (libraryLimit = 8)}
+								oninput={() => libraryLimit = 8}
 							/>
 							{#if filteredBooks.length === 0}
 								<p class="text-sm text-base-content/50">{$_('search.noResultsFor', { values: { query: libraryQuery.trim() } })}</p>
@@ -534,9 +551,10 @@
 									{/each}
 								</div>
 								{#if filteredBooks.length > libraryLimit}
-									<button class="btn btn-ghost btn-sm self-center mt-2" onclick={() => (libraryLimit += 8)}>
-										{$_('publicProfile.page.showMore')}
-									</button>
+									<button
+										class="btn btn-ghost btn-sm self-center mt-2"
+										onclick={() => libraryLimit += 8}
+									>{$_('publicProfile.page.showMore')}</button>
 								{/if}
 							{/if}
 						{/if}
@@ -553,16 +571,21 @@
 								<div class="stats stats-vertical sm:stats-horizontal shadow-none bg-transparent">
 									{#each summaryStats as key}
 										<div class="stat">
-											<div class="stat-title text-xs">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</div>
+											<div class="stat-title text-xs">{$_((PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!).i18nKey)}</div>
 											{#if key === 'busiest_month'}
 												<div class="stat-value text-2xl">{formatMonthLabel(statValue(key) as string)}</div>
 												<div class="stat-desc">{$_('statistics.booksCount', { values: { count: formatNumber(statValue(key + '_count') as number) } })}</div>
 											{:else if key === 'most_popular_language'}
-												<div class="stat-value text-2xl">{(statValue(key) as string) ? formatLanguageCode(statValue(key) as string, appLocale) : '-'}</div>
+												<div class="stat-value text-2xl">
+													{statValue(key) as string
+														? formatLanguageCode(statValue(key) as string, appLocale)
+														: '-'}
+												</div>
+
 												<div class="stat-desc">{formatNumber(statValue(key + '_count') as number)}</div>
 											{:else}
 												<div class="stat-value text-2xl">{formatNumber(statValue(key) as number)}</div>
-												<div class="stat-desc invisible" aria-hidden="true">&nbsp;</div>
+												<div class="stat-desc invisible" aria-hidden="true"></div>
 											{/if}
 										</div>
 									{/each}
@@ -580,8 +603,11 @@
 										{@const rows = distributionRows(key)}
 										{@const distTotal = rows.reduce<number>((sum, row) => sum + row.value, 0)}
 										{#if rows.length > 0}
-											<section class="mb-4 inline-block w-full break-inside-avoid rounded-xl border border-base-200 p-4 align-top">
-												<h3 class="text-sm font-semibold">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</h3>
+											<section
+												class="mb-4 inline-block w-full break-inside-avoid rounded-xl border border-base-200 p-4 align-top"
+											>
+												<h3 class="text-sm font-semibold">{$_((PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!).i18nKey)}</h3>
+
 												<div class="mt-4 flex flex-col gap-3">
 													{#each rows as row}
 														<div>
@@ -627,21 +653,21 @@
 									{@const max = points.reduce((m, p) => Math.max(m, p.value), 0)}
 									{#if points.length > 0}
 										<div class="flex flex-col gap-1">
-											<h3 class="text-sm font-medium text-base-content/70">{$_(PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey)}</h3>
-										<div class="flex items-end gap-1 h-24 overflow-visible">
-											{#each points as point}
-												<button
-													type="button"
-													class="trend-bar group relative flex-1 flex flex-col items-center gap-1 min-w-0 rounded border-0 bg-transparent p-0 text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-													title={`${point.label}: ${formatNumber(point.value, 0)}`}
-													aria-label={`${point.label}: ${formatNumber(point.value, 0)}`}
-												>
+											<h3 class="text-sm font-medium text-base-content/70">{$_((PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!).i18nKey)}</h3>
+											<div class="flex items-end gap-1 h-24 overflow-visible">
+												{#each points as point}
+													<button
+														type="button"
+														class="trend-bar group relative flex-1 flex flex-col items-center gap-1 min-w-0 rounded border-0 bg-transparent p-0 text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+														title={`${point.label}: ${formatNumber(point.value, 0)}`}
+														aria-label={`${point.label}: ${formatNumber(point.value, 0)}`}
+													>
 													<div class="w-full bg-primary/80 rounded-t" style="height: {barWidth(point.value, max)}"></div>
 													<span role="tooltip" class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-neutral px-2 py-1 text-[11px] text-neutral-content opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus:opacity-100">
 														{point.label}: {formatNumber(point.value, 0)}
 													</span>
-												</button>
-											{/each}
+													</button>
+												{/each}
 											</div>
 											<div class="flex gap-1">
 												{#each points as point}
@@ -662,7 +688,7 @@
 								{#if ratingSummaryKeys.length > 0}
 									<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 										{#each ratingSummaryKeys as key}
-											{@const i18nKey = PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey}
+											{@const i18nKey = (PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!).i18nKey}
 											<div class="rounded-xl bg-base-200/60 px-4 py-3">
 												<p class="text-xs font-medium uppercase tracking-wide text-base-content/60">{$_(i18nKey)}</p>
 												<p class="mt-1 text-2xl font-semibold tabular-nums">{key === 'average_rating' ? formatNumber(statValue(key) as number) : formatNumber(statValue(key) as number, 0)}</p>
@@ -692,8 +718,15 @@
 								{#if ratedBookKeys.length > 0}
 									<div class="grid min-w-0 gap-4 sm:grid-cols-2">
 										{#each ratedBookKeys as key}
-											{@const i18nKey = PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!.i18nKey}
-											{@const books = statValue(key) as { title: string; author: string | null; rating: number; cover_url: string | null }[]}
+											{@const i18nKey = (PUBLIC_PROFILE_STATISTICS.find((s) => s.key === key)!).i18nKey}
+
+											{@const books = statValue(key) as { 
+												title: string;
+												author: string | null;
+												rating: number;
+												cover_url: string | null
+											 }[]}
+
 											{#if books.length > 0}
 												<section class="min-w-0 rounded-xl border border-base-200 p-4">
 													<h3 class="text-sm font-semibold">{$_(i18nKey)}</h3>
@@ -737,8 +770,8 @@
 </div>
 
 <style>
-	.trend-bar:hover > [role='tooltip'],
-	.trend-bar:focus > [role='tooltip'] {
+	.trend-bar:hover > [role="tooltip"],
+	.trend-bar:focus > [role="tooltip"] {
 		opacity: 1;
 	}
 </style>
