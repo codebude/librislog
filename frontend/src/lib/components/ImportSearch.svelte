@@ -93,59 +93,54 @@
 		searchAbortController?.abort();
 	});
 
+	const SOURCE_LABEL_KEY: Record<string, string> = {
+		open_library: 'import.sourceNameOpenLibrary',
+		hardcover: 'import.sourceNameHardcover',
+		google_books: 'import.sourceNameGoogleBooks',
+		bnf: 'import.sourceNameBnf',
+		inventaire: 'import.sourceNameInventaire',
+		library_of_congress: 'import.sourceNameLibraryOfCongress'
+	};
+
+	function sourceLabel(stage: string): string {
+		const key = SOURCE_LABEL_KEY[stage];
+		return key ? $_(key) : stage;
+	}
+
 	function stageLabel(s: SearchStage): string {
-		if (s.stage === 'open_library') {
-			if (s.status === 'searching') return $_('import.sourceOpenLibrarySearching');
-			if ('reason' in s) return $_('import.sourceBackendError', { values: { source: 'Open Library' } });
-			return $_('import.resultCount', {
-				values: { source: 'Open Library', count: s.count, suffix: s.count === 1 ? '' : 's' }
-			});
-		}
-		if (s.stage === 'hardcover') {
-			if (s.status === 'searching') return $_('import.sourceHardcoverSearching');
-			if (s.status === 'skipped') return $_('import.sourceHardcoverSkipped');
-			if ('reason' in s) return $_('import.sourceBackendError', { values: { source: 'Hardcover' } });
-			return $_('import.resultCount', {
-				values: { source: 'Hardcover', count: s.count, suffix: s.count === 1 ? '' : 's' }
-			});
-		}
-		if (s.stage === 'google_books') {
-			if (s.status === 'searching') return $_('import.sourceGoogleSearching');
-			if (s.status === 'skipped') return $_('import.sourceSkipped');
-			if ('reason' in s) return $_('import.sourceBackendError', { values: { source: 'Google Books' } });
-			return $_('import.resultCount', {
-				values: { source: 'Google Books', count: s.count, suffix: s.count === 1 ? '' : 's' }
-			});
-		}
 		if (s.stage === 'error') return $_('import.sourceError', { values: { message: s.message } });
-		return '';
+		if (s.stage === 'complete') return '';
+		const source = sourceLabel(s.stage);
+		if (s.status === 'searching') return $_('import.sourceSearching', { values: { source } });
+		if (s.status === 'skipped') {
+			// The backend reports why a source was skipped; surface the concrete reason.
+			if (s.reason === 'title_search_unsupported') return $_('import.sourceTitleSearchUnsupported', { values: { source } });
+			if (s.stage === 'hardcover') return $_('import.sourceHardcoverSkipped');
+			return $_('import.sourceSkipped', { values: { source } });
+		}
+		if ('reason' in s) return $_('import.sourceBackendError', { values: { source } });
+		return $_('import.resultCount', {
+			values: { source, count: s.count, suffix: s.count === 1 ? '' : 's' }
+		});
 	}
 
 	function stageIcon(s: SearchStage): string {
-		if (s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') {
-			if (s.status === 'searching') return '◌';
-			if (s.status === 'skipped') return '—';
-			if ('reason' in s) return '!';
-			return '✓';
-		}
 		if (s.stage === 'error') return '✗';
-		return '';
+		if (s.stage === 'complete') return '';
+		if (s.status === 'searching') return '◌';
+		if (s.status === 'skipped') return '—';
+		if ('reason' in s) return '!';
+		return '✓';
 	}
 
 	function stageClass(s: SearchStage): string {
 		if (s.stage === 'error') return 'text-error';
-		if (s.stage === 'hardcover' && s.status === 'skipped') return 'text-base-content/40';
-		if (s.stage === 'google_books' && s.status === 'skipped') return 'text-base-content/40';
-	if (
-		(s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') &&
-		s.status === 'searching'
-	)
-		return 'text-base-content/60 animate-pulse';
-	if ((s.stage === 'open_library' || s.stage === 'hardcover' || s.stage === 'google_books') && 'reason' in s) {
-		return 'text-warning';
+		if (s.stage === 'complete') return 'text-base-content/70';
+		if (s.status === 'skipped') return 'text-base-content/40';
+		if (s.status === 'searching') return 'text-base-content/60 animate-pulse';
+		if ('reason' in s) return 'text-warning';
+		return 'text-base-content/70';
 	}
-	return 'text-base-content/70';
-}
 
 	function updateImportedLookups(books: Book[]) {
 		const isbnSet = new Set<string>();
@@ -452,7 +447,7 @@
 							<p class="text-xs text-base-content/60">{formatAuthors(group.authors, group.authors[0])}</p>
 						{/if}
 						<div class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/40">
-							<span>{selected.source}</span>
+							<span>{sourceLabel(selected.source)}</span>
 							{#if selected.published_year}
 								<span>·</span>
 								<span>{selected.published_year}</span>
@@ -517,7 +512,7 @@
 							<button
 								class="group flex gap-2 items-start p-2 rounded-lg border-2 text-left cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 {isSelected ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-200 bg-base-100 hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm'}"
 								aria-pressed={isSelected}
-								aria-label={`${variant.source}${isSelected ? `, ${$_('import.editionSelected')}` : ''}`}
+								aria-label={`${sourceLabel(variant.source)}${isSelected ? `, ${$_('import.editionSelected')}` : ''}`}
 								onclick={() => selectedVariantByGroup[group.key] = idx}
 							>
 								{#if variant.cover_url}
@@ -530,7 +525,7 @@
 									<div class="w-8 h-11 bg-base-200 rounded flex-shrink-0"></div>
 								{/if}
 								<div class="flex-1 min-w-0">
-									<p class="text-xs font-medium">{variant.source}</p>
+									<p class="text-xs font-medium">{sourceLabel(variant.source)}</p>
 									<p class="text-xs text-base-content/60 truncate">
 										{[
 											variant.published_year,
