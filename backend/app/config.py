@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     bnf_import_search_enabled: bool = True
     inventaire_import_search_enabled: bool = True
     library_of_congress_import_search_enabled: bool = True
+    dnb_import_search_enabled: bool = True
     embed_enabled: bool = True
     mail_server: str = ""
     mail_port: int = 587

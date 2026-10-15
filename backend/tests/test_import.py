@@ -27,7 +27,7 @@ from app.services import book_import
 def _only_legacy_sources(monkeypatch: MonkeyPatch) -> None:
     """Run this module's tests with only Open Library, Hardcover and Google Books active.
 
-    The tests here predate the BnF / Inventaire / Library of Congress providers and
+    The tests here predate the BnF / Inventaire / Library of Congress / DNB providers and
     assert on exact result counts from the original two parallel sources. Disabling
     the newer keyless providers keeps those expectations valid and keeps the suite
     free of real network calls. Their own behaviour is covered in test_book_import.py.
@@ -35,6 +35,7 @@ def _only_legacy_sources(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "bnf_import_search_enabled", False)
     monkeypatch.setattr(settings, "inventaire_import_search_enabled", False)
     monkeypatch.setattr(settings, "library_of_congress_import_search_enabled", False)
+    monkeypatch.setattr(settings, "dnb_import_search_enabled", False)
     # Hardcover and Google Books ship disabled; these tests still exercise them.
     monkeypatch.setattr(settings, "hardcover_import_search_enabled", True)
     monkeypatch.setattr(settings, "google_books_import_search_enabled", True)

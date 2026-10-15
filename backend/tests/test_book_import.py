@@ -98,6 +98,7 @@ async def test_search_with_progress_auto_ol_and_hc(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
@@ -113,6 +114,7 @@ async def test_search_with_progress_auto_hc_skipped_no_token(monkeypatch: pytest
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     events = []
     async for e in bi.search_with_progress("query", "title"):
         events.append(e)
@@ -129,6 +131,7 @@ async def test_search_with_progress_auto_fallback_google(monkeypatch: pytest.Mon
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     fake_gb = BookImportCandidate(title="GB Book", source="google_books")
     monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake_gb]))
 
@@ -147,6 +150,7 @@ async def test_search_with_progress_auto_fallback_google_error(monkeypatch: pyte
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         bi, "_search_google_books",
         AsyncMock(side_effect=bi.SourceBackendError("google_books", 500)),
@@ -164,6 +168,7 @@ async def test_search_with_progress_general_exception(monkeypatch: pytest.Monkey
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title"):
@@ -183,6 +188,7 @@ async def test_search_ol_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -198,6 +204,7 @@ async def test_search_ol_generic_exception(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -215,6 +222,7 @@ async def test_search_ol_generic_exception_with_hc(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title", hardcover_api_token="token")
     assert len(results) == 1
@@ -230,6 +238,7 @@ async def test_search_hc_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title", hardcover_api_token="token")
     assert results == []
@@ -242,6 +251,7 @@ async def test_search_fallback_google_no_key(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     results = await bi.search("query", "title")
     assert results == []
@@ -254,6 +264,7 @@ async def test_search_fallback_google_success(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     fake = BookImportCandidate(title="Book", source="google_books")
     monkeypatch.setattr(bi, "_search_google_books", AsyncMock(return_value=[fake]))
 
@@ -268,6 +279,7 @@ async def test_search_fallback_google_error(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         bi, "_search_google_books",
         AsyncMock(side_effect=bi.SourceBackendError("google_books", 500)),
@@ -1131,6 +1143,7 @@ async def test_search_with_progress_ol_error_event(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title"):
@@ -1274,6 +1287,7 @@ async def test_search_with_progress_hc_done_event(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
@@ -1293,6 +1307,7 @@ async def test_search_with_progress_hc_error_event(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title", hardcover_api_token="token"):
@@ -1586,6 +1601,7 @@ async def test_search_with_progress_emits_one_terminal_event_per_stage(
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[BookImportCandidate(title="B", source="bnf")]))
     monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi.settings, "library_of_congress_import_search_enabled", True)
 
     events = []
@@ -1614,6 +1630,7 @@ async def test_search_with_progress_skips_inventaire_for_title_search(
     monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
     monkeypatch.setattr(bi, "_search_inventaire", inventaire)
     monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[]))
 
     events = []
     async for e in bi.search_with_progress("query", "title"):
@@ -1756,6 +1773,7 @@ async def test_search_uses_google_when_all_parallel_sources_disabled(monkeypatch
         ("bnf_import_search_enabled", False),
         ("inventaire_import_search_enabled", False),
         ("library_of_congress_import_search_enabled", False),
+        ("dnb_import_search_enabled", False),
         ("hardcover_import_search_enabled", False),
         ("google_books_import_search_enabled", True),
     ):
@@ -1776,6 +1794,7 @@ async def test_search_skips_google_when_fallback_disabled(monkeypatch: pytest.Mo
         ("bnf_import_search_enabled", False),
         ("inventaire_import_search_enabled", False),
         ("library_of_congress_import_search_enabled", False),
+        ("dnb_import_search_enabled", False),
         ("hardcover_import_search_enabled", False),
         ("google_books_import_search_enabled", False),
     ):
@@ -1796,6 +1815,7 @@ async def test_search_with_progress_reports_disabled_google_fallback(monkeypatch
         ("bnf_import_search_enabled", False),
         ("inventaire_import_search_enabled", False),
         ("library_of_congress_import_search_enabled", False),
+        ("dnb_import_search_enabled", False),
         ("hardcover_import_search_enabled", False),
         ("google_books_import_search_enabled", False),
     ):
@@ -1824,6 +1844,7 @@ async def test_search_with_progress_still_completes_without_parallel_sources(
         ("bnf_import_search_enabled", False),
         ("inventaire_import_search_enabled", False),
         ("library_of_congress_import_search_enabled", False),
+        ("dnb_import_search_enabled", False),
         ("hardcover_import_search_enabled", False),
         ("google_books_import_search_enabled", True),
     ):
@@ -1863,4 +1884,720 @@ def test_book_sources_registry() -> None:
     assert "bnf" in stages
     assert "inventaire" in stages
     assert "library_of_congress" in stages
+    assert "dnb" in stages
     assert "hardcover" in stages
+
+
+# ── Deutsche Nationalbibliothek ─────────────────────────────────────────────────
+
+# Shaped like a real DNB SRU response: the SRU namespace is the root default and the
+# MARC21 record declares its own. The title carries the U+0098/U+009C non-sorting markers
+# the DNB uses in place of the MARC nonfiling indicator.
+DNB_SAMPLE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.1</version>
+  <numberOfRecords>1</numberOfRecords>
+  <records><record>
+    <recordSchema>MARC21-xml</recordSchema>
+    <recordPacking>xml</recordPacking>
+    <recordData>
+      <record xmlns="http://www.loc.gov/MARC21/slim" type="Bibliographic">
+        <leader>00000nam a2200000 c 4500</leader>
+        <controlfield tag="001">1395279225</controlfield>
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="a">9783328115458</subfield>
+          <subfield code="c">EUR 18.00</subfield>
+          <subfield code="9">978-3-328-11545-8</subfield>
+        </datafield>
+        <datafield tag="041" ind1=" " ind2=" ">
+          <subfield code="a">ger</subfield>
+        </datafield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="0">(DE-588)118577166</subfield>
+          <subfield code="a">Mann, Thomas.</subfield>
+          <subfield code="d">1875-1955</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">\u0098Der\u009c Zauberberg</subfield>
+          <subfield code="b">Penguin Klassiker</subfield>
+        </datafield>
+        <datafield tag="264" ind1=" " ind2="1">
+          <subfield code="a">München</subfield>
+          <subfield code="b">Penguin</subfield>
+          <subfield code="c">2027</subfield>
+        </datafield>
+        <datafield tag="300" ind1=" " ind2=" ">
+          <subfield code="a">1184 Seiten</subfield>
+          <subfield code="c">19 cm</subfield>
+        </datafield>
+        <datafield tag="650" ind1=" " ind2="7">
+          <subfield code="a">Deutsche Literatur</subfield>
+        </datafield>
+        <datafield tag="689" ind1="0" ind2="0">
+          <subfield code="a">Deutsche Literatur</subfield>
+        </datafield>
+        <datafield tag="520" ind1=" " ind2=" ">
+          <subfield code="a">Ein Roman über einen Menschen.</subfield>
+        </datafield>
+      </record>
+    </recordData>
+  </record></records>
+</searchRetrieveResponse>"""
+
+
+def _dnb_record(body: str) -> str:
+    """Wrap MARC21 record fields in the SRU envelope the DNB returns."""
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <recordData><record xmlns="http://www.loc.gov/MARC21/slim" type="Bibliographic">
+    {body}
+  </record></recordData>
+</searchRetrieveResponse>"""
+
+
+def test_map_dnb_response_basic() -> None:
+    candidates = bi.map_dnb_response(DNB_SAMPLE_XML)
+    assert len(candidates) == 1
+    c = candidates[0]
+    # The non-sorting markers must not survive into the title.
+    assert c.title == "Der Zauberberg"
+    assert c.subtitle == "Penguin Klassiker"
+    assert c.author == "Thomas Mann"
+    assert c.authors == ["Thomas Mann"]
+    assert c.publisher == "Penguin"
+    assert c.published_year == 2027
+    assert c.page_count == 1184
+    assert c.language == "DE"
+    assert c.isbn == "9783328115458"
+    # 689 restates 650, so tags must not be doubled.
+    assert c.tags == "Deutsche Literatur"
+    assert c.blurb == "Ein Roman über einen Menschen."
+    assert c.source == "dnb"
+    assert c.cover_url is None
+
+
+def test_map_dnb_response_uses_first_245_with_a_title() -> None:
+    """245 is non-repeating; the first field carrying a $a is the title.
+
+    The first indicator only says whether a title added entry is made, so it must not be
+    used to rank candidate titles.
+    """
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Erster Titel</subfield>
+        </datafield>
+        <datafield tag="245" ind1="0" ind2="0">
+          <subfield code="a">Zweiter Titel</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].title == "Erster Titel"
+
+
+def test_map_dnb_response_skips_245_without_a_title() -> None:
+    """A 245 with no $a is not a title, so the record is still imported."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="b">Nur ein Resttitel</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Tatsächlicher Titel</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].title == "Tatsächlicher Titel"
+
+
+def test_map_dnb_response_strips_nonfiling_markers() -> None:
+    """U+0098 and U+009C are DNB non-sorting markers, not part of the title."""
+    xml = _dnb_record(f"""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">\u0098Der\u009c Zauberberg</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.title == "Der Zauberberg"
+    assert "\u0098" not in c.title
+
+
+def test_map_dnb_response_skips_non_author_1xx() -> None:
+    """A 1XX coded as editor or translator is a contributor, not the book author."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Herausgeber, Hans</subfield>
+          <subfield code="4">edt</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Anthologie</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.authors is None
+    assert c.author is None
+
+
+def test_map_dnb_response_falls_back_to_corporate_author() -> None:
+    """A work with no personal name still has a 110 corporate author."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="110" ind1="2" ind2=" ">
+          <subfield code="a">Deutsche Akademie</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Bericht</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].authors == ["Deutsche Akademie"]
+
+
+def test_map_dnb_response_ignores_invalid_isbn_field() -> None:
+    """A 020 with a $q note records an ISBN the DNB itself says is wrong.
+
+    $9 then normalizes that bad value, so the whole field has to be dropped: importing
+    it would attach the book to an ISBN that identifies something else.
+    """
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="z">9783161484100</subfield>
+          <subfield code="q">falsche ISBN in Vorlage</subfield>
+          <subfield code="9">978-3-16-148410-0</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Kochbuch</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].isbn is None
+
+
+def test_map_dnb_response_keeps_isbn_from_other_valid_field() -> None:
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="z">1111111111111</subfield>
+          <subfield code="q">falsche ISBN in Vorlage</subfield>
+        </datafield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="a">9783328115458</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Der Zauberberg</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].isbn == "9783328115458"
+
+
+def test_map_dnb_response_appends_author_coded_co_authors() -> None:
+    """The DNB puts co-authors in 700 added entries, so they must be collected.
+
+    Editors, translators and illustrators are far more common in 700 than authors are, so
+    only fields explicitly coded as authors may be added.
+    """
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Angermann, Detlef</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="700" ind1="1" ind2=" ">
+          <subfield code="a">Seitz, Florian</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="700" ind1="1" ind2=" ">
+          <subfield code="a">Hugentobler, Urs</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Mission Erde</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.authors == ["Detlef Angermann", "Florian Seitz", "Urs Hugentobler"]
+    assert c.author == "Detlef Angermann"
+
+
+@pytest.mark.parametrize("role, name", [
+    ("edt", "Herausgeber, Hans"),
+    ("trl", "Übersetzer, Inge"),
+    ("ill", "Illustrator, Piet"),
+    ("art", "Künstler, Karl"),
+])
+def test_map_dnb_response_skips_non_author_coauthors(role: str, name: str) -> None:
+    """A 700 coded as anything but an author is a contributor, not a co-author."""
+    xml = _dnb_record(f"""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Mann, Thomas</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="700" ind1="1" ind2=" ">
+          <subfield code="a">{name}</subfield>
+          <subfield code="4">{role}</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Anthologie</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].authors == ["Thomas Mann"]
+
+
+def test_map_dnb_response_ignores_uncoded_700() -> None:
+    """A 700 with no relator is not safe to call an author, unlike an uncoded 1XX.
+
+    The 1XX main entry is the record's own statement of who wrote the book. A 700 is an
+    added entry, and the DNB codes every one of them, so an uncoded 700 is ambiguous.
+    """
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Mann, Thomas</subfield>
+          <subfield code="4">aut</subfield>
+        </datafield>
+        <datafield tag="700" ind1="1" ind2=" ">
+          <subfield code="a">Uncodierter Name</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Anthologie</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].authors == ["Thomas Mann"]
+
+
+def test_map_dnb_response_handles_undated_publication() -> None:
+    """German records without a year carry "o.J." (ohne Jahr) or "n.d." instead."""
+    for placeholder in ("o.J.", "n.d.", "[o.J.]", "o. J."):
+        xml = _dnb_record(f"""
+            <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+            <datafield tag="264" ind1=" " ind2="1">
+              <subfield code="b">Verlag</subfield>
+              <subfield code="c">{placeholder}</subfield>
+            </datafield>
+            <datafield tag="245" ind1="1" ind2="0">
+              <subfield code="a">Ohne Jahresangabe</subfield>
+            </datafield>
+        """)
+        c = bi.map_dnb_response(xml)[0]
+        assert c.publisher == "Verlag", placeholder
+        assert c.published_year is None, placeholder
+
+
+def test_map_dnb_response_accepts_uncoded_main_entry() -> None:
+    """An uncoded 1XX is still the main entry, so it is accepted as the author."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Anonymus</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Ohne Verfasserangabe</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].authors == ["Anonymus"]
+
+
+def test_map_dnb_response_uses_260_for_older_records() -> None:
+    """Older records carry the publication statement in 260, which has no indicator."""
+    xml = _dnb_record("""
+        <controlfield tag="008">990101s1990    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="260" ind1=" " ind2=" ">
+          <subfield code="a">Weimar</subfield>
+          <subfield code="b">Verlag</subfield>
+          <subfield code="c">1990</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Altbestand</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.publisher == "Verlag"
+    assert c.published_year == 1990
+
+
+def test_map_dnb_response_ignores_copyright_statement() -> None:
+    """264 with second indicator 4 is the copyright statement, not the publication."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="264" ind1=" " ind2="4">
+          <subfield code="b">Reclam</subfield>
+          <subfield code="c">©1999</subfield>
+        </datafield>
+        <datafield tag="264" ind1=" " ind2="1">
+          <subfield code="a">München</subfield>
+          <subfield code="b">Hanser</subfield>
+          <subfield code="c">2027</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Neuauflage</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.publisher == "Hanser"
+    assert c.published_year == 2027
+
+
+def test_map_dnb_response_accepts_264_without_indicator() -> None:
+    """A 264 with no second indicator is still the only publication statement."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="264" ind1=" ">
+          <subfield code="b">Selfpublisher</subfield>
+          <subfield code="c">2020</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Eigenverlag</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.publisher == "Selfpublisher"
+    assert c.published_year == 2020
+
+
+def test_map_dnb_response_normalizes_isbn10() -> None:
+    """ISBNs are normalized to ISBN-13 so they match every other source's output."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="a">3328115455</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Der Zauberberg</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].isbn == "9783328115458"
+
+
+def test_map_dnb_response_normalizes_hyphenated_isbn_from_subfield_9() -> None:
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="9">978-3-328-11545-8</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Der Zauberberg</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].isbn == "9783328115458"
+
+
+def test_map_dnb_response_discards_unparseable_isbn() -> None:
+    """An ISBN that cannot be normalized is dropped rather than stored verbatim."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="020" ind1=" " ind2=" ">
+          <subfield code="a">keine-nummer</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Titel ohne ISBN</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].isbn is None
+
+
+def test_map_dnb_response_caps_subject_headings() -> None:
+    """Tags are capped at three like the BnF and Library of Congress providers."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="650" ind1=" " ind2=" ">
+          <subfield code="a">Erstes</subfield>
+        </datafield>
+        <datafield tag="650" ind1=" " ind2=" ">
+          <subfield code="a">Zweites</subfield>
+        </datafield>
+        <datafield tag="650" ind1=" " ind2=" ">
+          <subfield code="a">Drittes</subfield>
+        </datafield>
+        <datafield tag="650" ind1=" " ind2=" ">
+          <subfield code="a">Viertes</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">Viele Schlagwörter</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].tags == "Erstes, Zweites, Drittes"
+
+
+def test_parse_dnb_page_count_does_not_backtrack() -> None:
+    """A long run with no page-count keyword must not cost quadratic time.
+
+    The old lazy pattern spent ~360 ms on this input; the bounded one must stay flat, so
+    a hostile 300$a cannot stall a search.
+    """
+    import time
+
+    for payload in ("1" + " " * 5000, "1" + "9" * 5000, "1.1.1." * 1000):
+        start = time.perf_counter()
+        assert bi._parse_dnb_page_count(payload) is None
+        assert (time.perf_counter() - start) < 0.25, payload[:16]
+
+
+def test_map_dnb_response_unwraps_supplied_publisher_and_year() -> None:
+    """Square brackets mark a value the cataloguer supplied rather than transcribed.
+
+    The title keeps its brackets because there they are part of the title itself: the
+    Library of Congress documents titles such as `24500$a[Man smoking at window]`.
+    """
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">[Lisboa]</subfield>
+        </datafield>
+        <datafield tag="264" ind1=" " ind2="1">
+          <subfield code="a">[Lisboa]</subfield>
+          <subfield code="b">[Editora]</subfield>
+          <subfield code="c">[2026]</subfield>
+        </datafield>
+    """)
+    c = bi.map_dnb_response(xml)[0]
+    assert c.title == "[Lisboa]"
+    assert c.publisher == "Editora"
+    assert c.published_year == 2026
+
+
+def test_map_dnb_response_reads_language_from_008() -> None:
+    """Records without a 041 still carry the language in the 008 fixed field."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||por  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">A montanha</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].language == "PT"
+
+
+def test_map_dnb_response_prefers_041_over_008() -> None:
+    """041$a is the language of the text; 008 can disagree on translated works."""
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="041" ind1=" " ind2=" ">
+          <subfield code="a">por</subfield>
+          <subfield code="h">ger</subfield>
+        </datafield>
+        <datafield tag="245" ind1="1" ind2="0">
+          <subfield code="a">A montanha</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml)[0].language == "PT"
+
+
+def test_map_dnb_response_no_title_is_skipped() -> None:
+    xml = _dnb_record("""
+        <controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="100" ind1="1" ind2=" ">
+          <subfield code="a">Mann, Thomas</subfield>
+        </datafield>
+    """)
+    assert bi.map_dnb_response(xml) == []
+
+
+def test_map_dnb_response_empty() -> None:
+    xml = """<?xml version="1.0"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <numberOfRecords>0</numberOfRecords>
+</searchRetrieveResponse>"""
+    assert bi.map_dnb_response(xml) == []
+
+
+def test_map_dnb_response_malformed_xml() -> None:
+    assert bi.map_dnb_response("<not-xml") == []
+
+
+def test_map_dnb_response_rejects_entity_expansion() -> None:
+    """A hostile SRU payload must not be expanded, and must yield no candidates."""
+    payload = _BILLION_LAUGHS.replace(
+        "<mods:titleInfo><mods:title>&lol3;</mods:title></mods:titleInfo>",
+        f"""<controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0"><subfield code="a">&lol3;</subfield></datafield>""",
+    )
+    assert bi.map_dnb_response(payload) == []
+
+
+def test_map_dnb_response_rejects_external_entity() -> None:
+    """External entity references must not be resolved to local files."""
+    payload = _XXE_FILE_READ.replace(
+        "<mods:titleInfo><mods:title>&xxe;</mods:title></mods:titleInfo>",
+        f"""<controlfield tag="008">260331s2027    gw ||||| |||| 00||||ger  </controlfield>
+        <datafield tag="245" ind1="1" ind2="0"><subfield code="a">&xxe;</subfield></datafield>""",
+    )
+    assert bi.map_dnb_response(payload) == []
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("Mann, Thomas.", "Thomas Mann"),
+    ("Popper, Karl R.", "Karl R. Popper"),
+    ("Goethe, Johann Wolfgang von", "Johann Wolfgang von Goethe"),
+    ("Beethoven, Ludwig van", "Ludwig van Beethoven"),
+    ("Einstein, Albert", "Albert Einstein"),
+    ("  Surname  ", "Surname"),
+    # strip(" ,;") removes a dangling separator, so these never reach the split.
+    ("Ludwig van Beethoven, ", "Ludwig van Beethoven"),
+    ("Surname,", "Surname"),
+    (",Forename", "Forename"),
+    ("Beethoven, L.", "L. Beethoven"),
+    # A name that is not inverted carries no inversion punctuation, so titles and
+    # abbreviations keep their periods whatever their length.
+    ("Dr.", "Dr."),
+    ("Prof.", "Prof."),
+    ("MSc.", "MSc."),
+    ("BSc.", "BSc."),
+    ("Ab.", "Ab."),
+    ("R.", "R."),
+    ("Prof. Dr. Schmidt", "Prof. Dr. Schmidt"),
+    ("Deutsche Akademie der Wissenschaften", "Deutsche Akademie der Wissenschaften"),
+])
+def test_reverse_dnb_name(raw: str, expected: str) -> None:
+    """1XX names are catalogued inverted and must read naturally once reversed."""
+    assert bi._reverse_dnb_name(raw) == expected
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("1184 Seiten", 1184),
+    ("1.184 Seiten", 1184),
+    ("1 184 Seiten", 1184),
+    ("1,184 Seiten", 1184),
+    ("1 184 Seiten", 1184),
+    ("926 pages", 926),
+    ("416 sidor", 416),
+    ("XXXIX, 601 S.", 601),
+    ("XXIV, 601 S.", 601),
+    ("219 Seiten", 219),
+    ("12 Seiten", 12),
+    ("Bd. 1 184 Seiten", 1184),
+    # A decimal must be rejected, not read as a page count.
+    ("1.5 pages", None),
+    ("1,5 sidor", None),
+    ("1,23 Seiten", None),
+    ("1 Band", None),
+    ("", None),
+])
+def test_parse_dnb_page_count(text: str, expected: int | None) -> None:
+    """Extent statements are localized; only the arabic page count is usable."""
+    assert bi._parse_dnb_page_count(text) == expected
+
+
+def _dnb_client(handler) -> httpx.AsyncClient:
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+@pytest.mark.anyio
+async def test_search_dnb_isbn_query() -> None:
+    """An ISBN search queries the num index with the normalized ISBN-13."""
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.update(dict(request.url.params))
+        return httpx.Response(200, text=DNB_SAMPLE_XML)
+
+    async with _dnb_client(handler) as client:
+        candidates = await bi._search_dnb("978-3-328-11545-8", "isbn", client)
+
+    assert seen["query"] == "num=9783328115458"
+    assert seen["recordSchema"] == "MARC21-xml"
+    assert seen["version"] == "1.1"
+    assert candidates[0].title == "Der Zauberberg"
+
+
+@pytest.mark.anyio
+async def test_search_dnb_title_query() -> None:
+    """A title search is quoted so "and" or "or" in it is not read as a CQL operator."""
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.update(dict(request.url.params))
+        return httpx.Response(200, text="<searchRetrieveResponse/>")
+
+    async with _dnb_client(handler) as client:
+        await bi._search_dnb("Das Maß der Erde", "title", client)
+
+    assert seen["query"] == 'tit="Das Maß der Erde"'
+
+
+@pytest.mark.anyio
+async def test_search_dnb_sanitizes_cql_term() -> None:
+    """A quote in the query must not terminate the CQL string early."""
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.update(dict(request.url.params))
+        return httpx.Response(200, text="<searchRetrieveResponse/>")
+
+    async with _dnb_client(handler) as client:
+        await bi._search_dnb('Der "Zauberberg', "title", client)
+
+    assert seen["query"] == 'tit="Der Zauberberg"'
+
+
+@pytest.mark.anyio
+async def test_search_dnb_empty_title_returns_no_request() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
+        raise AssertionError("no request should be sent")
+
+    async with _dnb_client(handler) as client:
+        assert await bi._search_dnb('"', "title", client) == []
+
+
+@pytest.mark.anyio
+async def test_search_dnb_invalid_isbn_returns_no_request() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
+        raise AssertionError("no request should be sent")
+
+    async with _dnb_client(handler) as client:
+        assert await bi._search_dnb("not-an-isbn", "isbn", client) == []
+
+
+@pytest.mark.anyio
+async def test_search_dnb_raises_backend_error_on_http_status() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, text="unavailable")
+
+    async with _dnb_client(handler) as client:
+        with pytest.raises(bi.SourceBackendError) as excinfo:
+            await bi._search_dnb("Faust", "title", client)
+
+    assert excinfo.value.source == "dnb"
+    assert excinfo.value.status_code == 503
+
+
+@pytest.mark.anyio
+async def test_search_dnb_raises_backend_error_on_transport_failure() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("boom")
+
+    async with _dnb_client(handler) as client:
+        with pytest.raises(bi.SourceBackendError) as excinfo:
+            await bi._search_dnb("Faust", "title", client)
+
+    assert excinfo.value.source == "dnb"
+
+
+@pytest.mark.anyio
+async def test_dnb_is_reported_in_progress_events(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A finished DNB search reports its own stage with a result count."""
+    monkeypatch.setattr(bi, "_search_open_library", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_bnf", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_inventaire", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_loc", AsyncMock(return_value=[]))
+    monkeypatch.setattr(bi, "_search_dnb", AsyncMock(return_value=[BookImportCandidate(
+        title="Der Zauberberg", source="dnb",
+    )]))
+
+    events = []
+    async for e in bi.search_with_progress("Der Zauberberg", "title"):
+        events.append(e)
+
+    assert any(e.get("stage") == "dnb" and e.get("status") == "searching" for e in events)
+    assert any(e.get("stage") == "dnb" and e.get("status") == "done" and e.get("count") == 1
+               for e in events)
+    complete = [e for e in events if e.get("stage") == "complete"][0]
+    assert complete["results"][0]["source"] == "dnb"
+
+
+def test_dnb_is_skipped_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(bi.settings, "dnb_import_search_enabled", False)
+    spec = next(s for s in bi._build_sources("") if s.stage == "dnb")
+    assert spec.enabled() is False
+    assert spec.display_name == "Deutsche Nationalbibliothek"
