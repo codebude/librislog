@@ -1,6 +1,6 @@
 # API Keys
 
-Some external sources require API keys. All are optional: Open Library, BnF, Inventaire.io, and the Library of Congress need no key at all, so LibrisLog works out of the box.
+Some external sources require API keys. All are optional: Open Library, BnF, Inventaire.io, the Library of Congress, and the German National Library need no key at all, so LibrisLog works out of the box.
 
 Sources without a key can be switched off individually, see [Configuration](/guide/configuration).
 

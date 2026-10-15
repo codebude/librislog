@@ -25,7 +25,7 @@ features:
     details: Organize books into Want to Read, Currently Reading, Read, and Did Not Finish statuses.
   - icon: 🔍
     title: Import & Discover
-    details: Search Open Library, BnF, Inventaire.io, the Library of Congress, Google Books, and Hardcover.app. Scan ISBN barcodes for quick lookup.
+    details: Search Open Library, BnF, Inventaire.io, the Library of Congress, the German National Library, Google Books, and Hardcover.app. Scan ISBN barcodes for quick lookup.
   - icon: 📊
     title: Insights & Statistics
     details: Beautiful charts, reading timeline, and calendar heatmap to visualize your reading habits.

@@ -15,6 +15,7 @@ The most common way to add books is by searching external sources:
    - **BnF** (no key required; strong French-language coverage)
    - **Inventaire.io** (no key required; ISBN searches only, provides cover images)
    - **Library of Congress** (no key required; US/English coverage, unencrypted HTTP)
+   - **Deutsche Nationalbibliothek** (no key required; strong German-language coverage, umlauts transliterated in titles)
    - **Hardcover.app** (if `HARDCOVER_APP_API_TOKEN` is set **and** `HARDCOVER_IMPORT_SEARCH_ENABLED=true` — see [API Keys](/guide/api-keys))
    - **Google Books** as a fallback (if `GOOGLE_BOOKS_API_KEY` is set **and** `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=true` — see [API Keys](/guide/api-keys))
 

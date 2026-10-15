@@ -65,6 +65,7 @@ Search external sources for book metadata:
 - **BnF** (Bibliothèque nationale de France) — Free, no API key required; strong French-language coverage
 - **Inventaire.io** — Free, no API key required; ISBN searches only, and the only new source that provides cover images
 - **Library of Congress** — Free, no API key required; US/English coverage. Uses unencrypted HTTP, see [Configuration](/guide/configuration)
+- **Deutsche Nationalbibliothek** (German National Library) — Free, no API key required; strong German-language coverage. Note that the DNB transliterates umlauts in its catalogued titles, so searching for *Das Maß* returns a record titled *Das Mass der Erde*. An ISBN lookup returns the title the DNB holds for that ISBN, transliterated or not
 - **Hardcover.app** — Requires API token, off in `.env.example` by default
 - **Google Books** — Requires API key, off in `.env.example` by default, fallback only
 

@@ -62,7 +62,7 @@ Open **http://localhost:8001** and create your account.
 ## Why LibrisLog?
 
 - **Your data, your rules.** Fully self-hosted under MIT license — no ads, no user tracking, no vendor lock-in. A single SQLite file you can back up anytime.
-- **No API keys required.** Four sources work out of the box: Open Library, BnF, Inventaire.io, and the Library of Congress. BnF and Inventaire also find books that Open Library misses, which matters for non-English editions. Add Google Books or Hardcover.app tokens optionally (both are off in `.env.example`; set their key and their `*_IMPORT_SEARCH_ENABLED=true` to use them), and switch any source on or off individually. The Library of Congress endpoint is only reachable over plain HTTP, so it sends queries unencrypted unless you disable it — see [Configuration](https://docs.librislog.app/guide/configuration).
+- **No API keys required.** Five sources work out of the box: Open Library, BnF, Inventaire.io, the Library of Congress, and the German National Library. BnF, Inventaire and the German National Library also find books that Open Library misses, which matters for non-English editions. Add Google Books or Hardcover.app tokens optionally (both are off in `.env.example`; set their key and their `*_IMPORT_SEARCH_ENABLED=true` to use them), and switch any source on or off individually. The Library of Congress endpoint is only reachable over plain HTTP, so it sends queries unencrypted unless you disable it — see [Configuration](https://docs.librislog.app/guide/configuration).
 - **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
 - **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
 - **Import any format you have.** Goodreads or Bookstats exports with automatic field mapping, generic CSV or Excel (XLSX) with per-field Python transforms, JSON, ZIP with covers.
@@ -81,7 +81,7 @@ Open **http://localhost:8001** and create your account.
 - **Reading progress** — Page-level slider, full progress timeline per book with edit/history
 - **Statistics dashboard** — Calendar heatmap, distribution charts, books finished per period, top authors
 - **Reading streaks & goals** — Current and all-time longest reading streak, plus optional daily, monthly, and yearly goals
-- **Book import** — Search Open Library, BnF, Inventaire.io, the Library of Congress, Hardcover.app, and Google Books in parallel, each source individually switchable. Results describing the same book are grouped so you can compare editions side by side before importing. Scan ISBN barcodes on mobile, collect candidates in a basket, or enter manually
+- **Book import** — Search Open Library, BnF, Inventaire.io, the Library of Congress, the German National Library, Hardcover.app, and Google Books in parallel, each source individually switchable. Results describing the same book are grouped so you can compare editions side by side before importing. Scan ISBN barcodes on mobile, collect candidates in a basket, or enter manually
 - **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from the Goodreads or Bookstats presets, or any CSV/Excel file with custom field mapping
 - **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
 - **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
