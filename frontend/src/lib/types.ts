@@ -363,6 +363,7 @@ export type ImportSource =
 	| 'bnf'
 	| 'inventaire'
 	| 'library_of_congress'
+	| 'dnb'
 	| 'hardcover'
 	| 'google_books';
 

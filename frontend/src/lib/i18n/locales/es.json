@@ -249,6 +249,7 @@
     "sourceNameBnf": "BnF",
     "sourceNameInventaire": "Inventaire",
     "sourceNameLibraryOfCongress": "Biblioteca del Congreso",
+    "sourceNameDnb": "Biblioteca Nacional de Alemania",
     "sourceNameHardcover": "Hardcover",
     "sourceNameGoogleBooks": "Google Books",
     "sourceBackendError": "Error de backend de {source} (revisa los registros del servidor)",

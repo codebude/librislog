@@ -249,6 +249,7 @@
     "sourceNameBnf": "BnF",
     "sourceNameInventaire": "Inventaire",
     "sourceNameLibraryOfCongress": "Library of Congress",
+    "sourceNameDnb": "Deutsche Nationalbibliothek",
     "sourceNameHardcover": "Hardcover",
     "sourceNameGoogleBooks": "Google Books",
     "sourceBackendError": "{source}-Backendfehler (Backend-Logs prüfen)",
