@@ -105,11 +105,19 @@ To opt out entirely:
 TELEMETRY_DISABLED=true
 ```
 
-## Frontend Build
+## Frontend
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en`, `de`, `zh`, `es`, or `fr`) | `en` |
+### Run Time
+
+| Variable       | Description                                                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `BACKEND_ADDR` | Configures the upstream address for the Nginx webserver. For the default `docker-compose.yml` this is set to `http://backend:8000` |
+
+### Build Time
+
+| Variable                | Description                                           | Default |
+| ----------------------- | ----------------------------------------------------- | ------- |
+| `PUBLIC_DEFAULT_LOCALE` | Default UI language (`en`, `de`, `zh`, `es`, or `fr`) | `en`    |
 
 ## Import Limits
 
