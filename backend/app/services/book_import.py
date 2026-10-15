@@ -39,6 +39,7 @@ OPEN_LIBRARY_COVER_URL: str = "https://covers.openlibrary.org/b/id/{cover_id}-L.
 BNF_SRU_URL: str = "https://catalogue.bnf.fr/api/SRU"
 INVENTAIRE_ENTITIES_URL: str = "https://inventaire.io/api/entities/by-uris"
 LOC_SRU_URL: str = "http://lx2.loc.gov:210/LCDB"
+DNB_SRU_URL: str = "https://services.dnb.de/sru/dnb"
 
 INVENTAIRE_COVER_BASE_URL: str = "https://inventaire.io/img/entities"
 
@@ -103,7 +104,8 @@ class SourceBackendError(Exception):
     def __init__(
         self,
         source: Literal[
-            "open_library", "google_books", "hardcover", "bnf", "inventaire", "library_of_congress"
+            "open_library", "google_books", "hardcover", "bnf", "inventaire",
+            "library_of_congress", "dnb"
         ],
         status_code: int | None = None,
     ) -> None:
@@ -138,6 +140,10 @@ def _inventaire_enabled() -> bool:
 
 def _loc_enabled() -> bool:
     return settings.library_of_congress_import_search_enabled
+
+
+def _dnb_enabled() -> bool:
+    return settings.dnb_import_search_enabled
 
 
 def _hc_enabled() -> bool:
@@ -206,6 +212,12 @@ def _build_sources(hardcover_api_token: str) -> tuple[SourceSpec, ...]:
             search=_dispatch_loc,
         ),
         SourceSpec(
+            stage="dnb",
+            display_name="Deutsche Nationalbibliothek",
+            enabled=_dnb_enabled,
+            search=_dispatch_dnb,
+        ),
+        SourceSpec(
             stage="hardcover",
             display_name="Hardcover",
             enabled=_hc_enabled,
@@ -251,6 +263,12 @@ async def _dispatch_loc(
     query: str, search_type: str, client: httpx.AsyncClient
 ) -> list[BookImportCandidate]:
     return await _search_loc(query, search_type, client)
+
+
+async def _dispatch_dnb(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_dnb(query, search_type, client)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -1789,6 +1807,394 @@ def _reverse_loc_author(raw: str) -> str:
     return name or raw.strip()
 
 
+# ── Deutsche Nationalbibliothek (DNB) ─────────────────────────────────────────
+
+# The DNB SRU envelope puts the SRU namespace on the root as the default namespace,
+# and each MARC21 record declares its own default namespace, so both have to be
+# named explicitly to select them.
+async def _search_dnb(
+    query: str,
+    search_type: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search the German National Library via its SRU interface.
+
+    Raises:
+        SourceBackendError: On HTTP errors from the DNB.
+    """
+    if search_type == "isbn":
+        try:
+            isbn13 = normalize_isbn(query)
+        except ValueError:
+            logger.warning("DNB invalid ISBN: %s", query)
+            return []
+        query_str = f"num={isbn13}"
+    else:
+        term = _sanitize_cql_term(query)
+        if not term:
+            logger.debug("DNB: title query is empty after sanitizing")
+            return []
+        # Quoted so a title containing "and" or "or" is not read as a CQL operator.
+        query_str = f'tit="{term}"'
+
+    params: dict = {
+        "version": "1.1",
+        "operation": "searchRetrieve",
+        "query": query_str,
+        "recordSchema": "MARC21-xml",
+        "maximumRecords": 10,
+    }
+
+    logger.debug("DNB request — url=%s params=%s", DNB_SRU_URL, params)
+
+    try:
+        resp = await client.get(DNB_SRU_URL, params=params, headers={"User-Agent": _USER_AGENT})
+        logger.debug("DNB response — status=%d body_size=%d bytes",
+                     resp.status_code, len(resp.content))
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("DNB HTTP error: %s %s", exc.response.status_code, exc.response.text[:200])
+        raise SourceBackendError("dnb", exc.response.status_code) from exc
+    except httpx.HTTPError as exc:
+        logger.warning("DNB request failed: %s", exc)
+        raise SourceBackendError("dnb") from exc
+
+    candidates = map_dnb_response(resp.text)
+    for c in candidates:
+        logger.debug("  DNB candidate: title=%r isbn=%r", c.title, c.isbn)
+    return candidates
+
+
+def map_dnb_response(xml_text: str) -> list[BookImportCandidate]:
+    """Parse a DNB SRU MARC21 response into a BookImportCandidate list."""
+    try:
+        # The payload comes from a remote server, so parse it with entity expansion and
+        # external entity resolution disabled.
+        root = SafeET.fromstring(xml_text)
+    except (ET.ParseError, DefusedXmlException) as exc:
+        logger.warning("DNB XML parse error: %s", exc)
+        return []
+
+    candidates: list[BookImportCandidate] = []
+    for record in root.findall(".//srw:recordData/marc:record", _DNB_NAMESPACES):
+        candidate = map_dnb_record(record)
+        if candidate is not None:
+            candidates.append(candidate)
+    return candidates
+
+
+def map_dnb_record(record: ET.Element) -> BookImportCandidate | None:
+    """Map a single DNB MARC21 record to a BookImportCandidate."""
+    title, subtitle = _dnb_title(record)
+    if not title:
+        return None
+
+    # 264 second indicator 1 is the publication statement; 4 is the copyright statement,
+    # which carries a different (often reprint) date and must not be used as the
+    # publication year. Older records use 260, which has no publication indicator.
+    publication = None
+    for tag in ("264", "260"):
+        for field in record.findall(f"marc:datafield[@tag='{tag}']", _DNB_NAMESPACES):
+            # A missing indicator is "no information", which in practice is a publication
+            # statement; an explicit " " is accepted as a last resort.
+            ind2 = field.get("ind2")
+            if tag == "264" and ind2 not in ("1", " ", None):
+                continue
+            publication = field
+            break
+        if publication is not None:
+            break
+
+    publisher = None
+    if publication is not None:
+        publisher = _strip_dnb_brackets(_dnb_first(publication, "b"))
+    published_year = _dnb_publication_year(
+        _dnb_first(publication, "c") if publication is not None else None
+    )
+
+    page_count = None
+    extent = record.find("marc:datafield[@tag='300']", _DNB_NAMESPACES)
+    extent_text = _dnb_first(extent, "a") if extent is not None else None
+    if extent_text:
+        page_count = _parse_dnb_page_count(extent_text)
+
+    # 041$a is the language of the text; $h names the language it was translated from.
+    language = None
+    language_field = record.find("marc:datafield[@tag='041']", _DNB_NAMESPACES)
+    if language_field is not None:
+        for value in _dnb_subfields(language_field).get("a", []):
+            language = _normalize_language_code(value.split()[0] if value else None)
+            if language:
+                break
+    if not language:
+        fixed = record.find("marc:controlfield[@tag='008']", _DNB_NAMESPACES)
+        if fixed is not None and fixed.text and len(fixed.text) >= 38:
+            language = _normalize_language_code(fixed.text[35:38])
+
+    authors = _dnb_authors(record)
+    blurb_field = record.find("marc:datafield[@tag='520']", _DNB_NAMESPACES)
+
+    # The DNB SRU endpoint serves no cover images, so there is nothing to set here.
+    return BookImportCandidate(
+        title=title,
+        subtitle=subtitle,
+        author=authors[0] if authors else None,
+        authors=authors or None,
+        isbn=_extract_dnb_isbn(record),
+        cover_url=None,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=_dnb_subjects(record),
+        blurb=_dnb_first(blurb_field, "a") if blurb_field is not None else None,
+        source="dnb",
+    )
+
+
+_DNB_NAMESPACES: dict[str, str] = {
+    "srw": "http://www.loc.gov/zing/srw/",
+    "marc": "http://www.loc.gov/MARC21/slim",
+}
+
+# DNB records wrap non-sorting characters in U+0098 (string start) and U+009C
+# (string terminator) instead of using the MARC nonfiling indicator. Leaving them in
+# would show up in the title as stray control characters. The whole C1 range is
+# stripped so a stray marker anywhere in a subfield is handled, not just the
+# documented pair.
+_DNB_NONFILING_RE = re.compile("[\u0098-\u009f]")
+
+# MARC relator term codes for "this person wrote the book". A 1XX field that codes any
+# other role (editor, translator, illustrator) is a contributor, not the author.
+_DNB_AUTHOR_ROLES: frozenset[str] = frozenset({"aut", "cre"})
+
+# Trailing punctuation on a catalogued name: the period in "Mann, Thomas." is noise, but
+# the one in "Karl R." is a real initial. Only drop it when the final word is long enough
+# not to be an initial.
+_DNB_TRAILING_PERIOD_RE = re.compile(r"(?<=\S)\.\s*$")
+
+
+def _drop_dnb_trailing_period(text: str) -> str:
+    """Remove cataloguing noise from the forename half of an inverted name.
+
+    Applied only to the given side of a "Surname, Forename." entry, where a trailing
+    period is inversion punctuation rather than part of the name. A single-letter token
+    is an initial and keeps its period ("Karl R." -> "Karl R. Popper"); anything longer is
+    a full forename whose period is cataloguing noise ("Thomas." -> "Thomas Mann").
+
+    Never applied to a name that is not inverted: "Dr.", "Prof.", "MSc." and "BSc." are
+    titles and abbreviations, not inversion artifacts, and stripping them would mangle the
+    name.
+    """
+    if not text.endswith("."):
+        return text
+    if len(text.rsplit(" ", 1)[-1].rstrip(".")) <= 1:
+        return text
+    return _DNB_TRAILING_PERIOD_RE.sub("", text)
+
+
+# "1184 Seiten", "1.184 Seiten", "926 pages", "XXXIX, 601 S.". The number is either a
+# plain digit run or digit groups joined by a single grouping separator, and must not sit
+# directly behind another digit or separator. Three consequences, all deliberate:
+#   * no lazy quantifier next to \s*, so a long non-matching run cannot backtrack
+#     quadratically the way `[0-9][0-9.,\u00a0 ]*?` did;
+#   * a group is exactly three digits, so German "1.184" stays 1184 while a decimal
+#     "1.5" or a short group "1,23" is rejected instead of yielding a wrong page count;
+#   * the lookbehind stops the tail of "1.5" being read as a count of 5.
+# Note this provider-local parser is deliberately separate from the shared
+# `_parse_page_count`, which handles the "265 p." style used by the other sources.
+_DNB_EXTENT_RE = re.compile(
+    r"(?<![0-9.,\u00a0])"
+    r"((?:[0-9]{1,3}(?:[.,\u00a0 ][0-9]{3})+|[0-9]{1,15}))"
+    r"\s*(?:Seiten?|pages?|sidor|p\.|S\.)",
+    re.IGNORECASE,
+)
+
+
+def _strip_dnb_markers(text: str) -> str:
+    """Remove DNB non-sorting control markers and collapse the whitespace they leave."""
+    return re.sub(r"\s+", " ", _DNB_NONFILING_RE.sub("", text)).strip()
+
+
+def _dnb_subfields(field: ET.Element) -> dict[str, list[str]]:
+    """Group a MARC21 datafield's subfields by code, in document order."""
+    grouped: dict[str, list[str]] = {}
+    for subfield in field.findall("marc:subfield", _DNB_NAMESPACES):
+        text = _strip_dnb_markers(subfield.text or "")
+        if text:
+            grouped.setdefault(subfield.get("code", ""), []).append(text)
+    return grouped
+
+
+def _dnb_first(field: ET.Element, *codes: str) -> str | None:
+    """Return the first non-empty subfield value among the given codes.
+
+    The field must not be None: every caller has already checked whether the MARC field
+    is present before reading a subfield from it.
+    """
+    grouped = _dnb_subfields(field)
+    for code in codes:
+        for value in grouped.get(code, []):
+            if value:
+                return value
+    return None
+
+
+def _strip_dnb_brackets(value: str | None) -> str | None:
+    """Unwrap a catalogued value the DNB flagged as supplied rather than transcribed.
+
+    "[2026]" and "[Lisboa]" mean the cataloguer inferred these, and the brackets should
+    not reach the user. Applied to the publisher and the publication year.
+
+    Deliberately NOT applied to the title: the Library of Congress documents titles such
+    as `24500$a[Man smoking at window]`, where the brackets are part of the title itself.
+    """
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned or None
+
+
+def _reverse_dnb_name(raw: str) -> str:
+    """Turn a catalogued "Surname, Forename" into "Forename Surname".
+
+    The DNB indexes personal names inverted (MARC 1XX first indicator 1), which is the
+    one part of the format that is pure cataloguing convention rather than data.
+    """
+    name = _strip_dnb_markers(raw).strip(" ,;")
+    if "," not in name:
+        # Not an inverted name, so there is no inversion punctuation to remove. Titles and
+        # abbreviations such as "Dr." or "MSc." must survive intact.
+        return name
+    surname, _, given = name.partition(",")
+    # strip(" ,;") above guarantees neither side is empty once trimmed again here.
+    surname = surname.strip().rstrip(".").strip()
+    given = _drop_dnb_trailing_period(given.strip()).strip()
+    return f"{given} {surname}".strip() or name
+
+
+def _parse_dnb_page_count(text: str) -> Optional[int]:
+    """Pull the page count out of a DNB 300$a extent statement."""
+    match = _DNB_EXTENT_RE.search(_strip_dnb_markers(text))
+    if not match:
+        return None
+    # The pattern only ever captures digits and grouping separators, so the strip below
+    # always leaves a plain digit string.
+    count = int(re.sub(r"[.,\u00a0 ]", "", match.group(1)))
+    return count if count > 0 else None
+
+
+def _dnb_publication_year(date: str | None) -> Optional[int]:
+    """Extract a four-digit publication year, tolerating catalogued ranges and suffixes."""
+    if not date:
+        return None
+    match = re.search(r"(\d{4})", _strip_dnb_brackets(date) or "")
+    if not match:
+        return None
+    year = int(match.group(1))
+    return year if 1000 <= year <= 2999 else None
+
+
+def _dnb_authors(record: ET.Element) -> list[str]:
+    """Collect book authors from MARC 1XX and 700 fields, main entry first.
+
+    The DNB puts the lead author in 1XX and co-authors in 700 added entries. Every 700
+    it records carries a relator code, and those codes are mostly *not* authorship (edt,
+    trl, ill and art outnumber aut several times over), so a 700 is only taken when it
+    explicitly codes an author. The role is read from $4 alone: where $e is present it
+    simply restates $4 in German (edt/Herausgeber, aut/Verfasser).
+    """
+    authors: list[str] = []
+
+    def _add(field: ET.Element, *, strict: bool) -> None:
+        grouped = _dnb_subfields(field)
+        roles = {role.lower() for role in grouped.get("4", [])}
+        # strict: only an explicit author relator qualifies. Loose (1XX main entry):
+        # an uncoded field is still the record's main entry, so accept it.
+        if roles and not (roles & _DNB_AUTHOR_ROLES):
+            return
+        if strict and not roles:
+            return
+        raw = grouped.get("a", [None])[0]
+        if not raw:
+            return
+        name = _reverse_dnb_name(raw)
+        if name and name not in authors:
+            authors.append(name)
+
+    # Main entry first: a personal name, else a corporate or meeting main entry.
+    for tag in ("100", "110", "111"):
+        for field in record.findall(f"marc:datafield[@tag='{tag}']", _DNB_NAMESPACES):
+            _add(field, strict=False)
+        if authors:
+            break
+
+    # Then author-coded co-authors from the added entries.
+    for field in record.findall("marc:datafield[@tag='700']", _DNB_NAMESPACES):
+        _add(field, strict=True)
+
+    return authors
+
+
+def _dnb_title(record: ET.Element) -> tuple[str | None, str | None]:
+    """Return the title and subtitle from the record's MARC 245 field.
+
+    245 is non-repeating and its first indicator only records whether a title added
+    entry is made (0 or 1), not which of several titles is "main", so there is nothing to
+    rank: the first field carrying a $a is the title. The loop exists only so a record
+    that somehow carries several 245 fields still yields the first usable title rather
+    than being dropped for having a title-less 245 first.
+    """
+    for field in record.findall("marc:datafield[@tag='245']", _DNB_NAMESPACES):
+        title = _dnb_first(field, "a")
+        if title:
+            return title, _dnb_first(field, "b")
+    return None, None
+
+
+def _extract_dnb_isbn(record: ET.Element) -> Optional[str]:
+    """Return the record's ISBN, normalized to ISBN-13.
+
+    A 020 carrying a $q qualifier is dropped whole: the DNB uses that field to record a
+    misprinted ISBN together with a note saying it is wrong and no correct value could be
+    determined, and $9 then normalizes the bad value. Importing that number would attach
+    the book to an ISBN that identifies something else.
+
+    Every value goes through normalize_isbn and unparseable ones are discarded, so a
+    candidate never carries an ISBN that could not be looked up again later.
+    """
+    normalized: list[str] = []
+    for field in record.findall("marc:datafield[@tag='020']", _DNB_NAMESPACES):
+        grouped = _dnb_subfields(field)
+        if grouped.get("q"):
+            continue
+        for code in ("a", "9"):
+            for value in grouped.get(code, []):
+                try:
+                    normalized.append(normalize_isbn(value))
+                except ValueError:
+                    continue
+    # normalize_isbn always returns ISBN-13, so the first usable value is the answer.
+    return normalized[0] if normalized else None
+
+
+def _dnb_subjects(record: ET.Element) -> Optional[str]:
+    """Collect subject headings from MARC 650 fields.
+
+    689 is deliberately ignored: in DNB records it restates the same headings as 650 in a
+    topical form, so including it would double every tag. The list is capped at three to
+    match the BnF and Library of Congress providers, since tags render as a display field.
+    """
+    subjects: list[str] = []
+    for field in record.findall("marc:datafield[@tag='650']", _DNB_NAMESPACES):
+        value = _dnb_first(field, "a")
+        if value and value not in subjects:
+            subjects.append(value)
+    return ", ".join(subjects[:3]) if subjects else None
+
+
 # ── Merge / Deduplicate ───────────────────────────────────────────────────────
 
 
@@ -1810,7 +2216,12 @@ def _merge_results(*lists: list[BookImportCandidate]) -> list[BookImportCandidat
 
 
 def _parse_page_count(text: str) -> Optional[int]:
-    """Extract page count from a format string like '1 vol. (265 p.) ; 20 cm' or '412 p. ; 22 cm.'."""
+    """Extract page count from a format string like '1 vol. (265 p.) ; 20 cm' or '412 p. ; 22 cm.'.
+
+    Handles the English/BnF/LoC conventions only. The DNB has its own
+    `_parse_dnb_page_count` because its extent statements are localized
+    ("1184 Seiten", "1.184 Seiten", "416 sidor") and group thousands differently.
+    """
     # Try parenthesized format first: (265 p.)
     match = re.search(r"\(([\d,\s]+)\s*p\.\)", text)
     if match:

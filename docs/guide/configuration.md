@@ -76,6 +76,7 @@ naming the variables to set.
 | `BNF_IMPORT_SEARCH_ENABLED` | Query BnF (French national library), title and ISBN | `true` | `true` |
 | `INVENTAIRE_IMPORT_SEARCH_ENABLED` | Query Inventaire.io, ISBN only | `true` | `true` |
 | `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED` | Query the Library of Congress, title and ISBN | `true` | depends, see below |
+| `DNB_IMPORT_SEARCH_ENABLED` | Query the Deutsche Nationalbibliothek (German National Library), title and ISBN | `true` | `true` |
 | `HARDCOVER_IMPORT_SEARCH_ENABLED` | Query Hardcover.app (also needs `HARDCOVER_APP_API_TOKEN`) | `true` | `false` unless a token is set |
 | `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED` | Allow the Google Books fallback (also needs `GOOGLE_BOOKS_API_KEY`) | `true` | `false` unless a key is set |
 | `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | empty | — |
@@ -85,7 +86,8 @@ The built-in default is `true` for every source, so upgrading never silently dro
 source that worked before these switches existed. `.env.example` sets the two keyed
 sources to `false`, which is what you want unless you have configured a key or token.
 
-BnF, Inventaire, and the Library of Congress need no API key and are enabled by default.
+BnF, Inventaire, the Library of Congress, and the German National Library need no API key
+and are enabled by default.
 
 **Hardcover and Google Books cannot answer without credentials.** Either way they are
 handled the same way: if the switch is on and the key or token is empty, the source is
@@ -161,7 +163,7 @@ TELEMETRY_DISABLED=true
 
 - `API_KEY_ENCRYPTION_KEY` must be a real secret key (minimum 32 characters). Do not use the placeholder value from `.env.example`. If left as placeholder or set to a weak value, API key creation will fail.
 - When `OIDC_ENABLED=true`, all three OIDC variables must be set.
-- `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library, BnF, Inventaire, and the Library of Congress. `.env.example` sets `HARDCOVER_IMPORT_SEARCH_ENABLED` and `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED` to `false`; set either to `true` once its credential is configured.
+- `GOOGLE_BOOKS_API_KEY` and `HARDCOVER_APP_API_TOKEN` are optional. See [API Keys](/guide/api-keys) for how to obtain them. The app runs fine without them using Open Library, BnF, Inventaire, the Deutsche Nationalbibliothek, and the Library of Congress. `.env.example` sets `HARDCOVER_IMPORT_SEARCH_ENABLED` and `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED` to `false`; set either to `true` once its credential is configured.
 - At least one book import source must be able to answer. Disabling every source, or enabling only Hardcover and Google Books without their credentials, stops the backend from starting.
 
 ## Example .env

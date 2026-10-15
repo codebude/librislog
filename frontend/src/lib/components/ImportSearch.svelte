@@ -99,7 +99,8 @@
 		google_books: 'import.sourceNameGoogleBooks',
 		bnf: 'import.sourceNameBnf',
 		inventaire: 'import.sourceNameInventaire',
-		library_of_congress: 'import.sourceNameLibraryOfCongress'
+		library_of_congress: 'import.sourceNameLibraryOfCongress',
+		dnb: 'import.sourceNameDnb'
 	};
 
 	function sourceLabel(stage: string): string {

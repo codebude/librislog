@@ -244,6 +244,7 @@ def test_credentialed_sources_keep_true_default_for_backward_compatibility() -> 
     assert defaults.bnf_import_search_enabled is True
     assert defaults.inventaire_import_search_enabled is True
     assert defaults.library_of_congress_import_search_enabled is True
+    assert defaults.dnb_import_search_enabled is True
 
 
 @pytest.mark.anyio

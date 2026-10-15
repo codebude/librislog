@@ -234,6 +234,7 @@ node_modules/
 *-snapshot.md
 
 # AI tools
+/AGENTS.md
 /.memsearch
 /.playwright-mcp
 /.sverklo

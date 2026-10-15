@@ -249,6 +249,7 @@
     "sourceNameBnf": "BnF",
     "sourceNameInventaire": "Inventaire",
     "sourceNameLibraryOfCongress": "美国国会图书馆",
+    "sourceNameDnb": "德国国家图书馆",
     "sourceNameHardcover": "Hardcover",
     "sourceNameGoogleBooks": "Google Books",
     "sourceBackendError": "{source} 后端错误（请检查后端日志）",

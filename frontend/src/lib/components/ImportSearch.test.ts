@@ -127,6 +127,7 @@ describe('ImportSearch', () => {
 					{ stage: 'bnf', status: 'done', count: 1 },
 					{ stage: 'inventaire', status: 'done', count: 1 },
 					{ stage: 'library_of_congress', status: 'error', reason: 'backend_error' },
+					{ stage: 'dnb', status: 'done', count: 3 },
 					{ stage: 'hardcover', status: 'skipped', reason: 'no_api_token' }
 				])
 			);
@@ -139,6 +140,7 @@ describe('ImportSearch', () => {
 				expect(screen.getByText('Inventaire - 1 result')).toBeInTheDocument();
 				expect(screen.getByText('Open Library - 0 results')).toBeInTheDocument();
 				expect(screen.getByText(/Library of Congress backend error/)).toBeInTheDocument();
+				expect(screen.getByText('German National Library - 3 results')).toBeInTheDocument();
 				expect(screen.getByText(/Hardcover skipped/)).toBeInTheDocument();
 			});
 		});
