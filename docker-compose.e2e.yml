@@ -35,6 +35,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      BACKEND_ADDR: http://backend:8000
 
   test-runner:
     build:
