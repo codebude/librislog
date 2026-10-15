@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import { api } from '$lib/api';
-	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
-	import { currentUser } from '$lib/stores/auth';
-	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
-	import { isValidEmailFormat } from '$lib/validation';
-	import { localizeBackendError } from '$lib/errors';
-	import type { User, UserRole } from '$lib/types';
-	import { _ } from '$lib/i18n';
-	import BackupRestore from '$lib/components/BackupRestore.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import { api } from '#lib/api.js';
+	import PasswordRequirements from '#lib/components/PasswordRequirements.svelte';
+	import { currentUser } from '#lib/stores/auth.js';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
+	import { isValidEmailFormat } from '#lib/validation.js';
+	import { localizeBackendError } from '#lib/errors.js';
+	import type { User, UserRole } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
+	import BackupRestore from '#lib/components/BackupRestore.svelte';
 
 	let users = $state<User[]>([]);
 	let firstname = $state('');

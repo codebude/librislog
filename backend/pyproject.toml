@@ -52,5 +52,11 @@ pythonpath = ["."]
 filterwarnings = [
     "error::ResourceWarning",
     "ignore::DeprecationWarning:lxml\\.html.*",
+    # Pydantic emits a DeprecationWarning with the message "deprecated" on every read of a
+    # field declared with deprecated=True. The legacy `author` field is deliberately
+    # deprecated in favour of `authors`, and both the router and the tests read it on
+    # purpose, so this fires ~290 times per run and buries any real warning. The API
+    # deprecation itself is unaffected: it still warns for library consumers.
+    "ignore:^deprecated$:DeprecationWarning",
 ]
 addopts = "-ra --cov=app --cov-report term-missing"

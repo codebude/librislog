@@ -1,24 +1,24 @@
 	<script lang="ts">
-	import type { Book, ReadingProgressEntry } from '$lib/types';
-	import { _ } from '$lib/i18n';
-	import { locale } from '$lib/i18n';
+	import type { Book, ReadingProgressEntry } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { locale } from '#lib/i18n/index.js';
 	import {
 		formatDate,
 		formatDateTime,
 		fromDateTimeInputValue,
 		toDateTimeInputValue
-	} from '$lib/date';
-	import { getTimezone } from '$lib/stores/timezone';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import { formatLanguageCode } from '$lib/utils/language';
-	import { formatAuthors } from '$lib/utils/authors';
+	} from '#lib/date.js';
+	import { getTimezone } from '#lib/stores/timezone.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import { formatLanguageCode } from '#lib/utils/language.js';
+	import { formatAuthors } from '#lib/utils/authors.js';
 	import StarRating from './StarRating.svelte';
 	import { Line } from 'svelte-chartjs';
 	import { X } from '@lucide/svelte';
-	import '$lib/chartjs/register';
-	import { getDaisyColorRgb } from '$lib/chartjs/theme';
-	import { themeApplyCount } from '$lib/stores/theme';
+	import '#lib/chartjs/register.js';
+	import { getDaisyColorRgb } from '#lib/chartjs/theme.js';
+	import { themeApplyCount } from '#lib/stores/theme.js';
 	import { onMount } from 'svelte';
 	import type { ChartData, ChartOptions } from 'chart.js';
 

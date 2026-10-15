@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { User } from '$lib/types';
+import type { User } from '#lib/types.js';
 
 export const currentUser = writable<User | null>(null);
 export const apiKey = writable<string | null>(null);

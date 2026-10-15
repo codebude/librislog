@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import '$lib/chartjs/register';
+import '#lib/chartjs/register.js';
 
 // --- Polyfill crypto.randomUUID for happy-dom ---
 if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
@@ -13,7 +13,7 @@ if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
 
 // --- Mock svelte-i18n ($lib/i18n) ---
 // Use a static translator based on English locale so tests can assert on real text.
-const enTranslations: Record<string, unknown> = (await import('$lib/i18n/locales/en.json')).default;
+const enTranslations: Record<string, unknown> = (await import('#lib/i18n/locales/en.json')).default;
 
 function translate(key: string, options?: { values?: Record<string, unknown> }): string {
 	const keys = key.split('.');
@@ -30,7 +30,7 @@ function translate(key: string, options?: { values?: Record<string, unknown> }):
 	return result;
 }
 
-vi.mock('$lib/i18n', async () => {
+vi.mock('#lib/i18n/index.js', async () => {
 	const { readable } = await import('svelte/store');
 	return {
 		_: readable(translate),
@@ -42,18 +42,30 @@ vi.mock('$lib/i18n', async () => {
 	};
 });
 
-// --- Mock $app/stores and $app/navigation ---
-vi.mock('$app/stores', async () => {
-	const { readable } = await import('svelte/store');
-	return {
-		page: readable({
-			url: new URL('http://localhost:5173/'),
-			params: {},
-			route: { id: null }
-		}),
-		navigating: readable(null)
-	};
-});
+// --- Mock $app/state and $app/navigation ---
+// SvelteKit 3 removed $app/stores; `page` is now a plain reactive object rather
+// than a store, so the mock exposes an object instead of a `subscribe` wrapper.
+vi.mock('$app/state', () => ({
+	page: {
+		url: new URL('http://localhost:5173/'),
+		params: {},
+		route: { id: null },
+		status: 200,
+		error: null,
+		data: {},
+		state: {},
+		form: null
+	},
+	updated: { current: false },
+	navigating: {
+		from: null,
+		to: null,
+		type: null,
+		willUnload: false,
+		delta: undefined,
+		complete: Promise.resolve()
+	}
+}));
 
 vi.mock('$app/navigation', () => ({
 	goto: () => Promise.resolve(),

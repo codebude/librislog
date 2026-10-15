@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { readable } from 'svelte/store';
 import ShareLinkDialog from './ShareLinkDialog.svelte';
-import { defaultPublicProfileVisibilityConfig } from '$lib/publicProfile/sections';
-import type { PublicProfileLink } from '$lib/types';
+import { defaultPublicProfileVisibilityConfig } from '#lib/publicProfile/sections.js';
+import type { PublicProfileLink } from '#lib/types.js';
 
-vi.mock('$lib/i18n', () => {
+vi.mock('#lib/i18n/index.js', () => {
 	const t = (key: string) => `[${key}]`;
 	return { _: readable(t), SUPPORTED_LOCALES: ['en', 'de', 'zh', 'es', 'fr'] };
 });

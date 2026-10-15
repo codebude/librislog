@@ -1,28 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import LibraryPage from './+page.svelte';
-import type { Book, LibraryStats } from '$lib/types';
+import type { Book, LibraryStats } from '#lib/types.js';
 
+// SvelteKit 3 replaced the $app/stores page store with the $app/state `page`
+// object, so this mock is a mutable object rather than a subscribe wrapper.
 const mockPage = vi.hoisted(() => {
-	const subscribers = new Set<(value: unknown) => void>();
-	let state = { url: new URL('http://localhost:5173/library'), params: {}, route: { id: null } };
+	const state = {
+		url: new URL('http://localhost:5173/library'),
+		params: {},
+		route: { id: null }
+	};
 
 	return {
-		subscribe(run: (value: unknown) => void) {
-			run(state);
-			subscribers.add(run);
-			return () => subscribers.delete(run);
-		},
+		state,
 		setUrl(url: string) {
-			state = { url: new URL(url), params: {}, route: { id: null } };
-			subscribers.forEach((fn) => fn(state));
+			state.url = new URL(url);
 		}
 	};
 });
 
-vi.mock('$app/stores', () => ({
-	page: { subscribe: mockPage.subscribe },
-	navigating: { subscribe: vi.fn() }
+vi.mock('$app/state', () => ({
+	page: mockPage.state,
+	updated: { current: false },
+	navigating: { from: null, to: null, type: null, willUnload: false, delta: undefined }
 }));
 
 const mockGoto = vi.fn();
@@ -36,7 +37,7 @@ vi.mock('$app/navigation', () => ({
 const mockBooksList = vi.fn();
 const mockBooksStats = vi.fn();
 const mockProgressLatest = vi.fn();
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		books: {
 			list: (...args: unknown[]) => mockBooksList(...args),
@@ -53,13 +54,13 @@ function stubComponent(tag: string) {
 		render: () => ({ html: `<div data-stub="${tag}"></div>`, css: { code: '', map: null }, head: '' })
 	});
 }
-vi.mock('$lib/components/BookCard.svelte', () => ({ default: stubComponent('BookCard') }));
-vi.mock('$lib/components/BookListItem.svelte', () => ({ default: stubComponent('BookListItem') }));
-vi.mock('$lib/components/BookDetailDialog.svelte', () => ({ default: stubComponent('BookDetailDialog') }));
-vi.mock('$lib/components/BookDrawer.svelte', () => ({ default: stubComponent('BookDrawer') }));
-vi.mock('$lib/components/AddBookModal.svelte', () => ({ default: stubComponent('AddBookModal') }));
-vi.mock('$lib/components/SearchBar.svelte', () => ({ default: stubComponent('SearchBar') }));
-vi.mock('$lib/components/SearchHelp.svelte', () => ({ default: stubComponent('SearchHelp') }));
+vi.mock('#lib/components/BookCard.svelte', () => ({ default: stubComponent('BookCard') }));
+vi.mock('#lib/components/BookListItem.svelte', () => ({ default: stubComponent('BookListItem') }));
+vi.mock('#lib/components/BookDetailDialog.svelte', () => ({ default: stubComponent('BookDetailDialog') }));
+vi.mock('#lib/components/BookDrawer.svelte', () => ({ default: stubComponent('BookDrawer') }));
+vi.mock('#lib/components/AddBookModal.svelte', () => ({ default: stubComponent('AddBookModal') }));
+vi.mock('#lib/components/SearchBar.svelte', () => ({ default: stubComponent('SearchBar') }));
+vi.mock('#lib/components/SearchHelp.svelte', () => ({ default: stubComponent('SearchHelp') }));
 
 function createMockBook(id: number, overrides?: Partial<Book>): Book {
 	return {

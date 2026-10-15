@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isNewer, checkForUpdate } from './updateCheck';
 
-vi.mock('$lib/version', () => ({ version: 'v1.0.0', gitSha: 'abc1234' }));
+vi.mock('#lib/version', () => ({ version: 'v1.0.0', gitSha: 'abc1234' }));
 
 const CHECK_URL = 'https://docs.librislog.app/version.json';
 const STORAGE_KEY = 'librislog_update_check';

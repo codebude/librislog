@@ -1,5 +1,5 @@
 import { addMessages, init, locale, register, waitLocale, _ } from 'svelte-i18n';
-import { loadUserSettings } from '$lib/stores/userSettings';
+import { loadUserSettings } from '#lib/stores/userSettings.js';
 
 export const SUPPORTED_LOCALES = ['en', 'de', 'zh', 'es', 'fr'] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];

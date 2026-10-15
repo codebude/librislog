@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import StatisticsPage from './+page.svelte';
-import type { StatisticsResponse } from '$lib/types';
+import type { StatisticsResponse } from '#lib/types.js';
 
 const mockStatisticsGet = vi.fn();
 const mockGetPagesPerDay = vi.fn();
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		statistics: {
 			get: (...args: unknown[]) => mockStatisticsGet(...args),

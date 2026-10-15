@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Book, TopRatedBook } from '$lib/types';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import { _ } from '$lib/i18n';
-	import { formatAuthors } from '$lib/utils/authors';
+	import type { Book, TopRatedBook } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { formatAuthors } from '#lib/utils/authors.js';
 	import BookDetailDialog from './BookDetailDialog.svelte';
 
 	let { title, books }: { title: string; books: TopRatedBook[] } = $props();

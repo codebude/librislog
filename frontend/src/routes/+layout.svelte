@@ -1,22 +1,22 @@
 <script lang="ts">
 	import '../app.css';
-	import '$lib/chartjs/register';
-	import { page } from '$app/stores';
+	import '#lib/chartjs/register.js';
+	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
-	import AddBookModal from '$lib/components/AddBookModal.svelte';
-	import Logo from '$lib/components/Logo.svelte';
-	import Toaster from '$lib/components/Toaster.svelte';
-	import UserMenu from '$lib/components/UserMenu.svelte';
-	import { api } from '$lib/api';
-	import { currentUser, csrfToken, loadAuthFromStorage, initAuthSync } from '$lib/stores/auth';
-	import { _, setupI18n } from '$lib/i18n';
-	import { setTimezone, setQuoteServiceEnabled } from '$lib/stores/timezone';
-	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY } from '$lib/stores/theme';
+	import AddBookModal from '#lib/components/AddBookModal.svelte';
+	import Logo from '#lib/components/Logo.svelte';
+	import Toaster from '#lib/components/Toaster.svelte';
+	import UserMenu from '#lib/components/UserMenu.svelte';
+	import { api } from '#lib/api.js';
+	import { currentUser, csrfToken, loadAuthFromStorage, initAuthSync } from '#lib/stores/auth.js';
+	import { _, setupI18n } from '#lib/i18n/index.js';
+	import { setTimezone, setQuoteServiceEnabled } from '#lib/stores/timezone.js';
+	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY } from '#lib/stores/theme.js';
 	import { LayoutDashboard, BookOpen, ScrollText, BarChart3, Settings, CloudDownload } from '@lucide/svelte';
-	import { version } from '$lib/version';
-	import VersionLink from '$lib/components/VersionLink.svelte';
-	import { checkForUpdate, type UpdateInfo } from '$lib/stores/updateCheck';
-	import { toasts } from '$lib/toasts';
+	import { version } from '#lib/version.js';
+	import VersionLink from '#lib/components/VersionLink.svelte';
+	import { checkForUpdate, type UpdateInfo } from '#lib/stores/updateCheck.js';
+	import { toasts } from '#lib/toasts.js';
 	import '@fontsource/inter/300.css';
 	import '@fontsource/inter/400.css';
 	import '@fontsource/inter/500.css';
@@ -38,22 +38,16 @@
 	let updateInfo: UpdateInfo | null = $state(null);
 
 	function _isPublicAuthRoute(pathname: string): boolean {
-		return (
-			pathname.startsWith('/setup') ||
-			pathname.startsWith('/login') ||
-			pathname.startsWith('/reset-password') ||
-			pathname.startsWith('/auth/oidc') ||
-			pathname.startsWith('/p/')
-		);
+		return pathname.startsWith('/setup') || pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/auth/oidc') || pathname.startsWith('/p/');
 	}
 
-	const isPublicAuthRoute = $derived(_isPublicAuthRoute($page.url.pathname));
+	const isPublicAuthRoute = $derived(_isPublicAuthRoute(page.url.pathname));
 	const showAppChrome = $derived(!isPublicAuthRoute && $currentUser !== null);
 
 	// Expose a way for pages to trigger open
 	// We use context to share this across routes
 	import { setContext } from 'svelte';
-	setContext('openAddBook', () => (addBookOpen = true));
+	setContext('openAddBook', () => addBookOpen = true);
 
 	async function waitForBackend(): Promise<void> {
 		for (let i = 0; i < 30; i++) {
@@ -63,7 +57,7 @@
 			} catch {
 				// backend not ready yet
 			}
-			await new Promise(r => setTimeout(r, 2000));
+			await new Promise((r) => setTimeout(r, 2000));
 		}
 	}
 
@@ -80,7 +74,7 @@
 
 		// Wait for backend on public auth routes so the page doesn't
 		// render before the server is ready (e.g. OIDC config fetch).
-		const path = $page.url.pathname;
+		const path = page.url.pathname;
 		const isPublic = _isPublicAuthRoute(path);
 		if (isPublic) {
 			await waitForBackend();
@@ -184,7 +178,9 @@
 		checkVersion();
 		versionInterval = setInterval(checkVersion, 300000);
 
-		checkForUpdate().then(info => { updateInfo = info; });
+		checkForUpdate().then((info) => {
+			updateInfo = info;
+		});
 	});
 
 	onDestroy(() => clearInterval(versionInterval));
@@ -205,47 +201,47 @@
 	function pageTitle() {
 		if (!i18nReady) return 'LibrisLog';
 
-		if ($page.url.pathname.startsWith('/dashboard')) {
+		if (page.url.pathname.startsWith('/dashboard')) {
 			return `${$_('app.title')} - ${$_('nav.dashboard')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/library')) {
+		if (page.url.pathname.startsWith('/library')) {
 			return `${$_('app.title')} - ${$_('nav.library')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/api-docs')) {
+		if (page.url.pathname.startsWith('/api-docs')) {
 			return `${$_('app.title')} - ${$_('settings.apiDocsTitle')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/timeline')) {
+		if (page.url.pathname.startsWith('/timeline')) {
 			return `${$_('app.title')} - ${$_('nav.timeline')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/statistics')) {
+		if (page.url.pathname.startsWith('/statistics')) {
 			return `${$_('app.title')} - ${$_('nav.statistics')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/data') && !$page.url.pathname.startsWith('/data-hygiene')) {
+		if (page.url.pathname.startsWith('/data') && !page.url.pathname.startsWith('/data-hygiene')) {
 			return `${$_('app.title')} - ${$_('nav.data')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/data-hygiene')) {
+		if (page.url.pathname.startsWith('/data-hygiene')) {
 			return `${$_('app.title')} - ${$_('dataHygiene.title')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/admin')) {
+		if (page.url.pathname.startsWith('/admin')) {
 			return `${$_('app.title')} - ${$_('admin.title')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/about')) {
+		if (page.url.pathname.startsWith('/about')) {
 			return `${$_('app.title')} - ${$_('user.about')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/login')) {
+		if (page.url.pathname.startsWith('/login')) {
 			return `${$_('app.title')} - ${$_('auth.login')}`;
 		}
 
-		if ($page.url.pathname.startsWith('/setup')) {
+		if (page.url.pathname.startsWith('/setup')) {
 			return `${$_('app.title')} - ${$_('auth.setupTitle')}`;
 		}
 
@@ -277,77 +273,80 @@
 {:else if !showAppChrome || isPublicAuthRoute}
 	{@render children()}
 {:else}
-<div class="min-h-screen bg-base-200 flex">
-	<!-- Floating user menu (desktop) -->
-	<div class="hidden md:block">
-		<UserMenu {updateInfo} />
-	</div>
-	<!-- Sidebar (desktop) -->
+	<div class="min-h-screen bg-base-200 flex">
+		<!-- Floating user menu (desktop) -->
+		<div class="hidden md:block"><UserMenu updateInfo={updateInfo} /></div>
+		<!-- Sidebar (desktop) -->
 	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
-		<a href="/" class="flex items-center gap-2 py-2 px-1">
-			<Logo class="w-8 h-8" />
-			<div class="text-xl font-bold tracking-tight">{$_('app.title')}</div>
-		</a>
-		<nav class="flex flex-col gap-1 flex-1">
-			{#each NAV_ITEMS as item}
-				<a
-					href={item.href}
-					class="btn btn-ghost btn-sm justify-start gap-2 font-normal rounded-xl"
+			<a href="/" class="flex items-center gap-2 py-2 px-1">
+				<Logo class="w-8 h-8" />
+				<div class="text-xl font-bold tracking-tight">{$_('app.title')}</div>
+			</a>
+			<nav class="flex flex-col gap-1 flex-1">
+				{#each NAV_ITEMS as item}
+					<a
+						href={item.href}
+						class="btn btn-ghost btn-sm justify-start gap-2 font-normal rounded-xl"
 				>
 					<item.Icon class="w-4 h-4" />{$_(item.labelKey)}
 				</a>
-			{/each}
-		</nav>
+				{/each}
+			</nav>
 		<div class="flex items-center gap-2 text-[10px] text-base-content/40 px-1 mt-auto">
-			<a
-				href="https://github.com/codebude/librislog"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="link link-neutral"
-				aria-label="GitHub"
-			>
-				<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-					<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0"/>
-				</svg>
-			</a>
-			<span><VersionLink {updateInfo} /></span>
-		</div>
-	</aside>
-
-	<!-- Main content -->
-	<div class="flex-1 flex flex-col md:ml-56 min-h-screen min-w-0">
-		<!-- Mobile top bar with navbar -->
-		<div class="navbar md:hidden bg-base-100 shadow-sm sticky top-0 z-20">
-			<div class="navbar-start">
-				<a href="/" class="btn btn-ghost text-lg px-3 py-2">
-					<Logo class="w-10 h-10 shrink-0" />
-					<span class="font-bold tracking-tight hidden sm:inline">{$_('app.title')}</span>
+				<a
+					href="https://github.com/codebude/librislog"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="link link-neutral"
+					aria-label="GitHub"
+				>
+					<svg
+						class="w-3.5 h-3.5"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+					>
+						<path
+							d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0"
+						></path>
+					</svg>
 				</a>
+				<span><VersionLink updateInfo={updateInfo} /></span>
 			</div>
-			<div class="navbar-end gap-1">
-				<UserMenu floating={false} {updateInfo} />
-			</div>
-		</div>
+		</aside>
 
-		<!-- Page content -->
+		<!-- Main content -->
+	<div class="flex-1 flex flex-col md:ml-56 min-h-screen min-w-0">
+			<!-- Mobile top bar with navbar -->
+		<div class="navbar md:hidden bg-base-100 shadow-sm sticky top-0 z-20">
+				<div class="navbar-start">
+					<a href="/" class="btn btn-ghost text-lg px-3 py-2">
+						<Logo class="w-10 h-10 shrink-0" />
+						<span class="font-bold tracking-tight hidden sm:inline">{$_('app.title')}</span>
+					</a>
+				</div>
+
+				<div class="navbar-end gap-1"><UserMenu floating={false} updateInfo={updateInfo} /></div>
+			</div>
+
+			<!-- Page content -->
 		<main class="flex-1 p-4 pb-24 sm:pr-24 md:p-8 md:pb-4">
 			{@render children()}
 		</main>
 
-		<!-- Mobile bottom tab bar -->
+			<!-- Mobile bottom tab bar -->
 		<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 z-20 flex">
-			{#each NAV_ITEMS as item}
-				<a
-					href={item.href}
-					class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 text-base-content/60 hover:text-base-content"
-				>
-					<item.Icon class="w-5 h-5" />
-					<span>{$_(item.labelKey)}</span>
-				</a>
-			{/each}
-		</nav>
+				{#each NAV_ITEMS as item}
+					<a
+						href={item.href}
+						class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 text-base-content/60 hover:text-base-content"
+					>
+						<item.Icon class="w-5 h-5" />
+						<span>{$_(item.labelKey)}</span>
+					</a>
+				{/each}
+			</nav>
+		</div>
 	</div>
-</div>
 {/if}
 
 <AddBookModal bind:open={addBookOpen} onAdded={() => {}} />

@@ -8,7 +8,7 @@ const mockLogout = vi.fn(async () => {});
 const mockBroadcastLogout = vi.fn();
 
 // Create stores inside mock factory to avoid hoisting issues
-vi.mock('$lib/stores/auth', async () => {
+vi.mock('#lib/stores/auth.js', async () => {
 	const { writable } = await import('svelte/store');
 	return {
 		currentUser: writable<{ id: number; firstname: string; lastname: string; email: string; role: 'admin' | 'user'; created_at: string } | null>(null),
@@ -21,7 +21,7 @@ vi.mock('$app/navigation', () => ({
 	goto: (path: string) => mockGoto(path)
 }));
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		auth: {
 			logout: () => mockLogout()
@@ -29,7 +29,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-import { currentUser, csrfToken } from '$lib/stores/auth';
+import { currentUser, csrfToken } from '#lib/stores/auth.js';
 
 describe('UserMenu', () => {
 	beforeEach(() => {

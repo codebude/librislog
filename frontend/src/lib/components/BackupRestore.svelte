@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import { localizeError } from '$lib/errors';
+	import { _ } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import { localizeError } from '#lib/errors.js';
 
 	let backupInProgress = $state(false);
 	let restoreFile = $state<File | null>(null);

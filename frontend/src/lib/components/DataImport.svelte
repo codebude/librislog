@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { _ } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import ImportMappingEditor from '$lib/components/ImportMappingEditor.svelte';
-	import { highlightJson } from '$lib/utils/prism';
+	import { _ } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import ImportMappingEditor from '#lib/components/ImportMappingEditor.svelte';
+	import { highlightJson } from '#lib/utils/prism.js';
 	import type {
 		DataImportEvent,
 		DataImportMappingListItem,
@@ -12,7 +12,7 @@
 		DataImportValidateResponse,
 		DataImportPreviewResponse,
 		ImportFieldConfig
-	} from '$lib/types';
+	} from '#lib/types.js';
 
 	let selectedFile = $state<File | null>(null);
 	let delimiter = $state(',');

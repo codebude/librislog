@@ -1,15 +1,15 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Logo from '$lib/components/Logo.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Logo from '#lib/components/Logo.svelte';
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
-	import { currentUser, csrfToken } from '$lib/stores/auth';
-	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
-	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
+	import { api } from '#lib/api.js';
+	import { currentUser, csrfToken } from '#lib/stores/auth.js';
+	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '#lib/i18n/index.js';
+	import { setTimezone, detectTimezone } from '#lib/stores/timezone.js';
 	import {
 		setThemeMode, setCustomTheme, applyThemeToDocument, saveThemeToStorage,
 		sanitizeThemeMode, THEME_MODE_KEY, CUSTOM_THEME_KEY
-	} from '$lib/stores/theme';
+	} from '#lib/stores/theme.js';
 
 	let email = $state('');
 	let password = $state('');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { setTimezone, getTimezone, detectTimezone, setQuoteServiceEnabled, isQuoteServiceEnabled } from '$lib/stores/timezone';
+import { setTimezone, getTimezone, detectTimezone, setQuoteServiceEnabled, isQuoteServiceEnabled } from '#lib/stores/timezone.js';
 
 describe('timezone store', () => {
 	it('getTimezone returns a string', () => {

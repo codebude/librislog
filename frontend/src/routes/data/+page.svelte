@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { _ } from '$lib/i18n';
-	import DataExport from '$lib/components/DataExport.svelte';
-	import DataImport from '$lib/components/DataImport.svelte';
+	import { _ } from '#lib/i18n/index.js';
+	import DataExport from '#lib/components/DataExport.svelte';
+	import DataImport from '#lib/components/DataImport.svelte';
 
-	const activeTab = $derived(($page.url.searchParams.get('tab') === 'import' ? 'import' : 'export') as 'import' | 'export');
+	const activeTab = $derived((page.url.searchParams.get('tab') === 'import' ? 'import' : 'export') as 'import' | 'export');
 
 	async function setTab(tab: 'import' | 'export') {
 		const url = new URL(window.location.href);
 		url.searchParams.set('tab', tab);
 		await goto(`${url.pathname}?${url.searchParams.toString()}`, {
 			replaceState: true,
-			noScroll: true,
-			keepFocus: true
+			reset: false
 		});
 	}
 </script>

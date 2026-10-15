@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/sv
 import CoverPicker from './CoverPicker.svelte';
 
 // Mock api
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		covers: {
 			upload: vi.fn()
@@ -12,7 +12,7 @@ vi.mock('$lib/api', () => ({
 }));
 
 // Mock toasts
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: vi.fn(),
 		remove: vi.fn(),
@@ -20,8 +20,8 @@ vi.mock('$lib/toasts', () => ({
 	}
 }));
 
-import { api } from '$lib/api';
-import { toasts } from '$lib/toasts';
+import { api } from '#lib/api.js';
+import { toasts } from '#lib/toasts.js';
 
 describe('CoverPicker', () => {
 	beforeEach(() => {

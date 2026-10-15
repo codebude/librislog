@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import AutoSearchCoverModal from './AutoSearchCoverModal.svelte';
-import type { CoverCandidate } from '$lib/types';
+import type { CoverCandidate } from '#lib/types.js';
 
 describe('AutoSearchCoverModal', () => {
 	const onCancel = vi.fn();

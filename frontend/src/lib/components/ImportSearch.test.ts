@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import ImportSearch from './ImportSearch.svelte';
-import { api } from '$lib/api';
-import type { BasketItem, BookImportCandidate, SearchStage } from '$lib/types';
+import { api } from '#lib/api.js';
+import type { BasketItem, BookImportCandidate, SearchStage } from '#lib/types.js';
 
 const mockSearchStream = vi.fn();
 const mockImportBook = vi.fn();
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		import: {
 			searchStream: (...args: unknown[]) => mockSearchStream(...args),
@@ -20,7 +20,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

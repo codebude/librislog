@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { _ } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import type { Book, CoverCandidate } from '$lib/types';
+	import { _ } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import type { Book, CoverCandidate } from '#lib/types.js';
 	import { ArrowLeft, ExternalLink, SkipForward } from '@lucide/svelte';
-	import CoverCandidateGrid from '$lib/components/CoverCandidateGrid.svelte';
-	import { formatAuthors } from '$lib/utils/authors';
+	import CoverCandidateGrid from '#lib/components/CoverCandidateGrid.svelte';
+	import { formatAuthors } from '#lib/utils/authors.js';
 
 	let loading = $state(true);
 	let advancing = $state(false);

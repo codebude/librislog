@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
-	import { api } from '$lib/api';
-	import { toasts } from '$lib/toasts';
-	import type { DataExportDataset, DataExportFormat } from '$lib/types';
+	import { _ } from '#lib/i18n/index.js';
+	import { api } from '#lib/api.js';
+	import { toasts } from '#lib/toasts.js';
+	import type { DataExportDataset, DataExportFormat } from '#lib/types.js';
 
 	let selected = $state<DataExportDataset[]>(['books']);
 	let format = $state<DataExportFormat>('json');

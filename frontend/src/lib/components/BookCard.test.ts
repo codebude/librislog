@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import BookCard from './BookCard.svelte';
-import type { Book } from '$lib/types';
+import type { Book } from '#lib/types.js';
 
 function mockBook(overrides?: Partial<Book>): Book {
 	return {

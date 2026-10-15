@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
 	onMount(async () => {
-		const status = $page.url.searchParams.get('status');
+		const status = page.url.searchParams.get('status');
 		if (status) {
 			await goto(`/library?status=${status}`, { replaceState: true });
 			return;

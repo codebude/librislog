@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { AcquisitionStatus, BasketItem, Book, BookImportCandidate, BookImportCandidateGroup, Medium, ReadingStatus, SearchStage } from '$lib/types';
+	import type { AcquisitionStatus, BasketItem, Book, BookImportCandidate, BookImportCandidateGroup, Medium, ReadingStatus, SearchStage } from '#lib/types.js';
 	import { onDestroy, onMount } from 'svelte';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
 	import { ScanBarcode } from '@lucide/svelte';
-	import { formatAuthors } from '$lib/utils/authors';
-	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
+	import { formatAuthors } from '#lib/utils/authors.js';
+	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '#lib/utils/secureContext.js';
 	import {
 		basketCandidateKey,
 		canonicalIsbn,
 		groupCandidates,
 		titleAuthorKey
-	} from '$lib/utils/importSearch';
+	} from '#lib/utils/importSearch.js';
 
 	let {
 		defaultStatus = 'want_to_read',

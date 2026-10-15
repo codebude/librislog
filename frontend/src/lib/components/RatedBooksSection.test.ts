@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import RatedBooksSection from './RatedBooksSection.svelte';
-import type { TopRatedBook } from '$lib/types';
+import type { TopRatedBook } from '#lib/types.js';
 
 const mockBooksGet = vi.fn(async (_id: number) => ({
 	id: _id,
@@ -24,7 +24,7 @@ const mockBooksGet = vi.fn(async (_id: number) => ({
 
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		books: {
 			get: (id: number) => mockBooksGet(id)
@@ -32,7 +32,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock('$lib/toasts', () => ({
 	}
 }));
 
-vi.mock('$lib/i18n', () => ({
+vi.mock('#lib/i18n/index.js', () => ({
 	_: {
 		subscribe: (run: (value: (key: string, opts?: Record<string, unknown>) => string) => void) => {
 			run((key: string, opts?: Record<string, unknown>) => {
