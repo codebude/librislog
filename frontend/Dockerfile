@@ -17,5 +17,7 @@ RUN npm run build
 # Stage 2: serve
 FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY docker-entrypoint.d/ /docker-entrypoint.d/
+ENV BACKEND_ADDR=http://backend:8000
 EXPOSE 80

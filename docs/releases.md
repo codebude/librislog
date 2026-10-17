@@ -53,6 +53,7 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 - 🌍 **Localized source names.** Import sources are shown under their translated name in the search progress list and in the edition chips, in all five UI languages
 
 **Improvements**
+- 🌐 Allow a configurable backend address via `BACKEND_ADDR` for setups besides the default `docker-compose.yml`
 - 📌 **Sticky Add Book dialog header.** The dialog title and the close button stay pinned to the top of the window while the content scrolls, so closing the dialog no longer requires scrolling back up after a long list of results
 - 🔍 **Search results report each source.** The progress list names every source that was queried, including those that were skipped and why
 
