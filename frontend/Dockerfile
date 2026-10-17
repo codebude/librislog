@@ -18,4 +18,5 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV BACKEND_ADDR=http://backend:8000
 EXPOSE 80

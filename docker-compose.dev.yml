@@ -32,7 +32,7 @@ services:
       - "8001:80"
     restart: unless-stopped
     environment:
-      BACKEND_ADDR: http://backend:8000
+      BACKEND_ADDR: ${BACKEND_ADDR:-http://backend:8000}
 
   mailpit:
     image: axllent/mailpit:latest

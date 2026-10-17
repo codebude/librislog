@@ -16,6 +16,7 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 
 | Version | Date | Type |
 |---|---|---|
+[UNRELEASED](#unreleased)|-|-|
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
@@ -32,6 +33,14 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+## UNRELEASED
+
+**Features**
+- 🌐 Allow a configurable backend address via `BACKEND_ADDR` for setups besides the default `docker-compose.yml`
+
+[Compare with v1.9.0](https://github.com/codebude/librislog/compare/v1.9.0...main)
 
 ---
 

@@ -111,7 +111,7 @@ TELEMETRY_DISABLED=true
 
 | Variable       | Description                                                                                                                        |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `BACKEND_ADDR` | Configures the upstream address for the Nginx webserver. For the default `docker-compose.yml` this is set to `http://backend:8000` |
+| `BACKEND_ADDR` | Configures the upstream address for the Nginx webserver. For the default `docker-compose.yml` this is set to `http://backend:8000`. **NOTE**: Remove trailing `/` as they might interfere with NGINXs routing behavior. |
 
 ### Build Time
 
