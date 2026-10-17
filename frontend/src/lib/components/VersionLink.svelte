@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { version, gitSha } from '$lib/version';
-	import { _ } from '$lib/i18n';
-	import type { UpdateInfo } from '$lib/stores/updateCheck';
+	import { version, gitSha } from '#lib/version.js';
+	import { _ } from '#lib/i18n/index.js';
+	import type { UpdateInfo } from '#lib/stores/updateCheck.js';
 
 	let { updateInfo = null }: { updateInfo?: UpdateInfo | null } = $props();
 

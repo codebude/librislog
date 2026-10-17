@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import DataImport from './DataImport.svelte';
-import type { DataImportParseResponse } from '$lib/types';
+import type { DataImportParseResponse } from '#lib/types.js';
 
 const mockParseImportFile = vi.fn(
 	async (_file: File): Promise<DataImportParseResponse> => ({
@@ -31,7 +31,7 @@ const mockExecuteImport = vi.fn(async function* (_params: unknown) {
 });
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		data: {
 			parseImportFile: (file: File) => mockParseImportFile(file),
@@ -46,7 +46,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

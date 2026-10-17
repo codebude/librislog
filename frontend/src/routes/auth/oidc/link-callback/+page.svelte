@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
-	import { currentUser, csrfToken } from '$lib/stores/auth';
-	import { _ } from '$lib/i18n';
+	import { api } from '#lib/api.js';
+	import { currentUser, csrfToken } from '#lib/stores/auth.js';
+	import { _ } from '#lib/i18n/index.js';
 
 	let error = $state('');
 

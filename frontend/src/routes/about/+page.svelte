@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
-	import Logo from '$lib/components/Logo.svelte';
-	import VersionLink from '$lib/components/VersionLink.svelte';
+	import { _ } from '#lib/i18n/index.js';
+	import Logo from '#lib/components/Logo.svelte';
+	import VersionLink from '#lib/components/VersionLink.svelte';
 	import { BookOpen } from '@lucide/svelte';
 	import pkg from '../../../package.json';
 

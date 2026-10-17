@@ -17,22 +17,22 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.60.0",
-		"@sveltejs/adapter-auto": "^7.0.1",
-		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.57.0",
+		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/adapter-static": "^4.0.0",
+		"@sveltejs/kit": "^3.0.1",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@testing-library/jest-dom": "^7.0.1",
 		"@testing-library/svelte": "^5.3.1",
 		"@testing-library/user-event": "^14.6.7",
 		"@types/hammerjs": "^2.0.46",
 		"@types/node": "^26.2.0",
-		"@vitest/coverage-v8": "^4.1.7",
-		"happy-dom": "^20.9.0",
-		"svelte": "^5.55.2",
-		"svelte-check": "^4.4.6",
+		"@vitest/coverage-v8": "^5.0.4",
+		"happy-dom": "^21.0.1",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.7.5",
 		"typescript": "^6.0.2",
-		"vite": "^8.0.7",
-		"vitest": "^4.1.6"
+		"vite": "^8.0.12",
+		"vitest": "^5.0.4"
 	},
 	"dependencies": {
 		"@fontsource/inter": "^5.2.8",
@@ -51,12 +51,15 @@
 		"tailwindcss": "^4.3.0"
 	},
 	"overrides": {
-		"cookie": "^0.7.2",
+		"cookie": "^2.0.1",
 		"svelte-i18n": {
 			"esbuild": "^0.25.0"
 		}
 	},
 	"allowScripts": {
 		"esbuild@0.25.12": true
+	},
+	"imports": {
+		"#lib/*": "./src/lib/*"
 	}
 }

@@ -2,7 +2,7 @@ import type {
 	PublicProfileSectionKey,
 	PublicProfileStatisticsKey,
 	PublicProfileVisibilityConfig
-} from '$lib/types';
+} from '#lib/types.js';
 
 export interface PublicProfileSectionDef {
 	key: PublicProfileSectionKey;

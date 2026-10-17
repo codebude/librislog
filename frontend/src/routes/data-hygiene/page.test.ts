@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import DataHygienePage from './+page.svelte';
-import type { HygieneMissingBook, HygieneAttribute } from '$lib/types';
+import type { HygieneMissingBook, HygieneAttribute } from '#lib/types.js';
 
 const mockListMissing = vi.fn();
 const mockBatchUpdate = vi.fn();
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		hygiene: {
 			listMissing: (...args: unknown[]) => mockListMissing(...args),
@@ -15,14 +15,14 @@ vi.mock('$lib/api', () => ({
 }));
 
 const mockToastAdd = vi.fn();
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastAdd(...args),
 		subscribe: vi.fn(),
 	}
 }));
 
-vi.mock('$lib/errors', () => ({
+vi.mock('#lib/errors.js', () => ({
 	localizeError: (_err: unknown, _translate: unknown, fallback: string) => fallback,
 }));
 

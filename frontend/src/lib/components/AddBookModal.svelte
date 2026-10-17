@@ -1,8 +1,8 @@
 	<script lang="ts">
-	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
+	import type { AcquisitionStatus, BasketItem, Book, Medium, ReadingStatus } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
 	import ImportSearch from './ImportSearch.svelte';
 	import BasketPanel from './BasketPanel.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
@@ -228,11 +228,16 @@
 
 {#if open}
 	<div class="modal modal-open">
-		<div class="modal-box w-full max-w-3xl max-h-[90dvh] overflow-y-auto">
-			<div class="flex items-center justify-between mb-4">
+		<div class="modal-box w-full max-w-3xl max-h-[90dvh] overflow-y-auto p-0">
+			<!-- The modal-box is the scroll container. It carries no padding of its own so
+				that this header can stick flush to the top edge and fully cover the content
+				that scrolls underneath it; the body below restores the p-6 inset. -->
+			<div class="sticky top-0 z-10 flex items-center justify-between bg-base-100 px-6 pt-6 pb-3 border-b border-base-200">
 				<h3 class="text-lg font-bold">{$_('app.addBook')}</h3>
 				<button class="btn btn-ghost btn-sm btn-circle" onclick={() => { open = false; }} aria-label={$_('common.close')}><X class="w-4 h-4" /></button>
 			</div>
+
+			<div class="p-6">
 
 			<!-- Tabs -->
 			<div role="tablist" class="tabs tabs-boxed mb-4">
@@ -449,6 +454,7 @@
 				onImport={importBasket}
 			/>
 		{/if}
+			</div>
 		</div>
 	<BarcodeScanner
 		bind:open={scannerOpen}

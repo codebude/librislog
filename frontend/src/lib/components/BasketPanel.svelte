@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { BasketItem } from '$lib/types';
-	import { _ } from '$lib/i18n';
+	import type { BasketItem } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
 	import { X, ShoppingBasket } from '@lucide/svelte';
-	import { formatAuthors } from '$lib/utils/authors';
+	import { formatAuthors } from '#lib/utils/authors.js';
 
 	let {
 		basket,

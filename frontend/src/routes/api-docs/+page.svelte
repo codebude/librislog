@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { base } from '$app/paths';
-	import { _ } from '$lib/i18n';
+	import { _ } from '#lib/i18n/index.js';
 
 	type DocsView = 'swagger' | 'redoc';
 	let docsView = $state<DocsView>('swagger');
 	let docsLoading = $state(true);
 
-	const docsUrl = $derived(docsView === 'swagger' ? `${base}/api/docs` : `${base}/api/redoc`);
+	// These are backend endpoints served under the same origin, not SvelteKit routes,
+	// so they are plain paths rather than resolve() arguments.
+	const docsUrl = $derived(docsView === 'swagger' ? '/api/docs' : '/api/redoc');
 
 	function onDocsViewChange(event: Event) {
 		docsView = (event.currentTarget as HTMLSelectElement).value as DocsView;

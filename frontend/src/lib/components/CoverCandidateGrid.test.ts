@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import CoverCandidateGrid from './CoverCandidateGrid.svelte';
-import type { CoverCandidate } from '$lib/types';
+import type { CoverCandidate } from '#lib/types.js';
 
 const candidates: CoverCandidate[] = [
 	{ source: 'abebooks', url: 'https://example.com/1.jpg', available: true, filesize: 20408, width: 200, height: 300, content_type: 'image/jpeg' },

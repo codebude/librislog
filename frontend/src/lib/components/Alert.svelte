@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import { ALERT_DURATION_MS } from '$lib/constants';
+	import { ALERT_DURATION_MS } from '#lib/constants.js';
 	import { X } from '@lucide/svelte';
 
 	let {

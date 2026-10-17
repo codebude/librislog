@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
-	import { localizeError } from '$lib/errors';
-	import Alert from '$lib/components/Alert.svelte';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import SuggestionInput from '$lib/components/SuggestionInput.svelte';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
+	import { localizeError } from '#lib/errors.js';
+	import Alert from '#lib/components/Alert.svelte';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
+	import SuggestionInput from '#lib/components/SuggestionInput.svelte';
 	import { LoaderCircle, X } from '@lucide/svelte';
-	import { formatAuthors } from '$lib/utils/authors';
-	import type { Book, HygieneAttribute, HygieneMissingBook } from '$lib/types';
+	import { formatAuthors } from '#lib/utils/authors.js';
+	import type { Book, HygieneAttribute, HygieneMissingBook } from '#lib/types.js';
 
 	const ATTRIBUTES: { key: HygieneAttribute; labelKey: string }[] = [
 		{ key: 'author', labelKey: 'dataHygiene.attributes.author' },

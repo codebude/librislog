@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Logo from '$lib/components/Logo.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Logo from '#lib/components/Logo.svelte';
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
-	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
-	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
-	import { isValidEmailFormat } from '$lib/validation';
-	import { currentUser, csrfToken } from '$lib/stores/auth';
-	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '$lib/i18n';
-	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
+	import { api } from '#lib/api.js';
+	import PasswordRequirements from '#lib/components/PasswordRequirements.svelte';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
+	import { isValidEmailFormat } from '#lib/validation.js';
+	import { currentUser, csrfToken } from '#lib/stores/auth.js';
+	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '#lib/i18n/index.js';
+	import { setTimezone, detectTimezone } from '#lib/stores/timezone.js';
 
 	let firstname = $state('');
 	let lastname = $state('');

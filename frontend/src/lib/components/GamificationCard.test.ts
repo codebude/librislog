@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import GamificationCard from './GamificationCard.svelte';
-import type { GoalProgress } from '$lib/types';
+import type { GoalProgress } from '#lib/types.js';
 
 function goal(overrides?: Partial<GoalProgress>): GoalProgress {
 	return {

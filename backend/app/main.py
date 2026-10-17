@@ -76,9 +76,46 @@ async def _telemetry_heartbeat() -> None:
         await asyncio.sleep(_TELEMETRY_INTERVAL_SECONDS)
 
 
+def _validate_import_sources() -> None:
+    """Ensure at least one import search provider can actually answer a query.
+
+    Counting enabled flags alone is not enough: Hardcover and Google Books require a
+    token/API key, so being switched on without credentials still means no source can
+    answer. This checks for a provider that is both enabled and usable.
+    """
+    from app.services import book_import
+
+    active: list[str] = []
+    for spec in book_import._build_sources(""):
+        if not spec.enabled():
+            continue
+        if spec.stage == "hardcover" and not settings.hardcover_app_api_token.strip():
+            continue
+        active.append(spec.stage)
+
+    if book_import._google_fallback_enabled() and settings.google_books_api_key.strip():
+        active.append("google_books")
+
+    if not active:
+        keyless = ", ".join(
+            sorted(
+                f"{spec.stage.upper()}_IMPORT_SEARCH_ENABLED"
+                for spec in book_import._build_sources("")
+                if spec.stage not in {"hardcover", "google_books"}
+            )
+        )
+        raise RuntimeError(
+            "No usable book import source is configured. "
+            f"Set at least one of {keyless} to true, or provide "
+            "HARDCOVER_APP_API_TOKEN with HARDCOVER_IMPORT_SEARCH_ENABLED=true, "
+            "or GOOGLE_BOOKS_API_KEY with GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=true."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: create required directories and start background tasks."""
+    _validate_import_sources()
     Path(settings.covers_dir).mkdir(parents=True, exist_ok=True)
     Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
     cleanup_temp_files()

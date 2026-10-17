@@ -1,11 +1,11 @@
 	<script lang="ts">
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
-	import { broadcastLogout, currentUser, csrfToken } from '$lib/stores/auth';
-	import type { UpdateInfo } from '$lib/stores/updateCheck';
-	import { _ } from '$lib/i18n';
-	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '$lib/stores/theme';
-	import AnimalAvatar from '$lib/components/AnimalAvatar.svelte';
+	import { api } from '#lib/api.js';
+	import { broadcastLogout, currentUser, csrfToken } from '#lib/stores/auth.js';
+	import type { UpdateInfo } from '#lib/stores/updateCheck.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '#lib/stores/theme.js';
+	import AnimalAvatar from '#lib/components/AnimalAvatar.svelte';
 	import { Sun, Moon, Palette, CloudDownload, ExternalLink } from '@lucide/svelte';
 
 	let { floating = true, updateInfo = null }: { floating?: boolean; updateInfo?: UpdateInfo | null } = $props();

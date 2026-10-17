@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
-	import type { ImportFieldConfig } from '$lib/types';
-	import { highlightPython } from '$lib/utils/prism';
+	import { _ } from '#lib/i18n/index.js';
+	import type { ImportFieldConfig } from '#lib/types.js';
+	import { highlightPython } from '#lib/utils/prism.js';
 	import { Info } from '@lucide/svelte';
 
 	let {

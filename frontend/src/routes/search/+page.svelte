@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { Book } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
-	import { shouldShowActionToast } from '$lib/errors';
-	import BookCard from '$lib/components/BookCard.svelte';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import SearchHelp from '$lib/components/SearchHelp.svelte';
+	import type { Book } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
+	import { shouldShowActionToast } from '#lib/errors.js';
+	import BookCard from '#lib/components/BookCard.svelte';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
+	import SearchHelp from '#lib/components/SearchHelp.svelte';
 	import { Search, ArrowLeft, X } from '@lucide/svelte';
 
 	const PAGE_SIZE = 40;
@@ -35,7 +35,7 @@
 	const numberFormatter = new Intl.NumberFormat();
 
 	onMount(() => {
-		const q = $page.url.searchParams.get('q') ?? '';
+		const q = page.url.searchParams.get('q') ?? '';
 		searchQuery = q;
 		if (q) {
 			void performSearch(q, true);
@@ -164,7 +164,7 @@
 
 	function handleSave(updated: Book) {
 		selectedBook = updated;
-		books = books.map((b) => (b.id === updated.id ? updated : b));
+		books = books.map((b) => b.id === updated.id ? updated : b);
 	}
 
 	function handleDelete(id: number) {
@@ -241,7 +241,7 @@
 	{:else if books.length > 0}
 		<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 			{#each books as book (book.id)}
-				<BookCard {book} onClick={openDetailView} />
+				<BookCard book={book} onClick={openDetailView} />
 			{/each}
 		</div>
 

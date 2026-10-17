@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { Book, DashboardQuote, GamificationResponse, LibraryStats } from '$lib/types';
-	import { api } from '$lib/api';
-	import { _ } from '$lib/i18n';
-	import { toasts } from '$lib/toasts';
-	import { shouldShowActionToast } from '$lib/errors';
-	import { isQuoteServiceEnabled } from '$lib/stores/timezone';
-	import { formatAuthors } from '$lib/utils/authors';
-	import BookCard from '$lib/components/BookCard.svelte';
-	import BookDetailDialog from '$lib/components/BookDetailDialog.svelte';
-	import BookDrawer from '$lib/components/BookDrawer.svelte';
-	import GamificationCard from '$lib/components/GamificationCard.svelte';
-	import SearchHelp from '$lib/components/SearchHelp.svelte';
+	import type { Book, DashboardQuote, GamificationResponse, LibraryStats } from '#lib/types.js';
+	import { api } from '#lib/api.js';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts } from '#lib/toasts.js';
+	import { shouldShowActionToast } from '#lib/errors.js';
+	import { isQuoteServiceEnabled } from '#lib/stores/timezone.js';
+	import { formatAuthors } from '#lib/utils/authors.js';
+	import BookCard from '#lib/components/BookCard.svelte';
+	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
+	import BookDrawer from '#lib/components/BookDrawer.svelte';
+	import GamificationCard from '#lib/components/GamificationCard.svelte';
+	import SearchHelp from '#lib/components/SearchHelp.svelte';
 import { Search, X } from '@lucide/svelte';
 
 	let loading = $state(true);
@@ -62,7 +62,7 @@ import { Search, X } from '@lucide/svelte';
 	};
 
 	onMount(() => {
-		const authorQuery = $page.url.searchParams.get('q');
+		const authorQuery = page.url.searchParams.get('q');
 		if (authorQuery) {
 			searchQuery = authorQuery;
 		}
@@ -202,8 +202,8 @@ import { Search, X } from '@lucide/svelte';
 
 	function handleSave(updated: Book) {
 		selectedBook = updated;
-		currentlyReading = currentlyReading.map((book) => (book.id === updated.id ? updated : book));
-		nextToRead = nextToRead.map((book) => (book.id === updated.id ? updated : book));
+		currentlyReading = currentlyReading.map((book) => book.id === updated.id ? updated : book);
+		nextToRead = nextToRead.map((book) => book.id === updated.id ? updated : book);
 		void loadDashboard();
 	}
 
@@ -257,7 +257,7 @@ import { Search, X } from '@lucide/svelte';
 
 		const token = ++searchToken;
 		searchTimer = setTimeout(() => {
-			void runSearch(trimmed, token);
+				void runSearch(trimmed, token);
 		}, 300);
 
 		return () => {
@@ -345,82 +345,82 @@ import { Search, X } from '@lucide/svelte';
 			<div class="flex items-start gap-2">
 				<div class="relative w-full">
 					<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50 pointer-events-none z-10" />
-				<input
-					type="text"
-					class="input input-bordered w-full pl-10 pr-10 scroll-mt-20"
-					placeholder={$_('common.searchBooks')}
-					bind:value={searchQuery}
-					onkeydown={onSearchKeydown}
-					onfocus={(e) => {
-						e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-					}}
-					role="combobox"
-					aria-autocomplete="list"
-					aria-expanded={showSearchDropdown ? 'true' : 'false'}
-					aria-controls={searchListboxId}
+					<input
+						type="text"
+						class="input input-bordered w-full pl-10 pr-10 scroll-mt-20"
+						placeholder={$_('common.searchBooks')}
+						bind:value={searchQuery}
+						onkeydown={onSearchKeydown}
+						onfocus={(e) => {
+							e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+						}}
+						role="combobox"
+						aria-autocomplete="list"
+						aria-expanded={showSearchDropdown ? 'true' : 'false'}
+						aria-controls={searchListboxId}
 					aria-activedescendant={
 						showSearchDropdown && highlightedIndex >= 0 ? `dashboard-search-option-${searchResults[highlightedIndex]?.id ?? ''}` : undefined
 					}
-				/>
+					/>
 
-				{#if searchQuery.trim().length > 0}
-					<button
-						type="button"
-						class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2 z-10"
-						onclick={() => {
-							searchQuery = '';
-						}}
-						aria-label={$_('common.clearForm')}
+					{#if searchQuery.trim().length > 0}
+						<button
+							type="button"
+							class="btn btn-ghost btn-xs btn-circle absolute right-2 top-1/2 -translate-y-1/2 z-10"
+							onclick={() => {
+								searchQuery = '';
+							}}
+							aria-label={$_('common.clearForm')}
 					>
 						<X class="w-4 h-4" />
 					</button>
-				{/if}
+					{/if}
 
-				{#if showSearchDropdown}
+					{#if showSearchDropdown}
 					<div class="absolute left-0 right-0 top-full mt-2 rounded-lg border border-base-200 bg-base-100 overflow-hidden shadow-lg z-20">
-					{#if searchLoading}
+							{#if searchLoading}
 						<div class="p-3 text-sm text-base-content/60 flex items-center gap-2">
-							<span class="loading loading-spinner loading-xs"></span>
-							{$_('common.search')}
-						</div>
-					{:else if searchResults.length === 0}
-						<div class="p-3 text-sm text-base-content/60">{$_('dashboard.noSearchResults')}</div>
-					{:else}
+									<span class="loading loading-spinner loading-xs"></span>
+									{$_('common.search')}
+								</div>
+							{:else if searchResults.length === 0}
+								<div class="p-3 text-sm text-base-content/60">{$_('dashboard.noSearchResults')}</div>
+							{:else}
 						<ul id={searchListboxId} role="listbox" class="max-h-80 overflow-y-auto">
-							{#each searchResults as book, i (book.id)}
-								<li role="presentation">
-									<button
-										type="button"
-										id={`dashboard-search-option-${book.id}`}
-										role="option"
-										aria-selected={highlightedIndex === i}
-										class="w-full text-left p-3 transition-colors flex items-start gap-3 cursor-pointer {highlightedIndex === i ? 'bg-base-200/70' : 'hover:bg-base-200/60'}"
-										onclick={() => openFromSearch(book)}
-										onmouseenter={() => (highlightedIndex = i)}
-									>
-										{#if book.cover_url}
-											<img
-												src={book.cover_url}
-												alt={$_('book.coverOf', { values: { title: book.title } })}
-												class="w-10 h-14 rounded object-cover shrink-0"
-											/>
-										{/if}
-										<div class="min-w-0 flex-1">
-											<p class="font-medium text-sm line-clamp-2">{book.title}</p>
-											{#if book.author}
-												<p class="text-xs text-base-content/60 truncate">{formatAuthors(book.authors, book.author)}</p>
-											{/if}
+									{#each searchResults as book, i (book.id)}
+										<li role="presentation">
+											<button
+												type="button"
+												id={`dashboard-search-option-${book.id}`}
+												role="option"
+												aria-selected={highlightedIndex === i}
+												class="w-full text-left p-3 transition-colors flex items-start gap-3 cursor-pointer {highlightedIndex === i ? 'bg-base-200/70' : 'hover:bg-base-200/60'}"
+												onclick={() => openFromSearch(book)}
+												onmouseenter={() => highlightedIndex = i}
+											>
+												{#if book.cover_url}
+													<img
+														src={book.cover_url}
+														alt={$_('book.coverOf', { values: { title: book.title } })}
+														class="w-10 h-14 rounded object-cover shrink-0"
+													/>
+												{/if}
+												<div class="min-w-0 flex-1">
+													<p class="font-medium text-sm line-clamp-2">{book.title}</p>
+													{#if book.author}
+														<p class="text-xs text-base-content/60 truncate">{formatAuthors(book.authors, book.author)}</p>
+													{/if}
 											<span class="badge badge-xs mt-1 {STATUS_BADGE[book.reading_status]}">
 												{$_(STATUS_LABEL_KEYS[book.reading_status])}
 											</span>
-										</div>
-									</button>
-								</li>
-							{/each}
-						</ul>
+												</div>
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
 					{/if}
-					</div>
-				{/if}
 				</div>
 				<SearchHelp />
 			</div>
@@ -478,7 +478,11 @@ import { Search, X } from '@lucide/svelte';
 			{:else}
 				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 					{#each currentlyReading as book (book.id)}
-						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
+						<BookCard
+							book={book}
+							onClick={openDetailView}
+							currentPage={progressMap[book.id] ?? 0}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -510,7 +514,11 @@ import { Search, X } from '@lucide/svelte';
 			{:else}
 				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 					{#each nextToRead as book (book.id)}
-						<BookCard {book} onClick={openDetailView} currentPage={progressMap[book.id] ?? 0} />
+						<BookCard
+							book={book}
+							onClick={openDetailView}
+							currentPage={progressMap[book.id] ?? 0}
+						/>
 					{/each}
 				</div>
 			{/if}
