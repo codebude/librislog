@@ -8,15 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.9.0 — Smarter Import Search & Input UX
-LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an import basket for search results, parallel and cancelable searches, Excel (XLSX) import with a new Bookstats preset, configurable reading-date automation, media/medium statistics, and timezone-correct daily page statistics.
+::: tip ⭐ v1.10.0 — More Book Sources & Upgrades
+LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inventaire.io, the Library of Congress, and the Deutsche Nationalbibliothek) with a per-source on/off switch and a startup guard, lets you point the frontend at a custom backend address, keeps the Add Book dialog header reachable while scrolling, and updates the frontend framework and dependency set.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [Unreleased](#unreleased-more-book-sources-upgrades) | — | In development |
+| [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
 | [v1.7.0](#v1-7-0-reading-streaks-goals) | 2026-08-26 | Feature release |
@@ -36,9 +36,9 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 
 ---
 
-## Unreleased: More Book Sources & Upgrades
+## v1.10.0: More Book Sources & Upgrades
 
-<Badge type="warning" text="In development" />
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-10-18" />
 
 **Summary:** Adds four more metadata sources to the import search, brings back coverage for non-English editions that Open Library misses, adds an on/off switch for every import source, keeps the Add Book dialog header reachable while scrolling, and updates the frontend framework and dependency set.
 
@@ -53,7 +53,7 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 - 🌍 **Localized source names.** Import sources are shown under their translated name in the search progress list and in the edition chips, in all five UI languages
 
 **Improvements**
-- 🌐 Allow a configurable backend address via `BACKEND_ADDR` for setups besides the default `docker-compose.yml`
+- 🌐 **Configurable backend address.** The frontend webserver proxies `/api` to `BACKEND_ADDR` (default `http://backend:8000`) instead of a hardcoded backend host, so the web container can reach a backend outside the bundled `docker-compose.yml`. A value that would break API routing, such as one with a trailing slash, is reported when the container starts. See the [Configuration guide](/guide/configuration)
 - 📌 **Sticky Add Book dialog header.** The dialog title and the close button stay pinned to the top of the window while the content scrolls, so closing the dialog no longer requires scrolling back up after a long list of results
 - 🔍 **Search results report each source.** The progress list names every source that was queried, including those that were skipped and why
 
@@ -64,7 +64,11 @@ LibrisLog v1.9.0 brings shareable public profile pages, edition grouping and an 
 - 🛡️ **Remote SRU responses are parsed with entity expansion disabled.** The BnF, Library of Congress and Deutsche Nationalbibliothek responses are untrusted remote XML and are now parsed defensively, so a hostile or malformed response cannot exhaust memory or read local files through entity references
 - 🛡️ **Import rejects cover URLs that point at private addresses.** A book candidate is submitted by the client, so its cover URL is untrusted input. URLs resolving to loopback, private, or link-local addresses are now rejected before download instead of being fetched
 
+**Contributors:** Thank you to **[@mj0nez](http://github.com/mj0nez)** for making the backend address of the webserver configurable.
+
 **Breaking changes:** None. Existing installs keep working untouched: every source defaults to `true`, so no configured source is lost on upgrade. To follow the recommended configuration, set `HARDCOVER_IMPORT_SEARCH_ENABLED=false` and `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false` unless you have configured a token or key. If your deployment blocks outbound plain HTTP on port 210, set `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED=false`.
+
+[Compare with v1.9.0](https://github.com/codebude/librislog/compare/v1.9.0...v1.10.0)
 
 ---
 
