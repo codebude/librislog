@@ -104,7 +104,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Compare with v1.8.0](https://github.com/codebude/librislog/compare/v1.8.0...main)
+[Compare with v1.8.0](https://github.com/codebude/librislog/compare/v1.8.0...v1.9.0)
 
 ---
 
@@ -127,7 +127,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Compare with v1.7.0](https://github.com/codebude/librislog/compare/v1.7.0...main)
+[Compare with v1.7.0](https://github.com/codebude/librislog/compare/v1.7.0...v1.8.0)
 
 ---
 
@@ -160,7 +160,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 - ⚠️ Creating a book now requires **at least one author** (via `authors` or the legacy `author` field) — API requests without any author are rejected
 - ⚠️ The `availability:` search prefix is renamed to `possession:`
 
-[Compare with v1.6.0](https://github.com/codebude/librislog/compare/v1.6.0...main)
+[Compare with v1.6.0](https://github.com/codebude/librislog/compare/v1.6.0...v1.7.0)
 
 ---
 
@@ -182,7 +182,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.5.2...v1.6.0)
+[Compare with v1.5.2](https://github.com/codebude/librislog/compare/v1.5.2...v1.6.0)
 
 ---
 
@@ -198,7 +198,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.5.1...v1.5.2)
+[Compare with v1.5.1](https://github.com/codebude/librislog/compare/v1.5.1...v1.5.2)
 
 ---
 
@@ -213,7 +213,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.5.0...v1.5.1)
+[Compare with v1.5.0](https://github.com/codebude/librislog/compare/v1.5.0...v1.5.1)
 
 ---
 
@@ -235,7 +235,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.4.0...v1.5.0)
+[Compare with v1.4.0](https://github.com/codebude/librislog/compare/v1.4.0...v1.5.0)
 
 ---
 
@@ -257,7 +257,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.3.1...v1.4.0)
+[Compare with v1.3.1](https://github.com/codebude/librislog/compare/v1.3.1...v1.4.0)
 
 ---
 
@@ -272,7 +272,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.3.0...v1.3.1)
+[Compare with v1.3.0](https://github.com/codebude/librislog/compare/v1.3.0...v1.3.1)
 
 ---
 
@@ -289,7 +289,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.2.2...v1.3.0)
+[Compare with v1.2.2](https://github.com/codebude/librislog/compare/v1.2.2...v1.3.0)
 
 ---
 
@@ -304,7 +304,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.2.1...v1.2.2)
+[Compare with v1.2.1](https://github.com/codebude/librislog/compare/v1.2.1...v1.2.2)
 
 ---
 
@@ -326,7 +326,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None. (The ISBN uniqueness change is a database migration and runs automatically on upgrade.)
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.2.0...v1.2.1)
+[Compare with v1.2.0](https://github.com/codebude/librislog/compare/v1.2.0...v1.2.1)
 
 ---
 
@@ -342,7 +342,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.1.1...v1.2.0)
+[Compare with v1.1.1](https://github.com/codebude/librislog/compare/v1.1.1...v1.2.0)
 
 ---
 
@@ -359,7 +359,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.1.0...v1.1.1)
+[Compare with v1.1.0](https://github.com/codebude/librislog/compare/v1.1.0...v1.1.1)
 
 ---
 
@@ -377,7 +377,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Breaking changes:** None.
 
-[Full changelog](https://github.com/codebude/librislog/compare/v1.0.0...v1.1.0)
+[Compare with v1.0.0](https://github.com/codebude/librislog/compare/v1.0.0...v1.1.0)
 
 ---
 
