@@ -8,7 +8,7 @@ import {
 	normalizeIsbn,
 	titleAuthorKey
 } from './importSearch';
-import type { BookImportCandidate } from '$lib/types';
+import type { BookImportCandidate } from '#lib/types.js';
 
 function makeCandidate(
 	title: string,

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import AddBookModal from './AddBookModal.svelte';
-import type { BookImportCandidate, SearchStage } from '$lib/types';
+import type { BookImportCandidate, SearchStage } from '#lib/types.js';
 
 // Mock api
 const mockBooksCreate = vi.fn();
@@ -10,7 +10,7 @@ const mockBooksList = vi.fn(async () => ({ books: [], total: 0 }));
 const mockSearchStream = vi.fn();
 const mockImportBook = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		books: {
 			create: (...args: unknown[]) => mockBooksCreate(...args),
@@ -26,7 +26,7 @@ vi.mock('$lib/api', () => ({
 // Mock toasts
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

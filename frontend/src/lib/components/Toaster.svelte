@@ -1,6 +1,6 @@
 	<script lang="ts">
-	import { _ } from '$lib/i18n';
-	import { toasts, type ToastLevel } from '$lib/toasts';
+	import { _ } from '#lib/i18n/index.js';
+	import { toasts, type ToastLevel } from '#lib/toasts.js';
 	import { X } from '@lucide/svelte';
 
 	const CLASSES: Record<ToastLevel, string> = {

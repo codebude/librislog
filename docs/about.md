@@ -6,7 +6,7 @@ LibrisLog is a **multi-user book tracking web application** designed for readers
 
 - **Library Management**: Organize books into four reading statuses — Want to Read, Currently Reading, Read, and Did Not Finish
 - **Advanced Search**: Find books by title, author, tags, publisher, language, availability, notes, and description using field prefixes and negation
-- **Book Import**: Search Open Library, Google Books, and Hardcover.app. Scan ISBN barcodes for quick lookup
+- **Book Import**: Search Open Library, BnF, Inventaire.io, the Library of Congress, the German National Library, Hardcover.app, and Google Books. Scan ISBN barcodes for quick lookup
 - **Reading Progress**: Track pages read over time with a visual timeline and calendar heatmap
 - **Statistics Dashboard**: Charts showing pages read per month, books finished, language distribution, and more
 - **Cover Management**: Automatic cover image scraping from multiple sources with manual override
@@ -22,7 +22,7 @@ LibrisLog is a **multi-user book tracking web application** designed for readers
 | Frontend | Svelte 5 + SvelteKit + Tailwind CSS 4 + DaisyUI 5 |
 | Backend | FastAPI + SQLModel + Alembic + Pydantic v2 |
 | Database | SQLite |
-| Search Sources | Open Library, Google Books, Hardcover.app, AbeBooks, Amazon |
+| Search Sources | Open Library, BnF, Inventaire.io, Library of Congress, Deutsche Nationalbibliothek, Google Books, Hardcover.app, AbeBooks, Amazon |
 | Charts | Chart.js + chartjs-chart-matrix + chartjs-plugin-zoom |
 | Icons | Lucide Svelte |
 | Scraping | curl-cffi + Scrapling + BrowserForge |

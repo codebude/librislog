@@ -1,24 +1,24 @@
 <script lang="ts">
-	import AdaptiveDateInput from '$lib/components/AdaptiveDateInput.svelte';
-	import { _ } from '$lib/i18n';
+	import AdaptiveDateInput from '#lib/components/AdaptiveDateInput.svelte';
+	import { _ } from '#lib/i18n/index.js';
 	import {
 		PUBLIC_PROFILE_SECTIONS,
 		PUBLIC_PROFILE_STATISTICS,
 		PUBLIC_PROFILE_STATISTICS_GROUPS,
 		defaultPublicProfileVisibilityConfig,
 		type PublicProfileStatisticsGroup
-	} from '$lib/publicProfile/sections';
-	import { toDateInputValue, today } from '$lib/date';
-	import { getTimezone } from '$lib/stores/timezone';
+	} from '#lib/publicProfile/sections.js';
+	import { toDateInputValue, today } from '#lib/date.js';
+	import { getTimezone } from '#lib/stores/timezone.js';
 	import type {
 		PublicProfileAudience,
 		PublicProfileLink,
 		PublicProfileSectionKey,
 		PublicProfileStatisticsKey,
 		PublicProfileVisibilityConfig
-	} from '$lib/types';
+	} from '#lib/types.js';
 	import { Globe, Info, Lock } from '@lucide/svelte';
-	import { SUPPORTED_LOCALES } from '$lib/i18n';
+	import { SUPPORTED_LOCALES } from '#lib/i18n/index.js';
 
 	let {
 		open = $bindable(false),

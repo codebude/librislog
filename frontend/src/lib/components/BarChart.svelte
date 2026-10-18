@@ -1,8 +1,8 @@
 <script lang="ts">
-	import '$lib/chartjs/register';
+	import '#lib/chartjs/register.js';
 	import { Bar } from 'svelte-chartjs';
-	import { getDaisyColorRgb } from '$lib/chartjs/theme';
-	import { themeApplyCount } from '$lib/stores/theme';
+	import { getDaisyColorRgb } from '#lib/chartjs/theme.js';
+	import { themeApplyCount } from '#lib/stores/theme.js';
 	import { onMount } from 'svelte';
 	import type { Chart as ChartJS, ChartData, ChartOptions } from 'chart.js';
 

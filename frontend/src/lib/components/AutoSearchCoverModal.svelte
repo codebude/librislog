@@ -1,6 +1,6 @@
 	<script lang="ts">
-	import type { CoverCandidate } from '$lib/types';
-	import { _ } from '$lib/i18n';
+	import type { CoverCandidate } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
 	import { X } from '@lucide/svelte';
 	import CoverCandidateGrid from './CoverCandidateGrid.svelte';
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { api } from '$lib/api';
-	import { currentUser, csrfToken } from '$lib/stores/auth';
-	import { _, setLocale } from '$lib/i18n';
-	import { setTimezone, detectTimezone } from '$lib/stores/timezone';
+	import { api } from '#lib/api.js';
+	import { currentUser, csrfToken } from '#lib/stores/auth.js';
+	import { _, setLocale } from '#lib/i18n/index.js';
+	import { setTimezone, detectTimezone } from '#lib/stores/timezone.js';
 
 	let error = $state('');
 

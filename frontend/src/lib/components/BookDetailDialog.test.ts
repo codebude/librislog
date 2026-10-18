@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import BookDetailDialog from './BookDetailDialog.svelte';
-import { setTimezone } from '$lib/stores/timezone';
-import type { Book, ReadingProgressEntry } from '$lib/types';
+import { setTimezone } from '#lib/stores/timezone.js';
+import type { Book, ReadingProgressEntry } from '#lib/types.js';
 
 vi.mock('svelte-chartjs', () => ({
 	Line: vi.fn().mockImplementation(() => ({ default: {} })),
@@ -17,7 +17,7 @@ const mockBooksDelete = vi.fn(async (_id: number) => {});
 const mockBooksUpdate = vi.fn(async (_id: number, _data: Partial<Book>) => ({ ...mockBook, ..._data, id: _id }));
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		books: {
 			update: (id: number, data: Partial<Book>) => mockBooksUpdate(id, data),
@@ -32,7 +32,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

@@ -20,7 +20,7 @@ function createStore(initial: ToastItem[]) {
 	};
 }
 
-vi.mock('$lib/toasts', async () => {
+vi.mock('#lib/toasts.js', async () => {
 	const store = createStore([]);
 	return {
 		toasts: {
@@ -32,7 +32,7 @@ vi.mock('$lib/toasts', async () => {
 	};
 });
 
-import { toasts } from '$lib/toasts';
+import { toasts } from '#lib/toasts.js';
 
 describe('Toaster', () => {
 	afterEach(() => {

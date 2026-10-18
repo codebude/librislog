@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
+	import { _ } from '#lib/i18n/index.js';
 	import AdaptiveDateInput from './AdaptiveDateInput.svelte';
-	import type { StatisticsRange } from '$lib/types';
+	import type { StatisticsRange } from '#lib/types.js';
 
 	let {
 		range = $bindable<StatisticsRange>('alltime'),

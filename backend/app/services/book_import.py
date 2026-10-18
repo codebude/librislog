@@ -3,20 +3,30 @@ Book import service.
 
 Search priority:
   1. Open Library  (no API key required)
-  2. Google Books  (optional API key, used as fallback)
+  2. BnF            (no API key required)
+  3. Inventaire     (no API key required, ISBN-only)
+  4. Library of Congress (no API key required)
+  5. Hardcover      (API token required, skipped if not configured)
+  6. Google Books   (optional API key, used as fallback when all above return empty)
 
-Both return a list of BookImportCandidate objects normalised to the same schema.
+All return a list of BookImportCandidate objects normalised to the same schema.
 """
 
 import asyncio
 import logging
 import random
+import re
+import xml.etree.ElementTree as ET
 from collections.abc import AsyncGenerator
-from typing import Literal, Optional
+from dataclasses import dataclass
+from typing import Awaitable, Callable, Literal, Optional
 
 import httpx
 import pycountry
+from defusedxml import ElementTree as SafeET
+from defusedxml.common import DefusedXmlException
 
+from app.config import settings
 from app.schemas import BookImportCandidate
 from app.services.cover_import import is_safe_cover_import_url
 from app.services.isbn_utils import normalize_isbn
@@ -25,6 +35,18 @@ logger = logging.getLogger(__name__)
 
 OPEN_LIBRARY_SEARCH_URL: str = "https://openlibrary.org/search.json"
 OPEN_LIBRARY_COVER_URL: str = "https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+
+BNF_SRU_URL: str = "https://catalogue.bnf.fr/api/SRU"
+INVENTAIRE_ENTITIES_URL: str = "https://inventaire.io/api/entities/by-uris"
+LOC_SRU_URL: str = "http://lx2.loc.gov:210/LCDB"
+DNB_SRU_URL: str = "https://services.dnb.de/sru/dnb"
+
+INVENTAIRE_COVER_BASE_URL: str = "https://inventaire.io/img/entities"
+
+# The LoC SRU server listens on plain HTTP port 210, which is frequently blocked or
+# silently dropped by egress firewalls. Give it a shorter budget than the shared
+# client so a blocked LoC cannot hold up the whole search.
+_LOC_TIMEOUT_SECONDS: float = 5.0
 
 _USER_AGENT: str = "LibrisLog/1.0 (book import; +https://github.com/codebude/librislog)"
 
@@ -79,7 +101,14 @@ _MIN_COVER_BYTES: int = 1_000
 class SourceBackendError(Exception):
     """Raised when an external book source returns an error response."""
 
-    def __init__(self, source: Literal["open_library", "google_books"], status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        source: Literal[
+            "open_library", "google_books", "hardcover", "bnf", "inventaire",
+            "library_of_congress", "dnb"
+        ],
+        status_code: int | None = None,
+    ) -> None:
         self.source = source
         self.status_code = status_code
         super().__init__(f"{source} backend error")
@@ -92,6 +121,154 @@ def _truncate_api_key(api_key: str) -> str:
     if len(api_key) <= 8:
         return f"{api_key[:2]}...{api_key[-2:]}"
     return f"{api_key[:4]}...{api_key[-4:]}"
+
+
+# ── Source registry ───────────────────────────────────────────────────────────
+
+
+def _ol_enabled() -> bool:
+    return settings.open_library_import_search_enabled
+
+
+def _bnf_enabled() -> bool:
+    return settings.bnf_import_search_enabled
+
+
+def _inventaire_enabled() -> bool:
+    return settings.inventaire_import_search_enabled
+
+
+def _loc_enabled() -> bool:
+    return settings.library_of_congress_import_search_enabled
+
+
+def _dnb_enabled() -> bool:
+    return settings.dnb_import_search_enabled
+
+
+def _hc_enabled() -> bool:
+    return settings.hardcover_import_search_enabled
+
+
+def _google_fallback_enabled() -> bool:
+    """Return True when the Google Books fallback may run."""
+    return settings.google_books_import_search_enabled
+
+
+def _skip_reason(stage: str, search_type: str, hardcover_api_token: str) -> str | None:
+    """Return why a source cannot run for this query, or None when it can.
+
+    A skipped source is reported once and never queried, so the UI does not claim a
+    search ran when nothing was sent.
+    """
+    if stage == "hardcover" and not hardcover_api_token.strip():
+        return "no_api_token"
+    if stage == "inventaire" and search_type != "isbn":
+        # Inventaire exposes no usable title-search route.
+        return "title_search_unsupported"
+    return None
+
+
+@dataclass(frozen=True)
+class SourceSpec:
+    """Configuration for a single book import search provider."""
+
+    stage: str
+    display_name: str
+    enabled: Callable[[], bool]
+    search: Callable[[str, str, httpx.AsyncClient], Awaitable[list[BookImportCandidate]]]
+
+
+def _build_sources(hardcover_api_token: str) -> tuple[SourceSpec, ...]:
+    """Return the parallel search sources in result-order.
+
+    Hardcover is always listed so the UI can report it as skipped when no token is
+    configured; its dispatcher is bound to the token passed by the caller rather than
+    to settings, so an explicit token argument keeps working exactly as before.
+    """
+    return (
+        SourceSpec(
+            stage="open_library",
+            display_name="Open Library",
+            enabled=_ol_enabled,
+            search=_dispatch_open_library,
+        ),
+        SourceSpec(
+            stage="bnf",
+            display_name="BnF",
+            enabled=_bnf_enabled,
+            search=_dispatch_bnf,
+        ),
+        SourceSpec(
+            stage="inventaire",
+            display_name="Inventaire",
+            enabled=_inventaire_enabled,
+            search=_dispatch_inventaire,
+        ),
+        SourceSpec(
+            stage="library_of_congress",
+            display_name="Library of Congress",
+            enabled=_loc_enabled,
+            search=_dispatch_loc,
+        ),
+        SourceSpec(
+            stage="dnb",
+            display_name="Deutsche Nationalbibliothek",
+            enabled=_dnb_enabled,
+            search=_dispatch_dnb,
+        ),
+        SourceSpec(
+            stage="hardcover",
+            display_name="Hardcover",
+            enabled=_hc_enabled,
+            search=_make_hardcover_dispatcher(hardcover_api_token),
+        ),
+    )
+
+
+def _make_hardcover_dispatcher(
+    api_token: str,
+) -> Callable[[str, str, httpx.AsyncClient], Awaitable[list[BookImportCandidate]]]:
+    """Build a Hardcover search callable bound to ``api_token``."""
+
+    async def _dispatch(query: str, search_type: str, client: httpx.AsyncClient) -> list[BookImportCandidate]:
+        if not api_token.strip():
+            return []
+        return await _search_hardcover(query, search_type, api_token, client)
+
+    return _dispatch
+
+
+# Indirection through module-level wrappers so tests can monkeypatch the
+# underlying search functions (see tests/test_book_import.py).
+async def _dispatch_open_library(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_open_library(query, search_type, client)
+
+
+async def _dispatch_bnf(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_bnf(query, search_type, client)
+
+
+async def _dispatch_inventaire(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_inventaire(query, search_type, client)
+
+
+async def _dispatch_loc(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_loc(query, search_type, client)
+
+
+async def _dispatch_dnb(
+    query: str, search_type: str, client: httpx.AsyncClient
+) -> list[BookImportCandidate]:
+    return await _search_dnb(query, search_type, client)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -109,26 +286,16 @@ async def search_with_progress(
     """Search external book sources and yield progress events as dicts.
 
     Event shapes (stage / extra fields):
-      open_library  / status=searching
-      open_library  / status=done, count=int
-      open_library  / status=error, reason=str
-      hardcover     / status=searching
-      hardcover     / status=done, count=int
-      hardcover     / status=skipped, reason=str
-      hardcover     / status=error, reason=str
-      google_books  / status=searching
-      google_books  / status=done, count=int
-      google_books  / status=skipped, reason=str
-      google_books  / status=error, reason=str
-      complete      / results=list[dict]
-      error         / message=str
+      All sources  / status=searching, done (count), error (reason), skipped (reason)
+      complete     / results=list[dict]
+      error        / message=str
 
     Args:
         query: Search query string.
         search_type: ``"title"`` or ``"isbn"``.
         api_key: Google Books API key (optional).
-        hardcover_api_token: Hardcover.app API token (optional).
-        mode: ``"auto"`` (OL + HC, fallback to GB) or ``"google_only"``.
+        hardcover_api_token: Hardcover.app API token (optional, legacy).
+        mode: ``"auto"`` (all enabled sources, fallback to GB) or ``"google_only"``.
         http_client: Reusable httpx client (created internally if omitted).
 
     Yields:
@@ -149,7 +316,14 @@ async def search_with_progress(
         results: list[BookImportCandidate] = []
 
         if mode == "google_only":
-            if not api_key:
+            if not _google_fallback_enabled():
+                logger.warning(
+                    "Google-only search requested for %r but the Google Books source "
+                    "is disabled (GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false)",
+                    query,
+                )
+                yield {"stage": "google_books", "status": "skipped", "reason": "disabled"}
+            elif not api_key:
                 logger.warning("Google-only search requested for %r but API key is not set", query)
                 yield {"stage": "google_books", "status": "skipped", "reason": "no_api_key"}
             else:
@@ -167,52 +341,78 @@ async def search_with_progress(
                     logger.warning("Google Books backend error for %r: status=%s", query, exc.status_code)
                     yield {"stage": "google_books", "status": "error", "reason": "backend_error"}
         else:
-            ol_events: list[dict] = []
-            hc_events: list[dict] = []
-            ol_results: list[BookImportCandidate] = []
-            hc_results: list[BookImportCandidate] = []
+            enabled_sources = [s for s in _build_sources(hardcover_api_token) if s.enabled()]
 
-            yield {"stage": "open_library", "status": "searching"}
-            if hardcover_api_token.strip():
-                yield {"stage": "hardcover", "status": "searching"}
+            if enabled_sources:
+                all_events: dict[str, list[dict]] = {s.stage: [] for s in enabled_sources}
+                all_results: dict[str, list[BookImportCandidate]] = {s.stage: [] for s in enabled_sources}
 
-            async def _run_ol() -> None:
-                nonlocal ol_results, ol_events
-                try:
-                    r = await _search_open_library(query, search_type, client)
-                    ol_results = r
-                    ol_events.append({"stage": "open_library", "status": "done", "count": len(r)})
-                except SourceBackendError as exc:
-                    ol_events.append({"stage": "open_library", "status": "error", "reason": "backend_error"})
+                # A source that cannot run for this query gets exactly one terminal
+                # `skipped` event and is excluded from the gather, so it never also
+                # reports a result count.
+                runnable: list[SourceSpec] = []
+                for s in enabled_sources:
+                    reason = _skip_reason(s.stage, search_type, hardcover_api_token)
+                    if reason is not None:
+                        all_events[s.stage].append(
+                            {"stage": s.stage, "status": "skipped", "reason": reason}
+                        )
+                    else:
+                        all_events[s.stage].append({"stage": s.stage, "status": "searching"})
+                        runnable.append(s)
 
-            async def _run_hc() -> None:
-                nonlocal hc_results, hc_events
-                if not hardcover_api_token.strip():
-                    hc_events.append({"stage": "hardcover", "status": "skipped", "reason": "no_api_token"})
-                    return
-                try:
-                    r = await _search_hardcover(query, search_type, hardcover_api_token, client)
-                    hc_results = r
-                    hc_events.append({"stage": "hardcover", "status": "done", "count": len(r)})
-                except Exception:
-                    logger.exception("hardcover search error")
-                    hc_events.append({"stage": "hardcover", "status": "error", "reason": "backend_error"})
+                async def _run_source(spec: SourceSpec) -> None:
+                    try:
+                        r = await spec.search(query, search_type, client)
+                        all_results[spec.stage] = r
+                        all_events[spec.stage].append(
+                            {"stage": spec.stage, "status": "done", "count": len(r)}
+                        )
+                    except SourceBackendError as exc:
+                        logger.warning(
+                            "%s backend error for %r: status=%s", spec.stage, query, exc.status_code
+                        )
+                        all_events[spec.stage].append(
+                            {"stage": spec.stage, "status": "error", "reason": "backend_error"}
+                        )
+                    except Exception:
+                        logger.exception("%s search error", spec.stage)
+                        all_events[spec.stage].append(
+                            {"stage": spec.stage, "status": "error", "reason": "backend_error"}
+                        )
 
-            await asyncio.gather(_run_ol(), _run_hc())
+                await asyncio.gather(*[_run_source(s) for s in runnable])
 
-            for e in ol_events:
-                yield e
-            for e in hc_events:
-                yield e
+                for s in enabled_sources:
+                    for e in all_events[s.stage]:
+                        yield e
 
-            results = _merge_results(ol_results, hc_results)
+                merged: list[BookImportCandidate] = []
+                for s in runnable:
+                    merged = _merge_results(merged, all_results[s.stage])
+                results = merged
+            else:
+                # Every parallel source is switched off. Google Books can still answer
+                # as the fallback, which is the only remaining provider.
+                logger.warning(
+                    "No parallel import search provider is enabled for %r — "
+                    "only the Google Books fallback is available",
+                    query,
+                )
 
             if not results:
-                if not api_key:
+                if not _google_fallback_enabled():
+                    logger.warning(
+                        "No results for %r and the Google Books fallback is disabled "
+                        "(GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false)",
+                        query,
+                    )
+                    yield {"stage": "google_books", "status": "skipped", "reason": "disabled"}
+                elif not api_key:
                     logger.warning("No results for %r and GOOGLE_BOOKS_API_KEY is not set", query)
                     yield {"stage": "google_books", "status": "skipped", "reason": "no_api_key"}
                 else:
-                    logger.info("No OL/HC results — falling back to Google Books")
+                    logger.info("No results from any source — falling back to Google Books")
                     logger.debug(
                         "Google Books invocation — mode=%s query=%r search_type=%r api_key=%s",
                         mode, query, search_type, _truncate_api_key(api_key),
@@ -244,17 +444,17 @@ async def search(
     hardcover_api_token: str = "",
     http_client: Optional[httpx.AsyncClient] = None,
 ) -> list[BookImportCandidate]:
-    """Search Open Library in parallel with Hardcover; fall back to Google Books if both empty.
+    """Search all enabled external book sources; fall back to Google Books if all return empty.
 
     Args:
         query: Search query string.
         search_type: ``"title"`` or ``"isbn"``.
         api_key: Google Books API key (optional).
-        hardcover_api_token: Hardcover.app API token (optional).
+        hardcover_api_token: Hardcover.app API token (optional, legacy).
         http_client: Reusable httpx client (created internally if omitted).
 
     Returns:
-        A deduplicated list of BookImportCandidate objects.
+        A list of BookImportCandidate objects.
     """
     logger.debug("search() called — query=%r search_type=%r has_api_key=%s has_hc_token=%s",
                  query, search_type, bool(api_key), bool(hardcover_api_token))
@@ -266,32 +466,48 @@ async def search(
     )
 
     try:
-        tasks = [_search_open_library(query, search_type, client)]
-        if hardcover_api_token.strip():
-            tasks.append(_search_hardcover(query, search_type, hardcover_api_token, client))
+        enabled_sources = [s for s in _build_sources(hardcover_api_token) if s.enabled()]
+        results: list[BookImportCandidate] = []
 
-        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+        if enabled_sources:
+            all_results: list[list[BookImportCandidate]] = []
 
-        ol_results = results_list[0] if not isinstance(results_list[0], BaseException) else []
-        if isinstance(results_list[0], SourceBackendError):
-            logger.warning("Open Library backend error for %r: status=%s", query, results_list[0].status_code)
-        elif isinstance(results_list[0], Exception):
-            logger.warning("Open Library error for %r: %s", query, results_list[0])
+            async def _run_source(spec: SourceSpec) -> list[BookImportCandidate]:
+                try:
+                    r = await spec.search(query, search_type, client)
+                    logger.info("%s returned %d result(s) for %r", spec.stage, len(r), query)
+                    return r
+                except SourceBackendError as exc:
+                    logger.warning("%s backend error for %r: status=%s", spec.stage, query, exc.status_code)
+                    return []
+                except Exception as exc:
+                    logger.warning("%s error for %r: %s", spec.stage, query, exc)
+                    return []
 
-        hc_results: list[BookImportCandidate] = []
-        if len(results_list) > 1:
-            if not isinstance(results_list[1], BaseException):
-                hc_results = results_list[1]
-            else:
-                logger.warning("Hardcover error for %r: %s", query, results_list[1])
+            results_list = await asyncio.gather(*[_run_source(s) for s in enabled_sources])
 
-        logger.info("Open Library returned %d result(s) for %r", len(ol_results), query)
-        logger.info("Hardcover returned %d result(s) for %r", len(hc_results), query)
+            for r in results_list:
+                all_results.append(r)
 
-        results = _merge_results(ol_results, hc_results)
+            for r in all_results:
+                results = _merge_results(results, r)
+        else:
+            # Every parallel source is switched off. Google Books can still answer as
+            # the fallback, which is the only remaining provider.
+            logger.warning(
+                "No parallel import search provider is enabled for %r — "
+                "only the Google Books fallback is available",
+                query,
+            )
 
         if not results:
-            if not api_key:
+            if not _google_fallback_enabled():
+                logger.warning(
+                    "No results for %r and the Google Books fallback is disabled "
+                    "(GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED=false)",
+                    query,
+                )
+            elif not api_key:
                 logger.warning(
                     "No results for %r and GOOGLE_BOOKS_API_KEY is not set — "
                     "Google Books requires an API key for all requests. "
@@ -299,7 +515,7 @@ async def search(
                     query,
                 )
             else:
-                logger.info("No OL/HC results — falling back to Google Books")
+                logger.info("No results from any source — falling back to Google Books")
                 try:
                     results = await _search_google_books(query, search_type, api_key, client)
                 except SourceBackendError as exc:
@@ -826,24 +1042,1201 @@ def map_hardcover(edition: dict) -> BookImportCandidate | None:
     )
 
 
+# ── BnF ────────────────────────────────────────────────────────────────────────
+
+
+async def _search_bnf(
+    query: str,
+    search_type: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search BnF catalogue general via SRU.
+
+    Raises:
+        SourceBackendError: On HTTP errors from BnF.
+    """
+    if search_type == "isbn":
+        try:
+            isbn13 = normalize_isbn(query)
+        except ValueError:
+            logger.warning("BnF invalid ISBN: %s", query)
+            return []
+        query_str = f'bib.isbn adj "{isbn13}"'
+    else:
+        term = _sanitize_cql_term(query)
+        if not term:
+            logger.debug("BnF: title query is empty after sanitizing")
+            return []
+        query_str = f'bib.title all "{term}" and bib.doctype adj "a"'
+
+    params: dict = {
+        "version": "1.2",
+        "operation": "searchRetrieve",
+        "query": query_str,
+        "recordSchema": "dublincore",
+        "maximumRecords": 10,
+        "sortBy": "dat/sort.descending",
+    }
+
+    logger.debug("BnF request — url=%s params=%s", BNF_SRU_URL, params)
+
+    try:
+        resp = await client.get(BNF_SRU_URL, params=params, headers={"User-Agent": _USER_AGENT})
+        logger.debug("BnF response — status=%d body_size=%d bytes",
+                     resp.status_code, len(resp.content))
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("BnF HTTP error: %s %s", exc.response.status_code, exc.response.text[:200])
+        raise SourceBackendError("bnf", exc.response.status_code) from exc
+    except httpx.HTTPError as exc:
+        logger.warning("BnF request failed: %s", exc)
+        raise SourceBackendError("bnf") from exc
+
+    candidates = map_bnf_response(resp.text)
+    for c in candidates:
+        logger.debug("  BnF candidate: title=%r isbn=%r", c.title, c.isbn)
+    return candidates
+
+
+def map_bnf_response(xml_text: str) -> list[BookImportCandidate]:
+    """Parse BnF SRU Dublin Core XML response into BookImportCandidate list."""
+    namespaces = {
+        "srw": "http://www.loc.gov/zing/srw/",
+        "oai_dc": "http://www.openarchives.org/OAI/2.0/oai_dc/",
+        "dc": "http://purl.org/dc/elements/1.1/",
+    }
+
+    try:
+        # The payload comes from a remote server, so parse it with entity expansion
+        # and external entity resolution disabled.
+        root = SafeET.fromstring(xml_text)
+    except (ET.ParseError, DefusedXmlException) as exc:
+        logger.warning("BnF XML parse error: %s", exc)
+        return []
+
+    records = root.findall(".//oai_dc:dc", namespaces)
+
+    # BnF answers one ISBN with every record that carries it, which includes a
+    # commercial barcode stub ("Code a barres commercial : EAN ..."). The marker also
+    # appears on genuine records, so it only ranks a record lower instead of dropping
+    # it: within an ISBN group the richest, least barcode-ish record wins.
+    best_by_key: dict[str, tuple[BookImportCandidate, bool]] = {}
+    order: list[str] = []
+    seen_arks: set[str] = set()
+
+    for record in records:
+        candidate = map_bnf_record(record, namespaces)
+        if candidate is None:
+            continue
+        ark = _extract_bnf_ark(record, namespaces)
+        if ark and ark in seen_arks:
+            continue
+        if ark:
+            seen_arks.add(ark)
+
+        key = candidate.isbn or ark or f"__record_{len(order)}"
+        is_shell = _has_bnf_barcode_marker(record, namespaces)
+        incumbent = best_by_key.get(key)
+        if incumbent is None:
+            best_by_key[key] = (candidate, is_shell)
+            order.append(key)
+            continue
+        if not is_shell and (incumbent[1] or _bnf_record_richness(candidate) > _bnf_record_richness(incumbent[0])):
+            best_by_key[key] = (candidate, is_shell)
+
+    return [best_by_key[key][0] for key in order]
+
+
+def _bnf_record_richness(candidate: BookImportCandidate) -> int:
+    """Count populated fields, used to pick the better of two BnF records."""
+    return sum(
+        1
+        for value in (
+            candidate.subtitle,
+            candidate.author,
+            candidate.publisher,
+            candidate.published_year,
+            candidate.page_count,
+            candidate.language,
+            candidate.tags,
+        )
+        if value
+    )
+
+
+def _has_bnf_barcode_marker(record: ET.Element, namespaces: dict[str, str]) -> bool:
+    """Return True when a BnF record is (or includes) the commercial barcode stub."""
+    for description in record.findall("dc:description", namespaces):
+        if description.text and "Code à barres commercial" in description.text:
+            return True
+    return False
+
+
+def _extract_bnf_isbn(record: ET.Element, namespaces: dict[str, str]) -> str | None:
+    """Extract the ISBN from a BnF record's dc:identifier values ('ISBN 9791020923554')."""
+    for identifier in record.findall("dc:identifier", namespaces):
+        text = (identifier.text or "").strip()
+        match = re.search(r"ISBN\s+([0-9Xx][0-9Xx\s-]{8,}[0-9Xx])", text, re.IGNORECASE)
+        if not match:
+            continue
+        try:
+            return normalize_isbn(match.group(1))
+        except ValueError:
+            continue
+    return None
+
+
+def map_bnf_record(record: ET.Element, namespaces: dict[str, str]) -> BookImportCandidate | None:
+    """Map a single BnF Dublin Core record to BookImportCandidate."""
+    title_elem = record.find("dc:title", namespaces)
+    if title_elem is None or not title_elem.text:
+        return None
+
+    raw_title = title_elem.text
+    title, subtitle = _split_bnf_title(raw_title)
+
+    authors: list[str] = []
+    for creator in record.findall("dc:creator", namespaces):
+        if creator.text:
+            author = _clean_bnf_author(creator.text)
+            if author:
+                authors.append(author)
+    for contributor in record.findall("dc:contributor", namespaces):
+        if contributor.text:
+            author = _clean_bnf_author(contributor.text)
+            if author and author not in authors:
+                authors.append(author)
+    author_str = ", ".join(authors) if authors else None
+
+    publishers = [p.text.strip() for p in record.findall("dc:publisher", namespaces) if p.text]
+    publisher = _clean_bnf_publisher(publishers[0]) if publishers else None
+
+    date_elem = record.find("dc:date", namespaces)
+    published_year = None
+    if date_elem is not None and date_elem.text:
+        try:
+            published_year = int(date_elem.text[:4])
+        except (ValueError, IndexError):
+            pass
+
+    format_elem = record.find("dc:format", namespaces)
+    page_count = None
+    if format_elem is not None and format_elem.text:
+        page_count = _parse_page_count(format_elem.text)
+
+    languages = [l.text for l in record.findall("dc:language", namespaces) if l.text]
+    language = _normalize_language_code(languages[0]) if languages else None
+
+    subjects = [_clean_bnf_tag(s.text) for s in record.findall("dc:subject", namespaces) if s.text]
+    subjects = [s for s in subjects if s]
+    tags = ", ".join(subjects[:3]) if subjects else None
+
+    return BookImportCandidate(
+        title=title,
+        subtitle=subtitle,
+        author=author_str,
+        authors=authors,
+        isbn=_extract_bnf_isbn(record, namespaces),
+        cover_url=None,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=tags,
+        source="bnf",
+    )
+
+
+def _clean_bnf_publisher(raw: str) -> str:
+    """Drop the BnF publication-place suffix, e.g. 'Editions Gallimard (Paris)'."""
+    return re.sub(r"\s*\([^()]*\)\s*$", "", raw).strip() or raw.strip()
+
+
+def _split_bnf_title(raw_title: str) -> tuple[str, Optional[str]]:
+    """Split a BnF dc:title into (title, subtitle).
+
+    BnF conventions seen in the catalogue:
+      "L'heure du Sud : ou l'invention ... (Éd. 2024)"  -> edition statement, dropped
+      "Dune / Frank Herbert"                             -> statement of responsibility, dropped
+      "Titre : sous-titre"                              -> real subtitle, kept
+    """
+    title = raw_title.strip()
+
+    # Drop a trailing edition statement. BnF returns both accented and unaccented
+    # forms, e.g. "(Ed. 2024)" and "(Éd. 2024)".
+    title = re.sub(
+        r"\s*\((?:[ÉEeé]d\.?|[ÉEeé]dition)\s*[^()]*\)\s*$",
+        "",
+        title,
+    ).strip()
+
+    # Drop a trailing statement of responsibility after " / ".
+    if " / " in title:
+        title = title.split(" / ", 1)[0].strip()
+
+    if " : " in title:
+        head, tail = title.split(" : ", 1)
+        subtitle = tail.split(" / ", 1)[0].strip() if " / " in tail else tail.strip()
+        # The edition statement may sit after the subtitle rather than the whole title.
+        subtitle = re.sub(
+            r"\s*\((?:[ÉEeé]d\.?|[ÉEeé]dition)\s*[^()]*\)\s*$",
+            "",
+            subtitle,
+        ).strip()
+        return head.strip(), subtitle or None
+
+    return title, None
+
+
+# BnF subject headings use " -- " for subdivisions ("Relations internationales --
+# 2001-...."). Keep the top-level heading only.
+_BNF_SUBDIVISION_RE = re.compile(r"\s+--\s+.*$")
+
+
+def _clean_bnf_tag(tag: str) -> str:
+    """Strip the subdivision suffix from a single BnF subject heading."""
+    return _BNF_SUBDIVISION_RE.sub("", tag).strip() or tag.strip()
+
+
+def _sanitize_cql_term(value: str) -> str:
+    """Make a user query safe to interpolate inside a quoted CQL string.
+
+    A stray double quote would otherwise terminate the CQL string early; BnF answers
+    such a query with a diagnostic document and zero records instead of an error, so
+    the breakage would be silent.
+    """
+    cleaned = value.replace('"', " ").replace("\\", " ")
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+# Role terms BnF appends after a personal name (UNIMARC 7xx role codes rendered in
+# French). Matching a known vocabulary keeps real names such as "Ursula K. Le Guin"
+# intact, which a generic "strip everything after a period" rule would mangle.
+_BNF_ROLE_RE = re.compile(
+    r"\.\s*(?:auteur|editeur|éditeur|traducteur|postfacier|préfacier|prefacier|"
+    r"illustrateur|directeur de publication|photographe|compilateur|annotateur|"
+    r"correcteur|dessinateur|graveur|interviewer|prologue|epilogue|épilogue|"
+    r"preface|préface|enregistrement|editing|revue de|de)\b.*$",
+    re.IGNORECASE,
+)
+
+
+def _clean_bnf_author(raw: str) -> str:
+    """Strip BnF role suffixes from a creator/contributor string.
+
+    Handles "Badie, Bertrand (1950-....). Éditeur scientifique" and
+    "Labica, Thierry. Postfacier" down to the bare name.
+    """
+    author = raw.strip()
+
+    # Life dates first: "Name (1900-1980)" or "Name (1950-.... ; journaliste)".
+    author = re.sub(r"\s*\((?:\d{4}|-{3})[^)]*\)", "", author).strip()
+
+    # Then a trailing role phrase: "Name. Postfacier".
+    author = _BNF_ROLE_RE.sub("", author).strip()
+
+    return author.rstrip(".").strip() or raw.strip()
+
+
+def _extract_bnf_ark(record: ET.Element, namespaces: dict[str, str]) -> str | None:
+    """Extract BnF ARK identifier from a record."""
+    for identifier in record.findall("dc:identifier", namespaces):
+        if identifier.text and "ark:/" in identifier.text:
+            return identifier.text.strip()
+    return None
+
+
+# ── Inventaire.io ───────────────────────────────────────────────────────────────
+
+# Claims pulled along with the edition in the single by-uris request:
+#   P629 -> the work, P50 -> authors on that work, P123 -> publisher.
+# Each relative is returned as a full entity with resolved labels.
+INVENTAIRE_RELATIVES: tuple[str, ...] = ("wdt:P629", "wdt:P50", "wdt:P123")
+
+_LANG_PREFERENCE: tuple[str, ...] = ("en", "fr", "de", "es", "it")
+
+
+async def _search_inventaire(
+    query: str,
+    search_type: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search inventaire.io by ISBN via the entities API.
+
+    Inventaire is ISBN-only: it has no usable title-search route.
+
+    Raises:
+        SourceBackendError: On HTTP errors from inventaire.io.
+    """
+    if search_type != "isbn":
+        logger.debug("Inventaire: skipping title search (ISBN-only provider)")
+        return []
+
+    try:
+        isbn13 = normalize_isbn(query)
+    except ValueError:
+        logger.warning("Inventaire invalid ISBN: %s", query)
+        return []
+
+    # relatives must be repeated query params; a comma-joined value returns HTTP 400.
+    params: list[tuple[str, str]] = [("uris", f"isbn:{isbn13}")]
+    params += [("relatives", rel) for rel in INVENTAIRE_RELATIVES]
+    params.append(("lang", "en"))
+
+    logger.debug("Inventaire request — url=%s isbn=%s", INVENTAIRE_ENTITIES_URL, isbn13)
+
+    try:
+        resp = await client.get(INVENTAIRE_ENTITIES_URL, params=params, headers={"User-Agent": _USER_AGENT})
+        logger.debug("Inventaire response — status=%d body_size=%d bytes",
+                     resp.status_code, len(resp.content))
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("Inventaire HTTP error: %s %s", exc.response.status_code, exc.response.text[:200])
+        raise SourceBackendError("inventaire", exc.response.status_code) from exc
+    except httpx.HTTPError as exc:
+        logger.warning("Inventaire request failed: %s", exc)
+        raise SourceBackendError("inventaire") from exc
+
+    candidates = map_inventaire_response(resp.json())
+    for c in candidates:
+        logger.debug("  Inventaire candidate: title=%r author=%r isbn=%r cover=%r",
+                     c.title, c.author, c.isbn, c.cover_url)
+    return candidates
+
+
+def map_inventaire_response(data: dict) -> list[BookImportCandidate]:
+    """Parse an inventaire.io by-uris response into a BookImportCandidate list.
+
+    The response is ``{"entities": {uri: entity}, "redirects": {"isbn:...": uri}}``.
+    Every claim value is a plain string; the ISBN redirect points at the edition.
+    """
+    entities: dict[str, dict] = data.get("entities") or {}
+    if not entities:
+        return []
+
+    edition_uri = _find_inventaire_edition_uri(data.get("redirects") or {}, entities)
+    if edition_uri is None:
+        return []
+
+    edition = entities[edition_uri]
+    candidate = map_inventaire_entity(edition, entities, entities[edition_uri].get("labels") or {})
+    if candidate is None:
+        return []
+    if not candidate.isbn:
+        candidate = candidate.model_copy(update={"isbn": _isbn_from_uri(edition_uri)})
+    return [candidate]
+
+
+def _find_inventaire_edition_uri(redirects: dict[str, str], entities: dict[str, dict]) -> str | None:
+    """Return the URI of the edition entity in an inventaire.io response."""
+    for uri, target in redirects.items():
+        if uri.startswith("isbn:") and target in entities:
+            return target
+    # Fall back to any entity that actually is an edition.
+    for uri, entity in entities.items():
+        if entity.get("type") == "edition":
+            return uri
+    return None
+
+
+def _isbn_from_uri(uri: str) -> str | None:
+    """Return the ISBN carried by an ``isbn:<value>`` URI, normalized.
+
+    Returns None when the value is not a valid ISBN, so a malformed identifier is
+    never persisted.
+    """
+    if not uri.startswith("isbn:"):
+        return None
+    raw = uri[len("isbn:"):]
+    try:
+        return normalize_isbn(raw)
+    except ValueError:
+        logger.debug("Inventaire returned a non-ISBN identifier: %r", raw)
+        return None
+
+
+def map_inventaire_entity(
+    edition: dict,
+    entities: dict[str, dict],
+    labels: dict[str, str] | None = None,
+) -> BookImportCandidate | None:
+    """Map an inventaire.io edition entity to BookImportCandidate."""
+    claims: dict[str, list[str]] = edition.get("claims") or {}
+
+    title = _inventaire_claim(claims, "wdt:P1476")
+    if not title:
+        title = _inventaire_label(labels or {})
+    if not title:
+        return None
+    subtitle = _inventaire_claim(claims, "wdt:P1680")
+
+    isbn: str | None = None
+    for raw in _inventaire_claims(claims, "wdt:P212") + _inventaire_claims(claims, "wdt:P957"):
+        try:
+            isbn = normalize_isbn(raw)
+            break
+        except ValueError:
+            continue
+
+    published_year = _inventaire_year(_inventaire_claim(claims, "wdt:P577"))
+    page_count = _inventaire_int(_inventaire_claim(claims, "wdt:P1104"))
+
+    language = _normalize_language_code(edition.get("originalLang") or None)
+
+    cover_url = _inventaire_cover(edition, claims)
+
+    authors = _inventaire_authors(claims, entities)
+    author = ", ".join(authors) if authors else None
+
+    publisher = _inventaire_publisher(claims, entities)
+
+    return BookImportCandidate(
+        title=title,
+        subtitle=subtitle,
+        author=author,
+        authors=authors,
+        isbn=isbn,
+        cover_url=cover_url,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=None,
+        source="inventaire",
+    )
+
+
+def _inventaire_claims(claims: dict[str, list[str]], claim_id: str) -> list[str]:
+    """Return the string values of a claim, tolerating legacy dict-shaped values."""
+    values: list[str] = []
+    for raw in claims.get(claim_id) or []:
+        if isinstance(raw, str) and raw:
+            values.append(raw)
+        elif isinstance(raw, dict):
+            value = raw.get("value")
+            if isinstance(value, str) and value:
+                values.append(value)
+    return values
+
+
+def _inventaire_claim(claims: dict[str, list[str]], claim_id: str) -> str | None:
+    """Return the first string value of a claim."""
+    values = _inventaire_claims(claims, claim_id)
+    return values[0] if values else None
+
+
+def _inventaire_label(labels: dict[str, str]) -> str | None:
+    """Pick a label in the reader's likely language, ignoring generated ones."""
+    for key in _LANG_PREFERENCE:
+        value = labels.get(key)
+        if value:
+            return value
+    return None
+
+
+def _inventaire_year(raw: str | None) -> int | None:
+    """Extract the year from a Wikidata date value such as '2024-03-01'."""
+    if not raw:
+        return None
+    match = re.match(r"^(-?\d{1,4})", raw.strip())
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _inventaire_int(raw: str | None) -> int | None:
+    """Parse a numeric claim value such as a page count."""
+    if not raw:
+        return None
+    match = re.search(r"\d+", raw)
+    if not match:
+        return None
+    return int(match.group(0))
+
+
+def _inventaire_cover(edition: dict, claims: dict[str, list[str]]) -> str | None:
+    """Build the absolute cover URL from the image hash, if one exists."""
+    cover_hash = _inventaire_claim(claims, "invp:P2")
+    if not cover_hash:
+        image_url = (edition.get("image") or {}).get("url") or ""
+        cover_hash = image_url.rsplit("/", 1)[-1] if image_url else ""
+    if not cover_hash:
+        return None
+    cover_url = f"{INVENTAIRE_COVER_BASE_URL}/{cover_hash}"
+    return cover_url if is_safe_cover_import_url(cover_url) else None
+
+
+def _inventaire_authors(claims: dict[str, list[str]], entities: dict[str, dict]) -> list[str]:
+    """Resolve author labels from the work entity referenced by the edition.
+
+    Native inventaire works often carry no P50, so the edition's own P50 is used as a
+    fallback when the work yields nothing.
+    """
+    work_uri = _inventaire_claim(claims, "wdt:P629")
+    work = entities.get(work_uri) if work_uri else None
+
+    authors = _inventaire_author_labels((work or {}).get("claims") or {}, entities)
+    if not authors:
+        authors = _inventaire_author_labels(claims, entities)
+    return authors
+
+
+def _inventaire_author_labels(claims: dict[str, list[str]], entities: dict[str, dict]) -> list[str]:
+    """Resolve P50 author URIs into display labels."""
+    authors: list[str] = []
+    for author_uri in _inventaire_claims(claims, "wdt:P50"):
+        entity = entities.get(author_uri)
+        label = _inventaire_label((entity or {}).get("labels") or {})
+        if label and label not in authors:
+            authors.append(label)
+    return authors
+
+
+def _inventaire_publisher(claims: dict[str, list[str]], entities: dict[str, dict]) -> str | None:
+    """Resolve the publisher label from the edition's P123 relative."""
+    publisher_uri = _inventaire_claim(claims, "wdt:P123")
+    if not publisher_uri:
+        return None
+    entity = entities.get(publisher_uri)
+    if not entity:
+        return None
+    return _inventaire_label(entity.get("labels") or {})
+
+
+# ── Library of Congress ────────────────────────────────────────────────────────
+
+
+async def _search_loc(
+    query: str,
+    search_type: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search Library of Congress via SRU.
+
+    Raises:
+        SourceBackendError: On HTTP errors from LoC.
+    """
+    if search_type == "isbn":
+        try:
+            isbn13 = normalize_isbn(query)
+        except ValueError:
+            logger.warning("LoC invalid ISBN: %s", query)
+            return []
+        query_str = f"bath.isbn={isbn13}"
+    else:
+        term = _sanitize_cql_term(query)
+        if not term:
+            logger.debug("LoC: title query is empty after sanitizing")
+            return []
+        query_str = f"bath.title={term}"
+
+    params: dict = {
+        "version": "1.1",
+        "operation": "searchRetrieve",
+        "query": query_str,
+        "recordSchema": "mods",
+        "maximumRecords": 10,
+    }
+
+    logger.debug("LoC request — url=%s params=%s", LOC_SRU_URL, params)
+
+    try:
+        # LoC is reached over plain HTTP on port 210, which many firewalls drop rather
+        # than refuse. A shorter timeout keeps a blocked LoC from stalling the search.
+        resp = await client.get(
+            LOC_SRU_URL,
+            params=params,
+            headers={"User-Agent": _USER_AGENT},
+            timeout=_LOC_TIMEOUT_SECONDS,
+        )
+        logger.debug("LoC response — status=%d body_size=%d bytes",
+                     resp.status_code, len(resp.content))
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("LoC HTTP error: %s %s", exc.response.status_code, exc.response.text[:200])
+        raise SourceBackendError("library_of_congress", exc.response.status_code) from exc
+    except httpx.HTTPError as exc:
+        logger.warning("LoC request failed: %s", exc)
+        raise SourceBackendError("library_of_congress") from exc
+
+    candidates = map_loc_response(resp.text)
+    for c in candidates:
+        logger.debug("  LoC candidate: title=%r isbn=%r", c.title, c.isbn)
+    return candidates
+
+
+def map_loc_response(xml_text: str) -> list[BookImportCandidate]:
+    """Parse LoC SRU MODS XML response into BookImportCandidate list."""
+    namespaces = {
+        "srw": "http://www.loc.gov/zing/srw/",
+        "mods": "http://www.loc.gov/mods/v3",
+    }
+
+    try:
+        # The payload comes from a remote server, so parse it with entity expansion
+        # and external entity resolution disabled.
+        root = SafeET.fromstring(xml_text)
+    except (ET.ParseError, DefusedXmlException) as exc:
+        logger.warning("LoC XML parse error: %s", exc)
+        return []
+
+    records = root.findall(".//mods:mods", namespaces)
+    candidates: list[BookImportCandidate] = []
+
+    for record in records:
+        candidate = map_loc_record(record, namespaces)
+        if candidate is not None:
+            candidates.append(candidate)
+
+    return candidates
+
+
+def map_loc_record(record: ET.Element, namespaces: dict[str, str]) -> BookImportCandidate | None:
+    """Map a single LoC MODS record to BookImportCandidate."""
+    title_info = record.find("mods:titleInfo", namespaces)
+    if title_info is None:
+        return None
+
+    title_elem = title_info.find("mods:title", namespaces)
+    if title_elem is None or not title_elem.text:
+        return None
+
+    title = title_elem.text.strip()
+
+    subtitle_elem = title_info.find("mods:subTitle", namespaces)
+    subtitle = subtitle_elem.text.strip() if subtitle_elem is not None and subtitle_elem.text else None
+
+    authors: list[str] = []
+    for name in record.findall("mods:name", namespaces):
+        # Only personal names are book authors; corporate names would be the publisher.
+        name_type = name.get("type", "")
+        if name_type and name_type != "personal":
+            continue
+        name_part = name.find("mods:namePart", namespaces)
+        if name_part is not None and name_part.text:
+            author = _reverse_loc_author(name_part.text.strip())
+            if author and author not in authors:
+                authors.append(author)
+    author_str = ", ".join(authors) if authors else None
+
+    isbn = _extract_loc_isbn(record, namespaces)
+
+    origin_info = record.find("mods:originInfo", namespaces)
+    publisher = None
+    published_year = None
+    if origin_info is not None:
+        publisher_elem = origin_info.find("mods:publisher", namespaces)
+        if publisher_elem is not None and publisher_elem.text:
+            publisher = publisher_elem.text.strip()
+
+        date_elem = origin_info.find("mods:dateIssued", namespaces)
+        if date_elem is not None and date_elem.text:
+            try:
+                published_year = int(date_elem.text[:4])
+            except (ValueError, IndexError):
+                pass
+
+    language = None
+    for lang in record.findall("mods:language", namespaces):
+        term = lang.find("mods:languageTerm", namespaces)
+        if term is not None and term.text:
+            language = _normalize_language_code(term.text.strip())
+            break
+
+    page_count = None
+    physical_desc = record.find("mods:physicalDescription", namespaces)
+    if physical_desc is not None:
+        extent = physical_desc.find("mods:extent", namespaces)
+        if extent is not None and extent.text:
+            page_count = _parse_page_count(extent.text)
+
+    tags = None
+    # MODS nests topics inside <subject>, so search descendants rather than direct children.
+    topics = [t.text for t in record.findall(".//mods:topic", namespaces) if t.text]
+    if topics:
+        tags = ", ".join(topics[:3])
+
+    return BookImportCandidate(
+        title=title,
+        subtitle=subtitle,
+        author=author_str,
+        authors=authors,
+        isbn=isbn,
+        cover_url=None,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=tags,
+        source="library_of_congress",
+    )
+
+
+def _extract_loc_isbn(record: ET.Element, namespaces: dict[str, str]) -> str | None:
+    """Extract an ISBN from MODS identifier elements, preferring type='isbn'."""
+    fallbacks: list[str] = []
+    for identifier in record.findall("mods:identifier", namespaces):
+        text = (identifier.text or "").strip()
+        if not text or not re.fullmatch(r"[0-9Xx][0-9Xx\s-]{8,}[0-9Xx]", text):
+            continue
+        try:
+            normalized = normalize_isbn(text)
+        except ValueError:
+            continue
+        if identifier.get("type") == "isbn":
+            return normalized
+        fallbacks.append(normalized)
+    return fallbacks[0] if fallbacks else None
+
+
+def _reverse_loc_author(raw: str) -> str:
+    """Reverse LoC's 'LastName, FirstName' form into 'FirstName LastName'.
+
+    Real MODS namePart values carry trailing separators in both forms:
+    "Herbert, Frank." (abbreviation period) and "Horydczak, Theodor," (list comma).
+    Both must be stripped before the name is reversed.
+    """
+    name = raw.strip().rstrip(".,").strip()
+    if ", " in name:
+        last, first = name.split(", ", 1)
+        reversed_name = f"{first.strip().rstrip('.,')} {last.strip().rstrip('.,')}".strip()
+        return reversed_name or name
+    return name or raw.strip()
+
+
+# ── Deutsche Nationalbibliothek (DNB) ─────────────────────────────────────────
+
+# The DNB SRU envelope puts the SRU namespace on the root as the default namespace,
+# and each MARC21 record declares its own default namespace, so both have to be
+# named explicitly to select them.
+async def _search_dnb(
+    query: str,
+    search_type: str,
+    client: httpx.AsyncClient,
+) -> list[BookImportCandidate]:
+    """Search the German National Library via its SRU interface.
+
+    Raises:
+        SourceBackendError: On HTTP errors from the DNB.
+    """
+    if search_type == "isbn":
+        try:
+            isbn13 = normalize_isbn(query)
+        except ValueError:
+            logger.warning("DNB invalid ISBN: %s", query)
+            return []
+        query_str = f"num={isbn13}"
+    else:
+        term = _sanitize_cql_term(query)
+        if not term:
+            logger.debug("DNB: title query is empty after sanitizing")
+            return []
+        # Quoted so a title containing "and" or "or" is not read as a CQL operator.
+        query_str = f'tit="{term}"'
+
+    params: dict = {
+        "version": "1.1",
+        "operation": "searchRetrieve",
+        "query": query_str,
+        "recordSchema": "MARC21-xml",
+        "maximumRecords": 10,
+    }
+
+    logger.debug("DNB request — url=%s params=%s", DNB_SRU_URL, params)
+
+    try:
+        resp = await client.get(DNB_SRU_URL, params=params, headers={"User-Agent": _USER_AGENT})
+        logger.debug("DNB response — status=%d body_size=%d bytes",
+                     resp.status_code, len(resp.content))
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("DNB HTTP error: %s %s", exc.response.status_code, exc.response.text[:200])
+        raise SourceBackendError("dnb", exc.response.status_code) from exc
+    except httpx.HTTPError as exc:
+        logger.warning("DNB request failed: %s", exc)
+        raise SourceBackendError("dnb") from exc
+
+    candidates = map_dnb_response(resp.text)
+    for c in candidates:
+        logger.debug("  DNB candidate: title=%r isbn=%r", c.title, c.isbn)
+    return candidates
+
+
+def map_dnb_response(xml_text: str) -> list[BookImportCandidate]:
+    """Parse a DNB SRU MARC21 response into a BookImportCandidate list."""
+    try:
+        # The payload comes from a remote server, so parse it with entity expansion and
+        # external entity resolution disabled.
+        root = SafeET.fromstring(xml_text)
+    except (ET.ParseError, DefusedXmlException) as exc:
+        logger.warning("DNB XML parse error: %s", exc)
+        return []
+
+    candidates: list[BookImportCandidate] = []
+    for record in root.findall(".//srw:recordData/marc:record", _DNB_NAMESPACES):
+        candidate = map_dnb_record(record)
+        if candidate is not None:
+            candidates.append(candidate)
+    return candidates
+
+
+def map_dnb_record(record: ET.Element) -> BookImportCandidate | None:
+    """Map a single DNB MARC21 record to a BookImportCandidate."""
+    title, subtitle = _dnb_title(record)
+    if not title:
+        return None
+
+    # 264 second indicator 1 is the publication statement; 4 is the copyright statement,
+    # which carries a different (often reprint) date and must not be used as the
+    # publication year. Older records use 260, which has no publication indicator.
+    publication = None
+    for tag in ("264", "260"):
+        for field in record.findall(f"marc:datafield[@tag='{tag}']", _DNB_NAMESPACES):
+            # A missing indicator is "no information", which in practice is a publication
+            # statement; an explicit " " is accepted as a last resort.
+            ind2 = field.get("ind2")
+            if tag == "264" and ind2 not in ("1", " ", None):
+                continue
+            publication = field
+            break
+        if publication is not None:
+            break
+
+    publisher = None
+    if publication is not None:
+        publisher = _strip_dnb_brackets(_dnb_first(publication, "b"))
+    published_year = _dnb_publication_year(
+        _dnb_first(publication, "c") if publication is not None else None
+    )
+
+    page_count = None
+    extent = record.find("marc:datafield[@tag='300']", _DNB_NAMESPACES)
+    extent_text = _dnb_first(extent, "a") if extent is not None else None
+    if extent_text:
+        page_count = _parse_dnb_page_count(extent_text)
+
+    # 041$a is the language of the text; $h names the language it was translated from.
+    language = None
+    language_field = record.find("marc:datafield[@tag='041']", _DNB_NAMESPACES)
+    if language_field is not None:
+        for value in _dnb_subfields(language_field).get("a", []):
+            language = _normalize_language_code(value.split()[0] if value else None)
+            if language:
+                break
+    if not language:
+        fixed = record.find("marc:controlfield[@tag='008']", _DNB_NAMESPACES)
+        if fixed is not None and fixed.text and len(fixed.text) >= 38:
+            language = _normalize_language_code(fixed.text[35:38])
+
+    authors = _dnb_authors(record)
+    blurb_field = record.find("marc:datafield[@tag='520']", _DNB_NAMESPACES)
+
+    # The DNB SRU endpoint serves no cover images, so there is nothing to set here.
+    return BookImportCandidate(
+        title=title,
+        subtitle=subtitle,
+        author=authors[0] if authors else None,
+        authors=authors or None,
+        isbn=_extract_dnb_isbn(record),
+        cover_url=None,
+        publisher=publisher,
+        published_year=published_year,
+        page_count=page_count,
+        language=language,
+        tags=_dnb_subjects(record),
+        blurb=_dnb_first(blurb_field, "a") if blurb_field is not None else None,
+        source="dnb",
+    )
+
+
+_DNB_NAMESPACES: dict[str, str] = {
+    "srw": "http://www.loc.gov/zing/srw/",
+    "marc": "http://www.loc.gov/MARC21/slim",
+}
+
+# DNB records wrap non-sorting characters in U+0098 (string start) and U+009C
+# (string terminator) instead of using the MARC nonfiling indicator. Leaving them in
+# would show up in the title as stray control characters. The whole C1 range is
+# stripped so a stray marker anywhere in a subfield is handled, not just the
+# documented pair.
+_DNB_NONFILING_RE = re.compile("[\u0098-\u009f]")
+
+# MARC relator term codes for "this person wrote the book". A 1XX field that codes any
+# other role (editor, translator, illustrator) is a contributor, not the author.
+_DNB_AUTHOR_ROLES: frozenset[str] = frozenset({"aut", "cre"})
+
+# Trailing punctuation on a catalogued name: the period in "Mann, Thomas." is noise, but
+# the one in "Karl R." is a real initial. Only drop it when the final word is long enough
+# not to be an initial.
+_DNB_TRAILING_PERIOD_RE = re.compile(r"(?<=\S)\.\s*$")
+
+
+def _drop_dnb_trailing_period(text: str) -> str:
+    """Remove cataloguing noise from the forename half of an inverted name.
+
+    Applied only to the given side of a "Surname, Forename." entry, where a trailing
+    period is inversion punctuation rather than part of the name. A single-letter token
+    is an initial and keeps its period ("Karl R." -> "Karl R. Popper"); anything longer is
+    a full forename whose period is cataloguing noise ("Thomas." -> "Thomas Mann").
+
+    Never applied to a name that is not inverted: "Dr.", "Prof.", "MSc." and "BSc." are
+    titles and abbreviations, not inversion artifacts, and stripping them would mangle the
+    name.
+    """
+    if not text.endswith("."):
+        return text
+    if len(text.rsplit(" ", 1)[-1].rstrip(".")) <= 1:
+        return text
+    return _DNB_TRAILING_PERIOD_RE.sub("", text)
+
+
+# "1184 Seiten", "1.184 Seiten", "926 pages", "XXXIX, 601 S.". The number is either a
+# plain digit run or digit groups joined by a single grouping separator, and must not sit
+# directly behind another digit or separator. Three consequences, all deliberate:
+#   * no lazy quantifier next to \s*, so a long non-matching run cannot backtrack
+#     quadratically the way `[0-9][0-9.,\u00a0 ]*?` did;
+#   * a group is exactly three digits, so German "1.184" stays 1184 while a decimal
+#     "1.5" or a short group "1,23" is rejected instead of yielding a wrong page count;
+#   * the lookbehind stops the tail of "1.5" being read as a count of 5.
+# Note this provider-local parser is deliberately separate from the shared
+# `_parse_page_count`, which handles the "265 p." style used by the other sources.
+_DNB_EXTENT_RE = re.compile(
+    r"(?<![0-9.,\u00a0])"
+    r"((?:[0-9]{1,3}(?:[.,\u00a0 ][0-9]{3})+|[0-9]{1,15}))"
+    r"\s*(?:Seiten?|pages?|sidor|p\.|S\.)",
+    re.IGNORECASE,
+)
+
+
+def _strip_dnb_markers(text: str) -> str:
+    """Remove DNB non-sorting control markers and collapse the whitespace they leave."""
+    return re.sub(r"\s+", " ", _DNB_NONFILING_RE.sub("", text)).strip()
+
+
+def _dnb_subfields(field: ET.Element) -> dict[str, list[str]]:
+    """Group a MARC21 datafield's subfields by code, in document order."""
+    grouped: dict[str, list[str]] = {}
+    for subfield in field.findall("marc:subfield", _DNB_NAMESPACES):
+        text = _strip_dnb_markers(subfield.text or "")
+        if text:
+            grouped.setdefault(subfield.get("code", ""), []).append(text)
+    return grouped
+
+
+def _dnb_first(field: ET.Element, *codes: str) -> str | None:
+    """Return the first non-empty subfield value among the given codes.
+
+    The field must not be None: every caller has already checked whether the MARC field
+    is present before reading a subfield from it.
+    """
+    grouped = _dnb_subfields(field)
+    for code in codes:
+        for value in grouped.get(code, []):
+            if value:
+                return value
+    return None
+
+
+def _strip_dnb_brackets(value: str | None) -> str | None:
+    """Unwrap a catalogued value the DNB flagged as supplied rather than transcribed.
+
+    "[2026]" and "[Lisboa]" mean the cataloguer inferred these, and the brackets should
+    not reach the user. Applied to the publisher and the publication year.
+
+    Deliberately NOT applied to the title: the Library of Congress documents titles such
+    as `24500$a[Man smoking at window]`, where the brackets are part of the title itself.
+    """
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned or None
+
+
+def _reverse_dnb_name(raw: str) -> str:
+    """Turn a catalogued "Surname, Forename" into "Forename Surname".
+
+    The DNB indexes personal names inverted (MARC 1XX first indicator 1), which is the
+    one part of the format that is pure cataloguing convention rather than data.
+    """
+    name = _strip_dnb_markers(raw).strip(" ,;")
+    if "," not in name:
+        # Not an inverted name, so there is no inversion punctuation to remove. Titles and
+        # abbreviations such as "Dr." or "MSc." must survive intact.
+        return name
+    surname, _, given = name.partition(",")
+    # strip(" ,;") above guarantees neither side is empty once trimmed again here.
+    surname = surname.strip().rstrip(".").strip()
+    given = _drop_dnb_trailing_period(given.strip()).strip()
+    return f"{given} {surname}".strip() or name
+
+
+def _parse_dnb_page_count(text: str) -> Optional[int]:
+    """Pull the page count out of a DNB 300$a extent statement."""
+    match = _DNB_EXTENT_RE.search(_strip_dnb_markers(text))
+    if not match:
+        return None
+    # The pattern only ever captures digits and grouping separators, so the strip below
+    # always leaves a plain digit string.
+    count = int(re.sub(r"[.,\u00a0 ]", "", match.group(1)))
+    return count if count > 0 else None
+
+
+def _dnb_publication_year(date: str | None) -> Optional[int]:
+    """Extract a four-digit publication year, tolerating catalogued ranges and suffixes."""
+    if not date:
+        return None
+    match = re.search(r"(\d{4})", _strip_dnb_brackets(date) or "")
+    if not match:
+        return None
+    year = int(match.group(1))
+    return year if 1000 <= year <= 2999 else None
+
+
+def _dnb_authors(record: ET.Element) -> list[str]:
+    """Collect book authors from MARC 1XX and 700 fields, main entry first.
+
+    The DNB puts the lead author in 1XX and co-authors in 700 added entries. Every 700
+    it records carries a relator code, and those codes are mostly *not* authorship (edt,
+    trl, ill and art outnumber aut several times over), so a 700 is only taken when it
+    explicitly codes an author. The role is read from $4 alone: where $e is present it
+    simply restates $4 in German (edt/Herausgeber, aut/Verfasser).
+    """
+    authors: list[str] = []
+
+    def _add(field: ET.Element, *, strict: bool) -> None:
+        grouped = _dnb_subfields(field)
+        roles = {role.lower() for role in grouped.get("4", [])}
+        # strict: only an explicit author relator qualifies. Loose (1XX main entry):
+        # an uncoded field is still the record's main entry, so accept it.
+        if roles and not (roles & _DNB_AUTHOR_ROLES):
+            return
+        if strict and not roles:
+            return
+        raw = grouped.get("a", [None])[0]
+        if not raw:
+            return
+        name = _reverse_dnb_name(raw)
+        if name and name not in authors:
+            authors.append(name)
+
+    # Main entry first: a personal name, else a corporate or meeting main entry.
+    for tag in ("100", "110", "111"):
+        for field in record.findall(f"marc:datafield[@tag='{tag}']", _DNB_NAMESPACES):
+            _add(field, strict=False)
+        if authors:
+            break
+
+    # Then author-coded co-authors from the added entries.
+    for field in record.findall("marc:datafield[@tag='700']", _DNB_NAMESPACES):
+        _add(field, strict=True)
+
+    return authors
+
+
+def _dnb_title(record: ET.Element) -> tuple[str | None, str | None]:
+    """Return the title and subtitle from the record's MARC 245 field.
+
+    245 is non-repeating and its first indicator only records whether a title added
+    entry is made (0 or 1), not which of several titles is "main", so there is nothing to
+    rank: the first field carrying a $a is the title. The loop exists only so a record
+    that somehow carries several 245 fields still yields the first usable title rather
+    than being dropped for having a title-less 245 first.
+    """
+    for field in record.findall("marc:datafield[@tag='245']", _DNB_NAMESPACES):
+        title = _dnb_first(field, "a")
+        if title:
+            return title, _dnb_first(field, "b")
+    return None, None
+
+
+def _extract_dnb_isbn(record: ET.Element) -> Optional[str]:
+    """Return the record's ISBN, normalized to ISBN-13.
+
+    A 020 carrying a $q qualifier is dropped whole: the DNB uses that field to record a
+    misprinted ISBN together with a note saying it is wrong and no correct value could be
+    determined, and $9 then normalizes the bad value. Importing that number would attach
+    the book to an ISBN that identifies something else.
+
+    Every value goes through normalize_isbn and unparseable ones are discarded, so a
+    candidate never carries an ISBN that could not be looked up again later.
+    """
+    normalized: list[str] = []
+    for field in record.findall("marc:datafield[@tag='020']", _DNB_NAMESPACES):
+        grouped = _dnb_subfields(field)
+        if grouped.get("q"):
+            continue
+        for code in ("a", "9"):
+            for value in grouped.get(code, []):
+                try:
+                    normalized.append(normalize_isbn(value))
+                except ValueError:
+                    continue
+    # normalize_isbn always returns ISBN-13, so the first usable value is the answer.
+    return normalized[0] if normalized else None
+
+
+def _dnb_subjects(record: ET.Element) -> Optional[str]:
+    """Collect subject headings from MARC 650 fields.
+
+    689 is deliberately ignored: in DNB records it restates the same headings as 650 in a
+    topical form, so including it would double every tag. The list is capped at three to
+    match the BnF and Library of Congress providers, since tags render as a display field.
+    """
+    subjects: list[str] = []
+    for field in record.findall("marc:datafield[@tag='650']", _DNB_NAMESPACES):
+        value = _dnb_first(field, "a")
+        if value and value not in subjects:
+            subjects.append(value)
+    return ", ".join(subjects[:3]) if subjects else None
+
+
 # ── Merge / Deduplicate ───────────────────────────────────────────────────────
 
 
-def _merge_results(
-    primary: list[BookImportCandidate],
-    secondary: list[BookImportCandidate],
-) -> list[BookImportCandidate]:
-    """Merge two candidate lists, preserving every candidate in input order.
+def _merge_results(*lists: list[BookImportCandidate]) -> list[BookImportCandidate]:
+    """Merge multiple candidate lists, preserving every candidate in input order.
 
     The frontend is responsible for grouping variants that represent the same
     book (e.g. by ISBN) and letting the user pick the best record. A user can
     only own one book per exact ISBN string, so keeping all provider-specific
     records lets the user compare data quality before importing.
     """
-    return primary + secondary
+    merged: list[BookImportCandidate] = []
+    for lst in lists:
+        merged.extend(lst)
+    return merged
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _parse_page_count(text: str) -> Optional[int]:
+    """Extract page count from a format string like '1 vol. (265 p.) ; 20 cm' or '412 p. ; 22 cm.'.
+
+    Handles the English/BnF/LoC conventions only. The DNB has its own
+    `_parse_dnb_page_count` because its extent statements are localized
+    ("1184 Seiten", "1.184 Seiten", "416 sidor") and group thousands differently.
+    """
+    # Try parenthesized format first: (265 p.)
+    match = re.search(r"\(([\d,\s]+)\s*p\.\)", text)
+    if match:
+        try:
+            return int(match.group(1).replace(",", "").replace(" ", ""))
+        except ValueError:
+            pass
+    # Try plain format: 412 p. (or 1,234 p.)
+    match = re.search(r"([\d,]+)\s*p\.", text)
+    if match:
+        try:
+            return int(match.group(1).replace(",", "").replace(" ", ""))
+        except ValueError:
+            pass
+    return None
 
 
 def _pick_isbn(isbns: list[str]) -> Optional[str]:

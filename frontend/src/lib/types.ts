@@ -357,18 +357,24 @@ export interface BookProgress {
 	current_page: number;
 }
 
+/** Search sources the backend can report progress for. */
+export type ImportSource =
+	| 'open_library'
+	| 'bnf'
+	| 'inventaire'
+	| 'library_of_congress'
+	| 'dnb'
+	| 'hardcover'
+	| 'google_books';
+
+export type ImportSourceStage =
+	| { stage: ImportSource; status: 'searching' }
+	| { stage: ImportSource; status: 'done'; count: number }
+	| { stage: ImportSource; status: 'skipped'; reason: string }
+	| { stage: ImportSource; status: 'error'; reason: string };
+
 export type SearchStage =
-	| { stage: 'open_library'; status: 'searching' }
-	| { stage: 'open_library'; status: 'done'; count: number }
-	| { stage: 'open_library'; status: 'error'; reason: string }
-	| { stage: 'hardcover'; status: 'searching' }
-	| { stage: 'hardcover'; status: 'done'; count: number }
-	| { stage: 'hardcover'; status: 'skipped'; reason: string }
-	| { stage: 'hardcover'; status: 'error'; reason: string }
-	| { stage: 'google_books'; status: 'searching' }
-	| { stage: 'google_books'; status: 'done'; count: number }
-	| { stage: 'google_books'; status: 'skipped'; reason: string }
-	| { stage: 'google_books'; status: 'error'; reason: string }
+	| ImportSourceStage
 	| { stage: 'complete'; results: BookImportCandidate[] }
 	| { stage: 'error'; message: string };
 

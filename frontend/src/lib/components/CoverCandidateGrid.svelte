@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import type { CoverCandidate } from '$lib/types';
-	import { _ } from '$lib/i18n';
+	import Alert from '#lib/components/Alert.svelte';
+	import type { CoverCandidate } from '#lib/types.js';
+	import { _ } from '#lib/i18n/index.js';
 
 	let {
 		candidates = [],

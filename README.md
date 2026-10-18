@@ -22,7 +22,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
-**Multi-user book tracking webapp** — maintain four reading lists, import books from Open Library & Google Books, scrape cover art, and get rich reading analytics — all on your own hardware.
+**Multi-user book tracking webapp** — maintain four reading lists, import books from six metadata sources, scrape cover art, and get rich reading analytics — all on your own hardware.
 
 > `docker compose up -d` → full data ownership, no vendor lock-in, no API keys required.
 
@@ -62,7 +62,7 @@ Open **http://localhost:8001** and create your account.
 ## Why LibrisLog?
 
 - **Your data, your rules.** Fully self-hosted under MIT license — no ads, no user tracking, no vendor lock-in. A single SQLite file you can back up anytime.
-- **No API keys required.** Works with Open Library out of the box. Add Google Books or Hardcover.app tokens optionally for richer search results.
+- **No API keys required.** Five sources work out of the box: Open Library, BnF, Inventaire.io, the Library of Congress, and the German National Library. BnF, Inventaire and the German National Library also find books that Open Library misses, which matters for non-English editions. Add Google Books or Hardcover.app tokens optionally (both are off in `.env.example`; set their key and their `*_IMPORT_SEARCH_ENABLED=true` to use them), and switch any source on or off individually. The Library of Congress endpoint is only reachable over plain HTTP, so it sends queries unencrypted unless you disable it — see [Configuration](https://docs.librislog.app/guide/configuration).
 - **Rich insights from day one.** Calendar heatmap, language/status/page distribution charts, books finished per month/year, top authors — all on your hardware.
 - **Multi-user from the start.** User roles (admin/user), optional OIDC SSO, per-user libraries. One instance works for your whole household or small group.
 - **Import any format you have.** Goodreads or Bookstats exports with automatic field mapping, generic CSV or Excel (XLSX) with per-field Python transforms, JSON, ZIP with covers.
@@ -80,11 +80,13 @@ Open **http://localhost:8001** and create your account.
 - **Library** — Grid/list view, search and sort, four reading statuses (Want to Read, Currently Reading, Read, Did Not Finish)
 - **Reading progress** — Page-level slider, full progress timeline per book with edit/history
 - **Statistics dashboard** — Calendar heatmap, distribution charts, books finished per period, top authors
-- **Book import** — Search Open Library, Google Books, Hardcover.app. Scan ISBN barcodes on mobile. Manual entry for anything not found
+- **Reading streaks & goals** — Current and all-time longest reading streak, plus optional daily, monthly, and yearly goals
+- **Book import** — Search Open Library, BnF, Inventaire.io, the Library of Congress, the German National Library, Hardcover.app, and Google Books in parallel, each source individually switchable. Results describing the same book are grouped so you can compare editions side by side before importing. Scan ISBN barcodes on mobile, collect candidates in a basket, or enter manually
 - **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from the Goodreads or Bookstats presets, or any CSV/Excel file with custom field mapping
 - **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
 - **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
 - **Multi-user** — Admin/user roles, per-user libraries, optional OIDC login
+- **Public profiles** — Shareable, read-only profile links with configurable sections, audience, language, and optional expiry
 - **Themes** — Light, dark, and custom DaisyUI themes with persistent preferences
 - **Administration** — Full backup/restore of the SQLite database, user management, API key management
 

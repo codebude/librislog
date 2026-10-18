@@ -37,7 +37,7 @@ import advancedFormat from 'dayjs/plugin/advancedFormat';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import weekday from 'dayjs/plugin/weekday';
-import { getTimezone } from '$lib/stores/timezone';
+import { getTimezone } from '#lib/stores/timezone.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { _ } from 'svelte-i18n';
-	import { api } from '$lib/api';
-	import Alert from '$lib/components/Alert.svelte';
+	import { api } from '#lib/api.js';
+	import Alert from '#lib/components/Alert.svelte';
 
-	let token = $state($page.url.searchParams.get('token') || '');
+	let token = $state(page.url.searchParams.get('token') || '');
 	let password = $state('');
 	let confirmPassword = $state('');
 	let loading = $state(false);
@@ -53,9 +53,7 @@
 				<h2 class="card-title mb-4">{$_('auth.resetPasswordTitle')}</h2>
 				<p class="text-sm mb-4">{$_('auth.resetPasswordInstruction')}</p>
 				{#if error}
-					<Alert type="error" onClose={() => (error = '')}>
-						{error}
-					</Alert>
+					<Alert type="error" onClose={() => error = ''}>{error}</Alert>
 				{/if}
 				<form class="flex flex-col gap-4" onsubmit={(e) => { e.preventDefault(); submit(); }}>
 					<label class="form-control">

@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
-	import { api } from '$lib/api';
-	import PasswordRequirements from '$lib/components/PasswordRequirements.svelte';
-	import { currentUser } from '$lib/stores/auth';
+	import { resolve } from '$app/paths';
+	import { api } from '#lib/api.js';
+	import PasswordRequirements from '#lib/components/PasswordRequirements.svelte';
+	import { currentUser } from '#lib/stores/auth.js';
 	import { Calendar, Check, Copy, ExternalLink, Info, Pencil, Trash2 } from '@lucide/svelte';
-	import { _, SUPPORTED_LOCALES, setLocale } from '$lib/i18n';
-	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '$lib/password';
-	import { getTimezone, setTimezone, detectTimezone } from '$lib/stores/timezone';
-	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '$lib/stores/theme';
-	import Alert from '$lib/components/Alert.svelte';
-	import SearchableSelect from '$lib/components/SearchableSelect.svelte';
-	import AdaptiveDateInput from '$lib/components/AdaptiveDateInput.svelte';
-import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
-	import { toasts } from '$lib/toasts';
-	import { localizeError } from '$lib/errors';
-	import { toDateInputValue, today } from '$lib/date';
+	import { _, SUPPORTED_LOCALES, setLocale } from '#lib/i18n/index.js';
+	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
+	import { getTimezone, setTimezone, detectTimezone } from '#lib/stores/timezone.js';
+	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '#lib/stores/theme.js';
+	import Alert from '#lib/components/Alert.svelte';
+	import SearchableSelect from '#lib/components/SearchableSelect.svelte';
+	import AdaptiveDateInput from '#lib/components/AdaptiveDateInput.svelte';
+import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
+	import { toasts } from '#lib/toasts.js';
+	import { localizeError } from '#lib/errors.js';
+	import { toDateInputValue, today } from '#lib/date.js';
 	import type {
 	ApiKeyMeta,
 	AppConfig,
@@ -25,7 +25,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 	PublicProfileAudience,
 	PublicProfileLink,
 	PublicProfileVisibilityConfig
-} from '$lib/types';
+} from '#lib/types.js';
 
 	let firstname = $state('');
 	let lastname = $state('');
@@ -418,7 +418,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			if (!dateValue || dateValue.length !== 10) return;
 			const expiresAt = new Date(dateValue + 'T23:59:59').toISOString();
 			await api.profile.updateEmbedToken(id, { expires_at: expiresAt });
-			embedTokens = embedTokens.map((t) => (t.id === id ? { ...t, expires_at: expiresAt } : t));
+			embedTokens = embedTokens.map((t) => t.id === id ? { ...t, expires_at: expiresAt } : t);
 			embedTokenMessage = { type: 'success', text: $_('common.saved') };
 		} catch (e: unknown) {
 			embedTokens = await api.profile.listEmbedTokens();
@@ -473,36 +473,36 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		let revealedTokens = $state<Record<number, string>>({});
 		let copiedShareLinkId = $state<number | null>(null);
 
-		async function loadShareLinks() {
-			const links = await api.profile.listShareLinks();
-			shareLinks = links;
+	async function loadShareLinks() {
+		const links = await api.profile.listShareLinks();
+		shareLinks = links;
 
 			const tokens = await Promise.all(
 				links.map(async (link) => {
-					try {
-						const result = await api.profile.revealShareLink(link.id);
-						return [link.id, result.token] as const;
-					} catch {
-						return null;
-					}
+			try {
+				const result = await api.profile.revealShareLink(link.id);
+				return [link.id, result.token] as const;
+			} catch {
+				return null;
+			}
 				})
 			);
-			revealedTokens = Object.fromEntries(tokens.filter((entry): entry is [number, string] => entry !== null));
-		}
+		revealedTokens = Object.fromEntries(tokens.filter((entry): entry is [number, string] => entry !== null));
+	}
 
-		function openCreateShareLink() {
-			editingShareLink = null;
-			shareLinkDialogOpen = true;
-		}
+	function openCreateShareLink() {
+		editingShareLink = null;
+		shareLinkDialogOpen = true;
+	}
 
-		function openEditShareLink(link: PublicProfileLink) {
-			editingShareLink = link;
-			shareLinkDialogOpen = true;
-		}
+	function openEditShareLink(link: PublicProfileLink) {
+		editingShareLink = link;
+		shareLinkDialogOpen = true;
+	}
 
-		function publicShareUrl(token: string): string {
-			return `${window.location.origin}${base}/p/${token}`;
-		}
+	function publicShareUrl(token: string): string {
+		return `${window.location.origin}${resolve('/p/[token]', { token })}`;
+	}
 
 		async function saveShareLink(payload: {
 			name: string;
@@ -511,75 +511,75 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			expires_at: string | null;
 			language: string | null;
 		}) {
-			shareLinkMessage = null;
-			try {
-				if (editingShareLink) {
-					await api.profile.updateShareLink(editingShareLink.id, payload);
-				} else {
-					const result = await api.profile.createShareLink(payload);
-					createdShareToken = result.token;
-					shareTokenCopied = false;
-				}
-				shareLinkDialogOpen = false;
-				editingShareLink = null;
-				await loadShareLinks();
+		shareLinkMessage = null;
+		try {
+			if (editingShareLink) {
+				await api.profile.updateShareLink(editingShareLink.id, payload);
+			} else {
+				const result = await api.profile.createShareLink(payload);
+				createdShareToken = result.token;
+				shareTokenCopied = false;
+			}
+			shareLinkDialogOpen = false;
+			editingShareLink = null;
+			await loadShareLinks();
 			} catch (e: unknown) {
 				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
-			}
 		}
+	}
 
-		async function copyShareToken() {
-			if (!createdShareToken) return;
-			await navigator.clipboard.writeText(publicShareUrl(createdShareToken));
-			shareTokenCopied = true;
-		}
+	async function copyShareToken() {
+		if (!createdShareToken) return;
+		await navigator.clipboard.writeText(publicShareUrl(createdShareToken));
+		shareTokenCopied = true;
+	}
 
-		function requestDeleteShareLink(id: number) {
-			pendingDeleteShareLinkId = id;
-		}
+	function requestDeleteShareLink(id: number) {
+		pendingDeleteShareLinkId = id;
+	}
 
-		function cancelDeleteShareLink() {
-			pendingDeleteShareLinkId = null;
-		}
+	function cancelDeleteShareLink() {
+		pendingDeleteShareLinkId = null;
+	}
 
-		async function confirmDeleteShareLink() {
-			if (pendingDeleteShareLinkId === null) return;
-			const id = pendingDeleteShareLinkId;
-			pendingDeleteShareLinkId = null;
-			try {
-				await api.profile.deleteShareLink(id);
-				await loadShareLinks();
+	async function confirmDeleteShareLink() {
+		if (pendingDeleteShareLinkId === null) return;
+		const id = pendingDeleteShareLinkId;
+		pendingDeleteShareLinkId = null;
+		try {
+			await api.profile.deleteShareLink(id);
+			await loadShareLinks();
 			} catch (e: unknown) {
 				shareLinkMessage = { type: 'error', text: e instanceof Error ? e.message : $_('publicProfile.saveFailed') };
-			}
 		}
+	}
 
-		async function ensureRevealedToken(link: PublicProfileLink): Promise<string | null> {
-			if (revealedTokens[link.id]) return revealedTokens[link.id];
-			try {
-				const result = await api.profile.revealShareLink(link.id);
-				revealedTokens = { ...revealedTokens, [link.id]: result.token };
-				return result.token;
-			} catch {
-				return null;
-			}
+	async function ensureRevealedToken(link: PublicProfileLink): Promise<string | null> {
+		if (revealedTokens[link.id]) return revealedTokens[link.id];
+		try {
+			const result = await api.profile.revealShareLink(link.id);
+			revealedTokens = { ...revealedTokens, [link.id]: result.token };
+			return result.token;
+		} catch {
+			return null;
 		}
+	}
 
-		async function copyShareLinkUrl(link: PublicProfileLink) {
-			const token = await ensureRevealedToken(link);
-			if (!token) return;
-			await navigator.clipboard.writeText(publicShareUrl(token));
-			copiedShareLinkId = link.id;
+	async function copyShareLinkUrl(link: PublicProfileLink) {
+		const token = await ensureRevealedToken(link);
+		if (!token) return;
+		await navigator.clipboard.writeText(publicShareUrl(token));
+		copiedShareLinkId = link.id;
 			setTimeout(() => { copiedShareLinkId = null; }, 1500);
-		}
+	}
 
-		async function openShareLinkUrl(link: PublicProfileLink) {
-			const token = await ensureRevealedToken(link);
-			if (!token) return;
-			window.open(publicShareUrl(token), '_blank', 'noopener');
-		}
+	async function openShareLinkUrl(link: PublicProfileLink) {
+		const token = await ensureRevealedToken(link);
+		if (!token) return;
+		window.open(publicShareUrl(token), '_blank', 'noopener');
+	}
 
-		async function startOidcLink() {
+	async function startOidcLink() {
 		oidcMessage = null;
 		try {
 			const response = await api.oidc.startLink();
@@ -679,9 +679,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		<form class="card-body gap-3" onsubmit={(e) => { e.preventDefault(); saveProfile(); }}>
 			<h2 class="text-lg font-semibold">{$_('user.profile')}</h2>
 			{#if profileMessage}
-				<Alert type={profileMessage.type === 'success' ? 'success' : 'error'} onClose={() => (profileMessage = null)}>
-					{profileMessage.text}
-				</Alert>
+				<Alert
+					type={profileMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => profileMessage = null}
+				>{profileMessage.text}</Alert>
 			{/if}
 			<input
 				class="input input-bordered"
@@ -712,8 +713,13 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 				<input type="checkbox" class="checkbox checkbox-xs" name="show-password" bind:checked={showPassword} />
 				<span class="label-text text-xs">{$_('common.showPassword')}</span>
 			</label>
-			<PasswordRequirements {password} />
-			<button type="submit" class="btn btn-primary btn-sm self-start">{$_('common.save')}</button>
+
+			<PasswordRequirements password={password} />
+
+			<button
+				type="submit"
+				class="btn btn-primary btn-sm self-start"
+			>{$_('common.save')}</button>
 		</form>
 	</div>
 
@@ -721,9 +727,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.languageTitle')}</h2>
 			{#if languageMessage}
-				<Alert type={languageMessage.type === 'success' ? 'success' : 'error'} onClose={() => (languageMessage = null)}>
-					{languageMessage.text}
-				</Alert>
+				<Alert
+					type={languageMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => languageMessage = null}
+				>{languageMessage.text}</Alert>
 			{/if}
 			<select class="select select-bordered max-w-xs" name="language" bind:value={language}>
 				{#each SUPPORTED_LOCALES as code}
@@ -739,9 +746,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			<h2 class="text-lg font-semibold">{$_('settings.timezone')}</h2>
 			<p class="text-sm text-base-content/70">{$_('settings.timezoneHelp')}</p>
 			{#if timezoneMessage}
-				<Alert type={timezoneMessage.type === 'success' ? 'success' : 'error'} onClose={() => (timezoneMessage = null)}>
-					{timezoneMessage.text}
-				</Alert>
+				<Alert
+					type={timezoneMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => timezoneMessage = null}
+				>{timezoneMessage.text}</Alert>
 			{/if}
 			<SearchableSelect
 				bind:value={timezone}
@@ -761,9 +769,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('settings.themeTitle')}</h2>
 			{#if themeMessage}
-				<Alert type={themeMessage.type === 'success' ? 'success' : 'error'} onClose={() => (themeMessage = null)}>
-					{themeMessage.text}
-				</Alert>
+				<Alert
+					type={themeMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => themeMessage = null}
+				>{themeMessage.text}</Alert>
 			{/if}
 			<span class="label">
 				<span class="label-text">{$_('settings.themeSelect')}</span>
@@ -782,9 +791,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			<h2 class="text-lg font-semibold">{$_('profile.goals.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.goals.subtitle')}</p>
 			{#if goalsMessage}
-				<Alert type={goalsMessage.type === 'success' ? 'success' : 'error'} onClose={() => (goalsMessage = null)}>
-					{goalsMessage.text}
-				</Alert>
+				<Alert
+					type={goalsMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => goalsMessage = null}
+				>{goalsMessage.text}</Alert>
 			{/if}
 			<div class="flex items-center justify-between gap-4 border border-base-200 rounded-xl p-3">
 				<label class="flex items-center gap-2 cursor-pointer">
@@ -880,9 +890,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			<h2 class="text-lg font-semibold">{$_('profile.readingDates.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.readingDates.subtitle')}</p>
 			{#if readingDatesMessage}
-				<Alert type={readingDatesMessage.type === 'success' ? 'success' : 'error'} onClose={() => (readingDatesMessage = null)}>
-					{readingDatesMessage.text}
-				</Alert>
+				<Alert
+					type={readingDatesMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => readingDatesMessage = null}
+				>{readingDatesMessage.text}</Alert>
 			{/if}
 			<div class="flex flex-col gap-3">
 				<label class="flex items-start gap-3 border border-base-200 rounded-xl p-3 cursor-pointer">
@@ -914,14 +925,21 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('user.apiKeys')}</h2>
 			<p class="text-sm text-base-content/70">
-				<a href={`${base}/api-docs`} class="link link-primary">{$_('settings.apiDocsTitle')}</a>
+				<a
+					href={resolve('/api-docs')}
+					class="link link-primary"
+				>{$_('settings.apiDocsTitle')}</a>
 			</p>
 			<div class="flex gap-2">
 				<input class="input input-bordered flex-1" name="key-description" bind:value={description} autocomplete="off" placeholder={$_('user.keyDescription')} />
 				<button class="btn btn-primary btn-sm" onclick={createKey}>{$_('user.addKey')}</button>
 			</div>
 			{#if createdKey}
-				<Alert type="success" onClose={() => (createdKey = null)} duration={0}>
+				<Alert
+					type="success"
+					onClose={() => createdKey = null}
+					duration={0}
+				>
 					<div class="flex flex-col items-start gap-2 text-xs">
 						<span>{$_('user.newKeyShownOnce')}</span>
 						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
@@ -949,139 +967,148 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 
 	{#if appConfig.embed_enabled}
 	<div id="section-embed-tokens" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
-		<div class="card-body gap-3">
-			<h2 class="text-lg font-semibold">{$_('user.embedTokens')}</h2>
-			<p class="text-sm text-base-content/70">{$_('user.embedTokenDescription')}</p>
-			{#if embedTokenMessage}
-				<Alert type={embedTokenMessage.type === 'success' ? 'success' : 'error'} onClose={() => (embedTokenMessage = null)}>
-					{embedTokenMessage.text}
-				</Alert>
-			{/if}
-			<div class="flex gap-2">
+			<div class="card-body gap-3">
+				<h2 class="text-lg font-semibold">{$_('user.embedTokens')}</h2>
+				<p class="text-sm text-base-content/70">{$_('user.embedTokenDescription')}</p>
+				{#if embedTokenMessage}
+					<Alert
+						type={embedTokenMessage.type === 'success' ? 'success' : 'error'}
+						onClose={() => embedTokenMessage = null}
+					>{embedTokenMessage.text}</Alert>
+				{/if}
+				<div class="flex gap-2">
 				<input class="input input-bordered flex-1" name="embed-token-name" bind:value={embedTokenName} autocomplete="off" placeholder={$_('user.embedTokenNamePlaceholder')} />
 				<button class="btn btn-primary btn-sm" onclick={createEmbedToken} disabled={!embedTokenName.trim()}>{$_('user.addEmbedToken')}</button>
-			</div>
-			<div class="flex gap-2">
+				</div>
+				<div class="flex gap-2">
 				<input class="input input-bordered flex-1" name="embed-token-origins" bind:value={embedTokenOrigins} autocomplete="off" placeholder={$_('user.embedTokenOriginsPlaceholder')} />
-			</div>
+				</div>
 			<p class="text-xs text-base-content/50 flex items-start gap-1">
-				<Info class="w-3 h-3 shrink-0" />
-				{$_('user.embedTokenOriginsTooltip')}
-			</p>
-			<AdaptiveDateInput
-				inputClass="input input-bordered max-w-48"
-				name="embed-token-expires"
-				bind:value={embedTokenExpires}
-				bind:invalid={embedTokenExpiresInvalid}
-				bind:hasInput={embedTokenExpiresHasInput}
-				min={today(timezone)}
-				ariaLabel={$_('user.embedTokenExpiresAt')}
-			/>
-			{#if embedTokenExpiresInvalid && embedTokenExpiresHasInput}
-				<p class="text-xs text-error -mt-1">{$_('error.invalidDate')}</p>
-			{/if}
-			<p class="text-xs text-base-content/50 -mt-1">{$_('user.embedTokenExpiresAt')}</p>
-			{#if createdEmbedToken}
-				<Alert type="success" onClose={() => (createdEmbedToken = null)} duration={0}>
-					<div class="flex flex-col items-start gap-2 text-xs">
-						<span>{$_('user.embedTokenNewShownOnce')}</span>
-						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all">
-							{createdEmbedToken}
+					<Info class="w-3 h-3 shrink-0" />
+					{$_('user.embedTokenOriginsTooltip')}
+				</p>
+				<AdaptiveDateInput
+					inputClass="input input-bordered max-w-48"
+					name="embed-token-expires"
+					bind:value={embedTokenExpires}
+					bind:invalid={embedTokenExpiresInvalid}
+					bind:hasInput={embedTokenExpiresHasInput}
+					min={today(timezone)}
+					ariaLabel={$_('user.embedTokenExpiresAt')}
+				/>
+				{#if embedTokenExpiresInvalid && embedTokenExpiresHasInput}
+					<p class="text-xs text-error -mt-1">{$_('error.invalidDate')}</p>
+				{/if}
+				<p class="text-xs text-base-content/50 -mt-1">{$_('user.embedTokenExpiresAt')}</p>
+				{#if createdEmbedToken}
+					<Alert
+						type="success"
+						onClose={() => createdEmbedToken = null}
+						duration={0}
+					>
+						<div class="flex flex-col items-start gap-2 text-xs">
+							<span>{$_('user.embedTokenNewShownOnce')}</span>
+
+							<div
+								class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] break-all"
+							>{createdEmbedToken}</div>
+
+							<button
+								type="button"
+								class="btn btn-success btn-xs"
+								onclick={copyCreatedEmbedToken}
+							>{embedTokenCopied ? $_('common.copied') : $_('common.copy')}</button>
 						</div>
-						<button type="button" class="btn btn-success btn-xs" onclick={copyCreatedEmbedToken}>
-							{embedTokenCopied ? $_('common.copied') : $_('common.copy')}
-						</button>
-					</div>
-				</Alert>
-			{/if}
-			{#if embedTokens.length === 0}
-				<p class="text-sm text-base-content/50">{$_('user.noEmbedTokens')}</p>
-			{:else}
-				<ul class="flex flex-col gap-2">
-					{#each embedTokens as t}
+					</Alert>
+				{/if}
+				{#if embedTokens.length === 0}
+					<p class="text-sm text-base-content/50">{$_('user.noEmbedTokens')}</p>
+				{:else}
+					<ul class="flex flex-col gap-2">
+						{#each embedTokens as t}
 						<li class="flex items-center justify-between border border-base-200 rounded p-2 text-sm">
-							<div class="min-w-0 flex-1">
-								<p class="font-medium">{t.name}</p>
-								<p class="font-mono text-xs text-base-content/60">{t.token_prefix}...</p>
+								<div class="min-w-0 flex-1">
+									<p class="font-medium">{t.name}</p>
+									<p class="font-mono text-xs text-base-content/60">{t.token_prefix}...</p>
 								<p class="text-xs text-base-content/50">
 									{t.allowed_origins ?? $_('user.embedTokenNoOrigins')}
 								</p>
-								{#if t.expires_at}
+									{#if t.expires_at}
 									<p class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap">
-										{$_('user.embedTokenExpiresAtLabel')}: {new Date(t.expires_at).toLocaleDateString()}
-										{#if new Date(t.expires_at) < new Date()}
-											<span class="badge badge-error badge-xs">{$_('user.embedTokenExpired')}</span>
-										{/if}
-										<button
-											type="button"
-											class="btn btn-ghost btn-sm"
-											disabled={pendingSaveExpiryTokenId === t.id}
-											title={$_('user.embedTokenEditExpiry')}
+											{$_('user.embedTokenExpiresAtLabel')}: {new Date(t.expires_at).toLocaleDateString()} 
+											{#if new Date(t.expires_at) < new Date()}
+												<span class="badge badge-error badge-xs">{$_('user.embedTokenExpired')}</span>
+											{/if}
+											<button
+												type="button"
+												class="btn btn-ghost btn-sm"
+												disabled={pendingSaveExpiryTokenId === t.id}
+												title={$_('user.embedTokenEditExpiry')}
 											onclick={() => { editExpiryTokenId = t.id; editExpiryValue = toDateInputValue(t.expires_at, timezone); }}
 										>
 											<Calendar class="w-4 h-4" />
 										</button>
-									</p>
-								{/if}
-								<p class="text-xs text-base-content/50">
-									{#if t.last_used_at}
+										</p>
+									{/if}
+									<p class="text-xs text-base-content/50">
+										{#if t.last_used_at}
 										{$_('user.embedTokenLastUsed')}: {new Date(t.last_used_at).toLocaleDateString()}
 										{new Date(t.last_used_at) < new Date(Date.now() - 90 * 86400000)
 											? ' · ' + $_('user.embedTokenStale')
 											: ''}
-									{:else}
-										{$_('user.embedTokenNeverUsed')}
-									{/if}
-								</p>
-							</div>
-							<div class="flex gap-1 shrink-0">
-								{#if t.expires_at && new Date(t.expires_at) < new Date()}
+										{:else}
+											{$_('user.embedTokenNeverUsed')}
+										{/if}
+									</p>
+								</div>
+								<div class="flex gap-1 shrink-0">
+									{#if t.expires_at && new Date(t.expires_at) < new Date()}
 									<div class="tooltip tooltip-left" data-tip={$_('user.embedTokenRotateExpiredHint')}>
 										<button class="btn btn-ghost btn-xs" disabled>
 											{$_('user.rotateEmbedToken')}
 										</button>
 									</div>
-								{:else}
+									{:else}
 									<button class="btn btn-ghost btn-xs" onclick={() => rotateEmbedToken(t.id)} disabled={pendingRotateTokenId === t.id}>
 										{$_('user.rotateEmbedToken')}
 									</button>
-								{/if}
+									{/if}
 								<button class="btn btn-error btn-outline btn-xs" onclick={() => requestDeleteEmbedToken(t.id)}>{$_('common.delete')}</button>
-							</div>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-			{#if editExpiryTokenId !== null}
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				{#if editExpiryTokenId !== null}
 				<dialog class="modal modal-open" onclick={(e) => { if (e.target === e.currentTarget) cancelExpiryEdit(); }}>
-					<div class="modal-box">
-						<form method="dialog">
+						<div class="modal-box">
+							<form method="dialog">
 							<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick={cancelExpiryEdit}>✕</button>
-						</form>
-						<h3 class="font-bold text-lg">{$_('user.embedTokenEditExpiry')}</h3>
-						<p class="text-sm text-base-content/70 mt-1">{$_('user.embedTokenEditExpiryDescription')}</p>
-						<div class="py-4">
-						<AdaptiveDateInput
-							inputClass="input input-bordered w-full"
-							bind:value={editExpiryValue}
-							bind:invalid={editExpiryInvalid}
-							bind:hasInput={editExpiryHasInput}
-							min={today(timezone)}
-							ariaLabel={$_('user.embedTokenEditExpiry')}
-						/>
-						{#if editExpiryInvalid && editExpiryHasInput}
-							<p class="text-xs text-error mt-1">{$_('error.invalidDate')}</p>
-						{/if}
-						</div>
-						<div class="modal-action">
-							<button class="btn btn-sm" onclick={cancelExpiryEdit}>{$_('common.cancel')}</button>
+							</form>
+							<h3 class="font-bold text-lg">{$_('user.embedTokenEditExpiry')}</h3>
+							<p class="text-sm text-base-content/70 mt-1">{$_('user.embedTokenEditExpiryDescription')}</p>
+							<div class="py-4">
+								<AdaptiveDateInput
+									inputClass="input input-bordered w-full"
+									bind:value={editExpiryValue}
+									bind:invalid={editExpiryInvalid}
+									bind:hasInput={editExpiryHasInput}
+									min={today(timezone)}
+									ariaLabel={$_('user.embedTokenEditExpiry')}
+								/>
+								{#if editExpiryInvalid && editExpiryHasInput}
+									<p class="text-xs text-error mt-1">{$_('error.invalidDate')}</p>
+								{/if}
+							</div>
+							<div class="modal-action">
+								<button class="btn btn-sm" onclick={cancelExpiryEdit}>{$_('common.cancel')}</button>
 							<button class="btn btn-primary btn-sm" onclick={confirmExpirySave} disabled={editExpiryValue.length !== 10}>{$_('common.save')}</button>
+							</div>
 						</div>
-					</div>
-				</dialog>
-			{/if}
+					</dialog>
+				{/if}
+			</div>
 		</div>
-	</div>
 	{/if}
 
 	<div id="section-share-profile" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
@@ -1089,15 +1116,20 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			<h2 class="text-lg font-semibold">{$_('profile.shareProfile.title')}</h2>
 			<p class="text-sm text-base-content/70">{$_('profile.shareProfile.subtitle')}</p>
 			{#if shareLinkMessage}
-				<Alert type={shareLinkMessage.type === 'success' ? 'success' : 'error'} onClose={() => (shareLinkMessage = null)}>
-					{shareLinkMessage.text}
-				</Alert>
+				<Alert
+					type={shareLinkMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => shareLinkMessage = null}
+				>{shareLinkMessage.text}</Alert>
 			{/if}
 			<div>
 				<button class="btn btn-primary btn-sm" onclick={openCreateShareLink}>{$_('profile.shareProfile.createLink')}</button>
 			</div>
 			{#if createdShareToken}
-				<Alert type="success" onClose={() => (createdShareToken = null)} duration={0}>
+				<Alert
+					type="success"
+					onClose={() => createdShareToken = null}
+					duration={0}
+				>
 					<div class="flex flex-col items-start gap-2 text-xs">
 						<span>{$_('publicProfile.tokenShownOnce')}</span>
 						<div class="w-full rounded border border-success/30 bg-base-300/70 px-3 py-2 font-mono text-[11px] text-base-content break-all">
@@ -1175,7 +1207,7 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 		link={editingShareLink}
 		defaultLanguage={language}
 		onSave={saveShareLink}
-		onClose={() => (shareLinkDialogOpen = false)}
+		onClose={() => shareLinkDialogOpen = false}
 	/>
 
 	{#if pendingDeleteShareLinkId !== null}
@@ -1219,9 +1251,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 			<div class="card-body gap-3">
 				<h2 class="text-lg font-semibold">{$_('oidc.profileTitle')}</h2>
 				{#if oidcMessage}
-					<Alert type={oidcMessage.type === 'success' ? 'success' : 'error'} onClose={() => (oidcMessage = null)}>
-						{oidcMessage.text}
-					</Alert>
+					<Alert
+						type={oidcMessage.type === 'success' ? 'success' : 'error'}
+						onClose={() => oidcMessage = null}
+					>{oidcMessage.text}</Alert>
 				{/if}
 				{#if oidcLink.linked}
 					<p class="text-sm text-base-content/70">
@@ -1259,9 +1292,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.resetData.hint')}</p>
 				{#if resetDataMessage}
-					<Alert type={resetDataMessage.type === 'success' ? 'success' : 'error'} onClose={() => (resetDataMessage = null)}>
-						{resetDataMessage.text}
-					</Alert>
+					<Alert
+						type={resetDataMessage.type === 'success' ? 'success' : 'error'}
+						onClose={() => resetDataMessage = null}
+					>{resetDataMessage.text}</Alert>
 				{/if}
 				<button
 					type="button"
@@ -1289,9 +1323,10 @@ import ShareLinkDialog from '$lib/components/ShareLinkDialog.svelte';
 				/>
 				<p class="text-xs text-base-content/60">{$_('profile.dangerZone.deleteAccount.hint')}</p>
 				{#if deleteAccountMessage}
-					<Alert type={deleteAccountMessage.type === 'success' ? 'success' : 'error'} onClose={() => (deleteAccountMessage = null)}>
-						{deleteAccountMessage.text}
-					</Alert>
+					<Alert
+						type={deleteAccountMessage.type === 'success' ? 'success' : 'error'}
+						onClose={() => deleteAccountMessage = null}
+					>{deleteAccountMessage.text}</Alert>
 				{/if}
 				<button
 					type="button"

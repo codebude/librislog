@@ -5,7 +5,7 @@ import DataExport from './DataExport.svelte';
 const mockExportData = vi.fn(async (_params: unknown) => new Blob(['test']));
 const mockToastsAdd = vi.fn();
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api.js', () => ({
 	api: {
 		data: {
 			exportData: (params: unknown) => mockExportData(params)
@@ -13,7 +13,7 @@ vi.mock('$lib/api', () => ({
 	}
 }));
 
-vi.mock('$lib/toasts', () => ({
+vi.mock('#lib/toasts.js', () => ({
 	toasts: {
 		add: (...args: unknown[]) => mockToastsAdd(...args),
 		remove: vi.fn(),

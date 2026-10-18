@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { Html5QrcodeSupportedFormats, BaseLoggger } from 'html5-qrcode/esm/core';
 	import { Html5QrcodeShim } from 'html5-qrcode/esm/code-decoder';
-	import { _ } from '$lib/i18n';
+	import { _ } from '#lib/i18n/index.js';
 	import { onDestroy } from 'svelte';
 	import { RefreshCw, X } from '@lucide/svelte';
-	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '$lib/utils/secureContext';
+	import { isSecureContext, SECURE_CONTEXT_DOCS_URL } from '#lib/utils/secureContext.js';
 
 	let {
 		open = $bindable(false),
