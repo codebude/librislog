@@ -59,10 +59,9 @@ def upgrade() -> None:
 
     op.add_column('reading_progress', sa.Column('session_id', sa.Integer(), nullable=True))
     op.create_index(op.f('ix_reading_progress_session_id'), 'reading_progress', ['session_id'], unique=False)
-    op.create_foreign_key(
-        'fk_reading_progress_session_id', 'reading_progress', 'reading_session',
-        ['session_id'], ['id'],
-    )
+    # SQLite does not support adding a FOREIGN KEY constraint via ALTER TABLE,
+    # and this project does not enforce FKs at the SQLite level anyway. The
+    # relationship is maintained in the application layer.
 
     bind = op.get_bind()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -110,7 +109,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint('fk_reading_progress_session_id', 'reading_progress', type_='foreignkey')
     op.drop_index(op.f('ix_reading_progress_session_id'), table_name='reading_progress')
     op.drop_column('reading_progress', 'session_id')
     op.drop_index('uq_reading_session_book_current', table_name='reading_session')
