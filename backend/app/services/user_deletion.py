@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlmodel import Session, col, func, select
 
-from app.models import ApiKey, Author, Book, BookAuthor, BookTag, OidcLink, ReadingProgress, Tag, User, UserRole, UserSettings
+from app.models import ApiKey, Author, Book, BookAuthor, BookTag, OidcLink, ReadingProgress, ReadingSession, Tag, User, UserRole, UserSettings
 from app.time_utils import utcnow
 from app.services.cover_storage import delete_cover_file, local_cover_filename
 
@@ -18,6 +18,7 @@ class ReadingDataDeletionCounts:
     tags: int
     authors: int
     progress_entries: int
+    sessions: int = 0
 
 
 def assert_not_last_admin(session: Session, target_user: User) -> None:
@@ -44,6 +45,9 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
 
     progress_count = session.exec(
         select(func.count()).select_from(ReadingProgress).where(ReadingProgress.user_id == user_id)
+    ).one()
+    sessions_count = session.exec(
+        select(func.count()).select_from(ReadingSession).where(ReadingSession.user_id == user_id)
     ).one()
     tags_count = session.exec(
         select(func.count()).select_from(Tag).where(Tag.user_id == user_id)
@@ -72,6 +76,9 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
     for entry in session.exec(select(ReadingProgress).where(ReadingProgress.user_id == user_id)).all():
         session.delete(entry)
 
+    for reading_session in session.exec(select(ReadingSession).where(ReadingSession.user_id == user_id)).all():
+        session.delete(reading_session)
+
     for tag in session.exec(select(Tag).where(Tag.user_id == user_id)).all():
         session.delete(tag)
 
@@ -86,6 +93,7 @@ def delete_user_reading_data(session: Session, user_id: int, covers_dir: str) ->
         tags=tags_count,
         authors=authors_count,
         progress_entries=progress_count,
+        sessions=sessions_count,
     )
 
 

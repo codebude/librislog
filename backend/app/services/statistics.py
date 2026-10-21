@@ -17,7 +17,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, Medium, ReadingProgress, ReadingStatus, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, Medium, ReadingProgress, ReadingSession, ReadingStatus, UserSettings
 from app.schemas import (
     AcquisitionStatusDistribution,
     GoalProgress,
@@ -169,12 +169,12 @@ def _extract_progress_daily_pages(
     span so the values stay correct.
     """
     daily: dict[str, float] = defaultdict(float)
-    grouped: dict[int, list] = {}
+    grouped: dict[tuple[int, object], list] = {}
     for entry in entries:
-        grouped.setdefault(entry.book_id, []).append(entry)
+        grouped.setdefault((entry.book_id, getattr(entry, "session_id", None)), []).append(entry)
 
-    for book_id in sorted(grouped):
-        book_entries = grouped[book_id]
+    for _key in sorted(grouped, key=lambda k: k[0]):
+        book_entries = grouped[_key]
         book_entries.sort(key=lambda e: (e.created_at, e.page))
         for prev, curr in zip(book_entries, book_entries[1:]):
             delta = curr.page - prev.page
@@ -255,11 +255,11 @@ def _compute_pages_per_month_from_progress(
     average is still computed from the full span so the values stay correct.
     """
     monthly: dict[str, float] = defaultdict(float)
-    grouped: dict[int, list] = {}
+    grouped: dict[tuple[int, object], list] = {}
     for entry in entries:
-        grouped.setdefault(entry.book_id, []).append(entry)
-    for book_id in sorted(grouped):
-        book_entries = sorted(grouped[book_id], key=lambda e: (e.created_at, e.page))
+        grouped.setdefault((entry.book_id, getattr(entry, "session_id", None)), []).append(entry)
+    for _key in sorted(grouped, key=lambda k: k[0]):
+        book_entries = sorted(grouped[_key], key=lambda e: (e.created_at, e.page))
         for prev, curr in zip(book_entries, book_entries[1:]):
             delta = curr.page - prev.page
             if delta <= 0:
@@ -365,9 +365,9 @@ def _pages_logged_on_day(entries: list, tz: ZoneInfo, day_key: str) -> int:
     A delta is the page gain between two consecutive progress entries of the
     same book, attributed to the calendar day (in *tz*) of the later entry.
     """
-    grouped: dict[int, list] = {}
+    grouped: dict[tuple[int, object], list] = {}
     for entry in entries:
-        grouped.setdefault(entry.book_id, []).append(entry)
+        grouped.setdefault((entry.book_id, getattr(entry, "session_id", None)), []).append(entry)
     total = 0
     for book_entries in grouped.values():
         book_entries.sort(key=lambda e: (e.created_at, e.page))
@@ -378,6 +378,26 @@ def _pages_logged_on_day(entries: list, tz: ZoneInfo, day_key: str) -> int:
     return total
 
 
+def _completed_read_dates(
+    books: list[Book],
+    sessions: list[ReadingSession],
+    books_with_sessions: set[int],
+) -> list[datetime]:
+    """Return one ``date_finished`` per completed read (session or session-less book)."""
+    dates: list[datetime] = []
+    for reading_session in sessions:
+        if reading_session.status == ReadingStatus.read and reading_session.date_finished is not None:
+            dates.append(reading_session.date_finished)
+    for book in books:
+        if (
+            book.id not in books_with_sessions
+            and book.reading_status == ReadingStatus.read
+            and book.date_finished is not None
+        ):
+            dates.append(book.date_finished)
+    return dates
+
+
 def _compute_goal_progress(
     tz: ZoneInfo,
     settings: UserSettings,
@@ -385,6 +405,8 @@ def _compute_goal_progress(
     entries: list,
     books: list,
     book_ids_with_progress: set[int],
+    sessions: list[ReadingSession],
+    book_by_id: dict[int, Book],
 ) -> list[GoalProgress]:
     """Compute current progress for every enabled reading goal.
 
@@ -395,31 +417,72 @@ def _compute_goal_progress(
     current_month_key = today.strftime("%Y-%m")
     current_year = today.year
 
-    fallback_books = [
-        b
-        for b in books
-        if b.id not in book_ids_with_progress
-        and b.reading_status == ReadingStatus.read
-        and b.date_started
-        and b.date_finished
-        and b.page_count
-    ]
+    books_with_sessions = {s.book_id for s in sessions}
+    completed_read_dates = _completed_read_dates(books, sessions, books_with_sessions)
+    progress_session_ids = {entry.session_id for entry in entries if entry.session_id is not None}
 
-    # Mirror compute_statistics: anchor every book with progress at page 0 on
-    # its start date so the first progress delta is attributed to the reading
-    # span, keeping the pages-per-month goal consistent with the statistics
-    # chart.
-    virtual_entries = [
-        SimpleNamespace(book_id=b.id, page=0, created_at=b.date_started)
-        for b in books
-        if b.id in book_ids_with_progress
-        and b.date_started
-        and not (b.reading_status == ReadingStatus.read and not b.date_finished)
-    ]
+    fallback_intervals = []
+    for reading_session in sessions:
+        if reading_session.status != ReadingStatus.read:
+            continue
+        if not (reading_session.date_started and reading_session.date_finished):
+            continue
+        if reading_session.id in progress_session_ids:
+            continue
+        book = book_by_id.get(reading_session.book_id)
+        if book is None or not book.page_count:
+            continue
+        fallback_intervals.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                date_started=reading_session.date_started,
+                date_finished=reading_session.date_finished,
+                page_count=book.page_count,
+            )
+        )
+    for book in books:
+        if book.id in books_with_sessions or book.id in book_ids_with_progress:
+            continue
+        if book.reading_status == ReadingStatus.read and book.date_started and book.date_finished and book.page_count:
+            fallback_intervals.append(
+                SimpleNamespace(
+                    book_id=book.id,
+                    session_id=None,
+                    date_started=book.date_started,
+                    date_finished=book.date_finished,
+                    page_count=book.page_count,
+                )
+            )
+
+    virtual_entries = []
+    for reading_session in sessions:
+        if reading_session.date_started is None:
+            continue
+        if reading_session.status == ReadingStatus.read and reading_session.date_finished is None:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                page=0,
+                created_at=reading_session.date_started,
+            )
+        )
+    for book in books:
+        if book.id in books_with_sessions:
+            continue
+        if book.id not in book_ids_with_progress or not book.date_started:
+            continue
+        if book.reading_status == ReadingStatus.read and not book.date_finished:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(book_id=book.id, session_id=None, page=0, created_at=book.date_started)
+        )
 
     return _goal_results(
         tz, today_key, current_month_key, current_year,
-        entries, books, fallback_books, virtual_entries, settings,
+        entries, fallback_intervals, virtual_entries, completed_read_dates, settings,
     )
 
 
@@ -429,9 +492,9 @@ def _goal_results(
     current_month_key: str,
     current_year: int,
     entries: list,
-    books: list,
-    fallback_books: list,
+    fallback_intervals: list,
     virtual_entries: list,
+    completed_read_dates: list,
     settings: UserSettings,
 ) -> list[GoalProgress]:
     """Assemble enabled goal progress entries."""
@@ -448,7 +511,7 @@ def _goal_results(
             continue
         current = _goal_current_value(
             goal_type, tz, today_key, current_month_key, current_year,
-            entries, books, fallback_books, virtual_entries,
+            entries, fallback_intervals, virtual_entries, completed_read_dates,
         )
         results.append(
             GoalProgress(type=goal_type, target=target, current=current, reached=current >= target)
@@ -463,40 +526,34 @@ def _goal_current_value(
     current_month_key: str,
     current_year: int,
     entries: list,
-    books: list,
-    fallback_books: list,
+    fallback_intervals: list,
     virtual_entries: list,
+    completed_read_dates: list,
 ) -> int:
     """Return the current value for a single reading goal."""
     if goal_type == GoalType.pages_per_day:
         total = _pages_logged_on_day(entries, tz, today_key)
-        for b in fallback_books:
-            if _day_key(b.date_finished, tz) == today_key:
-                total += b.page_count
+        for interval in fallback_intervals:
+            if _day_key(interval.date_finished, tz) == today_key:
+                total += interval.page_count
         return total
 
     if goal_type == GoalType.pages_per_month:
         monthly = _compute_pages_per_month_from_progress(entries + virtual_entries, tz)
-        for k, v in _compute_pages_per_month_from_books(fallback_books, tz).items():
+        for k, v in _compute_pages_per_month_from_books(fallback_intervals, tz).items():
             monthly[k] += v
         return int(round(monthly.get(current_month_key, 0)))
 
     if goal_type == GoalType.books_per_month:
         return sum(
-            1
-            for b in books
-            if b.reading_status == ReadingStatus.read
-            and b.date_finished is not None
-            and _month_key(b.date_finished, tz) == current_month_key
+            1 for date_finished in completed_read_dates
+            if _month_key(date_finished, tz) == current_month_key
         )
 
     if goal_type == GoalType.books_per_year:
         return sum(
-            1
-            for b in books
-            if b.reading_status == ReadingStatus.read
-            and b.date_finished is not None
-            and b.date_finished.astimezone(tz).year == current_year
+            1 for date_finished in completed_read_dates
+            if date_finished.astimezone(tz).year == current_year
         )
 
     return 0
@@ -540,6 +597,17 @@ def compute_statistics(
     current_month_key = f"{now.year:04d}-{now.month:02d}"
     current_year = now.year
     books = list(session.exec(select(Book).where(Book.user_id == user_id)).all())
+    book_by_id = {book.id: book for book in books if book.id is not None}
+
+    sessions = list(
+        session.exec(
+            select(ReadingSession).where(ReadingSession.user_id == user_id)
+        ).all()
+    )
+    sessions_by_book: dict[int, list[ReadingSession]] = {}
+    for reading_session in sessions:
+        sessions_by_book.setdefault(reading_session.book_id, []).append(reading_session)
+    books_with_sessions = set(sessions_by_book.keys())
 
     total_authors = session.exec(
         select(func.count()).select_from(Author).where(Author.user_id == user_id)
@@ -593,10 +661,33 @@ def compute_statistics(
         for book in books
         if book.reading_status == ReadingStatus.want_to_read and book.page_count is not None
     )
-    pages_read = sum(
-        book.page_count or 0
-        for book in books
-        if book.reading_status == ReadingStatus.read and book.page_count is not None
+
+    # "Pages read" counts every completed reading (each completed session), so a
+    # re-read contributes its page count again. Books without sessions fall back
+    # to the book-level value, which keeps single-session users identical.
+    completed_reads: list[datetime] = []
+    pages_read = 0
+    for reading_session in sessions:
+        if reading_session.status == ReadingStatus.read and reading_session.date_finished is not None:
+            completed_reads.append(reading_session.date_finished)
+            book = book_by_id.get(reading_session.book_id)
+            if book is not None and book.page_count is not None:
+                pages_read += book.page_count
+    for book in books:
+        if (
+            book.id not in books_with_sessions
+            and book.reading_status == ReadingStatus.read
+            and book.date_finished is not None
+        ):
+            completed_reads.append(book.date_finished)
+            if book.page_count is not None:
+                pages_read += book.page_count
+
+    total_reads = len(completed_reads)
+    reread_books = sum(
+        1
+        for book_id, s_list in sessions_by_book.items()
+        if sum(1 for s in s_list if s.status == ReadingStatus.read) >= 2
     )
 
     dnf_book_ids = [book.id for book in books if book.reading_status == ReadingStatus.did_not_finish and book.id is not None]
@@ -618,32 +709,22 @@ def compute_statistics(
         pages_wasted=pages_wasted,
     )
 
-    all_finished_books = [
-        book
-        for book in books
-        if book.reading_status == ReadingStatus.read and book.date_finished is not None
-    ]
-    finished_books_per_month_all_time: Counter[str] = Counter()
-    for book in all_finished_books:
-        assert book.date_finished is not None
-        finished_books_per_month_all_time[_month_key(book.date_finished, tz)] += 1
+    finished_books_per_month_all_time: Counter[str] = Counter(
+        _month_key(date_finished, tz) for date_finished in completed_reads
+    )
 
-    finished_books = all_finished_books
-
+    finished_dates = completed_reads
     if window_start is not None and window_end is not None:
-        finished_books = [
-            book
-            for book in finished_books
-            if book.date_finished is not None
-            and _naive_utc(book.date_finished) >= window_start
-            and _naive_utc(book.date_finished) <= window_end
+        finished_dates = [
+            date_finished
+            for date_finished in completed_reads
+            if _naive_utc(date_finished) >= window_start
+            and _naive_utc(date_finished) <= window_end
         ]
 
-    finished_books_per_month: Counter[str] = Counter()
-    for book in finished_books:
-        assert book.date_finished is not None
-        month = _month_key(book.date_finished, tz)
-        finished_books_per_month[month] += 1
+    finished_books_per_month: Counter[str] = Counter(
+        _month_key(date_finished, tz) for date_finished in finished_dates
+    )
 
     # For bounded ranges the chart axis spans the whole selected window, so
     # months/years outside any real data still appear (with zero counts).
@@ -696,8 +777,8 @@ def compute_statistics(
             ).all()
         )
 
-    # All book_ids with *any* progress entry — used to exclude books from the
-    # fallback computation and to build virtual entries.
+    # All book_ids with *any* progress entry — used to exclude session-less books
+    # from the fallback computation and to build virtual entries.
     all_book_ids_with_progress = set(
         session.exec(
             select(ReadingProgress.book_id)
@@ -705,19 +786,42 @@ def compute_statistics(
             .distinct()
         ).all()
     )
+    progress_session_ids = set(
+        session.exec(
+            select(ReadingProgress.session_id)
+            .where(
+                ReadingProgress.user_id == user_id,
+                col(ReadingProgress.session_id).is_not(None),
+            )
+            .distinct()
+        ).all()
+    )
 
+    # Virtual page-0 anchors, now per session so a re-read restarts its chain at
+    # the new session's start date instead of chaining across reads.
     virtual_entries = []
+    for reading_session in sessions:
+        if reading_session.date_started is None:
+            continue
+        if reading_session.status == ReadingStatus.read and reading_session.date_finished is None:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                page=0,
+                created_at=reading_session.date_started,
+            )
+        )
     for book in books:
+        if book.id in books_with_sessions:
+            continue
         if book.id not in all_book_ids_with_progress or not book.date_started:
             continue
         if book.reading_status == ReadingStatus.read and not book.date_finished:
             continue
         virtual_entries.append(
-            SimpleNamespace(
-                book_id=book.id,
-                page=0,
-                created_at=book.date_started,
-            )
+            SimpleNamespace(book_id=book.id, session_id=None, page=0, created_at=book.date_started)
         )
 
     all_progress_entries = list(progress_entries) + virtual_entries
@@ -725,17 +829,44 @@ def compute_statistics(
         all_progress_entries, tz, window_start, window_end
     )
 
-    fallback_books = [
-        b
-        for b in books
-        if b.id not in all_book_ids_with_progress
-        and b.reading_status == ReadingStatus.read
-        and b.date_started
-        and b.date_finished
-        and b.page_count
-    ]
+    # Fallback: completed reads without progress entries get their pages spread
+    # over their reading span. Built per session (and per session-less book).
+    fallback_intervals = []
+    for reading_session in sessions:
+        if reading_session.status != ReadingStatus.read:
+            continue
+        if not (reading_session.date_started and reading_session.date_finished):
+            continue
+        if reading_session.id in progress_session_ids:
+            continue
+        book = book_by_id.get(reading_session.book_id)
+        if book is None or not book.page_count:
+            continue
+        fallback_intervals.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                date_started=reading_session.date_started,
+                date_finished=reading_session.date_finished,
+                page_count=book.page_count,
+            )
+        )
+    for book in books:
+        if book.id in books_with_sessions or book.id in all_book_ids_with_progress:
+            continue
+        if book.reading_status == ReadingStatus.read and book.date_started and book.date_finished and book.page_count:
+            fallback_intervals.append(
+                SimpleNamespace(
+                    book_id=book.id,
+                    session_id=None,
+                    date_started=book.date_started,
+                    date_finished=book.date_finished,
+                    page_count=book.page_count,
+                )
+            )
+
     fallback_monthly = _compute_pages_per_month_from_books(
-        fallback_books, tz, window_start, window_end
+        fallback_intervals, tz, window_start, window_end
     )
     for k, v in fallback_monthly.items():
         pages_read_per_month_counter[k] += v
@@ -925,4 +1056,6 @@ def compute_statistics(
         average_rating=average_rating,
         top_rated_books=top_rated_books,
         worst_rated_books=worst_rated_books,
+        total_reads=total_reads,
+        reread_books=reread_books,
     )

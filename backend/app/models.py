@@ -251,6 +251,51 @@ class ApiKey(SQLModel, table=True):
     )
 
 
+class ReadingSession(SQLModel, table=True):
+    """A single reading period (first read, re-read, etc.) of a book.
+
+    ``Book.date_started`` / ``Book.date_finished`` remain a denormalized mirror
+    of the *current* session (``is_current=True``), or of the latest session when
+    none is current, so every existing consumer keeps working unchanged. A book
+    with a single session therefore behaves identically to the pre-session model.
+
+    At most one current session exists per book (enforced by a partial unique
+    index on ``is_current`` and by the service layer).
+    """
+
+    __tablename__: str = "reading_session"
+    __table_args__ = (
+        sa.Index(
+            "uq_reading_session_book_current",
+            "book_id",
+            unique=True,
+            sqlite_where=sa.text("is_current = 1"),
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    book_id: int = Field(foreign_key="book.id", index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    status: ReadingStatus = Field(index=True)
+    date_started: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, index=True)
+    )
+    date_finished: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(UtcDateTime, index=True)
+    )
+    is_current: bool = Field(default=False, index=True)
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow)
+    )
+
+
 class ReadingProgress(SQLModel, table=True):
     """A page-number reading progress entry for a book."""
 
@@ -259,6 +304,7 @@ class ReadingProgress(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     book_id: int = Field(foreign_key="book.id", index=True)
     user_id: int = Field(foreign_key="user.id", index=True)
+    session_id: Optional[int] = Field(default=None, foreign_key="reading_session.id", index=True)
     page: int = Field(ge=0)
     created_at: datetime = Field(
         default_factory=utcnow,

@@ -12,7 +12,7 @@ from sqlmodel import Session, col, func, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingStatus, Tag, User, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingSession, ReadingStatus, Tag, User, UserSettings
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -39,6 +39,7 @@ from app.services.cover_storage import (
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
+from app.services.reading_sessions import create_initial_session, reconcile_book_sessions, session_counts
 from app.services.search import _escape_like, apply_search_filter
 from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
@@ -260,12 +261,17 @@ def list_books(
     book_ids = [b.id for b in books if b.id is not None]
     book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
     book_authors_map = load_authors_batch(session, book_ids) if book_ids else {}
+    session_counts_map = session_counts(session, book_ids) if book_ids else {}
     book_reads: list[BookRead] = []
     for book in books:
         assert book.id is not None
-        book_reads.append(
-            _build_book_read_with_tags(book, book_tags_map.get(book.id), book_authors_map.get(book.id))
+        counts = session_counts_map.get(book.id, {})
+        book_read = _build_book_read_with_tags(
+            book, book_tags_map.get(book.id), book_authors_map.get(book.id)
         )
+        book_read.session_count = counts.get("session_count", 0)
+        book_read.read_count = counts.get("read_count", 0)
+        book_reads.append(book_read)
     return BookListResponse(
         books=book_reads,
         total=total,
@@ -488,6 +494,8 @@ async def create_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     session.refresh(book)
+    create_initial_session(session, book)
+    session.commit()
     logger.info("Created book: %r (id=%s)", book.title, book.id)
     return build_book_read(session, book)
 
@@ -586,6 +594,7 @@ async def update_book(
     except IntegrityError as exc:
         session.rollback()
         _raise_integrity_conflict(exc)
+    reconcile_book_sessions(session, book)
     if tags_provided:
         assert book.id is not None
         sync_book_tags(session, current_user.id, book.id, tags_raw)
@@ -738,6 +747,8 @@ def transition_status(
     )
     book.sqlmodel_update(update_data)
     session.add(book)
+    session.flush()
+    reconcile_book_sessions(session, book)
     session.commit()
     session.refresh(book)
     return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=None)
@@ -773,6 +784,10 @@ def delete_book(
         select(ReadingProgress).where(ReadingProgress.book_id == book.id)
     ).all():
         session.delete(entry)
+    for reading_session in session.exec(
+        select(ReadingSession).where(ReadingSession.book_id == book.id)
+    ).all():
+        session.delete(reading_session)
     session.delete(book)
     cleanup_orphan_tags(session, current_user.id)
     cleanup_orphan_authors(session, current_user.id)

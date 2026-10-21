@@ -13,7 +13,7 @@ from sqlmodel import Session, col, select
 
 from app.auth import require_user
 from app.database import get_session
-from app.models import Book, ReadingProgress, ReadingStatus, User, UserSettings
+from app.models import Book, ReadingProgress, ReadingSession, ReadingStatus, User, UserSettings
 from app.schemas import (
     DailyPages,
     DailyPagesResponse,
@@ -80,7 +80,13 @@ def get_gamification(
             .order_by(col(Book.id))
         ).all()
     )
+    sessions = list(
+        session.exec(
+            select(ReadingSession).where(ReadingSession.user_id == current_user.id)
+        ).all()
+    )
     book_ids_with_progress = {entry.book_id for entry in entries}
+    book_by_id = {book.id: book for book in books if book.id is not None}
 
     active_dates = {_day_key(entry.created_at, tz) for entry in entries}
     for book in books:
@@ -95,7 +101,7 @@ def get_gamification(
     longest, longest_start, longest_end = longest_streak(active_dates)
 
     goals = _compute_goal_progress(
-        tz, settings, today, entries, books, book_ids_with_progress
+        tz, settings, today, entries, books, book_ids_with_progress, sessions, book_by_id
     )
 
     return GamificationResponse(
@@ -165,37 +171,86 @@ def get_pages_per_day(
     books = list(
         session.exec(select(Book).where(Book.user_id == current_user.id)).all()
     )
+    book_by_id = {book.id: book for book in books if book.id is not None}
+    sessions = list(
+        session.exec(
+            select(ReadingSession).where(ReadingSession.user_id == current_user.id)
+        ).all()
+    )
+    books_with_sessions = {s.book_id for s in sessions}
 
-    # Rebuild virtual entries with a simple namespace replacement.
+    # Rebuild virtual entries with a simple namespace replacement, per session.
     from types import SimpleNamespace
 
-    virtual_entries = [
-        SimpleNamespace(
-            book_id=book.id,
-            page=0,
-            created_at=book.date_started,
+    virtual_entries = []
+    for reading_session in sessions:
+        if reading_session.date_started is None:
+            continue
+        if reading_session.status == ReadingStatus.read and reading_session.date_finished is None:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                page=0,
+                created_at=reading_session.date_started,
+            )
         )
-        for book in books
-        if book.id in all_book_ids_with_progress
-        and book.date_started
-        and not (book.reading_status == ReadingStatus.read and not book.date_finished)
-    ]
+    for book in books:
+        if book.id in books_with_sessions:
+            continue
+        if book.id not in all_book_ids_with_progress or not book.date_started:
+            continue
+        if book.reading_status == ReadingStatus.read and not book.date_finished:
+            continue
+        virtual_entries.append(
+            SimpleNamespace(book_id=book.id, session_id=None, page=0, created_at=book.date_started)
+        )
 
     all_progress_entries = list(progress_entries) + virtual_entries
     progress_daily = _extract_progress_daily_pages(all_progress_entries, tz, start_date_utc, end_date_utc)
 
-    fallback_books = [
-        b
-        for b in books
-        if b.id not in all_book_ids_with_progress
-        and b.reading_status == ReadingStatus.read
-        and b.date_started
-        and b.date_finished
-        and b.page_count
-        # Only include books whose reading period could overlap the window.
-        and _naive_utc(b.date_finished) >= start_date_utc
-    ]
-    fallback_daily = _extract_book_level_daily_pages(fallback_books, tz, start_date_utc, end_date_utc)
+    progress_session_ids = {entry.session_id for entry in progress_entries if entry.session_id is not None}
+    fallback_intervals = []
+    for reading_session in sessions:
+        if reading_session.status != ReadingStatus.read:
+            continue
+        if not (reading_session.date_started and reading_session.date_finished):
+            continue
+        if reading_session.id in progress_session_ids:
+            continue
+        book = book_by_id.get(reading_session.book_id)
+        if book is None or not book.page_count:
+            continue
+        fallback_intervals.append(
+            SimpleNamespace(
+                book_id=reading_session.book_id,
+                session_id=reading_session.id,
+                date_started=reading_session.date_started,
+                date_finished=reading_session.date_finished,
+                page_count=book.page_count,
+            )
+        )
+    for book in books:
+        if book.id in books_with_sessions or book.id in all_book_ids_with_progress:
+            continue
+        if (
+            book.reading_status == ReadingStatus.read
+            and book.date_started
+            and book.date_finished
+            and book.page_count
+            and _naive_utc(book.date_finished) >= start_date_utc
+        ):
+            fallback_intervals.append(
+                SimpleNamespace(
+                    book_id=book.id,
+                    session_id=None,
+                    date_started=book.date_started,
+                    date_finished=book.date_finished,
+                    page_count=book.page_count,
+                )
+            )
+    fallback_daily = _extract_book_level_daily_pages(fallback_intervals, tz, start_date_utc, end_date_utc)
 
     combined: dict[str, float] = {}
     for k, v in progress_daily.items():

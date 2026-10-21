@@ -16,6 +16,7 @@ from app.models import AcquisitionStatus, Medium, ReadingStatus, PublicProfileAu
 class ReadingProgressCreate(SQLModel):
     """Request body to create a reading progress entry."""
     page: int = Field(ge=0)
+    session_id: Optional[int] = None
 
 
 class ReadingProgressRead(SQLModel):
@@ -23,8 +24,45 @@ class ReadingProgressRead(SQLModel):
     id: int
     book_id: int
     page: int
+    session_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+
+
+class ReadingSessionCreate(SQLModel):
+    """Request body to create a reading session (manual past read or re-read)."""
+    status: ReadingStatus
+    date_started: Optional[datetime] = None
+    date_finished: Optional[datetime] = None
+
+
+class ReadingSessionUpdate(SQLModel):
+    """Request body to update a reading session's dates or status."""
+    status: Optional[ReadingStatus] = None
+    date_started: Optional[datetime] = None
+    date_finished: Optional[datetime] = None
+
+
+class ReadingSessionRead(SQLModel):
+    """Response schema for a reading session, including the chronological ordinal."""
+    id: int
+    book_id: int
+    status: ReadingStatus
+    date_started: Optional[datetime] = None
+    date_finished: Optional[datetime] = None
+    is_current: bool = False
+    read_number: Optional[int] = None
+    is_reread: bool = False
+    progress_count: int = 0
+    last_page: Optional[int] = None
+    max_page: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReadAgainRequest(SQLModel):
+    """Request body to start a re-read of a book."""
+    date_started: Optional[datetime] = None
 
 
 class ReadingProgressUpdate(SQLModel):
@@ -172,6 +210,29 @@ class BookRead(SQLModel):
     date_added: datetime
     date_started: Optional[datetime]
     date_finished: Optional[datetime]
+    read_count: int = 0
+    session_count: int = 0
+
+
+class SessionMutationResponse(SQLModel):
+    """Response after a session mutation, returning the session and its book."""
+    session: ReadingSessionRead
+    book: BookRead
+
+
+class TimelineSessionEntry(SQLModel):
+    """A single completed reading session enriched with book metadata for the timeline."""
+    session_id: int
+    book_id: int
+    title: str
+    author: Optional[str] = None
+    authors: list[str] = []
+    cover_url: Optional[str] = None
+    rating: Optional[int] = None
+    page_count: Optional[int] = None
+    date_finished: Optional[datetime] = None
+    read_number: Optional[int] = None
+    is_reread: bool = False
 
 
 class BookListResponse(BaseModel):
@@ -318,6 +379,8 @@ class StatisticsResponse(SQLModel):
     average_rating: Optional[float]
     top_rated_books: list[TopRatedBook]
     worst_rated_books: list[TopRatedBook]
+    total_reads: int = 0
+    reread_books: int = 0
 
 
 class GoalType(str, Enum):
@@ -494,6 +557,7 @@ class DataResetDeleted(SQLModel):
     tags: int
     authors: int
     progress_entries: int
+    sessions: int = 0
 
 
 class DataResetResponse(SQLModel):
@@ -530,6 +594,7 @@ class StatusTransitionRequest(SQLModel):
     skip_auto_date_started: bool = False
     clear_date_started: bool = False
     clear_date_finished: bool = False
+    start_new_session: bool = False
 
 
 class DateConflict(SQLModel):
@@ -640,7 +705,7 @@ class DailyPagesResponse(SQLModel):
 
 class DataExportRequest(SQLModel):
     """Data export request body."""
-    datasets: list[Literal["books", "progress", "tags", "covers"]]
+    datasets: list[Literal["books", "progress", "tags", "covers", "sessions"]]
     format: Literal["csv", "json"]
 
 
@@ -815,6 +880,7 @@ class PublicProfileStatisticsKey(str, Enum):
     average_rating = "average_rating"
     top_rated_books = "top_rated_books"
     worst_rated_books = "worst_rated_books"
+    total_reads = "total_reads"
 
 
 class PublicProfileVisibilityConfig(SQLModel):
