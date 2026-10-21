@@ -1,5 +1,5 @@
 	<script lang="ts">
-	import type { Book, ReadingProgressEntry } from '#lib/types.js';
+	import type { Book, ReadingProgressEntry, ReadingSession, ReadingStatus } from '#lib/types.js';
 	import { _ } from '#lib/i18n/index.js';
 	import { locale } from '#lib/i18n/index.js';
 	import {
@@ -58,6 +58,24 @@
 	let editingEntryId = $state<number | null>(null);
 	let editingDate = $state('');
 
+	// Reading sessions (re-reads)
+	let sessions = $state<ReadingSession[]>([]);
+	let sessionsLoading = $state(false);
+	let activeSessionId = $state<number | null>(null);
+	let readAgainLoading = $state(false);
+	let addSessionOpen = $state(false);
+	let addSessionStatus = $state<ReadingStatus>('read');
+	let addSessionStarted = $state('');
+	let addSessionFinished = $state('');
+	let addSessionSaving = $state(false);
+	let deletingSessionId = $state<number | null>(null);
+	let confirmDeleteSession = $state<number | null>(null);
+
+	const currentSession = $derived(sessions.find((s) => s.is_current) ?? sessions[0] ?? null);
+	const showReadAgain = $derived(
+		book != null && (book.reading_status === 'read' || book.reading_status === 'did_not_finish')
+	);
+
 	const progressPercent = $derived(
 		book?.page_count && currentPage > 0 ? Math.round((currentPage / book.page_count) * 100) : 0
 	);
@@ -88,7 +106,7 @@
 		if (!book) return;
 		progressLoading = true;
 		try {
-			progressEntries = await api.books.progress.list(book.id);
+			progressEntries = await api.books.progress.list(book.id, activeSessionId);
 			if (progressEntries.length > 0) {
 				currentPage = progressEntries[0].page;
 				latestDbPage = progressEntries[0].page;
@@ -103,6 +121,104 @@
 		} finally {
 			progressLoading = false;
 		}
+	}
+
+	async function loadSessions() {
+		if (!book) return;
+		sessionsLoading = true;
+		try {
+			sessions = await api.books.sessions.list(book.id);
+			activeSessionId = currentSession?.id ?? null;
+		} catch {
+			sessions = [];
+			activeSessionId = null;
+		} finally {
+			sessionsLoading = false;
+		}
+	}
+
+	async function loadSessionsAndProgress() {
+		if (!book) return;
+		await loadSessions();
+		await loadProgress();
+	}
+
+	async function readAgain() {
+		if (!book || readAgainLoading) return;
+		readAgainLoading = true;
+		try {
+			const result = await api.books.sessions.readAgain(book.id);
+			book = result.book;
+			currentPage = 0;
+			latestDbPage = 0;
+			progressEntries = [];
+			onProgress?.(book.id, 0);
+			await loadSessionsAndProgress();
+			toasts.add($_('book.readAgain'), 'success', 2000);
+		} catch (e: unknown) {
+			toasts.add(
+				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.readAgain') } }),
+				'error'
+			);
+		} finally {
+			readAgainLoading = false;
+		}
+	}
+
+	async function saveNewSession() {
+		if (!book || addSessionSaving) return;
+		addSessionSaving = true;
+		try {
+			const payload: { status: ReadingStatus; date_started: string | null; date_finished: string | null } = {
+				status: addSessionStatus,
+				date_started: addSessionStarted ? fromDateTimeInputValue(addSessionStarted, tz) : null,
+				date_finished: addSessionFinished ? fromDateTimeInputValue(addSessionFinished, tz) : null
+			};
+			await api.books.sessions.create(book.id, payload);
+			addSessionOpen = false;
+			addSessionStarted = '';
+			addSessionFinished = '';
+			await loadSessions();
+		} catch (e: unknown) {
+			toasts.add(
+				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.addPastReading') } }),
+				'error'
+			);
+		} finally {
+			addSessionSaving = false;
+		}
+	}
+
+	async function deleteSession(sessionId: number) {
+		if (!book || deletingSessionId !== null) return;
+		deletingSessionId = sessionId;
+		try {
+			const updated = await api.books.sessions.remove(book.id, sessionId);
+			book = { ...updated };
+			confirmDeleteSession = null;
+			await loadSessionsAndProgress();
+		} catch (e: unknown) {
+			toasts.add(
+				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.sessionDelete') } }),
+				'error'
+			);
+		} finally {
+			deletingSessionId = null;
+		}
+	}
+
+	function sessionStatusLabel(s: ReadingSession): string {
+		if (s.is_current || s.status === 'currently_reading') return $_('status.currently_reading');
+		if (s.status === 'read') return $_('status.read');
+		if (s.status === 'did_not_finish') return $_('status.did_not_finish');
+		return $_('status.want_to_read');
+	}
+
+	function openAddSession() {
+		addSessionStatus = 'read';
+		addSessionStarted = '';
+		addSessionFinished = '';
+		addSessionOpen = true;
 	}
 
 	async function saveProgress() {
@@ -265,7 +381,7 @@
 		if (uniqueDays.length < 1) return { data: [] as Array<{ x: number; y: number }> };
 		const oldestEntry = uniqueDays[0];
 		const useStartDate = !!book?.date_started && new Date(book.date_started).getTime() < new Date(oldestEntry.created_at).getTime();
-		const rawStart = useStartDate ? book.date_started : (book?.date_added ?? null);
+		const rawStart = useStartDate ? book?.date_started : (book?.date_added ?? null);
 		if (!rawStart) return { data: [] as Array<{ x: number; y: number }> };
 		const virtualEntry: ReadingProgressEntry = {
 			id: 0,
@@ -384,7 +500,9 @@
 		if (open && book) {
 			confirmDelete = false;
 			blurbExpanded = false;
-			void loadProgress();
+			addSessionOpen = false;
+			confirmDeleteSession = null;
+			void loadSessionsAndProgress();
 		}
 		if (!open && book && currentPage !== latestDbPage) {
 			void saveProgress();
@@ -400,6 +518,8 @@
 			if (e.key !== 'Escape') return;
 			if (logModalOpen) {
 				logModalOpen = false;
+			} else if (addSessionOpen) {
+				addSessionOpen = false;
 			} else {
 				open = false;
 			}
@@ -444,6 +564,19 @@
 				<div class="text-sm text-base-content/70 min-w-0 break-words">{formatAuthors(book.authors, book.author ?? '-')}</div>
 				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} shrink-0 whitespace-nowrap">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
 			</div>
+
+			{#if showReadAgain}
+				<div class="-mt-2">
+					<button
+						type="button"
+						class="btn btn-ghost btn-xs text-primary"
+						disabled={readAgainLoading}
+						onclick={() => void readAgain()}
+					>
+						{readAgainLoading ? $_('common.loadingEllipsis') : $_('book.readAgain')}
+					</button>
+				</div>
+			{/if}
 
 			<div class="text-sm">
 				<div class="text-xs text-base-content/60">{$_('book.isbn')}</div>
@@ -565,6 +698,49 @@
 			</div>
 		</div>
 	{/if}
+
+			{#if sessions.length >= 1}
+				<div class="border-t border-base-200 pt-3">
+					<div class="flex items-center justify-between mb-2">
+						<div class="text-xs text-base-content/60">{$_('book.readingHistory')}</div>
+						<button type="button" class="btn btn-ghost btn-xs" onclick={openAddSession}>
+							{$_('book.addPastReading')}
+						</button>
+					</div>
+					<div class="flex flex-col gap-1">
+						{#each sessions as s (s.id)}
+							<div class="flex items-center gap-2 rounded-lg bg-base-200/50 px-2 py-1.5">
+								<div class="text-xs text-base-content/70 min-w-0 flex-1">
+									<span>{s.date_started ? formatDate(s.date_started, tz) : '-'} – {s.date_finished ? formatDate(s.date_finished, tz) : $_('book.sessionStarted')}</span>
+								</div>
+								<span class="badge badge-xs badge-ghost shrink-0">{sessionStatusLabel(s)}</span>
+								{#if s.is_reread}
+									<span class="badge badge-xs badge-outline badge-primary shrink-0">{$_('book.sessionReread')}</span>
+								{/if}
+								{#if confirmDeleteSession === s.id}
+									<div class="flex items-center gap-1">
+										<button type="button" class="btn btn-error btn-xs" disabled={deletingSessionId !== null} onclick={() => void deleteSession(s.id)}>
+											{$_('common.confirm')}
+										</button>
+										<button type="button" class="btn btn-ghost btn-xs" onclick={() => (confirmDeleteSession = null)}>
+											{$_('common.cancel')}
+										</button>
+									</div>
+								{:else}
+									<button
+										type="button"
+										class="btn btn-ghost btn-xs text-error"
+										aria-label={$_('book.sessionDelete')}
+										onclick={() => (confirmDeleteSession = s.id)}
+									>
+										{$_('common.delete')}
+									</button>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<div>
 				<div class="text-xs text-base-content/60 mb-1">{$_('book.notes')}</div>
@@ -708,6 +884,42 @@
 							</tbody>
 						</table>
 					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Add past reading modal -->
+	{#if addSessionOpen}
+		<div class="fixed inset-0 bg-black/40 z-50"></div>
+		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+			<div class="bg-base-100 rounded-xl shadow-xl max-w-sm w-full pointer-events-auto" role="dialog" aria-label={$_('book.addPastReading')}>
+				<div class="flex items-center justify-between p-4 border-b border-base-200">
+					<h3 class="font-bold text-sm">{$_('book.addPastReading')}</h3>
+					<button type="button" class="btn btn-ghost btn-xs btn-circle" onclick={() => (addSessionOpen = false)} aria-label={$_('common.close')}><X class="w-4 h-4" /></button>
+				</div>
+				<div class="p-4 flex flex-col gap-3">
+					<label class="flex flex-col gap-1">
+						<span class="label label-text">{$_('book.status')}</span>
+						<select class="select select-bordered select-sm" bind:value={addSessionStatus}>
+							<option value="read">{$_('status.read')}</option>
+							<option value="did_not_finish">{$_('status.did_not_finish')}</option>
+						</select>
+					</label>
+					<label class="flex flex-col gap-1">
+						<span class="label label-text">{$_('book.dateStarted')}</span>
+						<input type="datetime-local" class="input input-bordered input-sm" bind:value={addSessionStarted} />
+					</label>
+					<label class="flex flex-col gap-1">
+						<span class="label label-text">{$_('book.dateFinished')}</span>
+						<input type="datetime-local" class="input input-bordered input-sm" bind:value={addSessionFinished} />
+					</label>
+					<div class="modal-action">
+						<button type="button" class="btn btn-ghost btn-sm" onclick={() => (addSessionOpen = false)}>{$_('common.cancel')}</button>
+						<button type="button" class="btn btn-primary btn-sm" disabled={addSessionSaving} onclick={() => void saveNewSession()}>
+							{addSessionSaving ? $_('common.saving') : $_('common.save')}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -24,6 +24,8 @@ export interface Book {
 	date_added: string; // ISO datetime
 	date_started: string | null;
 	date_finished: string | null;
+	read_count?: number;
+	session_count?: number;
 }
 
 export interface BookListResponse {
@@ -95,6 +97,7 @@ export interface StatusTransitionRequest {
 	skip_auto_date_started?: boolean;
 	clear_date_started?: boolean;
 	clear_date_finished?: boolean;
+	start_new_session?: boolean;
 }
 
 export interface DateConflict {
@@ -212,6 +215,8 @@ export interface StatisticsResponse {
 	average_rating: number | null;
 	top_rated_books: TopRatedBook[];
 	worst_rated_books: TopRatedBook[];
+	total_reads?: number;
+	reread_books?: number;
 }
 
 export type StatisticsRange = 'alltime' | 'this_year' | 'last_year' | '3years' | 'custom';
@@ -348,6 +353,7 @@ export interface ReadingProgressEntry {
 	id: number;
 	book_id: number;
 	page: number;
+	session_id?: number | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -355,6 +361,47 @@ export interface ReadingProgressEntry {
 export interface BookProgress {
 	book_id: number;
 	current_page: number;
+}
+
+export interface ReadingSession {
+	id: number;
+	book_id: number;
+	status: ReadingStatus;
+	date_started: string | null;
+	date_finished: string | null;
+	is_current: boolean;
+	read_number: number | null;
+	is_reread: boolean;
+	progress_count: number;
+	last_page: number | null;
+	max_page: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ReadingSessionInput {
+	status: ReadingStatus;
+	date_started?: string | null;
+	date_finished?: string | null;
+}
+
+export interface SessionMutationResponse {
+	session: ReadingSession;
+	book: Book;
+}
+
+export interface TimelineSessionEntry {
+	session_id: number;
+	book_id: number;
+	title: string;
+	author: string | null;
+	authors: string[];
+	cover_url: string | null;
+	rating: number | null;
+	page_count: number | null;
+	date_finished: string | null;
+	read_number: number | null;
+	is_reread: boolean;
 }
 
 /** Search sources the backend can report progress for. */
@@ -378,7 +425,7 @@ export type SearchStage =
 	| { stage: 'complete'; results: BookImportCandidate[] }
 	| { stage: 'error'; message: string };
 
-export type DataExportDataset = 'books' | 'progress' | 'tags' | 'covers';
+export type DataExportDataset = 'books' | 'progress' | 'tags' | 'covers' | 'sessions';
 export type DataExportFormat = 'csv' | 'json';
 
 export interface DataImportParseResponse {
@@ -511,7 +558,8 @@ export type PublicProfileStatisticsKey =
 	| 'books_without_rating'
 	| 'average_rating'
 	| 'top_rated_books'
-	| 'worst_rated_books';
+	| 'worst_rated_books'
+	| 'total_reads';
 
 export interface PublicProfileVisibilityConfig {
 	sections: PublicProfileSectionKey[];

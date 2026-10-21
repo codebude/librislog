@@ -74,7 +74,9 @@
     "worstRated": "Am schlechtesten bewertet",
     "showMore": "Mehr anzeigen",
     "totalBooksAndAuthors": "Bücher insgesamt",
-    "booksFromAuthors": "von {authors} {authors, plural, one {Autor} other {Autoren}}"
+    "booksFromAuthors": "von {authors} {authors, plural, one {Autor} other {Autoren}}",
+    "totalReads": "Lesungen gesamt",
+    "rereadBooks": "Erneut gelesene Bücher"
   },
   "dashboard": {
     "title": "Lese-Dashboard",
@@ -213,7 +215,17 @@
     "progressPromptSkip": "Überspringen",
     "authorsPlaceholder": "Autor eingeben und Enter drücken",
     "authorsHint": "Enter fügt einen Autor hinzu. Mit Rücktaste entfernt man den letzten.",
-    "authorsLabel": "Autor(en)"
+    "authorsLabel": "Autor(en)",
+    "readAgain": "Erneut lesen",
+    "startAgain": "Erneut beginnen",
+    "readingHistory": "Leseverlauf",
+    "addPastReading": "Frühere Lektüre hinzufügen",
+    "sessionStarted": "Begonnen",
+    "sessionFinished": "Beendet",
+    "sessionReread": "Erneut gelesen",
+    "sessionDeleteConfirm": "Diese Lesesitzung und ihre Fortschrittseinträge löschen?",
+    "sessionDelete": "Sitzung löschen",
+    "readCount": "{count, plural, one {1 Mal} other {# Mal}} gelesen"
   },
   "addModal": {
     "manual": "Manuell",
@@ -345,7 +357,8 @@
       "clearAndStart": "Beendigungsdatum löschen & heute starten",
       "keepDesc": "Behält das Beendigungsdatum ({finishedDate}) und setzt kein Startdatum.",
       "clearDesc": "Entfernt das Beendigungsdatum und setzt heute ({newStartDate}) als Startdatum."
-    }
+    },
+    "startNewRead": "Neue Lektüre beginnen (behält frühere)"
   },
   "acquisition": {
     "owned": "Im Besitz",
@@ -703,7 +716,8 @@
     "subtitle": "Eine chronologische Ansicht der Bücher, die du gelesen hast",
     "viewInLibrary": "Alle in der Bibliothek anzeigen",
     "noReadBooks": "Noch keine gelesenen Bücher in deiner Bibliothek.",
-    "goToLibrary": "Zur Bibliothek"
+    "goToLibrary": "Zur Bibliothek",
+    "reread": "Erneut gelesen"
   },
   "data": {
     "title": "Datenverwaltung",
@@ -719,7 +733,8 @@
         "books": "Bücher",
         "progress": "Lesefortschritt",
         "tags": "Tags",
-        "covers": "Cover-Dateien"
+        "covers": "Cover-Dateien",
+        "sessions": "Lesesitzungen"
       },
       "button": "Daten exportieren",
       "exporting": "Exportiere...",

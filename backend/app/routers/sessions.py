@@ -70,7 +70,7 @@ def _to_session_reads(
     ]
 
 
-@router.get("", response_model=List[TimelineSessionEntry])
+@router.get("/sessions", response_model=List[TimelineSessionEntry])
 def list_completed_sessions(
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),

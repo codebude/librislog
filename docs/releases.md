@@ -6,6 +6,12 @@ All LibrisLog releases, newest first — what's new, what was fixed, and anythin
 
 You can also browse the [GitHub Releases](https://github.com/codebude/librislog/releases) page and the [full changelog](https://github.com/codebude/librislog/commits/main).
 
+## Unreleased
+
+::: tip ⭐ Reading Sessions & Re-reads
+Books can now be read more than once. Each reading is tracked as its own session with independent start and finish dates, and a "Read again" action starts a fresh reading without overwriting earlier dates or progress. A reading history in the book detail dialog lets you add past reads and edit or delete individual sessions, progress restarts per session, and re-read books show a "read ×N" badge. Statistics now distinguish unique books from total completions (with a new "Total reads" card), and the timeline lists one row per completed read, marking re-reads. Data migrates automatically on upgrade.
+:::
+
 ## Latest Release
 
 ::: tip ⭐ v1.10.0 — More Book Sources & Upgrades

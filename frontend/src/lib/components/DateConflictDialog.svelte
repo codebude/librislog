@@ -8,7 +8,9 @@
 		suggestedDate,
 		onKeep,
 		onUseSuggested,
-		onCancel
+		onCancel,
+		onReread = undefined,
+		rereadAvailable = false
 	}: {
 		open?: boolean;
 		field?: 'date_started' | 'date_finished' | 'started_after_finished';
@@ -17,6 +19,8 @@
 		onKeep?: () => void;
 		onUseSuggested?: () => void;
 		onCancel?: () => void;
+		onReread?: () => void;
+		rereadAvailable?: boolean;
 	} = $props();
 
 	const typeKey = $derived(
@@ -60,14 +64,20 @@
 			</p>
 			<div class="modal-action">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={onCancel}>{$_('common.cancel')}</button>
-				<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
-					{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
-					{#if typeKey === 'startedAfterFinished'}<sup>1</sup>{/if}
-				</button>
-				<button type="button" class="btn btn-primary btn-sm" onclick={onUseSuggested}>
-					{$_(`dateConflict.${typeKey}.${useNewKey}`, { values: i18nValues })}
-					{#if typeKey === 'startedAfterFinished'}<sup>2</sup>{/if}
-				</button>
+				{#if rereadAvailable && onReread}
+					<button type="button" class="btn btn-primary btn-sm" onclick={onReread}>
+						{$_('dateConflict.startNewRead')}
+					</button>
+				{:else}
+					<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
+						{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
+						{#if typeKey === 'startedAfterFinished'}<sup>1</sup>{/if}
+					</button>
+					<button type="button" class="btn btn-primary btn-sm" onclick={onUseSuggested}>
+						{$_(`dateConflict.${typeKey}.${useNewKey}`, { values: i18nValues })}
+						{#if typeKey === 'startedAfterFinished'}<sup>2</sup>{/if}
+					</button>
+				{/if}
 			</div>
 			{#if typeKey === 'startedAfterFinished'}
 				<div class="border-t border-base-200 pt-3 mt-2 text-xs text-base-content/50 space-y-1">

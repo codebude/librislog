@@ -219,6 +219,7 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     return await call_next(request)
 
 
+app.include_router(sessions.router)
 app.include_router(books.router)
 app.include_router(import_.router)
 app.include_router(covers.router)
@@ -230,7 +231,6 @@ app.include_router(share_links.router)
 app.include_router(public_profile.router)
 app.include_router(oidc.router)
 app.include_router(progress.router)
-app.include_router(sessions.router)
 app.include_router(docs.router)
 app.include_router(health.router)
 app.include_router(hygiene.router)

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import dayjs from 'dayjs';
-	import type { Book } from '#lib/types.js';
+	import type { Book, TimelineSessionEntry } from '#lib/types.js';
 	import { api } from '#lib/api.js';
 	import { _, locale } from '#lib/i18n/index.js';
 	import { toasts } from '#lib/toasts.js';
@@ -11,134 +11,55 @@
 	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '#lib/components/BookDrawer.svelte';
 
-	const PAGE_SIZE = 40;
-
 	let loading = $state(true);
-	let loadingMore = $state(false);
-	let hasMore = $state(true);
-	let nextOffset = $state(0);
-	let books = $state<Book[]>([]);
+	let entries = $state<TimelineSessionEntry[]>([]);
 	let selectedBook = $state<Book | null>(null);
 	let detailOpen = $state(false);
 	let drawerOpen = $state(false);
 	let tz = $state('UTC');
-	let loadMoreAnchor = $state<HTMLDivElement | null>(null);
-	let observer: IntersectionObserver | null = null;
 	const appLocale: string = $derived($locale ?? 'en');
 
 	onMount(() => {
 		tz = getTimezone();
 		void loadTimeline();
-		if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
-		observer = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((e) => e.isIntersecting)) {
-					void loadMoreTimeline();
-				}
-			},
-			{ root: null, rootMargin: '300px 0px', threshold: 0 }
-		);
-		return () => {
-			observer?.disconnect();
-			observer = null;
-		};
-	});
-
-	$effect(() => {
-		const anchor = loadMoreAnchor;
-		if (!anchor || !observer) return;
-		observer.observe(anchor);
-		return () => observer?.unobserve(anchor);
 	});
 
 	async function loadTimeline() {
 		loading = true;
 		try {
-			const response = await api.books.list({
-				status: 'read',
-				sort: 'date_finished',
-				order: 'desc',
-				smart_sort: false,
-				offset: 0,
-				limit: PAGE_SIZE
-			});
-			books = response.books.filter((b) => b.date_finished !== null);
-			nextOffset = response.books.length;
-			hasMore = response.books.length === PAGE_SIZE;
-			if (hasMore && books.length > 0) {
-				await maybePrefillViewport();
-			}
+			entries = await api.books.sessions.completed();
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
 				toasts.add(msg, 'error');
 			}
-			books = [];
+			entries = [];
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function maybePrefillViewport() {
-		let safety = 0;
-		while (
-			hasMore &&
-			!loadingMore &&
-			document.documentElement.scrollHeight <= window.innerHeight + 240 &&
-			safety < 4
-		) {
-			safety += 1;
-			await loadMoreTimeline();
-		}
-	}
-
-	async function loadMoreTimeline() {
-		if (loadingMore || loading || !hasMore) return;
-		loadingMore = true;
-		try {
-			const response = await api.books.list({
-				status: 'read',
-				sort: 'date_finished',
-				order: 'desc',
-				smart_sort: false,
-				offset: nextOffset,
-				limit: PAGE_SIZE
-			});
-			const filtered = response.books.filter((b) => b.date_finished !== null);
-			books = [...books, ...filtered];
-			nextOffset += response.books.length;
-			hasMore = response.books.length === PAGE_SIZE;
-		} catch (e: unknown) {
-			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
-			if (shouldShowActionToast(msg)) {
-				toasts.add(msg, 'error');
-			}
-		} finally {
-			loadingMore = false;
-		}
-	}
-
 	let grouped = $derived.by(() => {
-		const map = new Map<string, Book[]>();
-		for (const b of books) {
-			if (!b.date_finished) continue;
-			const key = dayjs(b.date_finished).tz(tz).format('YYYY-MM');
+		const map = new Map<string, TimelineSessionEntry[]>();
+		for (const entry of entries) {
+			if (!entry.date_finished) continue;
+			const key = dayjs(entry.date_finished).tz(tz).format('YYYY-MM');
 			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(b);
+			map.get(key)!.push(entry);
 		}
 		return [...map.entries()].sort(([a], [b]) => b.localeCompare(a));
 	});
 
 	interface TimelineHeader { type: 'header'; key: string; dateFinished: string }
-	interface TimelineBook { type: 'book'; book: Book }
-	type TimelineItem = TimelineHeader | TimelineBook;
+	interface TimelineItem { type: 'entry'; entry: TimelineSessionEntry }
+	type TimelineRow = TimelineHeader | TimelineItem;
 
 	let flatItems = $derived.by(() => {
-		const items: TimelineItem[] = [];
-		for (const [key, monthBooks] of grouped) {
-			items.push({ type: 'header', key, dateFinished: monthBooks[0].date_finished! });
-			for (const book of monthBooks) {
-				items.push({ type: 'book', book });
+		const items: TimelineRow[] = [];
+		for (const [key, monthEntries] of grouped) {
+			items.push({ type: 'header', key, dateFinished: monthEntries[0].date_finished! });
+			for (const entry of monthEntries) {
+				items.push({ type: 'entry', entry });
 			}
 		}
 		return items;
@@ -163,10 +84,15 @@
 		return '★'.repeat(rating) + '☆'.repeat(5 - rating);
 	}
 
-	function openDetailView(book: Book) {
-		selectedBook = book;
-		detailOpen = true;
-		drawerOpen = false;
+	async function openDetailView(entry: TimelineSessionEntry) {
+		try {
+			selectedBook = await api.books.get(entry.book_id);
+			detailOpen = true;
+			drawerOpen = false;
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message : String(e);
+			toasts.add(msg, 'error');
+		}
 	}
 
 	function openEditFromDetail(book: Book) {
@@ -176,17 +102,13 @@
 	}
 
 	function handleSave(updated: Book) {
-		if (updated.reading_status !== 'read' || !updated.date_finished) {
-			void loadTimeline();
-			return;
-		}
-		books = books.map((b) => (b.id === updated.id ? updated : b));
+		void loadTimeline();
 	}
 
 	function handleDelete(id: number) {
 		detailOpen = false;
 		drawerOpen = false;
-		books = books.filter((b) => b.id !== id);
+		entries = entries.filter((e) => e.book_id !== id);
 	}
 </script>
 
@@ -205,7 +127,7 @@
 		<div class="flex justify-center py-16">
 			<span class="loading loading-spinner loading-lg"></span>
 		</div>
-	{:else if books.length === 0}
+	{:else if entries.length === 0}
 		<div class="hero bg-base-100 rounded-box shadow-sm p-12">
 			<div class="hero-content text-center">
 				<div class="max-w-md">
@@ -216,7 +138,7 @@
 		</div>
 	{:else}
 		<ul class="timeline timeline-vertical timeline-snap-icon overflow-x-auto max-w-full">
-			{#each flatItems as item, i (item.type === 'header' ? item.key : item.book.id)}
+			{#each flatItems as item, i (item.type === 'header' ? item.key : item.entry.session_id)}
 				<li>
 					{#if i > 0}<hr />{/if}
 					{#if item.type === 'header'}
@@ -230,7 +152,7 @@
 						</div>
 					{:else}
 						<div class="timeline-start text-xs sm:text-sm">
-							{formatDay(item.book.date_finished!)}
+							{formatDay(item.entry.date_finished!)}
 						</div>
 						<div class="timeline-middle">
 							<svg class="text-primary h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -239,31 +161,34 @@
 						</div>
 						<div
 							class="timeline-end timeline-box min-w-0 cursor-pointer hover:bg-base-200 transition-colors"
-							onclick={() => openDetailView(item.book)}
+							onclick={() => void openDetailView(item.entry)}
 							role="button"
 							tabindex="0"
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									openDetailView(item.book);
+									void openDetailView(item.entry);
 								}
 							}}
 						>
 							<div class="flex gap-3 items-start">
-								{#if item.book.cover_url}
+								{#if item.entry.cover_url}
 									<img
-										src={item.book.cover_url}
-										alt={item.book.title}
+										src={item.entry.cover_url}
+										alt={item.entry.title}
 										class="w-10 h-14 object-cover rounded shrink-0"
 									/>
 								{/if}
 								<div class="min-w-0">
-									<p class="font-medium break-words">{item.book.title}</p>
-									{#if item.book.author}
-										<p class="text-sm text-base-content/70 break-words">{formatAuthors(item.book.authors, item.book.author)}</p>
+									<p class="font-medium break-words">{item.entry.title}</p>
+									{#if item.entry.author}
+										<p class="text-sm text-base-content/70 break-words">{formatAuthors(item.entry.authors, item.entry.author)}</p>
 									{/if}
-									{#if item.book.rating}
-										<p class="text-warning text-sm">{stars(item.book.rating)}</p>
+									{#if item.entry.rating}
+										<p class="text-warning text-sm">{stars(item.entry.rating)}</p>
+									{/if}
+									{#if item.entry.is_reread}
+										<span class="badge badge-xs badge-outline badge-primary mt-1">{$_('timeline.reread')}</span>
 									{/if}
 								</div>
 							</div>
@@ -273,14 +198,6 @@
 				</li>
 			{/each}
 		</ul>
-		{#if hasMore}
-			<div bind:this={loadMoreAnchor} class="h-1"></div>
-		{/if}
-		{#if loadingMore}
-			<div class="flex justify-center py-4">
-				<span class="loading loading-spinner loading-md"></span>
-			</div>
-		{/if}
 	{/if}
 </div>
 
