@@ -200,3 +200,19 @@ def test_completed_sessions_timeline_endpoint(client: TestClient) -> None:
     reread_rows = [r for r in rows if r["is_reread"]]
     assert len(reread_rows) == 1
     assert reread_rows[0]["read_number"] == 2
+
+
+def test_open_session_never_keeps_a_finish_date(client: TestClient) -> None:
+    """A currently_reading session must not carry a finish date."""
+    book = _create_book(client, reading_status="currently_reading", date_started="2024-01-01T00:00:00Z")
+    session_id = client.get(f"/api/books/{book['id']}/sessions").json()[0]["id"]
+
+    resp = client.patch(
+        f"/api/books/{book['id']}/sessions/{session_id}",
+        json={"date_finished": "2024-02-01T00:00:00Z"},
+    )
+    assert resp.status_code == 200
+    session = resp.json()["session"]
+    assert session["status"] == "currently_reading"
+    assert session["date_finished"] is None
+    assert session["is_current"] is True

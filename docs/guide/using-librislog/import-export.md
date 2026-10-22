@@ -61,7 +61,10 @@ Choose which data to include:
 - Books (full metadata)
 - Reading progress entries
 - Tags
+- Reading sessions (re-read history; exported for reference and round-trip completeness)
 - Cover images
+
+Reading sessions are exported for completeness and auditing. The import wizard re-creates one reading session per imported book from its start/finish dates, but re-read history (multiple sessions per book) is only preserved through [backup and restore](./administration), which copies the whole database.
 
 ### Export Process
 

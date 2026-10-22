@@ -207,9 +207,12 @@ def update_session(
             detail="Use the 'Read again' action to start a current session.",
         )
 
-    # Closing a current session auto-fills a missing finish date.
+    # Closing a current session auto-fills a missing finish date; an open
+    # (currently_reading) session never carries a finish date.
     if was_current and new_status != ReadingStatus.currently_reading and new_finished is None:
         new_finished = utcnow()
+    if new_status == ReadingStatus.currently_reading:
+        new_finished = None
     if new_status == ReadingStatus.read and new_finished is None:
         raise HTTPException(
             status_code=422, detail="A completed session must have a finish date."

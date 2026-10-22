@@ -695,15 +695,37 @@ def compute_statistics(
     dnf_book_ids = [book.id for book in books if book.reading_status == ReadingStatus.did_not_finish and book.id is not None]
     pages_wasted = 0
     if dnf_book_ids:
-        wasted_rows = session.exec(
-            select(ReadingProgress.book_id, func.max(ReadingProgress.page))
-            .where(
-                ReadingProgress.user_id == user_id,
-                col(ReadingProgress.book_id).in_(dnf_book_ids),
-            )
-            .group_by(col(ReadingProgress.book_id))
-        ).all()
-        pages_wasted = int(sum((max_page or 0) for _, max_page in wasted_rows))
+        # Only progress belonging to a did_not_finish session counts, so an
+        # earlier completed read does not inflate the wasted-page total. Books
+        # without sessions keep the legacy book-level maximum.
+        dnf_session_ids = {
+            s.id
+            for s in sessions
+            if s.book_id in set(dnf_book_ids)
+            and s.status == ReadingStatus.did_not_finish
+            and s.id is not None
+        }
+        if dnf_session_ids:
+            wasted_rows = session.exec(
+                select(ReadingProgress.book_id, func.max(ReadingProgress.page))
+                .where(
+                    ReadingProgress.user_id == user_id,
+                    col(ReadingProgress.session_id).in_(dnf_session_ids),
+                )
+                .group_by(col(ReadingProgress.book_id))
+            ).all()
+            pages_wasted += int(sum((max_page or 0) for _, max_page in wasted_rows))
+        sessionless_dnf = [bid for bid in dnf_book_ids if bid not in books_with_sessions]
+        if sessionless_dnf:
+            wasted_rows = session.exec(
+                select(ReadingProgress.book_id, func.max(ReadingProgress.page))
+                .where(
+                    ReadingProgress.user_id == user_id,
+                    col(ReadingProgress.book_id).in_(sessionless_dnf),
+                )
+                .group_by(col(ReadingProgress.book_id))
+            ).all()
+            pages_wasted += int(sum((max_page or 0) for _, max_page in wasted_rows))
 
     page_buckets = PageBuckets(
         pages_to_read=int(pages_to_read),
