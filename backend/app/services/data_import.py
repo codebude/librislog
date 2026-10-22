@@ -23,7 +23,6 @@ from sqlmodel import Session, col, select
 from app.config import settings
 from app.models import AcquisitionStatus, Book, Medium, ReadingProgress, ReadingSession, ReadingStatus, User, normalize_medium_key
 from app.schemas import ImportFieldConfig
-from app.services.reading_sessions import create_initial_session
 
 logger = logging.getLogger(__name__)
 from app.time_utils import utcnow
@@ -52,6 +51,7 @@ BOOK_IMPORT_FIELDS: list[str] = [
     "date_started",
     "date_finished",
     "cover_url",
+    "sessions",
 ]
 
 _ALIASES: dict[str, str] = {
@@ -102,6 +102,8 @@ _ALIASES: dict[str, str] = {
     "date read": "date_finished",
     "cover": "cover_url",
     "cover url": "cover_url",
+    "sessions": "sessions",
+    "reading sessions": "sessions",
 }
 
 
@@ -512,6 +514,62 @@ def _parse_reading_status(value: object) -> ReadingStatus:
     return ReadingStatus(raw)
 
 
+def _create_sessions_from_data(
+    session: Session, book: Book, sessions_data: object
+) -> ReadingSession | None:
+    """Create a book's reading sessions from an embedded ``sessions`` array.
+
+    A LibrisLog JSON export embeds the book's reading sessions as a list of
+    ``{status, date_started, date_finished}`` objects. This reconstructs them so
+    re-read history round-trips through the import. Returns the most recently
+    completed (``read``) session for progress attachment, or ``None`` when there
+    is no completed session. Falls back to a single initial session when no
+    embedded sessions are present (external imports).
+    """
+    from app.services.reading_sessions import create_initial_session
+
+    if not isinstance(sessions_data, list) or not sessions_data:
+        return create_initial_session(session, book)
+
+    parsed: list[tuple[ReadingStatus, datetime | None, datetime | None]] = []
+    for item in sessions_data:
+        if not isinstance(item, dict):
+            continue
+        status = _parse_reading_status(item.get("status"))
+        if status == ReadingStatus.want_to_read:
+            continue
+        ds = _parse_datetime(item.get("date_started"), "sessions.date_started")
+        df = _parse_datetime(item.get("date_finished"), "sessions.date_finished")
+        parsed.append((status, ds, df))
+
+    if not parsed:
+        return create_initial_session(session, book)
+
+    # Chronological order (oldest first); a date-less session sorts first.
+    parsed.sort(key=lambda t: (t[2] or t[1] or datetime.min, t[1] or datetime.min))
+
+    latest_completed: ReadingSession | None = None
+    for idx, (status, ds, df) in enumerate(parsed):
+        is_current = (
+            status == ReadingStatus.currently_reading
+            and idx == len(parsed) - 1
+            and book.reading_status == ReadingStatus.currently_reading
+        )
+        rs = ReadingSession(
+            book_id=book.id,
+            user_id=book.user_id,
+            status=status,
+            date_started=ds,
+            date_finished=df,
+            is_current=is_current,
+        )
+        session.add(rs)
+        if status == ReadingStatus.read:
+            latest_completed = rs
+    session.flush()
+    return latest_completed
+
+
 def _build_transform_cache(
     mapping: dict[str, "ImportFieldConfig"],
 ) -> dict[str, Callable[..., Any]]:
@@ -566,6 +624,11 @@ def _mapped_row(
         if target == "tags" and isinstance(value, list):
             # Adaptive tags handling: an array contributes one tag per entry.
             # Like authors, transforms are skipped for array values.
+            mapped[target] = value
+            continue
+        if target == "sessions" and isinstance(value, list):
+            # Reading sessions embed as a list of {status, date_started,
+            # date_finished} objects (JSON export only). Passed through untouched.
             mapped[target] = value
             continue
         value_str = "" if value is None else str(value)
@@ -1000,7 +1063,9 @@ async def execute_import(
                 session.flush()
                 assert book.id is not None
 
-                initial_session = create_initial_session(session, book)
+                initial_session = _create_sessions_from_data(
+                    session, book, row_data.get("sessions")
+                )
 
                 sync_book_authors(
                     session,

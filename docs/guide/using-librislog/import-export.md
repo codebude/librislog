@@ -58,13 +58,13 @@ Export your entire library or subsets of data:
 ### Export Datasets
 
 Choose which data to include:
-- Books (full metadata)
+- Books (full metadata, including reading sessions)
 - Reading progress entries
 - Tags
-- Reading sessions (re-read history; exported for reference and round-trip completeness)
+- Reading sessions (re-read history)
 - Cover images
 
-Reading sessions are exported for completeness and auditing. The import wizard re-creates one reading session per imported book from its start/finish dates, but re-read history (multiple sessions per book) is only preserved through [backup and restore](./administration), which copies the whole database.
+Reading sessions (re-read history) are embedded in the JSON book export, so a JSON export round-trips losslessly: re-importing `books.json` recreates each book's reading sessions. The separate `sessions` dataset is a flat, book-ID-referenced view exported for auditing and CSV completeness; re-read history is only preserved through the JSON book export or through [backup and restore](./administration), which copies the whole database.
 
 ### Export Process
 
