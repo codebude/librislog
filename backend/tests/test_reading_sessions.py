@@ -122,6 +122,21 @@ def test_progress_scoped_to_session(client: TestClient) -> None:
     assert latest == []
 
 
+def test_deleting_last_session_clears_progress_log(client: TestClient) -> None:
+    """When no session remains, the progress log must be reset too."""
+    book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z", page_count=200)
+    client.post(f"/api/books/{book['id']}/progress", json={"page": 200})
+    assert len(client.get(f"/api/books/{book['id']}/progress").json()) == 1
+
+    sessions = client.get(f"/api/books/{book['id']}/sessions").json()
+    client.delete(f"/api/books/{book['id']}/sessions/{sessions[0]['id']}")
+
+    # Book reset to want_to_read, progress log empty.
+    book = client.get(f"/api/books/{book['id']}").json()
+    assert book["reading_status"] == "want_to_read"
+    assert client.get(f"/api/books/{book['id']}/progress").json() == []
+
+
 def test_unrelated_patch_does_not_change_sessions(client: TestClient) -> None:
     """Editing an unrelated field must never rewrite a reading session."""
     book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z")

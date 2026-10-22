@@ -321,6 +321,12 @@ def delete_session(
         book.reading_status = ReadingStatus.want_to_read
         book.date_started = None
         book.date_finished = None
+        # No reading session remains, so the progress log is reset as well: any
+        # orphaned (session-less) entries would otherwise keep showing up.
+        for entry in session.exec(
+            select(ReadingProgress).where(ReadingProgress.book_id == book_id)
+        ).all():
+            session.delete(entry)
     else:
         latest = remaining[0]
         # Only an open session can become the new current session; a completed
