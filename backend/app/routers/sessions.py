@@ -91,10 +91,14 @@ def list_completed_sessions(
     for rs, _book in rows:
         per_book.setdefault(rs.book_id, []).append(rs)
     authors_map = load_authors_batch(session, list(per_book))
+    # Compute the ordinal once per book, not once per row.
+    read_numbers_by_book = {
+        book_id: assign_read_numbers(s_list) for book_id, s_list in per_book.items()
+    }
 
     result: list[TimelineSessionEntry] = []
     for rs, book in rows:
-        read_number = assign_read_numbers(per_book[rs.book_id]).get(rs.id)
+        read_number = read_numbers_by_book[rs.book_id].get(rs.id)
         authors = authors_map.get(book.id, [])
         result.append(
             TimelineSessionEntry(
@@ -187,39 +191,45 @@ def update_session(
     reading_session = _get_owned_session(session, book_id, session_id, current_user.id)
 
     update = data.model_dump(exclude_unset=True)
-    if "status" in update and update["status"] == ReadingStatus.want_to_read:
+    if update.get("status") == ReadingStatus.want_to_read:
         raise HTTPException(status_code=422, detail="A session cannot be 'want_to_read'.")
-    _validate_dates(
-        {
-            "date_started": update.get("date_started", reading_session.date_started),
-            "date_finished": update.get("date_finished", reading_session.date_finished),
-        }
-    )
 
-    for field, value in update.items():
-        setattr(reading_session, field, value)
+    # Compute the candidate state first, validate it, then apply it. This keeps
+    # the session unmutated on validation errors and makes the rules explicit.
+    new_status = update.get("status", reading_session.status)
+    new_started = update.get("date_started", reading_session.date_started)
+    new_finished = update.get("date_finished", reading_session.date_finished)
+    was_current = reading_session.is_current
 
-    if reading_session.status == ReadingStatus.read and reading_session.date_finished is None:
+    if not was_current and new_status == ReadingStatus.currently_reading:
+        raise HTTPException(
+            status_code=422,
+            detail="Use the 'Read again' action to start a current session.",
+        )
+
+    # Closing a current session auto-fills a missing finish date.
+    if was_current and new_status != ReadingStatus.currently_reading and new_finished is None:
+        new_finished = utcnow()
+    if new_status == ReadingStatus.read and new_finished is None:
         raise HTTPException(
             status_code=422, detail="A completed session must have a finish date."
         )
+    _validate_dates({"date_started": new_started, "date_finished": new_finished})
 
-    was_current = reading_session.is_current
-    if was_current and reading_session.status != ReadingStatus.currently_reading:
+    reading_session.status = new_status
+    reading_session.date_started = new_started
+    reading_session.date_finished = new_finished
+    if was_current and new_status != ReadingStatus.currently_reading:
         reading_session.is_current = False
-        if reading_session.date_finished is None:
-            reading_session.date_finished = utcnow()
-
     session.add(reading_session)
-    session.commit()
-    session.refresh(reading_session)
 
     if was_current:
-        book.reading_status = reading_session.status
+        book.reading_status = new_status
         recompute_book_mirror(book, sessions_for_book(session, book_id))
         session.add(book)
-        session.commit()
-        session.refresh(book)
+
+    session.commit()
+    session.refresh(book)
 
     sessions = sessions_for_book(session, book_id)
     return SessionMutationResponse(
@@ -242,31 +252,30 @@ def delete_session(
     """Delete a session and its progress entries, then re-mirror the book."""
     book = _get_owned_book(session, book_id, current_user.id)
     reading_session = _get_owned_session(session, book_id, session_id, current_user.id)
-    was_current = reading_session.is_current
 
     for entry in session.exec(
         select(ReadingProgress).where(ReadingProgress.session_id == session_id)
     ).all():
         session.delete(entry)
-
     session.delete(reading_session)
-    session.commit()
+    session.flush()
 
     remaining = sessions_for_book(session, book_id)
     if not remaining:
         book.reading_status = ReadingStatus.want_to_read
         book.date_started = None
         book.date_finished = None
-        session.add(book)
-        session.commit()
-    elif was_current:
-        promoted = remaining[0]
-        promoted.is_current = True
-        session.add(promoted)
-        book.reading_status = promoted.status
+    else:
+        latest = remaining[0]
+        # Only an open session can become the new current session; a completed
+        # read stays closed so it is never relabelled "currently reading".
+        if latest.status == ReadingStatus.currently_reading:
+            latest.is_current = True
+            session.add(latest)
         recompute_book_mirror(book, remaining)
-        session.add(book)
-        session.commit()
+        book.reading_status = latest.status
+    session.add(book)
+    session.commit()
 
     return build_book_read(session, book)
 

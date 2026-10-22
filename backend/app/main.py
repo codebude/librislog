@@ -219,6 +219,9 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     return await call_next(request)
 
 
+# The sessions router must be registered before the books router: both define
+# routes under /api/books, and `GET /api/books/sessions` (the timeline) must win
+# over the books router's `GET /api/books/{book_id}`. Do not reorder.
 app.include_router(sessions.router)
 app.include_router(books.router)
 app.include_router(import_.router)

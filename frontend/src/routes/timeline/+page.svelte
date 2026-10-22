@@ -201,7 +201,7 @@
 	{/if}
 </div>
 
-<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} />
+<BookDetailDialog bind:book={selectedBook} bind:open={detailOpen} onEdit={openEditFromDetail} onDelete={handleDelete} onSave={handleSave} />
 
 <BookDrawer bind:book={selectedBook} bind:open={drawerOpen} onSave={handleSave} />
 

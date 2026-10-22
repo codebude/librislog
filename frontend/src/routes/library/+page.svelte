@@ -513,6 +513,7 @@
 	onEdit={openEditFromDetail}
 	onDelete={handleDelete}
 	onProgress={handleProgressChange}
+	onSave={handleSave}
 />
 
 <BookDrawer

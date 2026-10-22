@@ -40,7 +40,16 @@ def create_progress_entry(
         )
 
     session_id = data.session_id
-    if session_id is None:
+    if session_id is not None:
+        # A caller-supplied session id must belong to this book and this user.
+        supplied = session.get(ReadingSession, session_id)
+        if (
+            not supplied
+            or supplied.book_id != book_id
+            or supplied.user_id != current_user.id
+        ):
+            raise HTTPException(status_code=404, detail="Reading session not found")
+    else:
         current = active_session(session, book_id)
         if current is not None:
             session_id = current.id

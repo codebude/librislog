@@ -665,25 +665,27 @@ def compute_statistics(
     # "Pages read" counts every completed reading (each completed session), so a
     # re-read contributes its page count again. Books without sessions fall back
     # to the book-level value, which keeps single-session users identical.
-    completed_reads: list[datetime] = []
+    # A completed read does not require a finish date (matching the pre-session
+    # behaviour); only the per-month/per-year series need a date.
+    completed_read_dates: list[datetime] = []
     pages_read = 0
+    total_reads = 0
     for reading_session in sessions:
-        if reading_session.status == ReadingStatus.read and reading_session.date_finished is not None:
-            completed_reads.append(reading_session.date_finished)
+        if reading_session.status == ReadingStatus.read:
+            total_reads += 1
             book = book_by_id.get(reading_session.book_id)
             if book is not None and book.page_count is not None:
                 pages_read += book.page_count
+            if reading_session.date_finished is not None:
+                completed_read_dates.append(reading_session.date_finished)
     for book in books:
-        if (
-            book.id not in books_with_sessions
-            and book.reading_status == ReadingStatus.read
-            and book.date_finished is not None
-        ):
-            completed_reads.append(book.date_finished)
+        if book.id not in books_with_sessions and book.reading_status == ReadingStatus.read:
+            total_reads += 1
             if book.page_count is not None:
                 pages_read += book.page_count
+            if book.date_finished is not None:
+                completed_read_dates.append(book.date_finished)
 
-    total_reads = len(completed_reads)
     reread_books = sum(
         1
         for book_id, s_list in sessions_by_book.items()
@@ -710,14 +712,14 @@ def compute_statistics(
     )
 
     finished_books_per_month_all_time: Counter[str] = Counter(
-        _month_key(date_finished, tz) for date_finished in completed_reads
+        _month_key(date_finished, tz) for date_finished in completed_read_dates
     )
 
-    finished_dates = completed_reads
+    finished_dates = completed_read_dates
     if window_start is not None and window_end is not None:
         finished_dates = [
             date_finished
-            for date_finished in completed_reads
+            for date_finished in completed_read_dates
             if _naive_utc(date_finished) >= window_start
             and _naive_utc(date_finished) <= window_end
         ]

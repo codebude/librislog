@@ -120,3 +120,83 @@ def test_progress_scoped_to_session(client: TestClient) -> None:
     # Latest progress now reflects the fresh (empty) current session: no entry yet.
     latest = client.get(f"/api/books/progress/latest?book_ids={book['id']}").json()
     assert latest == []
+
+
+def test_unrelated_patch_does_not_change_sessions(client: TestClient) -> None:
+    """Editing an unrelated field must never rewrite a reading session."""
+    book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z")
+    # Add an older past read.
+    client.post(
+        f"/api/books/{book['id']}/sessions",
+        json={"status": "read", "date_started": "2020-01-01T00:00:00Z", "date_finished": "2020-02-01T00:00:00Z"},
+    )
+    before = client.get(f"/api/books/{book['id']}/sessions").json()
+
+    # Change only the rating.
+    resp = client.patch(f"/api/books/{book['id']}", json={"rating": 5})
+    assert resp.status_code == 200
+
+    after = client.get(f"/api/books/{book['id']}/sessions").json()
+    assert len(after) == 2
+    # Sessions must be unchanged: the 2020 read stays 2020-01-01..2020-02-01.
+    by_id = {s["id"]: s for s in after}
+    for b in before:
+        a = by_id[b["id"]]
+        assert a["date_started"] == b["date_started"]
+        assert a["date_finished"] == b["date_finished"]
+
+
+def test_delete_non_current_session_remirrors_book(client: TestClient) -> None:
+    """Deleting a non-current session must re-derive the book mirror."""
+    book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z")
+    # Add an older past read (2020). The mirror stays on the 2024 read.
+    client.post(
+        f"/api/books/{book['id']}/sessions",
+        json={"status": "read", "date_started": "2020-01-01T00:00:00Z", "date_finished": "2020-02-01T00:00:00Z"},
+    )
+    sessions = client.get(f"/api/books/{book['id']}/sessions").json()
+    # The 2024 read (date_finished 2024-01-10) is the "latest" session.
+    latest = next(s for s in sessions if s["date_finished"] == "2024-01-10T00:00:00Z")
+
+    resp = client.delete(f"/api/books/{book['id']}/sessions/{latest['id']}")
+    assert resp.status_code == 200
+    # Mirror must now point at the remaining 2020 read.
+    assert resp.json()["date_started"] == "2020-01-01T00:00:00Z"
+    assert resp.json()["date_finished"] == "2020-02-01T00:00:00Z"
+
+
+def test_progress_rejects_foreign_session(client: TestClient, create_user_with_key: Any) -> None:
+    book_a = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z", page_count=200)
+    session_a = client.get(f"/api/books/{book_a['id']}/sessions").json()[0]
+
+    book_b = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z", page_count=200)
+
+    resp = client.post(
+        f"/api/books/{book_b['id']}/progress",
+        json={"page": 40, "session_id": session_a["id"]},
+    )
+    assert resp.status_code == 404
+
+
+def test_pages_read_counts_read_book_without_finish_date(client: TestClient) -> None:
+    """A read book without a finish date still contributes to pages_read."""
+    _create_book(client, reading_status="read", page_count=70)
+    resp = client.get("/api/statistics")
+    data = resp.json()
+    assert data["page_buckets"]["pages_read"] == 70
+    assert data["total_reads"] == 1
+
+
+def test_completed_sessions_timeline_endpoint(client: TestClient) -> None:
+    """The completed-reads timeline endpoint returns one row per completed read."""
+    book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z")
+    _read_again(client, book["id"])
+    client.post(f"/api/books/{book['id']}/transition-status", json={"new_status": "read"})
+
+    resp = client.get("/api/books/sessions")
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 2
+    reread_rows = [r for r in rows if r["is_reread"]]
+    assert len(reread_rows) == 1
+    assert reread_rows[0]["read_number"] == 2

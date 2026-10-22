@@ -36,13 +36,15 @@
 		open = $bindable(false),
 		onEdit,
 		onDelete,
-		onProgress
+		onProgress,
+		onSave
 	}: {
 		book?: Book | null;
 		open?: boolean;
 		onEdit?: (book: Book) => void;
 		onDelete?: (id: number) => void;
 		onProgress?: (bookId: number, currentPage: number) => void;
+		onSave?: (book: Book) => void;
 	} = $props();
 
 	let blurbExpanded = $state(false);
@@ -68,6 +70,7 @@
 	let addSessionStarted = $state('');
 	let addSessionFinished = $state('');
 	let addSessionSaving = $state(false);
+	let editingSessionId = $state<number | null>(null);
 	let deletingSessionId = $state<number | null>(null);
 	let confirmDeleteSession = $state<number | null>(null);
 
@@ -153,6 +156,7 @@
 			latestDbPage = 0;
 			progressEntries = [];
 			onProgress?.(book.id, 0);
+			onSave?.(result.book);
 			await loadSessionsAndProgress();
 			toasts.add($_('book.readAgain'), 'success', 2000);
 		} catch (e: unknown) {
@@ -174,10 +178,15 @@
 				date_started: addSessionStarted ? fromDateTimeInputValue(addSessionStarted, tz) : null,
 				date_finished: addSessionFinished ? fromDateTimeInputValue(addSessionFinished, tz) : null
 			};
-			await api.books.sessions.create(book.id, payload);
+			if (editingSessionId !== null) {
+				await api.books.sessions.update(book.id, editingSessionId, payload);
+			} else {
+				await api.books.sessions.create(book.id, payload);
+			}
 			addSessionOpen = false;
 			addSessionStarted = '';
 			addSessionFinished = '';
+			editingSessionId = null;
 			await loadSessions();
 		} catch (e: unknown) {
 			toasts.add(
@@ -196,6 +205,7 @@
 			const updated = await api.books.sessions.remove(book.id, sessionId);
 			book = { ...updated };
 			confirmDeleteSession = null;
+			onSave?.(updated);
 			await loadSessionsAndProgress();
 		} catch (e: unknown) {
 			toasts.add(
@@ -218,6 +228,15 @@
 		addSessionStatus = 'read';
 		addSessionStarted = '';
 		addSessionFinished = '';
+		editingSessionId = null;
+		addSessionOpen = true;
+	}
+
+	function openEditSession(s: ReadingSession) {
+		addSessionStatus = s.status === 'currently_reading' ? 'read' : s.status;
+		addSessionStarted = s.date_started ? toDateTimeInputValue(s.date_started, tz) : '';
+		addSessionFinished = s.date_finished ? toDateTimeInputValue(s.date_finished, tz) : '';
+		editingSessionId = s.id;
 		addSessionOpen = true;
 	}
 
@@ -727,6 +746,9 @@
 										</button>
 									</div>
 								{:else}
+									<button type="button" class="btn btn-ghost btn-xs" onclick={() => openEditSession(s)}>
+										{$_('common.edit')}
+									</button>
 									<button
 										type="button"
 										class="btn btn-ghost btn-xs text-error"
@@ -895,7 +917,7 @@
 		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
 			<div class="bg-base-100 rounded-xl shadow-xl max-w-sm w-full pointer-events-auto" role="dialog" aria-label={$_('book.addPastReading')}>
 				<div class="flex items-center justify-between p-4 border-b border-base-200">
-					<h3 class="font-bold text-sm">{$_('book.addPastReading')}</h3>
+					<h3 class="font-bold text-sm">{editingSessionId !== null ? $_('common.edit') : $_('book.addPastReading')}</h3>
 					<button type="button" class="btn btn-ghost btn-xs btn-circle" onclick={() => (addSessionOpen = false)} aria-label={$_('common.close')}><X class="w-4 h-4" /></button>
 				</div>
 				<div class="p-4 flex flex-col gap-3">

@@ -20,6 +20,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.models import Book, ReadingProgress, ReadingSession, ReadingStatus
@@ -48,12 +49,21 @@ def session_counts(session: Session, book_ids: list[int]) -> dict[int, dict[str,
 
 
 def sessions_for_book(session: Session, book_id: int) -> list[ReadingSession]:
-    """Return all sessions of a book, newest first (by created_at, then id)."""
+    """Return all sessions of a book, ordered by reading date (latest first).
+
+    The reading date is ``date_finished`` when set, else ``date_started``.
+    Sessions without any date sort last. This is the ordering every "latest
+    session" consumer relies on, so a past read added later (newer ``created_at``
+    but older dates) never displaces the book's actual most recent read.
+    """
+    reading_date = func.coalesce(
+        ReadingSession.date_finished, ReadingSession.date_started
+    )
     return list(
         session.exec(
             select(ReadingSession)
             .where(ReadingSession.book_id == book_id)
-            .order_by(col(ReadingSession.created_at).desc(), col(ReadingSession.id).desc())
+            .order_by(reading_date.desc().nullslast(), col(ReadingSession.id).desc())
         ).all()
     )
 
@@ -247,12 +257,22 @@ def reconcile_book_sessions(session: Session, book: Book) -> None:
             current.is_current = False
             session.add(current)
         else:
+            # No open session. Find the book's latest completed session of the
+            # same status and update only if the dates actually changed, so an
+            # unrelated edit (e.g. rating) is a no-op and never rewrites history.
             sessions = sessions_for_book(session, book.id)
-            latest = sessions[0] if sessions else None
-            if latest is not None and latest.status == book.reading_status:
-                latest.date_started = book.date_started
-                latest.date_finished = book.date_finished
-                session.add(latest)
+            latest = next(
+                (s for s in sessions if s.status == book.reading_status),
+                None,
+            )
+            if latest is not None:
+                if (
+                    latest.date_started != book.date_started
+                    or latest.date_finished != book.date_finished
+                ):
+                    latest.date_started = book.date_started
+                    latest.date_finished = book.date_finished
+                    session.add(latest)
             else:
                 session.add(
                     ReadingSession(

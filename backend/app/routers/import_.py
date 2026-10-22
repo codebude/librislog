@@ -19,6 +19,7 @@ from app.services import book_import
 from app.services.authors import resolve_authors_payload, sync_book_authors
 from app.services.cover_import import is_safe_cover_import_url
 from app.services.cover_storage import download_cover
+from app.services.reading_sessions import create_initial_session
 from app.services.tags import build_book_read, sync_book_tags
 
 logger = logging.getLogger(__name__)
@@ -169,6 +170,7 @@ async def import_book(
     except IntegrityError as exc:
         session.rollback()
         _raise_integrity_conflict(exc)
+    create_initial_session(session, book)
     sync_book_tags(session, current_user.id, book.id or 0, c.tags)
     names = resolve_authors_payload(c.author, c.authors) or []
     sync_book_authors(session, current_user.id, book.id or 0, names)

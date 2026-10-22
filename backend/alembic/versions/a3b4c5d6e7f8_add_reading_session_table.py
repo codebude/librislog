@@ -72,11 +72,10 @@ def upgrade() -> None:
         sa.text("SELECT id, user_id, reading_status, date_started, date_finished FROM book")
     ).fetchall()
     for book_id, user_id, status, date_started, date_finished in books:
-        has_progress = bind.execute(
-            sa.text("SELECT 1 FROM reading_progress WHERE book_id = :bid LIMIT 1"),
-            {"bid": book_id},
-        ).first()
-        if status == 'want_to_read' and date_started is None and date_finished is None and not has_progress:
+        # want_to_read books never get a session: their (legacy) progress stays
+        # unassigned and continues through the book-level statistics path, so
+        # their numbers do not change on upgrade.
+        if status == 'want_to_read':
             continue
 
         session_status = _session_status(status, date_started, date_finished)

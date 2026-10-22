@@ -304,7 +304,10 @@ class ReadingProgress(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     book_id: int = Field(foreign_key="book.id", index=True)
     user_id: int = Field(foreign_key="user.id", index=True)
-    session_id: Optional[int] = Field(default=None, foreign_key="reading_session.id", index=True)
+    # Note: no FK to reading_session here. SQLite cannot add a FOREIGN KEY via
+    # ALTER TABLE, and this project does not enforce FKs at the SQLite level, so
+    # the relationship is maintained in the application layer only.
+    session_id: Optional[int] = Field(default=None, index=True)
     page: int = Field(ge=0)
     created_at: datetime = Field(
         default_factory=utcnow,
