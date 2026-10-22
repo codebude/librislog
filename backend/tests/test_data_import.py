@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.config import settings
-from app.models import AcquisitionStatus, Book, ReadingSession, ReadingStatus, User, UserRole
+from app.models import AcquisitionStatus, Book, ReadingStatus, User, UserRole
 from app.schemas import ImportFieldConfig
 from app.services import data_import as di
 from app.services.authors import authors_list_for_book, sync_book_authors
@@ -981,112 +981,6 @@ async def test_execute_import_full_library_json_round_trip(
         assert _serialize_datetime(book.date_finished) == row["date_finished"]
         assert authors_list_for_book(session, book.id) == row["authors"]
         assert tags_list_for_book(session, book.id) == row["tags"]
-
-
-@pytest.mark.anyio
-async def test_execute_import_round_trips_reading_sessions(
-    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
-    """Re-read history must survive a JSON export/import round-trip."""
-    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
-    user = _create_test_user(session)
-    user_id = _require(user.id)
-
-    book = Book(
-        title="Re-read Me",
-        page_count=300,
-        reading_status=ReadingStatus.read,
-        acquisition_status=AcquisitionStatus.owned,
-        date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
-        date_finished=datetime(2024, 1, 10, tzinfo=timezone.utc),
-        user_id=user.id,
-    )
-    session.add(book)
-    session.flush()
-    book_id = _require(book.id)
-
-    # Two sessions: the original read and a second (re-)read.
-    session.add(
-        ReadingSession(
-            book_id=book_id,
-            user_id=user_id,
-            status=ReadingStatus.read,
-            date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            date_finished=datetime(2024, 1, 10, tzinfo=timezone.utc),
-            is_current=False,
-        )
-    )
-    session.add(
-        ReadingSession(
-            book_id=book_id,
-            user_id=user_id,
-            status=ReadingStatus.read,
-            date_started=datetime(2026, 5, 1, tzinfo=timezone.utc),
-            date_finished=datetime(2026, 5, 8, tzinfo=timezone.utc),
-            is_current=False,
-        )
-    )
-    session.commit()
-
-    zip_bytes, _ = build_export_zip(session, user, ["books"], "json", settings.covers_dir)
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        exported_rows = json.loads(zf.read("books.json"))
-    assert len(exported_rows) == 1
-    assert exported_rows[0]["sessions"] == [
-        {
-            "status": "read",
-            "date_started": "2024-01-01T00:00:00Z",
-            "date_finished": "2024-01-10T00:00:00Z",
-        },
-        {
-            "status": "read",
-            "date_started": "2026-05-01T00:00:00Z",
-            "date_finished": "2026-05-08T00:00:00Z",
-        },
-    ]
-
-    # Remove the source book and its sessions.
-    for s in session.exec(select(ReadingSession).where(ReadingSession.book_id == book_id)).all():
-        session.delete(s)
-    session.delete(book)
-    session.commit()
-
-    file_id = "roundtrip_sessions"
-    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"rows": exported_rows, "source_fields": list(exported_rows[0].keys())})
-    )
-
-    mapping = {
-        field: ImportFieldConfig(source=field)
-        for field in (
-            "title",
-            "page_count",
-            "reading_status",
-            "acquisition_status",
-            "date_started",
-            "date_finished",
-            "sessions",
-        )
-    }
-    events = []
-    async for event in di.execute_import(
-        file_id, user, mapping, session, "continue_on_error", require_acquisition_status=True
-    ):
-        events.append(event)
-    assert [e for e in events if e["event"] == "complete"][0]["imported"] == 1
-
-    imported = session.exec(select(Book).where(Book.user_id == user.id)).one()
-    sessions = list(
-        session.exec(select(ReadingSession).where(ReadingSession.book_id == imported.id)).all()
-    )
-    assert len(sessions) == 2
-    finished = sorted(s.date_finished for s in sessions)
-    assert finished == [
-        datetime(2024, 1, 10, tzinfo=timezone.utc),
-        datetime(2026, 5, 8, tzinfo=timezone.utc),
-    ]
 
 
 @pytest.mark.anyio

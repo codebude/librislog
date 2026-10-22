@@ -52,16 +52,12 @@ def _serialize_datetime(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _book_to_dict(
-    session: Session, book: Book, export_format: str, sessions: list[ReadingSession] | None = None
-) -> dict:
+def _book_to_dict(session: Session, book: Book, export_format: str) -> dict:
     """Convert a Book model to a flat export dict.
 
     JSON exports mirror the API shape: ``author`` is the joined string (using
     ``; `` so it round-trips through the adaptive import), ``authors`` is the
-    name list, and ``tags`` is a list of tag names. When *sessions* is provided
-    (JSON only), the book's reading sessions are embedded under ``sessions`` so
-    re-read history round-trips through the import. CSV has no list type: both
+    name list, and ``tags`` is a list of tag names. CSV has no list type: both
     the ``author`` and ``authors`` columns use ``; `` (so they round-trip
     through ``parse_authors``), and ``tags`` is a comma-separated string.
     """
@@ -70,7 +66,7 @@ def _book_to_dict(
     author_value = "; ".join(authors) if authors else None
     tags_value = tags if export_format == "json" else (", ".join(tags) if tags else None)
     authors_value = authors if export_format == "json" else ("; ".join(authors) if authors else None)
-    result = {
+    return {
         "title": book.title,
         "subtitle": book.subtitle,
         "author": author_value,
@@ -92,16 +88,6 @@ def _book_to_dict(
         "date_finished": _serialize_datetime(book.date_finished),
         "cover_url": book.cover_url,
     }
-    if export_format == "json" and sessions is not None:
-        result["sessions"] = [
-            {
-                "status": s.status.value,
-                "date_started": _serialize_datetime(s.date_started),
-                "date_finished": _serialize_datetime(s.date_finished),
-            }
-            for s in sessions
-        ]
-    return result
 
 
 def _progress_to_dict(entry: ReadingProgress, book_titles: dict[int, str]) -> dict:
@@ -204,25 +190,7 @@ def build_export_zip(
 
     book_titles = {book.id: book.title for book in books if book.id is not None}
 
-    # Group sessions per book in chronological order (oldest first) so the JSON
-    # book export can embed them and re-read history round-trips through import.
-    sessions_by_book: dict[int, list[ReadingSession]] = {}
-    for entry in sessions:
-        sessions_by_book.setdefault(entry.book_id, []).append(entry)
-    for book_sessions in sessions_by_book.values():
-        book_sessions.sort(
-            key=lambda s: (s.date_started or s.date_finished or datetime.min, s.id or 0)
-        )
-
-    books_rows = [
-        _book_to_dict(
-            session,
-            book,
-            export_format,
-            sessions_by_book.get(book.id) if export_format == "json" else None,
-        )
-        for book in books
-    ]
+    books_rows = [_book_to_dict(session, book, export_format) for book in books]
     progress_rows = [_progress_to_dict(entry, book_titles) for entry in progress_entries]
     session_rows = [_session_to_dict(entry, book_titles) for entry in sessions]
     tag_rows = [_tag_to_dict(tag, tag_counts) for tag in tags]
