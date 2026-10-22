@@ -581,7 +581,15 @@
 		<div class="px-4 pb-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
 			<div class="flex items-start justify-between gap-2">
 				<div class="text-sm text-base-content/70 min-w-0 break-words">{formatAuthors(book.authors, book.author ?? '-')}</div>
-				<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} shrink-0 whitespace-nowrap">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
+				<div class="flex items-center gap-2 shrink-0">
+					{#if (book.read_count ?? 0) >= 2}
+						<span
+							class="badge badge-sm badge-outline badge-primary"
+							title={$_('book.readCount', { values: { count: book.read_count } })}
+						>×{book.read_count}</span>
+					{/if}
+					<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} whitespace-nowrap">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
+				</div>
 			</div>
 
 			{#if showReadAgain}
