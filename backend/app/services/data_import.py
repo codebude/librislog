@@ -546,14 +546,22 @@ def _create_sessions_from_data(
         return create_initial_session(session, book)
 
     # Chronological order (oldest first); a date-less session sorts first.
-    parsed.sort(key=lambda t: (t[2] or t[1] or datetime.min, t[1] or datetime.min))
+    # Use an aware minimum so the comparison never mixes aware and naive datetimes.
+    _min = datetime.min.replace(tzinfo=timezone.utc)
+    parsed.sort(key=lambda t: (t[2] or t[1] or _min, t[1] or _min))
+
+    # The current session is the most recent open (currently_reading) session,
+    # not simply the last session overall (a date-less open session sorts first).
+    last_open_idx = max(
+        (i for i, (st, _ds, _df) in enumerate(parsed) if st == ReadingStatus.currently_reading),
+        default=-1,
+    )
 
     latest_completed: ReadingSession | None = None
     for idx, (status, ds, df) in enumerate(parsed):
         is_current = (
-            status == ReadingStatus.currently_reading
-            and idx == len(parsed) - 1
-            and book.reading_status == ReadingStatus.currently_reading
+            book.reading_status == ReadingStatus.currently_reading
+            and idx == last_open_idx
         )
         rs = ReadingSession(
             book_id=book.id,

@@ -1090,6 +1090,89 @@ async def test_execute_import_round_trips_reading_sessions(
 
 
 @pytest.mark.anyio
+async def test_execute_import_round_trips_open_session_without_dates(
+    session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """A currently_reading session without dates must round-trip without crashing
+    and must remain the current session."""
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    user = _create_test_user(session)
+    user_id = _require(user.id)
+
+    book = Book(
+        title="Open Read",
+        page_count=200,
+        reading_status=ReadingStatus.currently_reading,
+        acquisition_status=AcquisitionStatus.owned,
+        date_started=None,
+        date_finished=None,
+        user_id=user.id,
+    )
+    session.add(book)
+    session.flush()
+    book_id = _require(book.id)
+    # A completed read plus a date-less open (current) session.
+    session.add(
+        ReadingSession(
+            book_id=book_id,
+            user_id=user_id,
+            status=ReadingStatus.read,
+            date_started=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            date_finished=datetime(2024, 1, 10, tzinfo=timezone.utc),
+            is_current=False,
+        )
+    )
+    session.add(
+        ReadingSession(
+            book_id=book_id,
+            user_id=user_id,
+            status=ReadingStatus.currently_reading,
+            date_started=None,
+            date_finished=None,
+            is_current=True,
+        )
+    )
+    session.commit()
+
+    zip_bytes, _ = build_export_zip(session, user, ["books"], "json", settings.covers_dir)
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        exported_rows = json.loads(zf.read("books.json"))
+    assert len(exported_rows) == 1
+
+    # Remove the source book and its sessions.
+    for s in session.exec(select(ReadingSession).where(ReadingSession.book_id == book_id)).all():
+        session.delete(s)
+    session.delete(book)
+    session.commit()
+
+    file_id = "roundtrip_open"
+    path = di._temp_file_path(user.id, file_id)  # ty: ignore[invalid-argument-type]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"rows": exported_rows, "source_fields": list(exported_rows[0].keys())})
+    )
+
+    mapping = {
+        field: ImportFieldConfig(source=field)
+        for field in ("title", "page_count", "reading_status", "acquisition_status", "sessions")
+    }
+    events = []
+    async for event in di.execute_import(
+        file_id, user, mapping, session, "continue_on_error", require_acquisition_status=True
+    ):
+        events.append(event)
+    assert [e for e in events if e["event"] == "complete"][0]["imported"] == 1
+
+    imported = session.exec(select(Book).where(Book.user_id == user.id)).one()
+    imported_sessions = list(
+        session.exec(select(ReadingSession).where(ReadingSession.book_id == imported.id)).all()
+    )
+    assert len(imported_sessions) == 2
+    current = next(s for s in imported_sessions if s.is_current)
+    assert current.status == ReadingStatus.currently_reading
+
+
+@pytest.mark.anyio
 async def test_execute_import_preserves_date_added(
     session: Session, tmp_path: Path, monkeypatch: MonkeyPatch
 ) -> None:
