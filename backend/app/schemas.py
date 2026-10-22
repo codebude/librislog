@@ -594,7 +594,6 @@ class StatusTransitionRequest(SQLModel):
     skip_auto_date_started: bool = False
     clear_date_started: bool = False
     clear_date_finished: bool = False
-    start_new_session: bool = False
 
 
 class DateConflict(SQLModel):

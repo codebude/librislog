@@ -97,7 +97,6 @@ export interface StatusTransitionRequest {
 	skip_auto_date_started?: boolean;
 	clear_date_started?: boolean;
 	clear_date_finished?: boolean;
-	start_new_session?: boolean;
 }
 
 export interface DateConflict {

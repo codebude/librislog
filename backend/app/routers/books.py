@@ -25,6 +25,7 @@ from app.schemas import (
     StatusTransitionResponse,
     SuggestionList,
     TagCloudEntry,
+    TimelineSessionEntry,
 )
 from app.services.authors import (
     cleanup_orphan_authors,
@@ -39,7 +40,7 @@ from app.services.cover_storage import (
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
-from app.services.reading_sessions import create_initial_session, reconcile_book_sessions, session_counts
+from app.services.reading_sessions import assign_read_numbers, create_initial_session, reconcile_book_sessions, session_counts
 from app.services.search import _escape_like, apply_search_filter
 from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
@@ -498,6 +499,77 @@ async def create_book(
     session.commit()
     logger.info("Created book: %r (id=%s)", book.title, book.id)
     return build_book_read(session, book)
+
+
+@router.get("/sessions", response_model=List[TimelineSessionEntry])
+def list_completed_sessions(
+    limit: int = Query(default=40, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> List[TimelineSessionEntry]:
+    """Return completed reads (sessions) across the user's books, newest first.
+
+    Mounted here (in the books router, before ``/{book_id}``) so that the
+    account-level path ``/api/books/sessions`` always resolves to this handler
+    instead of being captured by the ``/{book_id}`` route, which would try to
+    parse ``"sessions"`` as an int and return 422. Do not move this route
+    below ``get_book``.
+    """
+    page_rows = session.exec(
+        select(ReadingSession, Book)
+        .join(Book, col(Book.id) == col(ReadingSession.book_id))
+        .where(
+            ReadingSession.user_id == current_user.id,
+            ReadingSession.status == ReadingStatus.read,
+            col(ReadingSession.date_finished).is_not(None),
+        )
+        .order_by(col(ReadingSession.date_finished).desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    page_book_ids = list({rs.book_id for rs, _ in page_rows})
+    all_rows = (
+        session.exec(
+            select(ReadingSession).where(
+                ReadingSession.user_id == current_user.id,
+                ReadingSession.status == ReadingStatus.read,
+                col(ReadingSession.date_finished).is_not(None),
+                col(ReadingSession.book_id).in_(page_book_ids),
+            )
+        ).all()
+        if page_book_ids
+        else []
+    )
+    per_book: dict[int, list[ReadingSession]] = {}
+    for rs in all_rows:
+        per_book.setdefault(rs.book_id, []).append(rs)
+    authors_map = load_authors_batch(session, page_book_ids)
+    read_numbers_by_book = {
+        book_id: assign_read_numbers(s_list) for book_id, s_list in per_book.items()
+    }
+
+    result: list[TimelineSessionEntry] = []
+    for rs, book in page_rows:
+        read_number = read_numbers_by_book.get(rs.book_id, {}).get(rs.id)
+        authors = authors_map.get(book.id, [])
+        result.append(
+            TimelineSessionEntry(
+                session_id=rs.id or 0,
+                book_id=book.id or 0,
+                title=book.title,
+                author=join_authors(authors),
+                authors=authors,
+                cover_url=book.cover_url,
+                rating=book.rating,
+                page_count=book.page_count,
+                date_finished=rs.date_finished,
+                read_number=read_number,
+                is_reread=read_number is not None and read_number >= 2,
+            )
+        )
+    return result
 
 
 @router.get("/{book_id}", response_model=BookRead)
