@@ -58,10 +58,6 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 - 🔁 **Full backup/restore upgraded.** Restoring a backup from an older LibrisLog release migrates the schema automatically (the new tables and columns are added on restore)
 - 🎯 **Date-conflict dialog gains a "Start a new read" action** for finished books moved back to "Currently reading", keeping the earlier reads in history
 
-**Bug fixes**
-- 📉 **Re-reading no longer corrupts page statistics.** Progress deltas are grouped per (book, session) instead of per book, so a restart at page 0 no longer produces negative deltas that get skipped
-- 🗑️ **Deleting the last session resets the book** to "want to read" and clears its progress log, so no orphaned progress entries remain
-
 **Breaking changes:** None. Existing installs keep working untouched: every book with a single session behaves and scores identically to before, and data migrates automatically on upgrade. Downgrading to a previous release drops re-read history (the `reading_session` table is removed).
 
 [Compare with v1.10.0](https://github.com/codebude/librislog/compare/v1.10.0...HEAD)

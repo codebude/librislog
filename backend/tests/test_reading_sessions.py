@@ -137,6 +137,29 @@ def test_deleting_last_session_clears_progress_log(client: TestClient) -> None:
     assert client.get(f"/api/books/{book['id']}/progress").json() == []
 
 
+def test_deleting_a_session_removes_its_progress_entries(client: TestClient) -> None:
+    """Progress entries attached to a deleted session must be removed with it."""
+    book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z", page_count=200)
+    client.post(f"/api/books/{book['id']}/progress", json={"page": 100})
+    client.post(f"/api/books/{book['id']}/progress", json={"page": 200})
+    assert len(client.get(f"/api/books/{book['id']}/progress").json()) == 2
+
+    # Add a re-read so there is a second session to keep.
+    _read_again(client, book["id"])
+    client.post(f"/api/books/{book['id']}/transition-status", json={"new_status": "read"})
+
+    # The first session (the 2024 read) owns the progress entries.
+    sessions = client.get(f"/api/books/{book['id']}/sessions").json()
+    first_session = next(s for s in sessions if s["date_finished"] == "2024-01-10T00:00:00Z")
+    client.delete(f"/api/books/{book['id']}/sessions/{first_session['id']}")
+
+    # The deleted session's progress must be gone; the re-read session has none.
+    remaining_progress = client.get(f"/api/books/{book['id']}/progress").json()
+    assert remaining_progress == []
+    book = client.get(f"/api/books/{book['id']}").json()
+    assert book["reading_status"] == "read"
+
+
 def test_unrelated_patch_does_not_change_sessions(client: TestClient) -> None:
     """Editing an unrelated field must never rewrite a reading session."""
     book = _create_book(client, reading_status="read", date_started="2024-01-01T00:00:00Z", date_finished="2024-01-10T00:00:00Z")
