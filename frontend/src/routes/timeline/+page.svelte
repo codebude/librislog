@@ -11,8 +11,13 @@
 	import BookDetailDialog from '#lib/components/BookDetailDialog.svelte';
 	import BookDrawer from '#lib/components/BookDrawer.svelte';
 
+	const PAGE_SIZE = 40;
+
 	let loading = $state(true);
+	let loadingMore = $state(false);
+	let hasMore = $state(true);
 	let entries = $state<TimelineSessionEntry[]>([]);
+	let nextOffset = $state(0);
 	let selectedBook = $state<Book | null>(null);
 	let detailOpen = $state(false);
 	let drawerOpen = $state(false);
@@ -27,7 +32,10 @@
 	async function loadTimeline() {
 		loading = true;
 		try {
-			entries = await api.books.sessions.completed();
+			const response = await api.books.sessions.completed(PAGE_SIZE, 0);
+			entries = response;
+			nextOffset = response.length;
+			hasMore = response.length === PAGE_SIZE;
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
@@ -36,6 +44,24 @@
 			entries = [];
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadMoreTimeline() {
+		if (loadingMore || loading || !hasMore) return;
+		loadingMore = true;
+		try {
+			const response = await api.books.sessions.completed(PAGE_SIZE, nextOffset);
+			entries = [...entries, ...response];
+			nextOffset += response.length;
+			hasMore = response.length === PAGE_SIZE;
+		} catch (e: unknown) {
+			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
+			if (shouldShowActionToast(msg)) {
+				toasts.add(msg, 'error');
+			}
+		} finally {
+			loadingMore = false;
 		}
 	}
 
@@ -198,6 +224,23 @@
 				</li>
 			{/each}
 		</ul>
+		{#if hasMore}
+			<div class="flex justify-center py-4">
+				<button
+					type="button"
+					class="btn btn-outline btn-sm"
+					disabled={loadingMore}
+					onclick={() => void loadMoreTimeline()}
+				>
+					{loadingMore ? $_('common.loadingEllipsis') : $_('common.loadMore')}
+				</button>
+			</div>
+		{/if}
+		{#if loadingMore}
+			<div class="flex justify-center py-4">
+				<span class="loading loading-spinner loading-md"></span>
+			</div>
+		{/if}
 	{/if}
 </div>
 

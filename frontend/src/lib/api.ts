@@ -523,8 +523,9 @@ export const api = {
 					body: JSON.stringify({ date_started: dateStarted ?? null })
 				});
 			},
-			completed(): Promise<TimelineSessionEntry[]> {
-				return request<TimelineSessionEntry[]>('/books/sessions');
+			completed(limit: number = 40, offset: number = 0): Promise<TimelineSessionEntry[]> {
+				const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+				return request<TimelineSessionEntry[]>(`/books/sessions?${qs.toString()}`);
 			}
 		},
 

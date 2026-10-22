@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, col, select
 
 from app.auth import require_user
@@ -72,11 +72,18 @@ def _to_session_reads(
 
 @router.get("/sessions", response_model=List[TimelineSessionEntry])
 def list_completed_sessions(
+    limit: int = Query(default=40, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ) -> List[TimelineSessionEntry]:
-    """Return every completed read (session) across the user's books, newest first."""
-    rows = session.exec(
+    """Return completed reads (sessions) across the user's books, newest first.
+
+    Paginated in chunks of ``limit`` (default 40) to keep the timeline page
+    light for large libraries; callers detect the end of the data by checking
+    whether the returned list has fewer than ``limit`` entries.
+    """
+    page_rows = session.exec(
         select(ReadingSession, Book)
         .join(Book, col(Book.id) == col(ReadingSession.book_id))
         .where(
@@ -85,7 +92,53 @@ def list_completed_sessions(
             col(ReadingSession.date_finished).is_not(None),
         )
         .order_by(col(ReadingSession.date_finished).desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
+
+    # Ordinals need the full completion set per book; fetch those (bounded by the
+    # number of distinct books on this page) without loading the whole library.
+    page_book_ids = list({rs.book_id for rs, _ in page_rows})
+    all_rows = (
+        session.exec(
+            select(ReadingSession).where(
+                ReadingSession.user_id == current_user.id,
+                ReadingSession.status == ReadingStatus.read,
+                col(ReadingSession.date_finished).is_not(None),
+                col(ReadingSession.book_id).in_(page_book_ids),
+            )
+        ).all()
+        if page_book_ids
+        else []
+    )
+    per_book: dict[int, list[ReadingSession]] = {}
+    for rs in all_rows:
+        per_book.setdefault(rs.book_id, []).append(rs)
+    authors_map = load_authors_batch(session, page_book_ids)
+    read_numbers_by_book = {
+        book_id: assign_read_numbers(s_list) for book_id, s_list in per_book.items()
+    }
+
+    result: list[TimelineSessionEntry] = []
+    for rs, book in page_rows:
+        read_number = read_numbers_by_book.get(rs.book_id, {}).get(rs.id)
+        authors = authors_map.get(book.id, [])
+        result.append(
+            TimelineSessionEntry(
+                session_id=rs.id or 0,
+                book_id=book.id or 0,
+                title=book.title,
+                author=join_authors(authors),
+                authors=authors,
+                cover_url=book.cover_url,
+                rating=book.rating,
+                page_count=book.page_count,
+                date_finished=rs.date_finished,
+                read_number=read_number,
+                is_reread=read_number is not None and read_number >= 2,
+            )
+        )
+    return result
 
     per_book: dict[int, list[ReadingSession]] = {}
     for rs, _book in rows:

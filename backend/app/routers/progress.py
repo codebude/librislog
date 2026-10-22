@@ -4,6 +4,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.auth import require_user
@@ -174,6 +175,10 @@ def get_latest_progress_batch(
     *that* session is returned, so a re-read correctly shows 0 % while the
     previous session's entries stay separate. Books without a current session
     fall back to the latest page across all entries (legacy behaviour).
+
+    Implemented with a SQL window function so only the latest entry per
+    ``(book, session)`` is materialized; the per-book selection of the current
+    session (or the overall latest) happens in Python over that small result set.
     """
     ids = [int(i.strip()) for i in book_ids.split(",") if i.strip()]
     if not ids:
@@ -189,32 +194,51 @@ def get_latest_progress_batch(
         ).all()
     }
 
-    entries = list(
+    # Latest entry per (book_id, session_id), computed in SQL.
+    rn = func.row_number().over(
+        partition_by=[col(ReadingProgress.book_id), col(ReadingProgress.session_id)],
+        order_by=col(ReadingProgress.created_at).desc(),
+    )
+    subq = (
+        select(
+            ReadingProgress.book_id.label("book_id"),
+            ReadingProgress.session_id.label("session_id"),
+            ReadingProgress.page.label("page"),
+            ReadingProgress.created_at.label("created_at"),
+            rn.label("rn"),
+        )
+        .where(
+            col(ReadingProgress.book_id).in_(ids),
+            ReadingProgress.user_id == current_user.id,
+        )
+        .subquery()
+    )
+    latest_per_session = list(
         session.exec(
-            select(ReadingProgress)
-            .where(
-                col(ReadingProgress.book_id).in_(ids),
-                ReadingProgress.user_id == current_user.id,
+            select(subq.c.book_id, subq.c.session_id, subq.c.page, subq.c.created_at).where(
+                subq.c.rn == 1
             )
-            .order_by(col(ReadingProgress.created_at))
         ).all()
     )
 
-    latest_by_book_session: dict[tuple[int, int | None], ReadingProgress] = {}
-    for entry in entries:
-        key = (entry.book_id, entry.session_id)
-        prev = latest_by_book_session.get(key)
-        if prev is None or entry.created_at >= prev.created_at:
-            latest_by_book_session[key] = entry
-
-    results: list[ReadingProgressLatest] = []
-    for book_id in ids:
+    # For each book, prefer the current session's latest entry; otherwise the
+    # latest entry across all sessions of the book.
+    best_by_book: dict[int, tuple[datetime, int]] = {}
+    for row in latest_per_session:
+        book_id = row[0]
+        sid = row[1]
+        page = row[2]
+        created_at = row[3]
         current_sid = current_sessions.get(book_id)
         if current_sid is not None:
-            latest = latest_by_book_session.get((book_id, current_sid))
+            if sid == current_sid:
+                best_by_book[book_id] = (created_at, page)
         else:
-            candidates = [e for e in entries if e.book_id == book_id]
-            latest = max(candidates, key=lambda e: e.created_at) if candidates else None
-        if latest is not None:
-            results.append(ReadingProgressLatest(book_id=book_id, current_page=latest.page))
-    return results
+            prev = best_by_book.get(book_id)
+            if prev is None or created_at > prev[0]:
+                best_by_book[book_id] = (created_at, page)
+
+    return [
+        ReadingProgressLatest(book_id=book_id, current_page=page)
+        for book_id, (_created_at, page) in best_by_book.items()
+    ]
