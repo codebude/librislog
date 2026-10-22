@@ -266,7 +266,31 @@ def parse_upload(content: bytes, filename: str, user_id: int, delimiter: str = "
     if len(content) > settings.max_import_file_size_mb * 1024 * 1024:
         raise ValueError("error.importFileTooLarge")
 
+    # A LibrisLog export ZIP wraps books.json (or books.csv) plus other
+    # datasets and covers. Unpack it and import the books dataset so users can
+    # re-import a whole export archive instead of extracting the file first.
     lower = filename.lower()
+    if lower.endswith(".zip"):
+        import io
+        import zipfile
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                names = zf.namelist()
+                inner_name = None
+                if "books.json" in names:
+                    inner_name = "books.json"
+                elif "books.csv" in names:
+                    inner_name = "books.csv"
+                else:
+                    raise ValueError("error.importZipMissingBooksDataset")
+                inner_content = zf.read(inner_name)
+        except zipfile.BadZipFile as exc:
+            raise ValueError("error.importInvalidZipFile") from exc
+        content = inner_content
+        filename = inner_name
+        lower = filename.lower()
+
     sheet: str | None = None
     if lower.endswith(".csv"):
         if len(delimiter) != 1:

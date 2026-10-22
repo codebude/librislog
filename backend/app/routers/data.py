@@ -105,9 +105,11 @@ async def parse_import_file(
         "text/plain",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.ms-excel.sheet.macroEnabled.12",
+        "application/zip",
+        "application/x-zip-compressed",
     }
     filename = file.filename or "upload"
-    allowed_extensions = (".csv", ".json", ".xlsx", ".xlsm")
+    allowed_extensions = (".csv", ".json", ".xlsx", ".xlsm", ".zip")
     extension_ok = filename.lower().endswith(allowed_extensions)
     if file.content_type and file.content_type not in allowed_content_types and not extension_ok:
         raise HTTPException(

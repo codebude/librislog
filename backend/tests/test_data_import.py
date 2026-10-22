@@ -2057,3 +2057,27 @@ def test_bookstats_predefined_mapping_transforms() -> None:
     assert mapped["date_started"] == "2020-12-28"
     assert mapped["date_finished"] == ""
     assert mapped["date_added"] == "2020-12-28"
+
+
+def test_parse_upload_accepts_librislog_zip(client: TestClient, monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    """A LibrisLog export ZIP can be uploaded directly and unpacks books.json."""
+    import io
+    import zipfile
+    from app.services.data_export import build_export_zip
+    from app.models import User, Book, ReadingStatus
+    from sqlmodel import Session, select
+
+    # Build a minimal ZIP via the export service using a fresh session-less user.
+    # Reuse the test client's session by creating a book first.
+    resp = client.post("/api/books", json={"title": "Zip Book", "author": "A", "page_count": 100})
+    assert resp.status_code == 201
+
+    # Export via the API to get a real ZIP.
+    export_resp = client.post("/api/data/export", json={"datasets": ["books"], "format": "json"})
+    assert export_resp.status_code == 200
+
+    monkeypatch.setattr(settings, "import_temp_dir", str(tmp_path))
+    parsed = di.parse_upload(export_resp.content, "export.zip", 1)
+    assert parsed["format"] == "json"
+    assert "title" in parsed["source_fields"]
+    assert parsed["row_count"] == 1

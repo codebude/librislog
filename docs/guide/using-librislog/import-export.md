@@ -88,6 +88,7 @@ Import data from external sources:
 - **JSON** — LibrisLog export format
 - **CSV** — Custom field mapping supported
 - **Excel (XLSX)**: Custom field mapping supported
+- **ZIP** — A LibrisLog export archive; the wizard unpacks `books.json` (or `books.csv`) automatically, so a whole export can be uploaded without extracting it first
 
 The JSON export mirrors the API shape: `author` is the joined string (separated with `; `), `authors` is the list of names, and `tags` is a list of tag names. All three round-trip through the adaptive import.
 
