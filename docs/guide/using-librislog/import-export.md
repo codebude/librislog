@@ -66,6 +66,8 @@ Choose which data to include:
 
 Reading sessions (re-read history) are embedded in the JSON book export, so a JSON export round-trips losslessly: re-importing `books.json` recreates each book's reading sessions. The CSV format cannot represent nested sessions, so re-read history does **not** round-trip through a CSV export/import; a CSV export only carries the flat `sessions` dataset as a book-ID-referenced audit view. For full fidelity of re-read history, use the JSON export or [backup and restore](./administration), which copies the whole database.
 
+The reading progress entries are exported as a flat dataset (with the `session_id` of each entry) for auditing, but the import wizard does **not** recreate the full page-by-page progress history: it only creates a single "read to the end" entry when the "create progress for read" option is enabled. Full progress history (and its per-session linkage) is preserved only through [backup and restore](./administration).
+
 **Older exports and backups:** A JSON export or a full backup made with an older LibrisLog version (before reading sessions) imports fine. Each imported book gets a single reading session derived from its start/finish dates, and the existing statistics, timeline and progress behave exactly as before. Full backups created by older releases are migrated automatically when restored (the schema is upgraded on restore).
 
 ### Export Process
