@@ -54,7 +54,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 **Improvements**
 - 🛡️ **Session-aware progress and statistics.** Pages-per-month and pages-per-day no longer discard a re-read's pages as negative deltas (a long-standing bug where a restart at page 0 made every later delta negative)
-- 📦 **Export/import keeps re-read history.** The JSON book export embeds each book's sessions; re-importing `books.json` recreates them. Reading sessions are also exported as a flat `sessions` dataset for auditing. CSV cannot represent nested sessions, so re-read history round-trips only through the JSON export or full backup/restore
+- 📦 **Export includes a `sessions` dataset.** Re-read history is exported as a flat, book-ID-referenced `sessions` dataset (for auditing and third-party tools). Full re-read history is preserved through [backup and restore](/guide/using-librislog/administration), which copies the whole database
 - 🔁 **Full backup/restore upgraded.** Restoring a backup from an older LibrisLog release migrates the schema automatically (the new tables and columns are added on restore)
 - 🎯 **Date-conflict dialog gains a "Start a new read" action** for finished books moved back to "Currently reading", keeping the earlier reads in history
 
