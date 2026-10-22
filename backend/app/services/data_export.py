@@ -211,10 +211,7 @@ def build_export_zip(
         sessions_by_book.setdefault(entry.book_id, []).append(entry)
     for book_sessions in sessions_by_book.values():
         book_sessions.sort(
-            key=lambda s: (
-                s.date_started or s.date_finished or datetime.min.replace(tzinfo=timezone.utc),
-                s.id or 0,
-            )
+            key=lambda s: (s.date_started or s.date_finished or datetime.min, s.id or 0)
         )
 
     books_rows = [
