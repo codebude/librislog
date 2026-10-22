@@ -233,7 +233,9 @@ def test_completed_sessions_timeline_endpoint(client: TestClient) -> None:
 
     resp = client.get("/api/books/sessions")
     assert resp.status_code == 200
-    rows = resp.json()
+    data = resp.json()
+    assert data["total"] == 2
+    rows = data["entries"]
     assert len(rows) == 2
     reread_rows = [r for r in rows if r["is_reread"]]
     assert len(reread_rows) == 1

@@ -235,6 +235,12 @@ class TimelineSessionEntry(SQLModel):
     is_reread: bool = False
 
 
+class TimelineSessionListResponse(BaseModel):
+    """Paginated completed-reading-session list with a total count."""
+    entries: list[TimelineSessionEntry]
+    total: int
+
+
 class BookListResponse(BaseModel):
     """Paginated book list with total count."""
     books: list[BookRead]

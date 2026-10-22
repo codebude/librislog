@@ -403,6 +403,11 @@ export interface TimelineSessionEntry {
 	is_reread: boolean;
 }
 
+export interface TimelineSessionListResponse {
+	entries: TimelineSessionEntry[];
+	total: number;
+}
+
 /** Search sources the backend can report progress for. */
 export type ImportSource =
 	| 'open_library'

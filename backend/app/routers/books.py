@@ -26,6 +26,7 @@ from app.schemas import (
     SuggestionList,
     TagCloudEntry,
     TimelineSessionEntry,
+    TimelineSessionListResponse,
 )
 from app.services.authors import (
     cleanup_orphan_authors,
@@ -501,13 +502,13 @@ async def create_book(
     return build_book_read(session, book)
 
 
-@router.get("/sessions", response_model=List[TimelineSessionEntry])
+@router.get("/sessions", response_model=TimelineSessionListResponse)
 def list_completed_sessions(
     limit: int = Query(default=40, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> List[TimelineSessionEntry]:
+) -> TimelineSessionListResponse:
     """Return completed reads (sessions) across the user's books, newest first.
 
     Mounted here (in the books router, before ``/{book_id}``) so that the
@@ -516,6 +517,14 @@ def list_completed_sessions(
     parse ``"sessions"`` as an int and return 422. Do not move this route
     below ``get_book``.
     """
+    total = session.exec(
+        select(func.count()).select_from(ReadingSession).where(
+            ReadingSession.user_id == current_user.id,
+            ReadingSession.status == ReadingStatus.read,
+            col(ReadingSession.date_finished).is_not(None),
+        )
+    ).one()
+
     page_rows = session.exec(
         select(ReadingSession, Book)
         .join(Book, col(Book.id) == col(ReadingSession.book_id))
@@ -569,7 +578,7 @@ def list_completed_sessions(
                 is_reread=read_number is not None and read_number >= 2,
             )
         )
-    return result
+    return TimelineSessionListResponse(entries=result, total=total)
 
 
 @router.get("/{book_id}", response_model=BookRead)

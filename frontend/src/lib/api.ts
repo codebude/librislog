@@ -54,7 +54,8 @@ import type {
 	ReadingSession,
 	ReadingSessionInput,
 	SessionMutationResponse,
-	TimelineSessionEntry
+	TimelineSessionEntry,
+	TimelineSessionListResponse
 } from './types';
 import { apiKey, csrfToken } from './stores/auth';
 import { get } from 'svelte/store';
@@ -523,9 +524,9 @@ export const api = {
 					body: JSON.stringify({ date_started: dateStarted ?? null })
 				});
 			},
-			completed(limit: number = 40, offset: number = 0): Promise<TimelineSessionEntry[]> {
+			completed(limit: number = 40, offset: number = 0): Promise<TimelineSessionListResponse> {
 				const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-				return request<TimelineSessionEntry[]>(`/books/sessions?${qs.toString()}`);
+				return request<TimelineSessionListResponse>(`/books/sessions?${qs.toString()}`);
 			}
 		},
 

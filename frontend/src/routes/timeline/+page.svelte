@@ -33,9 +33,9 @@
 		loading = true;
 		try {
 			const response = await api.books.sessions.completed(PAGE_SIZE, 0);
-			entries = response;
-			nextOffset = response.length;
-			hasMore = response.length === PAGE_SIZE;
+			entries = response.entries;
+			nextOffset = response.entries.length;
+			hasMore = nextOffset < response.total;
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
@@ -52,9 +52,9 @@
 		loadingMore = true;
 		try {
 			const response = await api.books.sessions.completed(PAGE_SIZE, nextOffset);
-			entries = [...entries, ...response];
-			nextOffset += response.length;
-			hasMore = response.length === PAGE_SIZE;
+			entries = [...entries, ...response.entries];
+			nextOffset += response.entries.length;
+			hasMore = nextOffset < response.total;
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: 'load' } });
 			if (shouldShowActionToast(msg)) {
