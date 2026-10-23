@@ -12,7 +12,7 @@ from sqlmodel import Session, col, func, select
 from app.auth import require_user
 from app.config import settings
 from app.database import get_session
-from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingStatus, Tag, User, UserSettings
+from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingSession, ReadingStatus, Tag, User, UserSettings
 from app.schemas import (
     BookCreate,
     BookListResponse,
@@ -25,6 +25,8 @@ from app.schemas import (
     StatusTransitionResponse,
     SuggestionList,
     TagCloudEntry,
+    TimelineSessionEntry,
+    TimelineSessionListResponse,
 )
 from app.services.authors import (
     cleanup_orphan_authors,
@@ -39,6 +41,7 @@ from app.services.cover_storage import (
 )
 from app.services.cover_import import import_cover_from_url, is_external_cover_url
 from app.services.quote_cache import get_or_fetch_dashboard_quote
+from app.services.reading_sessions import assign_read_numbers, create_initial_session, reconcile_book_sessions, session_counts
 from app.services.search import _escape_like, apply_search_filter
 from app.services.tags import build_book_read, cleanup_orphan_tags, load_tags_batch, sync_book_tags
 from app.time_utils import utcnow
@@ -260,12 +263,17 @@ def list_books(
     book_ids = [b.id for b in books if b.id is not None]
     book_tags_map = load_tags_batch(session, book_ids) if book_ids else {}
     book_authors_map = load_authors_batch(session, book_ids) if book_ids else {}
+    session_counts_map = session_counts(session, book_ids) if book_ids else {}
     book_reads: list[BookRead] = []
     for book in books:
         assert book.id is not None
-        book_reads.append(
-            _build_book_read_with_tags(book, book_tags_map.get(book.id), book_authors_map.get(book.id))
+        counts = session_counts_map.get(book.id, {})
+        book_read = _build_book_read_with_tags(
+            book, book_tags_map.get(book.id), book_authors_map.get(book.id)
         )
+        book_read.session_count = counts.get("session_count", 0)
+        book_read.read_count = counts.get("read_count", 0)
+        book_reads.append(book_read)
     return BookListResponse(
         books=book_reads,
         total=total,
@@ -488,8 +496,89 @@ async def create_book(
         session.rollback()
         _raise_integrity_conflict(exc)
     session.refresh(book)
+    create_initial_session(session, book)
+    session.commit()
     logger.info("Created book: %r (id=%s)", book.title, book.id)
     return build_book_read(session, book)
+
+
+@router.get("/sessions", response_model=TimelineSessionListResponse)
+def list_completed_sessions(
+    limit: int = Query(default=40, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> TimelineSessionListResponse:
+    """Return completed reads (sessions) across the user's books, newest first.
+
+    Mounted here (in the books router, before ``/{book_id}``) so that the
+    account-level path ``/api/books/sessions`` always resolves to this handler
+    instead of being captured by the ``/{book_id}`` route, which would try to
+    parse ``"sessions"`` as an int and return 422. Do not move this route
+    below ``get_book``.
+    """
+    total = session.exec(
+        select(func.count()).select_from(ReadingSession).where(
+            ReadingSession.user_id == current_user.id,
+            ReadingSession.status == ReadingStatus.read,
+            col(ReadingSession.date_finished).is_not(None),
+        )
+    ).one()
+
+    page_rows = session.exec(
+        select(ReadingSession, Book)
+        .join(Book, col(Book.id) == col(ReadingSession.book_id))
+        .where(
+            ReadingSession.user_id == current_user.id,
+            ReadingSession.status == ReadingStatus.read,
+            col(ReadingSession.date_finished).is_not(None),
+        )
+        .order_by(col(ReadingSession.date_finished).desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    page_book_ids = list({rs.book_id for rs, _ in page_rows})
+    all_rows = (
+        session.exec(
+            select(ReadingSession).where(
+                ReadingSession.user_id == current_user.id,
+                ReadingSession.status == ReadingStatus.read,
+                col(ReadingSession.date_finished).is_not(None),
+                col(ReadingSession.book_id).in_(page_book_ids),
+            )
+        ).all()
+        if page_book_ids
+        else []
+    )
+    per_book: dict[int, list[ReadingSession]] = {}
+    for rs in all_rows:
+        per_book.setdefault(rs.book_id, []).append(rs)
+    authors_map = load_authors_batch(session, page_book_ids)
+    read_numbers_by_book = {
+        book_id: assign_read_numbers(s_list) for book_id, s_list in per_book.items()
+    }
+
+    result: list[TimelineSessionEntry] = []
+    for rs, book in page_rows:
+        read_number = read_numbers_by_book.get(rs.book_id, {}).get(rs.id)
+        authors = authors_map.get(book.id, [])
+        result.append(
+            TimelineSessionEntry(
+                session_id=rs.id or 0,
+                book_id=book.id or 0,
+                title=book.title,
+                author=join_authors(authors),
+                authors=authors,
+                cover_url=book.cover_url,
+                rating=book.rating,
+                page_count=book.page_count,
+                date_finished=rs.date_finished,
+                read_number=read_number,
+                is_reread=read_number is not None and read_number >= 2,
+            )
+        )
+    return TimelineSessionListResponse(entries=result, total=total)
 
 
 @router.get("/{book_id}", response_model=BookRead)
@@ -586,6 +675,7 @@ async def update_book(
     except IntegrityError as exc:
         session.rollback()
         _raise_integrity_conflict(exc)
+    reconcile_book_sessions(session, book)
     if tags_provided:
         assert book.id is not None
         sync_book_tags(session, current_user.id, book.id, tags_raw)
@@ -738,6 +828,8 @@ def transition_status(
     )
     book.sqlmodel_update(update_data)
     session.add(book)
+    session.flush()
+    reconcile_book_sessions(session, book)
     session.commit()
     session.refresh(book)
     return StatusTransitionResponse(book=build_book_read(session, book), date_conflict=None)
@@ -773,6 +865,10 @@ def delete_book(
         select(ReadingProgress).where(ReadingProgress.book_id == book.id)
     ).all():
         session.delete(entry)
+    for reading_session in session.exec(
+        select(ReadingSession).where(ReadingSession.book_id == book.id)
+    ).all():
+        session.delete(reading_session)
     session.delete(book)
     cleanup_orphan_tags(session, current_user.id)
     cleanup_orphan_authors(session, current_user.id)

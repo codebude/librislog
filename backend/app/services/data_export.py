@@ -11,7 +11,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sqlmodel import Session, col, select
 
 from app._build_info import __git_sha__, __version__
-from app.models import Book, BookTag, ReadingProgress, Tag, User
+from app.models import Book, BookTag, ReadingProgress, ReadingSession, Tag, User
 from app.services.authors import authors_list_for_book
 from app.time_utils import utcnow
 from app.services.cover_storage import local_cover_filename, resolve_cover_path
@@ -40,7 +40,8 @@ BOOK_CSV_FIELDS: list[str] = [
     "cover_url",
 ]
 
-PROGRESS_CSV_FIELDS: list[str] = ["book_id", "book_title", "page", "created_at", "updated_at"]
+PROGRESS_CSV_FIELDS: list[str] = ["book_id", "book_title", "page", "created_at", "updated_at", "session_id"]
+SESSION_CSV_FIELDS: list[str] = ["session_id", "book_id", "book_title", "status", "date_started", "date_finished", "is_current", "created_at"]
 TAG_CSV_FIELDS: list[str] = ["id", "name", "book_count", "created_at"]
 
 
@@ -97,6 +98,21 @@ def _progress_to_dict(entry: ReadingProgress, book_titles: dict[int, str]) -> di
         "page": entry.page,
         "created_at": _serialize_datetime(entry.created_at),
         "updated_at": _serialize_datetime(entry.updated_at),
+        "session_id": entry.session_id,
+    }
+
+
+def _session_to_dict(entry: ReadingSession, book_titles: dict[int, str]) -> dict:
+    """Convert a ReadingSession to a flat export dict."""
+    return {
+        "session_id": entry.id,
+        "book_id": entry.book_id,
+        "book_title": book_titles.get(entry.book_id),
+        "status": entry.status.value,
+        "date_started": _serialize_datetime(entry.date_started),
+        "date_finished": _serialize_datetime(entry.date_finished),
+        "is_current": entry.is_current,
+        "created_at": _serialize_datetime(entry.created_at),
     }
 
 
@@ -152,6 +168,13 @@ def build_export_zip(
         ).all()
     )
     tags = list(session.exec(select(Tag).where(Tag.user_id == user.id)).all())
+    sessions = list(
+        session.exec(
+            select(ReadingSession)
+            .join(Book, col(Book.id) == col(ReadingSession.book_id))
+            .where(ReadingSession.user_id == user.id, Book.user_id == user.id)
+        ).all()
+    )
     tag_counts_rows = list(
         session.exec(
             select(BookTag.tag_id, BookTag.book_id)
@@ -169,12 +192,14 @@ def build_export_zip(
 
     books_rows = [_book_to_dict(session, book, export_format) for book in books]
     progress_rows = [_progress_to_dict(entry, book_titles) for entry in progress_entries]
+    session_rows = [_session_to_dict(entry, book_titles) for entry in sessions]
     tag_rows = [_tag_to_dict(tag, tag_counts) for tag in tags]
 
     counts = {
         "books": len(books_rows),
         "progress_entries": len(progress_rows),
         "tags": len(tag_rows),
+        "sessions": len(session_rows),
         "covers": 0,
     }
 
@@ -197,6 +222,12 @@ def build_export_zip(
                 zip_file.writestr("tags.json", json.dumps(tag_rows, indent=2))
             else:
                 zip_file.writestr("tags.csv", _dump_csv(tag_rows, TAG_CSV_FIELDS))
+
+        if "sessions" in datasets:
+            if export_format == "json":
+                zip_file.writestr("sessions.json", json.dumps(session_rows, indent=2))
+            else:
+                zip_file.writestr("sessions.csv", _dump_csv(session_rows, SESSION_CSV_FIELDS))
 
         if "covers" in datasets:
             covers_written = 0

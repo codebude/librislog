@@ -16,6 +16,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 | Version | Date | Type |
 |---|---|---|
+| [v1.11.0](#v1-11-0-reading-sessions-re-reads) | Unreleased | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
@@ -33,6 +34,33 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.11.0: Reading Sessions & Re-reads
+
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
+
+**Summary:** Books can now be read more than once. Each reading is tracked as its own session with independent start and finish dates, and a "Read again" action starts a fresh reading without overwriting earlier dates or progress. A reading history in the book detail dialog lets you add past reads and edit or delete individual sessions, progress restarts per session, and re-read books show a "read ×N" badge. Statistics now distinguish unique books from total completions (with a new "Total reads" card), and the timeline lists one row per completed read, marking re-reads. Data migrates automatically on upgrade.
+
+**Features**
+- 📖 **Multiple reading sessions per book.** Each book keeps a list of reading periods (start and finish dates) so re-reads never overwrite earlier dates. A new `reading_session` table stores them; `Book.date_started` / `Book.date_finished` remain a mirror of the current session, so every existing consumer (sorting, timeline, statistics, import/export) keeps working unchanged
+- 🔁 **"Read again" action.** A ghost button in the book detail dialog starts a new reading session for a finished book. Earlier sessions and their progress stay untouched, and the progress bar resets to 0 %
+- 📜 **Reading history.** A collapsible block in the book detail dialog lists every session (#, started, finished, status, pages) with per-row edit and delete, plus "Add a past reading" for back-filling handwritten history
+- 🏷️ **"read ×N" badge.** Cards, list rows and the book detail dialog show a small badge once a book has been read at least twice
+- 📊 **Statistics distinguish unique books from total completions.** A new "Total reads" card shows the number of completed reads (with a "N re-read books" sub-line). `books_finished_per_month/year`, the `books_per_month/year` goals, and `pages_read` now count every completion; "Pages read" in the bucket still counts each book once, so no single-session user sees any change
+- 📅 **Timeline lists one row per completed read**, with a "Reread" badge from the second read onward
+- 🔄 **Migration is automatic.** Existing books get one session from their dates; reading progress is linked to it. A book with a single session behaves bit-identically to before
+
+**Improvements**
+- 🛡️ **Session-aware progress and statistics.** Pages-per-month and pages-per-day no longer discard a re-read's pages as negative deltas (a long-standing bug where a restart at page 0 made every later delta negative)
+- 📦 **Export includes a `sessions` dataset.** Re-read history is exported as a flat, book-ID-referenced `sessions` dataset (for auditing and third-party tools). Full re-read history is preserved through [backup and restore](/guide/using-librislog/administration), which copies the whole database
+- 🔁 **Full backup/restore upgraded.** Restoring a backup from an older LibrisLog release migrates the schema automatically (the new tables and columns are added on restore)
+- 🎯 **Date-conflict dialog gains a "Start a new read" action** for finished books moved back to "Currently reading", keeping the earlier reads in history
+
+**Breaking changes:** None. Existing installs keep working untouched: every book with a single session behaves and scores identically to before, and data migrates automatically on upgrade. Downgrading to a previous release drops re-read history (the `reading_session` table is removed).
+
+[Compare with v1.10.0](https://github.com/codebude/librislog/compare/v1.10.0...HEAD)
 
 ---
 

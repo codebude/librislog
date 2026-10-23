@@ -97,16 +97,41 @@ def _recreate_engine() -> None:
     Called after restoring the database on disk so the app picks up the new data.
     Also runs pending alembic migrations for backward compatibility with backups
     created by older releases.
+
+    Tables are created directly (via ``SQLModel.metadata.create_all``) only for
+    *fresh* databases (no ``alembic_version`` row). For an older backup, the
+    tables already exist in the restored file and creating them again would
+    collide with the pending migrations (which ``CREATE``/``ALTER`` the same
+    objects), so we rely on alembic alone in that case.
     """
+    import sqlite3
+
     from app.database import create_engine as _create_engine
     from sqlmodel import SQLModel
     import app.database as db_mod
+
+    db_path = _extract_db_path(settings.database_url)
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'"
+        )
+        table_exists = cursor.fetchone() is not None
+        fresh = True
+        if table_exists:
+            row_count = conn.execute("SELECT COUNT(*) FROM alembic_version").fetchone()[0]
+            if row_count > 0:
+                fresh = False
+    finally:
+        conn.close()
+
     new_engine = _create_engine(
         settings.database_url,
         connect_args={"check_same_thread": False},
     )
-    SQLModel.metadata.create_all(new_engine)
-    _stamp_alembic_head_if_fresh()
+    if fresh:
+        SQLModel.metadata.create_all(new_engine)
+        _stamp_alembic_head_if_fresh()
     _run_alembic_migrations()
     db_mod.engine = new_engine
 

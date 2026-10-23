@@ -70,6 +70,13 @@
 		{$_(STATUS_LABEL_KEYS[book.reading_status])}
 	</span>
 
+	{#if (book.read_count ?? 0) >= 2}
+		<span
+			class="badge badge-sm badge-outline badge-primary shrink-0 hidden sm:inline-flex"
+			title={$_('book.readCount', { values: { count: book.read_count } })}
+		>×{book.read_count}</span>
+	{/if}
+
 	{#if progressPercent > 0}
 		<div class="hidden sm:flex flex-col shrink-0 w-24">
 			<span class="text-[10px] font-medium text-primary leading-none mb-1">{progressPercent}%</span>

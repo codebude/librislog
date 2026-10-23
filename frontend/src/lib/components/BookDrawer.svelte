@@ -454,6 +454,22 @@
 			saving = false;
 		}
 	}
+
+	async function startNewReadFromConflict() {
+		if (!book) return;
+		try {
+			const result = await api.books.sessions.readAgain(book.id);
+			dateConflictOpen = false;
+			pendingStatus = null;
+			pendingPayload = null;
+			onSave?.(result.book);
+			open = false;
+			toasts.add($_('book.readAgain'), 'success', 2000);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.readAgain') } });
+			toasts.add(message, 'error');
+		}
+	}
 </script>
 
 {#if open && book}
@@ -656,6 +672,8 @@
 		field={conflictField}
 		existingDate={formatDate(conflictExistingDate, tz)}
 		suggestedDate={formatDate(conflictSuggestedDate, tz)}
+		rereadAvailable={(book.read_count ?? 0) >= 1 && (conflictField === 'date_started' || conflictField === 'started_after_finished')}
+		onReread={() => void startNewReadFromConflict()}
 		onCancel={() => {
 			dateConflictOpen = false;
 			pendingStatus = null;

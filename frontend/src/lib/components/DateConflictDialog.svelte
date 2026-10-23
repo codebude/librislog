@@ -8,7 +8,9 @@
 		suggestedDate,
 		onKeep,
 		onUseSuggested,
-		onCancel
+		onCancel,
+		onReread = undefined,
+		rereadAvailable = false
 	}: {
 		open?: boolean;
 		field?: 'date_started' | 'date_finished' | 'started_after_finished';
@@ -17,6 +19,8 @@
 		onKeep?: () => void;
 		onUseSuggested?: () => void;
 		onCancel?: () => void;
+		onReread?: () => void;
+		rereadAvailable?: boolean;
 	} = $props();
 
 	const typeKey = $derived(
@@ -64,12 +68,17 @@
 					{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
 					{#if typeKey === 'startedAfterFinished'}<sup>1</sup>{/if}
 				</button>
-				<button type="button" class="btn btn-primary btn-sm" onclick={onUseSuggested}>
+				<button type="button" class="btn btn-outline btn-sm" onclick={onUseSuggested}>
 					{$_(`dateConflict.${typeKey}.${useNewKey}`, { values: i18nValues })}
 					{#if typeKey === 'startedAfterFinished'}<sup>2</sup>{/if}
 				</button>
+				{#if rereadAvailable && onReread}
+					<button type="button" class="btn btn-primary btn-sm" onclick={onReread}>
+						{$_('dateConflict.startNewRead')}
+					</button>
+				{/if}
 			</div>
-			{#if typeKey === 'startedAfterFinished'}
+			{#if typeKey === 'startedAfterFinished' && !(rereadAvailable && onReread)}
 				<div class="border-t border-base-200 pt-3 mt-2 text-xs text-base-content/50 space-y-1">
 					<p><sup>1</sup> {$_(`dateConflict.${typeKey}.keepDesc`, { values: i18nValues })}</p>
 					<p><sup>2</sup> {$_(`dateConflict.${typeKey}.clearDesc`, { values: i18nValues })}</p>

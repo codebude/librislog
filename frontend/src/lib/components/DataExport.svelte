@@ -12,6 +12,7 @@
 		{ value: 'books', label: 'data.export.datasets.books' },
 		{ value: 'progress', label: 'data.export.datasets.progress' },
 		{ value: 'tags', label: 'data.export.datasets.tags' },
+		{ value: 'sessions', label: 'data.export.datasets.sessions' },
 		{ value: 'covers', label: 'data.export.datasets.covers' }
 	];
 

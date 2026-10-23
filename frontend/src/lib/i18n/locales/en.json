@@ -74,7 +74,9 @@
     "noRating": "No rating",
     "topRated": "Top Rated",
     "worstRated": "Worst Rated",
-    "showMore": "Show more"
+    "showMore": "Show more",
+    "totalReads": "Total reads",
+    "rereadBooks": "Reread books"
   },
   "dashboard": {
     "title": "Reading Dashboard",
@@ -213,7 +215,17 @@
     "progressPromptSkip": "Skip",
     "authorsPlaceholder": "Type an author and press Enter",
     "authorsLabel": "Author(s)",
-    "authorsHint": "Press Enter to add authors. Backspace removes the last author."
+    "authorsHint": "Press Enter to add authors. Backspace removes the last author.",
+    "readAgain": "Read again",
+    "startAgain": "Start again",
+    "readingHistory": "Reading history",
+    "addPastReading": "Add a past reading",
+    "sessionStarted": "Started",
+    "sessionFinished": "Finished",
+    "sessionReread": "Reread",
+    "sessionDeleteConfirm": "Delete this reading session and its progress entries?",
+    "sessionDelete": "Delete session",
+    "readCount": "Read {count, plural, one {1 time} other {# times}}"
   },
   "addModal": {
     "manual": "Manual",
@@ -345,7 +357,8 @@
       "clearAndStart": "Clear finish date & start today",
       "keepDesc": "Keeps the finish date ({finishedDate}) and does not set a start date.",
       "clearDesc": "Removes the finish date and sets today ({newStartDate}) as the start date."
-    }
+    },
+    "startNewRead": "Start a new read (keeps your earlier reads)"
   },
   "acquisition": {
     "owned": "Owned",
@@ -703,7 +716,8 @@
     "subtitle": "A chronological view of books you've finished reading",
     "viewInLibrary": "View all in library",
     "noReadBooks": "No finished books in your library yet.",
-    "goToLibrary": "Go to library"
+    "goToLibrary": "Go to library",
+    "reread": "Reread"
   },
   "data": {
     "title": "Data Management",
@@ -719,7 +733,8 @@
         "books": "Books",
         "progress": "Reading progress",
         "tags": "Tags",
-        "covers": "Cover files"
+        "covers": "Cover files",
+        "sessions": "Reading sessions"
       },
       "button": "Export data",
       "exporting": "Exporting...",
