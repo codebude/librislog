@@ -225,7 +225,8 @@
     "sessionReread": "Relu",
     "sessionDeleteConfirm": "Supprimer cette session de lecture et ses entrées de progression ?",
     "sessionDelete": "Supprimer la session",
-    "readCount": "Lu {count, plural, one {1 fois} other {# fois}}"
+    "readCount": "Lu {count, plural, one {1 fois} other {# fois}}",
+    "datesManagedBySessions": "Géré via les sessions de lecture"
   },
   "addModal": {
     "manual": "Manuel",

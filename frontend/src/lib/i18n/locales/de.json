@@ -225,7 +225,8 @@
     "sessionReread": "Erneut gelesen",
     "sessionDeleteConfirm": "Diese Lesesitzung und ihre Fortschrittseinträge löschen?",
     "sessionDelete": "Sitzung löschen",
-    "readCount": "{count, plural, one {1 Mal} other {# Mal}} gelesen"
+    "readCount": "{count, plural, one {1 Mal} other {# Mal}} gelesen",
+    "datesManagedBySessions": "Wird über Lesesitzungen verwaltet"
   },
   "addModal": {
     "manual": "Manuell",

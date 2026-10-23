@@ -225,7 +225,8 @@
     "sessionReread": "重读",
     "sessionDeleteConfirm": "删除此阅读会话及其进度记录？",
     "sessionDelete": "删除会话",
-    "readCount": "阅读 {count} 次"
+    "readCount": "阅读 {count} 次",
+    "datesManagedBySessions": "通过阅读会话管理"
   },
   "addModal": {
     "manual": "手动添加",

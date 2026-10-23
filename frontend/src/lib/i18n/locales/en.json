@@ -225,7 +225,8 @@
     "sessionReread": "Reread",
     "sessionDeleteConfirm": "Delete this reading session and its progress entries?",
     "sessionDelete": "Delete session",
-    "readCount": "Read {count, plural, one {1 time} other {# times}}"
+    "readCount": "Read {count, plural, one {1 time} other {# times}}",
+    "datesManagedBySessions": "Managed via reading sessions"
   },
   "addModal": {
     "manual": "Manual",
