@@ -60,25 +60,35 @@
 		<div class="modal-box max-w-md">
 			<h3 class="text-lg font-bold">{$_(`dateConflict.${typeKey}.title`)}</h3>
 			<p class="text-sm text-base-content/70 mt-2">
-				{$_(`dateConflict.${typeKey}.message`, { values: i18nValues })}
+				{#if existingDate === suggestedDate && typeKey !== 'startedAfterFinished'}
+					{$_(`dateConflict.${typeKey}.messageSame`, { values: { date: existingDate } })}
+				{:else}
+					{$_(`dateConflict.${typeKey}.message`, { values: i18nValues })}
+				{/if}
 			</p>
-			<div class="modal-action">
+			<div class="modal-action flex-col sm:flex-row">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={onCancel}>{$_('common.cancel')}</button>
-				<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
-					{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
-					{#if typeKey === 'startedAfterFinished'}<sup>1</sup>{/if}
-				</button>
-				<button type="button" class="btn btn-outline btn-sm" onclick={onUseSuggested}>
-					{$_(`dateConflict.${typeKey}.${useNewKey}`, { values: i18nValues })}
-					{#if typeKey === 'startedAfterFinished'}<sup>2</sup>{/if}
-				</button>
+				{#if existingDate === suggestedDate && typeKey !== 'startedAfterFinished'}
+					<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
+						{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
+					</button>
+				{:else}
+					<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
+						{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
+						{#if typeKey === 'startedAfterFinished'}<sup>1</sup>{/if}
+					</button>
+					<button type="button" class="btn btn-outline btn-sm" onclick={onUseSuggested}>
+						{$_(`dateConflict.${typeKey}.${useNewKey}`, { values: i18nValues })}
+						{#if typeKey === 'startedAfterFinished'}<sup>2</sup>{/if}
+					</button>
+				{/if}
 				{#if rereadAvailable && onReread}
 					<button type="button" class="btn btn-primary btn-sm" onclick={onReread}>
 						{$_('dateConflict.startNewRead')}
 					</button>
 				{/if}
 			</div>
-			{#if typeKey === 'startedAfterFinished' && !(rereadAvailable && onReread)}
+			{#if typeKey === 'startedAfterFinished'}
 				<div class="border-t border-base-200 pt-3 mt-2 text-xs text-base-content/50 space-y-1">
 					<p><sup>1</sup> {$_(`dateConflict.${typeKey}.keepDesc`, { values: i18nValues })}</p>
 					<p><sup>2</sup> {$_(`dateConflict.${typeKey}.clearDesc`, { values: i18nValues })}</p>

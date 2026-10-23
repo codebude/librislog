@@ -104,10 +104,9 @@
 				{$_(STATUS_LABEL_KEYS[book.reading_status])}
 			</span>
 			{#if (book.read_count ?? 0) >= 2}
-				<span
-					class="badge {compact ? 'badge-xs' : 'badge-sm'} badge-outline badge-primary shrink-0"
-					title={$_('book.readCount', { values: { count: book.read_count } })}
-				>×{book.read_count}</span>
+				<span class="tooltip tooltip-bottom" data-tip={$_('book.readCount', { values: { count: book.read_count } })}>
+					<span class="badge {compact ? 'badge-xs' : 'badge-sm'} badge-outline badge-primary shrink-0">×{book.read_count}</span>
+				</span>
 			{/if}
 		</div>
 	</div>
