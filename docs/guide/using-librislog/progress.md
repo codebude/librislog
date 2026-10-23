@@ -40,3 +40,5 @@ Books can be read more than once. Each reading is tracked as its own session wit
 
 - **Read again** (book detail dialog, for finished books): starts a fresh reading today, keeping all earlier sessions and progress untouched. Use this for a genuine re-read.
 - **Changing status from "read" to "currently reading"** (edit drawer): the legacy correction path. It can keep the previous finish date or clear it, and may leave the book in a "currently reading" state that still carries the old finish date. Use this only to correct a book's status, not to re-read it.
+
+For books that already have reading sessions, the start and finish dates are mirrors of the session and are read-only in the edit drawer; edit them via the reading history instead.
