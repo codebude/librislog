@@ -342,13 +342,15 @@
       "title": "Start date already set",
       "message": "Date started is already set. Do you want to keep {oldDate} or set {newDate} as the new date started?",
       "keepOld": "Keep {oldDate}",
-      "useNew": "Use {newDate}"
+      "useNew": "Use {newDate}",
+      "messageSame": "Date started is already set to {date}."
     },
     "finished": {
       "title": "Finish date already set",
       "message": "Date finished is already set. Do you want to keep {oldDate} or set {newDate} as the new date finished?",
       "keepOld": "Keep {oldDate}",
-      "useNew": "Use {newDate}"
+      "useNew": "Use {newDate}",
+      "messageSame": "Date finished is already set to {date}."
     },
     "startedAfterFinished": {
       "title": "Book was already finished",

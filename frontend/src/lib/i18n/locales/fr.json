@@ -342,13 +342,15 @@
       "title": "Date de début déjà définie",
       "message": "La date de début est déjà définie. Veux-tu conserver {oldDate} ou définir {newDate} comme nouvelle date de début ?",
       "keepOld": "Conserver {oldDate}",
-      "useNew": "Utiliser {newDate}"
+      "useNew": "Utiliser {newDate}",
+      "messageSame": "La date de début est déjà définie sur {date}."
     },
     "finished": {
       "title": "Date de fin déjà définie",
       "message": "La date de fin est déjà définie. Veux-tu conserver {oldDate} ou définir {newDate} comme nouvelle date de fin ?",
       "keepOld": "Conserver {oldDate}",
-      "useNew": "Utiliser {newDate}"
+      "useNew": "Utiliser {newDate}",
+      "messageSame": "La date de fin est déjà définie sur {date}."
     },
     "startedAfterFinished": {
       "title": "Livre déjà terminé",

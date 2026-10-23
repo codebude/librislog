@@ -342,13 +342,15 @@
       "title": "Fecha de inicio ya establecida",
       "message": "La fecha de inicio ya está establecida. ¿Quieres conservar {oldDate} o establecer {newDate} como nueva fecha de inicio?",
       "keepOld": "Conservar {oldDate}",
-      "useNew": "Usar {newDate}"
+      "useNew": "Usar {newDate}",
+      "messageSame": "La fecha de inicio ya está establecida en {date}."
     },
     "finished": {
       "title": "Fecha de finalización ya establecida",
       "message": "La fecha de finalización ya está establecida. ¿Quieres conservar {oldDate} o establecer {newDate} como nueva fecha de finalización?",
       "keepOld": "Conservar {oldDate}",
-      "useNew": "Usar {newDate}"
+      "useNew": "Usar {newDate}",
+      "messageSame": "La fecha de fin ya está establecida en {date}."
     },
     "startedAfterFinished": {
       "title": "El libro ya estaba terminado",

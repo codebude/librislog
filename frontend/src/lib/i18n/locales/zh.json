@@ -342,13 +342,15 @@
       "title": "开始日期已设置",
       "message": "开始日期已设置。你想保留 {oldDate} 还是将 {newDate} 设为新的开始日期？",
       "keepOld": "保留 {oldDate}",
-      "useNew": "使用 {newDate}"
+      "useNew": "使用 {newDate}",
+      "messageSame": "开始日期已设置为 {date}。"
     },
     "finished": {
       "title": "完成日期已设置",
       "message": "完成日期已设置。你想保留 {oldDate} 还是将 {newDate} 设为新的完成日期？",
       "keepOld": "保留 {oldDate}",
-      "useNew": "使用 {newDate}"
+      "useNew": "使用 {newDate}",
+      "messageSame": "结束日期已设置为 {date}。"
     },
     "startedAfterFinished": {
       "title": "本书已完成",

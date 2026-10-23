@@ -60,7 +60,11 @@
 		<div class="modal-box max-w-md">
 			<h3 class="text-lg font-bold">{$_(`dateConflict.${typeKey}.title`)}</h3>
 			<p class="text-sm text-base-content/70 mt-2">
-				{$_(`dateConflict.${typeKey}.message`, { values: i18nValues })}
+				{#if existingDate === suggestedDate && typeKey !== 'startedAfterFinished'}
+					{$_(`dateConflict.${typeKey}.messageSame`, { values: { date: existingDate } })}
+				{:else}
+					{$_(`dateConflict.${typeKey}.message`, { values: i18nValues })}
+				{/if}
 			</p>
 			<div class="modal-action flex-col sm:flex-row">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={onCancel}>{$_('common.cancel')}</button>

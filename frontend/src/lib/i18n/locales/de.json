@@ -342,13 +342,15 @@
       "title": "Startdatum bereits gesetzt",
       "message": "Startdatum ist bereits gesetzt. Möchtest du {oldDate} behalten oder {newDate} als neues Startdatum setzen?",
       "keepOld": "{oldDate} behalten",
-      "useNew": "{newDate} verwenden"
+      "useNew": "{newDate} verwenden",
+      "messageSame": "Startdatum ist bereits auf {date} gesetzt."
     },
     "finished": {
       "title": "Beendigungsdatum bereits gesetzt",
       "message": "Beendigungsdatum ist bereits gesetzt. Möchtest du {oldDate} behalten oder {newDate} als neues Beendigungsdatum setzen?",
       "keepOld": "{oldDate} behalten",
-      "useNew": "{newDate} verwenden"
+      "useNew": "{newDate} verwenden",
+      "messageSame": "Enddatum ist bereits auf {date} gesetzt."
     },
     "startedAfterFinished": {
       "title": "Buch bereits beendet",
