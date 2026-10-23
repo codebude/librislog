@@ -178,16 +178,19 @@
 				date_started: addSessionStarted ? fromDateTimeInputValue(addSessionStarted, tz) : null,
 				date_finished: addSessionFinished ? fromDateTimeInputValue(addSessionFinished, tz) : null
 			};
+			let result;
 			if (editingSessionId !== null) {
-				await api.books.sessions.update(book.id, editingSessionId, payload);
+				result = await api.books.sessions.update(book.id, editingSessionId, payload);
 			} else {
-				await api.books.sessions.create(book.id, payload);
+				result = await api.books.sessions.create(book.id, payload);
 			}
+			book = result.book;
+			onSave?.(result.book);
 			addSessionOpen = false;
 			addSessionStarted = '';
 			addSessionFinished = '';
 			editingSessionId = null;
-			await loadSessions();
+			await loadSessionsAndProgress();
 		} catch (e: unknown) {
 			toasts.add(
 				e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.addPastReading') } }),
@@ -584,9 +587,11 @@
 				<div class="flex items-center gap-2 shrink-0">
 					{#if (book.read_count ?? 0) >= 2}
 						<span
-							class="badge badge-sm badge-outline badge-primary"
-							title={$_('book.readCount', { values: { count: book.read_count } })}
-						>×{book.read_count}</span>
+							class="tooltip tooltip-bottom"
+							data-tip={$_('book.readCount', { values: { count: book.read_count } })}
+						>
+							<span class="badge badge-sm badge-outline badge-primary">×{book.read_count}</span>
+						</span>
 					{/if}
 					<span class="badge badge-sm {STATUS_BADGE[book.reading_status]} whitespace-nowrap">{$_(STATUS_LABEL_KEYS[book.reading_status])}</span>
 				</div>

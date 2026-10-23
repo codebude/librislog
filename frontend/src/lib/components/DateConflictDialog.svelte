@@ -62,7 +62,7 @@
 			<p class="text-sm text-base-content/70 mt-2">
 				{$_(`dateConflict.${typeKey}.message`, { values: i18nValues })}
 			</p>
-			<div class="modal-action">
+			<div class="modal-action flex-col sm:flex-row">
 				<button type="button" class="btn btn-ghost btn-sm" onclick={onCancel}>{$_('common.cancel')}</button>
 				<button type="button" class="btn btn-outline btn-sm" onclick={onKeep}>
 					{$_(`dateConflict.${typeKey}.${keepKey}`, { values: i18nValues })}
