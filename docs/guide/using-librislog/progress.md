@@ -33,3 +33,10 @@ Click the delete button next to an entry to remove it from the log. A confirmati
 ## Reading Percentage
 
 For books with a page count, the detail view shows your current page, total pages, reading percentage, and a visual progress bar.
+
+## Reading Sessions & Re-reads
+
+Books can be read more than once. Each reading is tracked as its own session with independent dates and progress.
+
+- **Read again** (book detail dialog, for finished books): starts a fresh reading today, keeping all earlier sessions and progress untouched. Use this for a genuine re-read.
+- **Changing status from "read" to "currently reading"** (edit drawer): the legacy correction path. It can keep the previous finish date or clear it, and may leave the book in a "currently reading" state that still carries the old finish date. Use this only to correct a book's status, not to re-read it.
