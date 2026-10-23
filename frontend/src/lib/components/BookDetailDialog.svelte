@@ -5,7 +5,9 @@
 	import {
 		formatDate,
 		formatDateTime,
+		fromDateInputValue,
 		fromDateTimeInputValue,
+		toDateInputValue,
 		toDateTimeInputValue
 	} from '#lib/date.js';
 	import { getTimezone } from '#lib/stores/timezone.js';
@@ -13,6 +15,7 @@
 	import { toasts } from '#lib/toasts.js';
 	import { formatLanguageCode } from '#lib/utils/language.js';
 	import { formatAuthors } from '#lib/utils/authors.js';
+	import AdaptiveDateInput from './AdaptiveDateInput.svelte';
 	import StarRating from './StarRating.svelte';
 	import { Line } from 'svelte-chartjs';
 	import { X } from '@lucide/svelte';
@@ -175,8 +178,8 @@
 		try {
 			const payload: { status: ReadingStatus; date_started: string | null; date_finished: string | null } = {
 				status: addSessionStatus,
-				date_started: addSessionStarted ? fromDateTimeInputValue(addSessionStarted, tz) : null,
-				date_finished: addSessionFinished ? fromDateTimeInputValue(addSessionFinished, tz) : null
+				date_started: addSessionStarted ? fromDateInputValue(addSessionStarted, tz) : null,
+				date_finished: addSessionFinished ? fromDateInputValue(addSessionFinished, tz) : null
 			};
 			let result;
 			if (editingSessionId !== null) {
@@ -237,8 +240,8 @@
 
 	function openEditSession(s: ReadingSession) {
 		addSessionStatus = s.status === 'currently_reading' ? 'read' : s.status;
-		addSessionStarted = s.date_started ? toDateTimeInputValue(s.date_started, tz) : '';
-		addSessionFinished = s.date_finished ? toDateTimeInputValue(s.date_finished, tz) : '';
+		addSessionStarted = s.date_started ? toDateInputValue(s.date_started, tz) : '';
+		addSessionFinished = s.date_finished ? toDateInputValue(s.date_finished, tz) : '';
 		editingSessionId = s.id;
 		addSessionOpen = true;
 	}
@@ -943,11 +946,11 @@
 					</label>
 					<label class="flex flex-col gap-1">
 						<span class="label label-text">{$_('book.dateStarted')}</span>
-						<input type="datetime-local" class="input input-bordered input-sm" bind:value={addSessionStarted} />
+						<AdaptiveDateInput name="session_date_started" bind:value={addSessionStarted} ariaLabel={$_('book.dateStarted')} />
 					</label>
 					<label class="flex flex-col gap-1">
 						<span class="label label-text">{$_('book.dateFinished')}</span>
-						<input type="datetime-local" class="input input-bordered input-sm" bind:value={addSessionFinished} />
+						<AdaptiveDateInput name="session_date_finished" bind:value={addSessionFinished} ariaLabel={$_('book.dateFinished')} />
 					</label>
 					<div class="modal-action">
 						<button type="button" class="btn btn-ghost btn-sm" onclick={() => (addSessionOpen = false)}>{$_('common.cancel')}</button>
