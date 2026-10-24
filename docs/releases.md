@@ -8,15 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.10.0 — More Book Sources & Upgrades
-LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inventaire.io, the Library of Congress, and the Deutsche Nationalbibliothek) with a per-source on/off switch and a startup guard, lets you point the frontend at a custom backend address, keeps the Add Book dialog header reachable while scrolling, and updates the frontend framework and dependency set.
+::: tip ⭐ v1.11.0 — Reading Sessions & Re-reads
+LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as its own session with independent start and finish dates, and a "Read again" action starts a fresh reading without overwriting earlier dates or progress. A reading history in the book detail dialog lets you add past reads and edit or delete individual sessions, progress restarts per session, and re-read books show a "read ×N" badge. Statistics now distinguish unique books from total completions (with a new "Total reads" card), and the timeline lists one row per completed read, marking re-reads. Data migrates automatically on upgrade.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.11.0](#v1-11-0-reading-sessions-re-reads) | Unreleased | Feature release |
+| [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
 | [v1.8.0](#v1-8-0-camera-zoom-control-optional-telemetry) | 2026-09-02 | Feature release |
@@ -39,7 +39,7 @@ LibrisLog v1.10.0 adds four more metadata sources to the import search (BnF, Inv
 
 ## v1.11.0: Reading Sessions & Re-reads
 
-<Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-10-24" />
 
 **Summary:** Books can now be read more than once. Each reading is tracked as its own session with independent start and finish dates, and a "Read again" action starts a fresh reading without overwriting earlier dates or progress. A reading history in the book detail dialog lets you add past reads and edit or delete individual sessions, progress restarts per session, and re-read books show a "read ×N" badge. Statistics now distinguish unique books from total completions (with a new "Total reads" card), and the timeline lists one row per completed read, marking re-reads. Data migrates automatically on upgrade.
 
