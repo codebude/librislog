@@ -140,10 +140,17 @@ def load_tags_batch(session: Session, book_ids: list[int]) -> dict[int, str | No
 
 def build_book_read(session: Session, book: Book) -> BookRead:
     """Build a BookRead response schema from a Book model, populating tags."""
+    if book.id is not None:
+        session.refresh(book)
     payload = book.model_dump()
     payload.pop("user_id", None)
     payload["tags"] = tags_text_for_book(session, book.id) if book.id is not None else None
     authors = authors_list_for_book(session, book.id)
     payload["authors"] = authors
     payload["author"] = join_authors(authors)
+    from app.services.reading_sessions import session_counts
+
+    counts = session_counts(session, [book.id or 0]).get(book.id or 0, {})
+    payload["session_count"] = counts.get("session_count", 0)
+    payload["read_count"] = counts.get("read_count", 0)
     return BookRead.model_validate(payload)

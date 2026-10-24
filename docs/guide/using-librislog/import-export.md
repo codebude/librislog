@@ -61,7 +61,12 @@ Choose which data to include:
 - Books (full metadata)
 - Reading progress entries
 - Tags
+- Reading sessions (re-read history, flat view)
 - Cover images
+
+Reading sessions (re-read history) are exported as a flat `sessions` dataset (book-ID-referenced) for auditing. The import wizard does not restore re-read history: each imported book gets a single reading session derived from its start/finish dates. Full re-read history is preserved only through [backup and restore](./administration), which copies the whole database.
+
+**Older exports and backups:** A JSON export or a full backup made with an older LibrisLog version (before reading sessions) imports fine. Each imported book gets a single reading session derived from its start/finish dates, and the existing statistics, timeline and progress behave exactly as before. Full backups created by older releases are migrated automatically when restored (the schema is upgraded on restore).
 
 ### Export Process
 

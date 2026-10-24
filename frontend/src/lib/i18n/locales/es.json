@@ -74,7 +74,9 @@
     "worstRated": "Peor valorados",
     "showMore": "Mostrar más",
     "totalBooksAndAuthors": "Libros en total",
-    "booksFromAuthors": "de {authors} {authors, plural, one {autor} other {autores}}"
+    "booksFromAuthors": "de {authors} {authors, plural, one {autor} other {autores}}",
+    "totalReads": "Lecturas totales",
+    "rereadBooks": "Libros releídos"
   },
   "dashboard": {
     "title": "Panel de lectura",
@@ -213,7 +215,18 @@
     "progressPromptSkip": "Saltar",
     "authorsPlaceholder": "Escribe un autor y pulsa Enter",
     "authorsHint": "Pulsa Enter para añadir autores. Retroceso elimina el último.",
-    "authorsLabel": "Autor(es)"
+    "authorsLabel": "Autor(es)",
+    "readAgain": "Volver a leer",
+    "startAgain": "Empezar de nuevo",
+    "readingHistory": "Historial de lectura",
+    "addPastReading": "Añadir lectura pasada",
+    "sessionStarted": "Iniciado",
+    "sessionFinished": "Terminado",
+    "sessionReread": "Releído",
+    "sessionDeleteConfirm": "¿Eliminar esta sesión de lectura y sus entradas de progreso?",
+    "sessionDelete": "Eliminar sesión",
+    "readCount": "Leído {count, plural, one {1 vez} other {# veces}}",
+    "datesManagedBySessions": "Gestionado mediante sesiones de lectura"
   },
   "addModal": {
     "manual": "Manual",
@@ -330,13 +343,15 @@
       "title": "Fecha de inicio ya establecida",
       "message": "La fecha de inicio ya está establecida. ¿Quieres conservar {oldDate} o establecer {newDate} como nueva fecha de inicio?",
       "keepOld": "Conservar {oldDate}",
-      "useNew": "Usar {newDate}"
+      "useNew": "Usar {newDate}",
+      "messageSame": "La fecha de inicio ya está establecida en {date}."
     },
     "finished": {
       "title": "Fecha de finalización ya establecida",
       "message": "La fecha de finalización ya está establecida. ¿Quieres conservar {oldDate} o establecer {newDate} como nueva fecha de finalización?",
       "keepOld": "Conservar {oldDate}",
-      "useNew": "Usar {newDate}"
+      "useNew": "Usar {newDate}",
+      "messageSame": "La fecha de fin ya está establecida en {date}."
     },
     "startedAfterFinished": {
       "title": "El libro ya estaba terminado",
@@ -345,7 +360,8 @@
       "clearAndStart": "Borrar fecha de finalización y empezar hoy",
       "keepDesc": "Conserva la fecha de finalización ({finishedDate}) y no establece una fecha de inicio.",
       "clearDesc": "Elimina la fecha de finalización y establece hoy ({newStartDate}) como fecha de inicio."
-    }
+    },
+    "startNewRead": "Empezar una nueva lectura (conserva las anteriores)"
   },
   "acquisition": {
     "owned": "En propiedad",
@@ -703,7 +719,8 @@
     "subtitle": "Una vista cronológica de los libros que has terminado",
     "viewInLibrary": "Ver todo en la biblioteca",
     "noReadBooks": "Aún no hay libros terminados en tu biblioteca.",
-    "goToLibrary": "Ir a la biblioteca"
+    "goToLibrary": "Ir a la biblioteca",
+    "reread": "Releído"
   },
   "data": {
     "title": "Gestión de datos",
@@ -719,7 +736,8 @@
         "books": "Libros",
         "progress": "Progreso de lectura",
         "tags": "Etiquetas",
-        "covers": "Archivos de portada"
+        "covers": "Archivos de portada",
+        "sessions": "Sesiones de lectura"
       },
       "button": "Exportar datos",
       "exporting": "Exportando...",

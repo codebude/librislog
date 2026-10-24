@@ -50,7 +50,12 @@ import type {
 	User,
 	UserCreateResponse,
 	UserAdminUpdate,
-	UserSettings
+	UserSettings,
+	ReadingSession,
+	ReadingSessionInput,
+	SessionMutationResponse,
+	TimelineSessionEntry,
+	TimelineSessionListResponse
 } from './types';
 import { apiKey, csrfToken } from './stores/auth';
 import { get } from 'svelte/store';
@@ -462,8 +467,9 @@ export const api = {
 		},
 
 		progress: {
-			async list(bookId: number): Promise<ReadingProgressEntry[]> {
-				return request<ReadingProgressEntry[]>(`/books/${bookId}/progress`);
+			async list(bookId: number, sessionId?: number | null): Promise<ReadingProgressEntry[]> {
+				const qs = sessionId !== undefined && sessionId !== null ? `?session_id=${sessionId}` : '';
+				return request<ReadingProgressEntry[]>(`/books/${bookId}/progress${qs}`);
 			},
 			async create(bookId: number, page: number): Promise<ReadingProgressEntry> {
 				return request<ReadingProgressEntry>(`/books/${bookId}/progress`, {
@@ -491,6 +497,37 @@ export const api = {
 				method: 'POST',
 				body: JSON.stringify(data)
 			});
+		},
+
+		sessions: {
+			list(bookId: number): Promise<ReadingSession[]> {
+				return request<ReadingSession[]>(`/books/${bookId}/sessions`);
+			},
+			create(bookId: number, data: ReadingSessionInput): Promise<SessionMutationResponse> {
+				return request<SessionMutationResponse>(`/books/${bookId}/sessions`, {
+					method: 'POST',
+					body: JSON.stringify(data)
+				});
+			},
+			update(bookId: number, sessionId: number, data: Partial<ReadingSessionInput>): Promise<SessionMutationResponse> {
+				return request<SessionMutationResponse>(`/books/${bookId}/sessions/${sessionId}`, {
+					method: 'PATCH',
+					body: JSON.stringify(data)
+				});
+			},
+			remove(bookId: number, sessionId: number): Promise<Book> {
+				return request<Book>(`/books/${bookId}/sessions/${sessionId}`, { method: 'DELETE' });
+			},
+			readAgain(bookId: number, dateStarted?: string | null): Promise<SessionMutationResponse> {
+				return request<SessionMutationResponse>(`/books/${bookId}/read-again`, {
+					method: 'POST',
+					body: JSON.stringify({ date_started: dateStarted ?? null })
+				});
+			},
+			completed(limit: number = 40, offset: number = 0): Promise<TimelineSessionListResponse> {
+				const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+				return request<TimelineSessionListResponse>(`/books/sessions?${qs.toString()}`);
+			}
 		},
 
 		delete(id: number): Promise<void> {

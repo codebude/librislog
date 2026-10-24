@@ -352,6 +352,13 @@
 				<div class="stat-value text-accent text-2xl">{formatNumber(stats.total_books, 0)}</div>
 				<div class="stat-desc">{$_('statistics.booksFromAuthors', { values: { authors: stats.total_authors } })}</div>
 			</div>
+			{#if (stats.reread_books ?? 0) > 0}
+				<div class="stat bg-base-100 rounded-2xl shadow-sm border border-base-200">
+					<div class="stat-title">{$_('statistics.totalReads')}</div>
+					<div class="stat-value text-primary text-2xl">{formatNumber(stats.total_reads ?? 0, 0)}</div>
+					<div class="stat-desc">{$_('statistics.rereadBooks')}: {formatNumber(stats.reread_books ?? 0, 0)}</div>
+				</div>
+			{/if}
 		</div>
 
 		<div class="divider text-base-content/60 text-xs uppercase tracking-widest font-semibold">{$_('statistics.sectionDistributions')}</div>

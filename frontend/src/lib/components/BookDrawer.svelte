@@ -88,6 +88,8 @@
 	let dateFinishedHasInput = $state(false);
 	let cover_url = $state<string | null>(null);
 
+	const hasReadingSessions = $derived((book?.session_count ?? 0) > 0);
+
 	// ── Android back button: close drawer instead of navigating away ──────────
 	let _popClosed = false;
 
@@ -454,6 +456,22 @@
 			saving = false;
 		}
 	}
+
+	async function startNewReadFromConflict() {
+		if (!book) return;
+		try {
+			const result = await api.books.sessions.readAgain(book.id);
+			dateConflictOpen = false;
+			pendingStatus = null;
+			pendingPayload = null;
+			onSave?.(result.book);
+			open = false;
+			toasts.add($_('book.readAgain'), 'success', 2000);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : $_('common.actionFailed', { values: { action: $_('book.readAgain') } });
+			toasts.add(message, 'error');
+		}
+	}
 </script>
 
 {#if open && book}
@@ -584,9 +602,12 @@
 					bind:value={date_started}
 					bind:invalid={dateStartedInvalid}
 					bind:hasInput={dateStartedHasInput}
+					disabled={hasReadingSessions}
 					ariaLabel={$_('book.dateStarted')}
 				/>
-				{#if dateStartedInvalid && dateStartedHasInput}
+				{#if hasReadingSessions}
+					<span class="label label-text-alt text-base-content/50">{$_('book.datesManagedBySessions')}</span>
+				{:else if dateStartedInvalid && dateStartedHasInput}
 					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
 				{/if}
 			</label>
@@ -598,9 +619,12 @@
 					bind:value={date_finished}
 					bind:invalid={dateFinishedInvalid}
 					bind:hasInput={dateFinishedHasInput}
+					disabled={hasReadingSessions}
 					ariaLabel={$_('book.dateFinished')}
 				/>
-				{#if dateFinishedInvalid && dateFinishedHasInput}
+				{#if hasReadingSessions}
+					<span class="label label-text-alt text-base-content/50">{$_('book.datesManagedBySessions')}</span>
+				{:else if dateFinishedInvalid && dateFinishedHasInput}
 					<span class="label label-text-alt text-error">{$_('error.invalidDate')}</span>
 				{/if}
 			</label>
@@ -656,6 +680,8 @@
 		field={conflictField}
 		existingDate={formatDate(conflictExistingDate, tz)}
 		suggestedDate={formatDate(conflictSuggestedDate, tz)}
+		rereadAvailable={(book.read_count ?? 0) >= 1 && (conflictField === 'date_started' || conflictField === 'started_after_finished')}
+		onReread={() => void startNewReadFromConflict()}
 		onCancel={() => {
 			dateConflictOpen = false;
 			pendingStatus = null;

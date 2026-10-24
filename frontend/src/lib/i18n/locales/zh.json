@@ -74,7 +74,9 @@
     "worstRated": "评分最低",
     "showMore": "显示更多",
     "totalBooksAndAuthors": "书籍总数",
-    "booksFromAuthors": "来自 {authors} 位不同的作者"
+    "booksFromAuthors": "来自 {authors} 位不同的作者",
+    "totalReads": "总阅读次数",
+    "rereadBooks": "重读书籍"
   },
   "dashboard": {
     "title": "阅读仪表盘",
@@ -213,7 +215,18 @@
     "progressPromptSkip": "跳过",
     "authorsPlaceholder": "输入作者并按回车",
     "authorsHint": "按回车添加作者。按退格键删除上一个。",
-    "authorsLabel": "作者"
+    "authorsLabel": "作者",
+    "readAgain": "再次阅读",
+    "startAgain": "重新开始",
+    "readingHistory": "阅读历史",
+    "addPastReading": "添加过去的阅读",
+    "sessionStarted": "开始",
+    "sessionFinished": "结束",
+    "sessionReread": "重读",
+    "sessionDeleteConfirm": "删除此阅读会话及其进度记录？",
+    "sessionDelete": "删除会话",
+    "readCount": "阅读 {count} 次",
+    "datesManagedBySessions": "通过阅读会话管理"
   },
   "addModal": {
     "manual": "手动添加",
@@ -330,13 +343,15 @@
       "title": "开始日期已设置",
       "message": "开始日期已设置。你想保留 {oldDate} 还是将 {newDate} 设为新的开始日期？",
       "keepOld": "保留 {oldDate}",
-      "useNew": "使用 {newDate}"
+      "useNew": "使用 {newDate}",
+      "messageSame": "开始日期已设置为 {date}。"
     },
     "finished": {
       "title": "完成日期已设置",
       "message": "完成日期已设置。你想保留 {oldDate} 还是将 {newDate} 设为新的完成日期？",
       "keepOld": "保留 {oldDate}",
-      "useNew": "使用 {newDate}"
+      "useNew": "使用 {newDate}",
+      "messageSame": "结束日期已设置为 {date}。"
     },
     "startedAfterFinished": {
       "title": "本书已完成",
@@ -345,7 +360,8 @@
       "clearAndStart": "清除完成日期并从今天开始",
       "keepDesc": "保留完成日期（{finishedDate}），不设置开始日期。",
       "clearDesc": "删除完成日期并将今天（{newStartDate}）设为开始日期。"
-    }
+    },
+    "startNewRead": "开始新的阅读（保留之前的阅读）"
   },
   "acquisition": {
     "owned": "已拥有",
@@ -703,7 +719,8 @@
     "subtitle": "你已完成阅读的图书的时间线视图",
     "viewInLibrary": "在书库中查看全部",
     "noReadBooks": "你的书库中还没有已读完的图书。",
-    "goToLibrary": "前往书库"
+    "goToLibrary": "前往书库",
+    "reread": "重读"
   },
   "data": {
     "title": "数据管理",
@@ -719,7 +736,8 @@
         "books": "图书",
         "progress": "阅读进度",
         "tags": "标签",
-        "covers": "封面文件"
+        "covers": "封面文件",
+        "sessions": "阅读会话"
       },
       "button": "导出数据",
       "exporting": "导出中...",

@@ -196,6 +196,12 @@ export const PUBLIC_PROFILE_STATISTICS: PublicProfileStatisticsDef[] = [
 		i18nKey: 'statistics.worstRated',
 		group: 'ratings',
 		defaultOn: false
+	},
+	{
+		key: 'total_reads',
+		i18nKey: 'statistics.totalReads',
+		group: 'summary',
+		defaultOn: false
 	}
 ];
 

@@ -103,6 +103,11 @@
 			<span class="badge {compact ? 'badge-xs' : 'badge-sm'} badge-ghost {STATUS_BADGE[book.reading_status]} shrink-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
 				{$_(STATUS_LABEL_KEYS[book.reading_status])}
 			</span>
+			{#if (book.read_count ?? 0) >= 2}
+				<span class="tooltip tooltip-bottom" data-tip={$_('book.readCount', { values: { count: book.read_count } })}>
+					<span class="badge {compact ? 'badge-xs' : 'badge-sm'} badge-outline badge-primary shrink-0">×{book.read_count}</span>
+				</span>
+			{/if}
 		</div>
 	</div>
 </button>

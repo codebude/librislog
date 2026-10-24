@@ -44,7 +44,8 @@ const ALL_STATISTICS: PublicProfileStatisticsKey[] = [
 	'books_without_rating',
 	'average_rating',
 	'top_rated_books',
-	'worst_rated_books'
+	'worst_rated_books',
+	'total_reads'
 ];
 
 function lookup(obj: unknown, path: string): unknown {

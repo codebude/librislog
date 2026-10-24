@@ -21,8 +21,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
 from app.config import settings
-from app.models import AcquisitionStatus, Book, Medium, ReadingProgress, ReadingStatus, User, normalize_medium_key
+from app.models import AcquisitionStatus, Book, Medium, ReadingProgress, ReadingSession, ReadingStatus, User, normalize_medium_key
 from app.schemas import ImportFieldConfig
+from app.services.reading_sessions import create_initial_session
 
 logger = logging.getLogger(__name__)
 from app.time_utils import utcnow
@@ -999,6 +1000,8 @@ async def execute_import(
                 session.flush()
                 assert book.id is not None
 
+                initial_session = create_initial_session(session, book)
+
                 sync_book_authors(
                     session,
                     user.id,
@@ -1015,6 +1018,7 @@ async def execute_import(
                         user_id=user.id,
                         page=page_count,
                         created_at=log_date,
+                        session_id=initial_session.id if initial_session else None,
                     )
                     session.add(progress_entry)
 
