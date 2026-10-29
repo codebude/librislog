@@ -11,8 +11,21 @@
 	let loading = $state(false);
 	let success = $state(false);
 	let error = $state('');
+	let passwordLoginEnabled = $state<boolean | null>(null);
 
 	let noToken = $derived(token.length === 0);
+
+	$effect(() => {
+		void (async () => {
+			try {
+				const cfg = await api.app.config();
+				passwordLoginEnabled = cfg.password_login_enabled;
+			} catch {
+				// Let the form render and let the backend explain if it is disabled.
+				passwordLoginEnabled = true;
+			}
+		})();
+	});
 
 	async function submit() {
 		error = '';
@@ -35,7 +48,16 @@
 <div class="flex items-center justify-center min-h-screen p-4">
 	<div class="card bg-base-200 shadow-xl w-full max-w-sm">
 		<div class="card-body">
-			{#if noToken}
+			{#if passwordLoginEnabled === null}
+				<p class="text-sm">{$_('common.loadingEllipsis')}</p>
+			{:else if passwordLoginEnabled === false}
+				<div class="alert alert-warning mb-4">
+					<span>{$_('auth.passwordLoginDisabledHint')}</span>
+				</div>
+				<button class="btn btn-primary btn-block" onclick={() => goto('/login')}>
+					{$_('auth.login')}
+				</button>
+			{:else if noToken}
 				<div class="alert alert-error mb-4">
 					<span>{$_('auth.resetPasswordMissingToken')}</span>
 				</div>

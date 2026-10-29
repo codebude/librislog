@@ -327,6 +327,8 @@ export interface AppConfig {
 	embed_enabled: boolean;
 	dashboard_quote_enabled: boolean;
 	thalia_cover_search_enabled: boolean;
+	password_login_enabled: boolean;
+	trusted_proxy_auth_enabled: boolean;
 }
 
 export interface OidcLinkStatus {

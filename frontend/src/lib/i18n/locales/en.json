@@ -422,7 +422,14 @@
     "resetPasswordTitle": "Set New Password",
     "resetPasswordInstruction": "Enter your new password.",
     "resetPasswordSuccess": "Password has been reset successfully.",
-    "resetPasswordSubmit": "Reset Password"
+    "resetPasswordSubmit": "Reset Password",
+    "passwordLoginDisabledHint": "Password login is disabled. Use single sign-on, or contact your administrator if you cannot sign in.",
+    "proxyManagedHint": "Access to this instance is managed by your reverse proxy.",
+    "noLoginMethodAvailable": "No sign-in method is currently configured. Contact your administrator.",
+    "configLoadFailed": "Could not load the sign-in configuration. Reload the page or contact your administrator.",
+    "setupLinkOidcWarning": "Password login is disabled. Link your single sign-on account in Profile before you log out, or you will not be able to sign in again.",
+    "setupPasswordDisabledNoOidc": "Password login is disabled and no single sign-on provider is configured. Enable OIDC or re-enable password login before logging out.",
+    "setupConfigCheckFailed": "Could not verify the password login setting. If password login is disabled, link single sign-on in Profile before you log out."
   },
   "user": {
     "menu": "User menu",
