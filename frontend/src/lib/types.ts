@@ -531,6 +531,37 @@ export interface HygieneBatchUpdateResponse {
 	skipped_ids: number[];
 }
 
+export interface TagListEntry {
+	name: string;
+	count: number;
+}
+
+export interface TagListResponse {
+	tags: TagListEntry[];
+	total: number;
+}
+
+export interface TagBatchRequest {
+	book_ids: number[];
+	add?: string[];
+	remove?: string[];
+}
+
+export interface TagBatchResponse {
+	matched_books: number;
+	books_changed: number;
+	links_added: number;
+	links_removed: number;
+	unchanged_books: number;
+	created_tags: string[];
+	deleted_tags: string[];
+}
+
+export interface BookIdListResponse {
+	ids: number[];
+	total: number;
+}
+
 export type PublicProfileAudience = 'public' | 'authenticated';
 
 export type PublicProfileSectionKey =

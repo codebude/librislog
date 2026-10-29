@@ -76,6 +76,7 @@ export default defineConfig({
             { text: 'Statistics', link: '/guide/using-librislog/statistics' },
             { text: 'Import & Export', link: '/guide/using-librislog/import-export' },
             { text: 'Data Hygiene', link: '/guide/using-librislog/data-hygiene' },
+            { text: 'Mass Tag Editor', link: '/guide/using-librislog/mass-tag-editor' },
             { text: 'Missing Covers', link: '/guide/using-librislog/missing-covers' },
             { text: 'Administration', link: '/guide/using-librislog/administration' },
           ],

@@ -1229,7 +1229,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	<div id="section-data" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 		<div class="card-body gap-3">
 			<h2 class="text-lg font-semibold">{$_('profile.dataManagement.title')}</h2>
-			<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 				<div class="border border-base-300 rounded-xl p-4 flex flex-col gap-2">
 					<p class="text-sm text-base-content/70">{$_('profile.dataManagement.description')}</p>
 					<a class="btn btn-outline btn-sm self-start" href="/data?tab=export">{$_('profile.dataManagement.link')}</a>
@@ -1241,6 +1241,10 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				<div class="border border-base-300 rounded-xl p-4 flex flex-col gap-2">
 					<p class="text-sm text-base-content/70">{$_('profile.dataManagement.missingCoversDescription')}</p>
 					<a class="btn btn-outline btn-sm self-start" href="/missing-covers">{$_('profile.dataManagement.missingCoversLink')}</a>
+				</div>
+				<div class="border border-base-300 rounded-xl p-4 flex flex-col gap-2">
+					<p class="text-sm text-base-content/70">{$_('profile.dataManagement.tagEditorDescription')}</p>
+					<a class="btn btn-outline btn-sm self-start" href="/tag-editor">{$_('profile.dataManagement.tagEditorLink')}</a>
 				</div>
 			</div>
 		</div>
