@@ -229,6 +229,10 @@
 			return `${$_('app.title')} - ${$_('dataHygiene.title')}`;
 		}
 
+		if (page.url.pathname.startsWith('/tag-editor')) {
+			return `${$_('app.title')} - ${$_('tagEditor.title')}`;
+		}
+
 		if (page.url.pathname.startsWith('/admin')) {
 			return `${$_('app.title')} - ${$_('admin.title')}`;
 		}

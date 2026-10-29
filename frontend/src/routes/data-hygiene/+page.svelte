@@ -504,6 +504,12 @@
 	{/if}
 </div>
 
+<div class="max-w-5xl mx-auto">
+	<div class="text-sm text-base-content/70">
+		{$_('dataHygiene.bulkTagsHint')} <a class="link link-primary" href="/tag-editor">{$_('profile.dataManagement.tagEditorLink')}</a>
+	</div>
+</div>
+
 {#if coverViewer}
 	<div class="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"></div>
 	<div class="fixed inset-0 z-[130] p-3 sm:p-6 flex items-center justify-center pointer-events-none">
