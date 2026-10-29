@@ -127,7 +127,7 @@ See [docs.librislog.app/guide/telemetry](https://docs.librislog.app/guide/teleme
 |---|---|
 | **Backend** | FastAPI, SQLModel, SQLite, Alembic, Pydantic v2 |
 | **Frontend** | Svelte 5, SvelteKit, Tailwind CSS v4, DaisyUI v5 |
-| **Auth** | Session cookies, optional OIDC (Authlib) |
+| **Auth** | Session cookies, optional OIDC (Authlib), optional trusted reverse-proxy auth, configurable password login |
 | **Deployment** | Docker, Docker Compose |
 | **Package managers** | `uv` (Python), `npm` (Node) |
 | **Testing** | pytest + pytest-cov (backend), Vitest + Testing Library (frontend), Playwright (E2E) |
