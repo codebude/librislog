@@ -247,10 +247,48 @@ class BookListResponse(BaseModel):
     total: int
 
 
+class BookIdListResponse(BaseModel):
+    """List of book IDs matching a filter, with total count."""
+    ids: list[int]
+    total: int
+
+
 class TagCloudEntry(SQLModel):
     """A single tag with its usage count."""
     tag: str
     count: int
+
+
+class TagListEntry(SQLModel):
+    """A single tag with its usage count for the tag management views."""
+    name: str
+    count: int
+
+
+class TagListResponse(BaseModel):
+    """Paginated list of tags with usage counts."""
+    tags: list[TagListEntry]
+    total: int
+
+
+class TagBatchRequest(SQLModel):
+    """Batch add/remove tags on a set of books."""
+    model_config = SQLModelConfig(extra="forbid")
+
+    book_ids: list[int]
+    add: list[str] = []
+    remove: list[str] = []
+
+
+class TagBatchResponse(SQLModel):
+    """Result of a batch tag update."""
+    matched_books: int
+    books_changed: int
+    links_added: int
+    links_removed: int
+    unchanged_books: int
+    created_tags: list[str] = []
+    deleted_tags: list[str] = []
 
 
 class SuggestionList(SQLModel):
