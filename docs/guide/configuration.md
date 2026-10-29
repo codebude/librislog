@@ -36,15 +36,16 @@ that have no OIDC link can no longer sign in while the flag is off. To recover, 
 
 When a reverse proxy already authenticates users (for example Traefik BasicAuth or an
 SSO gateway), LibrisLog can reuse that identity and create a browser session
-automatically. The forwarded value must exactly match an existing user's email address;
+automatically. The forwarded value is matched against an existing user's email address;
 unknown values are ignored and never create accounts.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `TRUSTED_PROXY_AUTH_ENABLED` | Enable proxy-header authentication | `false` |
-| `TRUSTED_PROXY_AUTH_HEADER` | HTTP header carrying the authenticated email | `X-Forwarded-User` |
+| `TRUSTED_PROXY_AUTH_HEADER` | HTTP header carrying the authenticated identity | `X-Forwarded-User` |
 | `TRUSTED_PROXY_AUTH_IPS` | Comma/space-separated IP addresses or CIDR ranges allowed to send the header. Empty disables the feature even when enabled. | (none) |
 | `TRUSTED_PROXY_AUTH_SECRET` | Optional shared secret the proxy must also send in `X-Trusted-Proxy-Secret`. Empty means no secret is required. | (none) |
+| `TRUSTED_PROXY_AUTH_USER_MAP` | Optional `proxy_user=email` pairs, separated by commas or spaces. When set, a forwarded value is translated through the map before the email lookup; values not in the map are used as the email directly. | (none) |
 
 The feature fails closed: if the IP list or the header name is empty, the middleware
 logs a warning at startup and stays inactive. `*` in the IP list trusts every client and
@@ -67,11 +68,11 @@ header, so use the shared secret in multi-container setups.
 :::
 
 Example Traefik labels for a BasicAuth-protected deployment. The BasicAuth user name
-must be the LibrisLog account email, because that is the value LibrisLog matches:
+can be any proxy username as long as it appears in `TRUSTED_PROXY_AUTH_USER_MAP`:
 
 ```yaml
 labels:
-  - "traefik.http.middlewares.librislog-auth.basicauth.users=alice@example.com:$$apr1$$..."
+  - "traefik.http.middlewares.librislog-auth.basicauth.users=alice:$$apr1$$..."
   - "traefik.http.middlewares.librislog-auth.basicauth.headerfield=X-Forwarded-User"
   - "traefik.http.middlewares.librislog-auth-secret.headers.customrequestheaders.X-Trusted-Proxy-Secret=change-me"
   - "traefik.http.routers.librislog.middlewares=librislog-auth,librislog-auth-secret"
@@ -79,18 +80,35 @@ labels:
 ```
 
 Traefik only sets the authenticated-user header when `basicauth.headerfield` is
-configured; its default is empty. The header value is the BasicAuth user name, so use
-each LibrisLog user's email address as their BasicAuth user name. The BasicAuth and
-Headers rules must use different middleware names, as in the example above.
+configured; its default is empty. The header value is the BasicAuth user name. If you
+do not set `TRUSTED_PROXY_AUTH_USER_MAP`, that name must be the LibrisLog account email.
+The BasicAuth and Headers rules must use different middleware names, as in the example
+above.
 
-Configure LibrisLog with the proxy's address and the header Traefik sets:
+Configure LibrisLog with the proxy's address, the header Traefik sets, and a mapping
+from proxy usernames to account emails:
 
 ```dotenv
 TRUSTED_PROXY_AUTH_ENABLED=true
 TRUSTED_PROXY_AUTH_HEADER=X-Forwarded-User
 TRUSTED_PROXY_AUTH_IPS=172.18.0.0/16
 TRUSTED_PROXY_AUTH_SECRET=change-me
+TRUSTED_PROXY_AUTH_USER_MAP=alice=alice@example.com,bob=bob@example.com
 ```
+
+Mapping keys are matched case-insensitively. A forwarded value that is not present in
+the map is treated as an email address, so mixed deployments can map some proxy users
+and pass others through directly. Duplicate keys keep the last value and log a warning;
+mapping values without an `@` are ignored so a typo is visible in the logs.
+
+::: warning
+The pass-through fallback is only safe when the proxy alone decides the username and
+users cannot choose arbitrary values. If a user can set their proxy username to another
+person's email address, they can be signed in as that person. When proxy usernames are
+user-controlled, map every allowed username explicitly.
+:::
+
+Email matching is case-insensitive for ASCII addresses.
 
 The IP must be the address LibrisLog sees as the connecting peer (the proxy container),
 not the end user's address. With Docker Compose, use the proxy container's static IP or

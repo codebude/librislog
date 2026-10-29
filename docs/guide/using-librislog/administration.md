@@ -51,8 +51,13 @@ for the variables and a Traefik example.
 
 Things to keep in mind:
 
-- The forwarded value must match an existing user's email address exactly (case-insensitive).
-  Unknown values are ignored; accounts are never created automatically.
+- The forwarded value is matched against an existing user's email address
+  (case-insensitive). Set `TRUSTED_PROXY_AUTH_USER_MAP` to translate proxy usernames to
+  account emails, for example `alice=alice@example.com,bob=bob@example.com`. Values not
+  present in the map are used as the email directly. Only rely on that fallback when the
+  proxy controls the username and users cannot set it to arbitrary email addresses;
+  otherwise map every allowed username. Unknown values are ignored; accounts are never
+  created automatically.
 - Only requests from the configured `TRUSTED_PROXY_AUTH_IPS` are honored. Never expose the
   backend directly to clients that could spoof the header.
 - When Uvicorn's proxy-header handling rewrites the connecting address from
@@ -84,7 +89,7 @@ Restoring overwrites all current data. Create a fresh backup first if you want t
 
 The backup endpoint is accessible via the REST API, making it easy to automate with cron (or any scheduler).
 
-First, [create an API key](/api/setup#3-create-an-api-key) with the admin user. Then use it in a cron script:
+First, [create an API key](/api/#creating-an-api-key) with the admin user. Then use it in a cron script:
 
 ```bash
 #!/usr/bin/env bash

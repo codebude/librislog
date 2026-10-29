@@ -6,8 +6,10 @@ effective (fail-closed) state without importing the application module.
 
 import ipaddress
 import logging
-from collections.abc import Callable
+import re
+from collections.abc import Callable, Mapping
 from functools import lru_cache
+from types import MappingProxyType
 from typing import NamedTuple
 
 from sqlalchemy import func
@@ -120,6 +122,74 @@ def secret() -> str:
     return settings.trusted_proxy_auth_secret.strip()
 
 
+def _parse_user_map(value: str) -> dict[str, str]:
+    """Parse ``proxy_user=email`` pairs separated by commas or whitespace.
+
+    A comment starts at a ``#`` preceded by whitespace (or at the beginning of
+    the value). A ``#`` inside a token is preserved, so usernames and local
+    parts may contain it.
+    """
+    raw = value.strip()
+    if not raw or raw.startswith("#"):
+        return {}
+    raw = re.split(r"\s+#", raw, maxsplit=1)[0].strip()
+    # Tolerate ``alice = alice@example.com`` before splitting on separators.
+    raw = re.sub(r"\s*=\s*", "=", raw)
+
+    mapping: dict[str, str] = {}
+    for entry in re.split(r"[,\s]+", raw):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if "=" not in entry:
+            logger.warning("Ignoring invalid trusted proxy user mapping entry %r", entry)
+            continue
+        proxy_user, email = entry.split("=", 1)
+        proxy_user = proxy_user.strip().lower()
+        email = email.strip()
+        if not proxy_user or not email:
+            logger.warning("Ignoring invalid trusted proxy user mapping entry %r", entry)
+            continue
+        if "=" in email:
+            logger.warning(
+                "Ignoring trusted proxy user mapping %r: value contains '='", entry
+            )
+            continue
+        if "@" not in email:
+            logger.warning(
+                "Ignoring trusted proxy user mapping %r: value is not an email", entry
+            )
+            continue
+        if proxy_user in mapping:
+            logger.warning(
+                "Trusted proxy user mapping overrides earlier entry for %r", proxy_user
+            )
+        mapping[proxy_user] = email
+    return mapping
+
+
+@lru_cache(maxsize=16)
+def _cached_user_map(value: str) -> Mapping[str, str]:
+    return MappingProxyType(_parse_user_map(value))
+
+
+def user_map() -> Mapping[str, str]:
+    """Return the optional proxy-user to email mapping.
+
+    Keys are matched case-insensitively. Values are LibrisLog account emails.
+    """
+    return _cached_user_map(settings.trusted_proxy_auth_user_map)
+
+
+def effective_identity(identity: str) -> str:
+    """Return the account email a proxy identity maps to, before lookup."""
+    raw = identity.strip()
+    if not raw:
+        return ""
+    mapped = user_map().get(raw.lower())
+    return (mapped or raw).strip().lower()
+
+
 def is_active() -> bool:
     """Return True only when the feature is enabled and safely configured."""
     if not settings.trusted_proxy_auth_enabled:
@@ -130,14 +200,16 @@ def is_active() -> bool:
 _session_factory: Callable[[], Session] = create_session
 
 
-def resolve_user(email: str) -> ProxyUser | None:
-    """Find exactly one existing user by a case-insensitive email match.
+def resolve_user(identity: str) -> ProxyUser | None:
+    """Find exactly one existing user for a proxy identity.
 
-    Returns ``None`` when no user matches, when the address is ambiguous, or
-    when the lookup fails. The caller must treat every non-match as anonymous
-    access rather than as an error.
+    The identity is first looked up in the optional proxy-user mapping and then
+    matched against user emails case-insensitively. Returns ``None`` when no
+    user matches, when the address is ambiguous, or when the lookup fails. The
+    caller must treat every non-match as anonymous access rather than as an
+    error.
     """
-    key = email.strip().lower()
+    key = effective_identity(identity)
     if not key:
         return None
 

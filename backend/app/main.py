@@ -202,6 +202,9 @@ if settings.trusted_proxy_auth_enabled:
             "client and is unsafe outside an isolated network"
         )
 
+    # Parse the optional mapping at startup so invalid entries are logged once.
+    _ = proxy_auth.user_map()
+
     if not proxy_auth.secret():
         logger.warning(
             "TRUSTED_PROXY_AUTH_SECRET is not set; anyone who can reach the backend directly "
@@ -243,7 +246,7 @@ async def trusted_proxy_auth_middleware(request: Request, call_next) -> Response
     if not forwarded_user:
         return await call_next(request)
 
-    claimed_email = forwarded_user.lower()
+    claimed_email = proxy_auth.effective_identity(forwarded_user)
     if (
         request.session.get("user_id") is not None
         and request.session.get("proxy_auth_email") == claimed_email

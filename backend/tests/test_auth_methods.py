@@ -93,6 +93,7 @@ def proxy_auth_enabled_fixture(monkeypatch, session: Session) -> Session:
     monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_ips", "127.0.0.1")
     monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_header", "X-Forwarded-User")
     monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_secret", "")
+    monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_user_map", "")
     return session
 
 
@@ -314,6 +315,197 @@ def test_proxy_auth_lookup_rejects_ambiguous_case_variants(
     _add_user(proxy_auth_enabled, email="TEST@example.com", firstname="Variant")
 
     assert proxy_auth.resolve_user("test@example.com") is None
+
+
+def test_proxy_auth_user_mapping_translates_proxy_username(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings,
+        "trusted_proxy_auth_user_map",
+        "alice=test@example.com",
+    )
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "test@example.com"
+
+
+def test_proxy_auth_user_mapping_falls_back_to_header_value(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings,
+        "trusted_proxy_auth_user_map",
+        "alice=other@example.com",
+    )
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "test@example.com"})
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "test@example.com"
+
+
+def test_proxy_auth_user_mapping_is_case_insensitive(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings,
+        "trusted_proxy_auth_user_map",
+        "ALICE=TEST@EXAMPLE.COM",
+    )
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "Alice"})
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "test@example.com"
+
+
+def test_proxy_auth_user_mapping_unknown_email_is_ignored(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings,
+        "trusted_proxy_auth_user_map",
+        "alice=nobody@example.com",
+    )
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert resp.status_code == 401
+
+
+def test_proxy_auth_user_map_parsing_skips_invalid_entries(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "alice=alice@example.com, bob=bob@example.com, broken",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping["alice"] == "alice@example.com"
+    assert mapping["bob"] == "bob@example.com"
+    assert len(mapping) == 2
+
+
+def test_proxy_auth_user_map_handles_spaces_and_comments(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "alice = alice@example.com, bob=bob@example.com # household",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping == {"alice": "alice@example.com", "bob": "bob@example.com"}
+
+
+def test_proxy_auth_user_map_preserves_hash_inside_tokens(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "us#er=alice@example.com",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping == {"us#er": "alice@example.com"}
+
+
+def test_proxy_auth_user_map_rejects_equals_inside_value(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "alice==alice@example.com, bob=a@b.c=d, carol=carol@example.com",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping == {"carol": "carol@example.com"}
+
+
+def test_proxy_auth_user_map_duplicate_keys_last_wins(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "alice=one@example.com,ALICE=two@example.com",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping == {"alice": "two@example.com"}
+
+
+def test_proxy_auth_user_map_ignores_non_email_values(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.config.settings.trusted_proxy_auth_user_map",
+        "alice=alice@example.com, bob=not-an-email, =missing@example.com, broken",
+    )
+
+    mapping = proxy_auth.user_map()
+    assert mapping == {"alice": "alice@example.com"}
+
+
+def test_proxy_auth_unmapped_non_email_fails_closed(
+    client: TestClient, proxy_auth_enabled: Session
+) -> None:
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "bob"})
+    assert resp.status_code == 401
+
+
+def test_proxy_auth_mapping_does_not_bypass_trusted_ip(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings, "trusted_proxy_auth_user_map", "alice=test@example.com"
+    )
+    monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_ips", "10.0.0.1")
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert resp.status_code == 401
+
+
+def test_proxy_auth_mapping_does_not_bypass_secret(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module.settings, "trusted_proxy_auth_user_map", "alice=test@example.com"
+    )
+    monkeypatch.setattr(main_module.settings, "trusted_proxy_auth_secret", "s3cret")
+    client.headers.pop("X-API-Key", None)
+
+    resp = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert resp.status_code == 401
+
+
+def test_proxy_auth_mapping_change_forces_reauthentication(
+    client: TestClient, proxy_auth_enabled: Session, monkeypatch
+) -> None:
+    import app.main as main_module
+
+    second = _add_user(proxy_auth_enabled, email="second@example.com", firstname="Second")
+    monkeypatch.setattr(
+        main_module.settings, "trusted_proxy_auth_user_map", "alice=test@example.com"
+    )
+    client.headers.pop("X-API-Key", None)
+
+    first = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert first.status_code == 200
+    assert first.json()["email"] == "test@example.com"
+
+    monkeypatch.setattr(
+        main_module.settings, "trusted_proxy_auth_user_map", f"alice={second.email}"
+    )
+    switched = client.get("/api/auth/me", headers={"X-Forwarded-User": "alice"})
+    assert switched.status_code == 200
+    assert switched.json()["email"] == "second@example.com"
 
 
 def test_proxy_auth_secret_preserves_hash_characters(monkeypatch) -> None:
