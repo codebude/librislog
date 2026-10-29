@@ -8,7 +8,7 @@
 		passwordStrengthPercent
 	} from '#lib/password.js';
 
-	let { password = '' } = $props<{ password: string }>();
+	let { password = '' }: { password: string } = $props();
 
 	const checks = $derived(getPasswordChecks(password));
 	const requirements = $derived(complexityRequirementLabels((key) => $_(key)));

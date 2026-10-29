@@ -65,6 +65,9 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 - 📋 **Tag listing.** New `GET /api/tags` returns all tags with usage counts.
 - 📚 **Authentication documentation.** New configuration reference and administration guidance, including a Traefik BasicAuth example and recovery steps for password lockout.
 
+**Dependencies**
+- ⬆️ Updated backend and frontend dependencies, including FastAPI, Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, Scrapling, curl-cffi, SvelteKit, Svelte, Vite, Vitest, and Chart.js. TypeScript 7 was intentionally deferred because it is a major upgrade.
+
 **Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
 [Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...HEAD)
