@@ -66,7 +66,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 - 📚 **Authentication documentation.** New configuration reference and administration guidance, including a Traefik BasicAuth example and recovery steps for password lockout.
 
 **Dependencies**
-- ⬆️ Updated backend and frontend dependencies within their existing compatibility ranges, including Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, SvelteKit, Svelte, Vite, Vitest, and Chart.js. Major upgrades such as TypeScript 7 and FastAPI 0.162 were intentionally deferred.
+- ⬆️ Updated backend and frontend dependencies, including FastAPI, Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, Scrapling, curl-cffi, SvelteKit, Svelte, Vite, Vitest, and Chart.js. TypeScript 7 was intentionally deferred because it is a major upgrade.
 
 **Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
