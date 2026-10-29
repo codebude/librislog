@@ -85,6 +85,7 @@ Open **http://localhost:8001** and create your account.
 - **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from the Goodreads or Bookstats presets, or any CSV/Excel file with custom field mapping
 - **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
 - **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
+- **Mass tag editor** — Add or remove tags on many books at once
 - **Multi-user** — Admin/user roles, per-user libraries, optional OIDC login
 - **Public profiles** — Shareable, read-only profile links with configurable sections, audience, language, and optional expiry
 - **Themes** — Light, dark, and custom DaisyUI themes with persistent preferences
