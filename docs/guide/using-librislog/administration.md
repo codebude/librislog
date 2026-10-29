@@ -19,6 +19,56 @@ Click "Edit" next to a user to change their name, email, password, or role. You 
 
 Click "Delete" to remove a user account. You cannot delete your own account from this page — use the **Profile → Danger Zone** instead.
 
+## External Authentication
+
+LibrisLog can run with single sign-on (OIDC), trusted reverse-proxy authentication, or
+both. The methods are independent, so a deployment can keep password login as a fallback
+or turn it off entirely.
+
+### Disabling Password Login
+
+Set `PASSWORD_LOGIN_ENABLED=false` in the backend environment to hide the email/password
+form and "Forgot password?" link. `POST /api/auth/login`, `/api/auth/forgot-password`, and
+`/api/auth/reset-password` then return `403`. The first-admin setup remains available so a
+new instance can be bootstrapped.
+
+Before disabling password login, make sure every user has linked their OIDC account:
+open **Profile → Single Sign-On → Link account**. Admin-created users without an OIDC
+link cannot sign in while password login is disabled. If you get locked out, set
+`PASSWORD_LOGIN_ENABLED=true` and restart the backend.
+
+For account management, admins can still create users and set passwords through
+**Administration → Users**. These actions do not enable password login while the flag
+is off; they only store the password for later use or recovery. The profile password
+field is hidden while password login is disabled.
+
+### Trusted Reverse-Proxy Authentication
+
+With `TRUSTED_PROXY_AUTH_ENABLED=true`, LibrisLog trusts an HTTP header set by a reverse
+proxy such as Traefik BasicAuth and signs the matching user in automatically. See
+[Configuration → Trusted Reverse-Proxy Authentication](/guide/configuration#trusted-reverse-proxy-authentication-optional)
+for the variables and a Traefik example.
+
+Things to keep in mind:
+
+- The forwarded value is matched against an existing user's email address
+  (case-insensitive). Set `TRUSTED_PROXY_AUTH_USER_MAP` to translate proxy usernames to
+  account emails, for example `alice=alice@example.com,bob=bob@example.com`. Values not
+  present in the map are used as the email directly. Only rely on that fallback when the
+  proxy controls the username and users cannot set it to arbitrary email addresses;
+  otherwise map every allowed username. Unknown values are ignored; accounts are never
+  created automatically.
+- Only requests from the configured `TRUSTED_PROXY_AUTH_IPS` are honored. Never expose the
+  backend directly to clients that could spoof the header.
+- When Uvicorn's proxy-header handling rewrites the connecting address from
+  `X-Forwarded-For`, set `TRUSTED_PROXY_AUTH_SECRET` and have the proxy inject it, or
+  restrict `FORWARDED_ALLOW_IPS` to the proxy only. Other containers on the same Docker
+  network can present the header, so the secret is recommended there too.
+- Because the proxy owns authentication, logging out of LibrisLog does not end the proxy
+  session. The next request signs the user back in. Use the proxy's logout to switch users.
+- On a shared browser, a change of proxy user replaces the LibrisLog session with the new
+  user on the next request.
+
 ## Backup & Restore
 
 ![Backup and Restore tab](/screenshots/admin-backup.png)
@@ -39,7 +89,7 @@ Restoring overwrites all current data. Create a fresh backup first if you want t
 
 The backup endpoint is accessible via the REST API, making it easy to automate with cron (or any scheduler).
 
-First, [create an API key](/api/setup#3-create-an-api-key) with the admin user. Then use it in a cron script:
+First, [create an API key](/api/#creating-an-api-key) with the admin user. Then use it in a cron script:
 
 ```bash
 #!/usr/bin/env bash

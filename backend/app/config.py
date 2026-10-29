@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
     auth_cookie_domain: str = ""
+    password_login_enabled: bool = True
+    trusted_proxy_auth_enabled: bool = False
+    trusted_proxy_auth_header: str = "X-Forwarded-User"
+    trusted_proxy_auth_ips: str = ""
+    trusted_proxy_auth_secret: str = ""
+    trusted_proxy_auth_user_map: str = ""
     oidc_enabled: bool = False
     oidc_provider_id: str = "oidc"
     oidc_provider_name: str = "Single Sign-On"
@@ -62,7 +68,7 @@ class Settings(BaseSettings):
     mail_starttls: bool = True
     mail_ssl_tls: bool = False
     password_reset_token_max_age: int = 3600
-    public_app_url: str = "http://localhost:5173"
+    public_app_url: str = ""
     forwarded_allow_ips: str = "*"
     telemetry_disabled: bool = False
     telemetry_endpoint: str = "https://metrics.librislog.app/api/telemetry"

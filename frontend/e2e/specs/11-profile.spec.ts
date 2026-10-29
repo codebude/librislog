@@ -93,7 +93,9 @@ test.describe('Profile', () => {
 				body: JSON.stringify({
 					embed_enabled: false,
 					dashboard_quote_enabled: true,
-					thalia_cover_search_enabled: false
+					thalia_cover_search_enabled: false,
+					password_login_enabled: true,
+					trusted_proxy_auth_enabled: false
 				})
 			});
 		});

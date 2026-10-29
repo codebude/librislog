@@ -18,11 +18,31 @@
 	let selectedLanguage = $state<AppLocale>('en');
 	let loading = $state(false);
 	let error = $state('');
+	let passwordLoginEnabled = $state<boolean | null>(null);
+	let oidcEnabled = $state(false);
+	let configError = $state(false);
 
 	$effect(() => {
 		if (SUPPORTED_LOCALES.includes($locale as AppLocale)) {
 			selectedLanguage = $locale as AppLocale;
 		}
+	});
+
+	$effect(() => {
+		void (async () => {
+			const [appResult, oidcResult] = await Promise.allSettled([
+				api.app.config(),
+				api.oidc.config()
+			]);
+			if (appResult.status === 'fulfilled') {
+				passwordLoginEnabled = appResult.value.password_login_enabled;
+			} else {
+				configError = true;
+			}
+			if (oidcResult.status === 'fulfilled') {
+				oidcEnabled = oidcResult.value.enabled;
+			}
+		})();
 	});
 
 	function onLanguageChange(event: Event) {
@@ -53,7 +73,13 @@
 			await api.profile.updateSettings({ language: selectedLanguage, timezone: detected });
 			setTimezone(detected);
 			setLocale(selectedLanguage);
-			await goto('/');
+			let target = '/';
+			if (configError) {
+				target = '/profile';
+			} else if (passwordLoginEnabled === false && oidcEnabled) {
+				target = '/profile#section-oidc';
+			}
+			await goto(target);
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : $_('auth.setupFailed');
 		} finally {
@@ -70,6 +96,19 @@
 				<span class="text-2xl font-bold tracking-tight">{$_('app.title')}</span>
 			</div>
 			<h1 class="text-2xl font-bold">{$_('auth.setupTitle')}</h1>
+			{#if configError}
+				<Alert type="warning">
+					{$_('auth.setupConfigCheckFailed')}
+				</Alert>
+			{:else if passwordLoginEnabled === false}
+				<Alert type="warning">
+					{#if oidcEnabled}
+						{$_('auth.setupLinkOidcWarning')}
+					{:else}
+						{$_('auth.setupPasswordDisabledNoOidc')}
+					{/if}
+				</Alert>
+			{/if}
 			<label class="form-control max-w-xs">
 				<span class="label label-text">{$_('settings.languageTitle')}</span>
 				<select class="select select-bordered" value={selectedLanguage} onchange={onLanguageChange}>

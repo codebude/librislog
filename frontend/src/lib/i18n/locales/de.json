@@ -422,7 +422,14 @@
     "resetPasswordTitle": "Neues Passwort festlegen",
     "resetPasswordInstruction": "Gib dein neues Passwort ein.",
     "resetPasswordSuccess": "Passwort wurde erfolgreich zurückgesetzt.",
-    "resetPasswordSubmit": "Passwort zurücksetzen"
+    "resetPasswordSubmit": "Passwort zurücksetzen",
+    "passwordLoginDisabledHint": "Die Passwort-Anmeldung ist deaktiviert. Verwende Single Sign-on oder wende dich an deinen Administrator, wenn du dich nicht anmelden kannst.",
+    "proxyManagedHint": "Der Zugriff auf diese Instanz wird von deinem Reverse-Proxy verwaltet.",
+    "noLoginMethodAvailable": "Es ist derzeit keine Anmeldemethode konfiguriert. Wende dich an deinen Administrator.",
+    "configLoadFailed": "Die Anmeldekonfiguration konnte nicht geladen werden. Lade die Seite neu oder wende dich an deinen Administrator.",
+    "setupLinkOidcWarning": "Die Passwort-Anmeldung ist deaktiviert. Verknüpfe dein Single-Sign-on-Konto im Profil, bevor du dich abmeldest, sonst kannst du dich nicht erneut anmelden.",
+    "setupPasswordDisabledNoOidc": "Die Passwort-Anmeldung ist deaktiviert und kein Single-Sign-on-Anbieter konfiguriert. Aktiviere OIDC oder die Passwort-Anmeldung, bevor du dich abmeldest.",
+    "setupConfigCheckFailed": "Die Einstellung für die Passwort-Anmeldung konnte nicht geprüft werden. Falls sie deaktiviert ist, verknüpfe dein Single-Sign-on-Konto im Profil, bevor du dich abmeldest."
   },
   "user": {
     "menu": "Benutzermenü",

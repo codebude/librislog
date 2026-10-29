@@ -2,15 +2,19 @@
 
 import asyncio
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response
 
+from app import proxy_auth
 from app._build_info import __git_sha__, __version__
+from app.auth import start_browser_session
 from app.config import settings
 from app.logging_config import configure_logging
 from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, public_profile, sessions, share_links, statistics, tags, users
@@ -159,18 +163,16 @@ app = FastAPI(
     redoc_url=None,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=True,
-)
-
-
 def _clean_env_value(value: str) -> str:
     """Strip inline comments and whitespace from an env-var string."""
     return value.split("#", 1)[0].strip()
+
+
+def _parse_forwarded_allow_ips(value: str) -> set[str]:
+    """Parse a comma/space-separated IP allow list."""
+    if value.strip() == "*":
+        return {"*"}
+    return {ip.strip() for ip in value.replace(",", " ").split() if ip.strip()}
 
 
 cookie_domain_raw: str = _clean_env_value(settings.auth_cookie_domain)
@@ -179,6 +181,102 @@ cookie_samesite: str = _clean_env_value(settings.auth_cookie_samesite).lower()
 if cookie_samesite not in {"lax", "strict", "none"}:
     cookie_samesite = "lax"
 cookie_name: str = _clean_env_value(settings.auth_cookie_name) or "librislog_session"
+
+_proxy_auth_ips = proxy_auth.trusted_ips()
+_proxy_auth_header = proxy_auth.header_name()
+
+if settings.trusted_proxy_auth_enabled:
+    if not _proxy_auth_ips:
+        logger.warning(
+            "TRUSTED_PROXY_AUTH_ENABLED is true but TRUSTED_PROXY_AUTH_IPS is empty; "
+            "trusted proxy authentication is disabled"
+        )
+    elif not _proxy_auth_header:
+        logger.warning(
+            "TRUSTED_PROXY_AUTH_ENABLED is true but TRUSTED_PROXY_AUTH_HEADER is empty; "
+            "trusted proxy authentication is disabled"
+        )
+    elif "*" in _proxy_auth_ips:
+        logger.warning(
+            "TRUSTED_PROXY_AUTH_IPS contains '*'; trusted proxy authentication trusts any "
+            "client and is unsafe outside an isolated network"
+        )
+
+    # Parse the optional mapping at startup so invalid entries are logged once.
+    _ = proxy_auth.user_map()
+
+    if not proxy_auth.secret():
+        logger.warning(
+            "TRUSTED_PROXY_AUTH_SECRET is not set; anyone who can reach the backend directly "
+            "and spoof the identity header could impersonate a user"
+        )
+    if "*" in _parse_forwarded_allow_ips(settings.forwarded_allow_ips):
+        logger.warning(
+            "FORWARDED_ALLOW_IPS contains '*'; uvicorn may rewrite request.client from "
+            "X-Forwarded-For, so the trusted proxy IP check can be bypassed"
+        )
+
+
+# This middleware must be registered before SessionMiddleware so that
+# SessionMiddleware wraps it and request.session is available inside.
+@app.middleware("http")
+async def trusted_proxy_auth_middleware(request: Request, call_next) -> Response:
+    """Auto-authenticate a user forwarded by a trusted reverse proxy."""
+    if not settings.trusted_proxy_auth_enabled:
+        return await call_next(request)
+
+    allow_ips = proxy_auth.trusted_ips()
+    configured_header = proxy_auth.header_name()
+    if not allow_ips or not configured_header:
+        return await call_next(request)
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    client = request.client
+    if client is None or not proxy_auth.ip_is_trusted(client.host, allow_ips):
+        return await call_next(request)
+
+    required_secret = proxy_auth.secret()
+    if required_secret:
+        provided_secret = request.headers.get(proxy_auth.SECRET_HEADER_NAME, "")
+        if not secrets.compare_digest(provided_secret, required_secret):
+            return await call_next(request)
+
+    forwarded_user = request.headers.get(configured_header, "").strip()
+    if not forwarded_user:
+        return await call_next(request)
+
+    claimed_email = proxy_auth.effective_identity(forwarded_user)
+    if (
+        request.session.get("user_id") is not None
+        and request.session.get("proxy_auth_email") == claimed_email
+    ):
+        return await call_next(request)
+
+    try:
+        user = await run_in_threadpool(proxy_auth.resolve_user, forwarded_user)
+    except Exception:  # noqa: BLE001 — proxy auth must fail closed, never break the request
+        logger.warning("Trusted proxy user lookup failed", exc_info=True)
+        return await call_next(request)
+
+    if user is None:
+        logger.debug("Trusted proxy header did not match exactly one existing user")
+        return await call_next(request)
+
+    existing_id = request.session.get("user_id")
+    if existing_id == user.id:
+        request.session["proxy_auth_email"] = claimed_email
+        return await call_next(request)
+    if existing_id is not None:
+        # Remove only authentication keys so an in-flight OIDC state survives.
+        for key in ("user_id", "csrf_token", "credentials_version"):
+            request.session.pop(key, None)
+    start_browser_session(request, user.id, user.credentials_version)
+    request.session["proxy_auth_email"] = claimed_email
+    logger.debug("Authenticated user %s via trusted proxy header", user.id)
+    return await call_next(request)
+
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.api_key_encryption_key,
@@ -188,14 +286,8 @@ app.add_middleware(
     domain=cookie_domain,
 )
 
-def _parse_forwarded_allow_ips(value: str) -> set[str]:
-    """Parse the comma/space-separated ``forwarded_allow_ips`` setting."""
-    if value.strip() == "*":
-        return {"*"}
-    return {ip.strip() for ip in value.replace(",", " ").split() if ip.strip()}
 
-
-_TRUSTED_PROXY_IPS = _parse_forwarded_allow_ips(settings.forwarded_allow_ips)
+_FORWARDED_PROTO_TRUSTED_IPS = _parse_forwarded_allow_ips(settings.forwarded_allow_ips)
 
 
 @app.middleware("http")
@@ -207,7 +299,9 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     That breaks OIDC flows because Authlib validates the redirect URI against
     ``request.url``.
     """
-    if "*" in _TRUSTED_PROXY_IPS or (request.client and request.client.host in _TRUSTED_PROXY_IPS):
+    if "*" in _FORWARDED_PROTO_TRUSTED_IPS or (
+        request.client and request.client.host in _FORWARDED_PROTO_TRUSTED_IPS
+    ):
         forwarded_proto = request.headers.get("x-forwarded-proto")
         if forwarded_proto:
             logger.debug("X-Forwarded-Proto=%s — patching scheme to %s", forwarded_proto, forwarded_proto)
@@ -217,6 +311,17 @@ async def proxy_headers_middleware(request: Request, call_next) -> Response:
     else:
         logger.debug("Request not from trusted proxy (client=%s) — skipping X-Forwarded-Proto check", request.client)
     return await call_next(request)
+
+
+# Register CORS last so it is the outermost middleware and can add headers to
+# every response, including requests handled by the proxy-auth middleware.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
 
 
 app.include_router(books.router)

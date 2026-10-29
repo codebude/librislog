@@ -422,7 +422,14 @@
     "resetPasswordTitle": "Establecer nueva contraseña",
     "resetPasswordInstruction": "Introduce tu nueva contraseña.",
     "resetPasswordSuccess": "Contraseña restablecida correctamente.",
-    "resetPasswordSubmit": "Restablecer contraseña"
+    "resetPasswordSubmit": "Restablecer contraseña",
+    "passwordLoginDisabledHint": "El inicio de sesión con contraseña está desactivado. Usa el inicio de sesión único o contacta con tu administrador si no puedes acceder.",
+    "proxyManagedHint": "El acceso a esta instancia lo gestiona tu proxy inverso.",
+    "noLoginMethodAvailable": "No hay ningún método de inicio de sesión configurado. Contacta con tu administrador.",
+    "configLoadFailed": "No se pudo cargar la configuración de inicio de sesión. Recarga la página o contacta con tu administrador.",
+    "setupLinkOidcWarning": "El inicio de sesión con contraseña está desactivado. Vincula tu cuenta de inicio de sesión único en el perfil antes de cerrar sesión, o no podrás volver a acceder.",
+    "setupPasswordDisabledNoOidc": "El inicio de sesión con contraseña está desactivado y no hay proveedor de inicio de sesión único configurado. Activa OIDC o vuelve a activar la contraseña antes de cerrar sesión.",
+    "setupConfigCheckFailed": "No se pudo verificar la configuración del inicio de sesión con contraseña. Si está desactivado, vincula el inicio de sesión único en el perfil antes de cerrar sesión."
   },
   "user": {
     "menu": "Menú de usuario",

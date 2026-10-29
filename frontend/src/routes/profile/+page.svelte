@@ -42,7 +42,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	let keys = $state<ApiKeyMeta[]>([]);
 	let pendingDeleteKeyId = $state<number | null>(null);
 	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null });
-	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false });
+	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false, password_login_enabled: true, trusted_proxy_auth_enabled: false });
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);
 	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -698,23 +698,25 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				placeholder={$_('auth.lastname')}
 				autocomplete="family-name"
 			/>
-			<input
-				class="input input-bordered validator"
-				name="password"
-				type={showPassword ? 'text' : 'password'}
-				bind:value={password}
-				placeholder={$_('user.newPassword')}
-				autocomplete="new-password"
-				minlength="8"
-				pattern={passwordPattern}
-				title={$_('password.requirementsTitle')}
-			/>
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" class="checkbox checkbox-xs" name="show-password" bind:checked={showPassword} />
-				<span class="label-text text-xs">{$_('common.showPassword')}</span>
-			</label>
+			{#if appConfig.password_login_enabled}
+				<input
+					class="input input-bordered validator"
+					name="password"
+					type={showPassword ? 'text' : 'password'}
+					bind:value={password}
+					placeholder={$_('user.newPassword')}
+					autocomplete="new-password"
+					minlength="8"
+					pattern={passwordPattern}
+					title={$_('password.requirementsTitle')}
+				/>
+				<label class="label cursor-pointer justify-start gap-2">
+					<input type="checkbox" class="checkbox checkbox-xs" name="show-password" bind:checked={showPassword} />
+					<span class="label-text text-xs">{$_('common.showPassword')}</span>
+				</label>
 
-			<PasswordRequirements password={password} />
+				<PasswordRequirements password={password} />
+			{/if}
 
 			<button
 				type="submit"

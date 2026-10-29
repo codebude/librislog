@@ -19,7 +19,104 @@ All configuration is done via environment variables in a `.env` file at the proj
 | `AUTH_COOKIE_NAME` | Session cookie name | `librislog_session` |
 | `AUTH_COOKIE_SECURE` | Use secure cookies (HTTPS only) | `false` |
 | `AUTH_COOKIE_SAMESITE` | SameSite cookie attribute | `lax` |
-| `AUTH_COOKIE_DOMAIN` | Cookie domain | — |
+| `AUTH_COOKIE_DOMAIN` | Cookie domain | (none) |
+| `PASSWORD_LOGIN_ENABLED` | Allow email/password login, "Forgot password?", and password reset | `true` |
+
+Set `PASSWORD_LOGIN_ENABLED=false` once every user has linked single sign-on. The login
+page then hides the password form and the three password endpoints return `403`. The
+first-admin setup still works, so a fresh instance can always be bootstrapped.
+
+::: warning
+Disabling password login is a one-way door until you re-enable it. Existing local accounts
+that have no OIDC link can no longer sign in while the flag is off. To recover, set
+`PASSWORD_LOGIN_ENABLED=true` and restart the backend.
+:::
+
+## Trusted Reverse-Proxy Authentication (Optional)
+
+When a reverse proxy already authenticates users (for example Traefik BasicAuth or an
+SSO gateway), LibrisLog can reuse that identity and create a browser session
+automatically. The forwarded value is matched against an existing user's email address;
+unknown values are ignored and never create accounts.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TRUSTED_PROXY_AUTH_ENABLED` | Enable proxy-header authentication | `false` |
+| `TRUSTED_PROXY_AUTH_HEADER` | HTTP header carrying the authenticated identity | `X-Forwarded-User` |
+| `TRUSTED_PROXY_AUTH_IPS` | Comma/space-separated IP addresses or CIDR ranges allowed to send the header. Empty disables the feature even when enabled. | (none) |
+| `TRUSTED_PROXY_AUTH_SECRET` | Optional shared secret the proxy must also send in `X-Trusted-Proxy-Secret`. Empty means no secret is required. | (none) |
+| `TRUSTED_PROXY_AUTH_USER_MAP` | Optional `proxy_user=email` pairs, separated by commas or spaces. When set, a forwarded value is translated through the map before the email lookup; values not in the map are used as the email directly. | (none) |
+
+The feature fails closed: if the IP list or the header name is empty, the middleware
+logs a warning at startup and stays inactive. `*` in the IP list trusts every client and
+is only safe on an isolated network. Invalid IP entries are logged and ignored. CIDR
+ranges such as `172.18.0.0/16` are supported, and IPv4-mapped IPv6 addresses are
+normalised.
+
+::: warning
+Only enable this when LibrisLog is reachable exclusively through the trusted proxy.
+Anyone who can connect directly and spoof the header could impersonate a user.
+
+The IP check uses the address LibrisLog sees as the connecting peer. If Uvicorn's
+proxy-header handling rewrites that address from `X-Forwarded-For` (controlled by
+`FORWARDED_ALLOW_IPS` or `--proxy-headers`), a client can make the request look like it
+came from the proxy. In that case, set `TRUSTED_PROXY_AUTH_SECRET` and have the proxy
+inject it, or restrict `FORWARDED_ALLOW_IPS` to the proxy's address only.
+
+Other containers on the same Docker network can also reach the backend and present the
+header, so use the shared secret in multi-container setups.
+:::
+
+Example Traefik labels for a BasicAuth-protected deployment. The BasicAuth user name
+can be any proxy username as long as it appears in `TRUSTED_PROXY_AUTH_USER_MAP`:
+
+```yaml
+labels:
+  - "traefik.http.middlewares.librislog-auth.basicauth.users=alice:$$apr1$$..."
+  - "traefik.http.middlewares.librislog-auth.basicauth.headerfield=X-Forwarded-User"
+  - "traefik.http.middlewares.librislog-auth-secret.headers.customrequestheaders.X-Trusted-Proxy-Secret=change-me"
+  - "traefik.http.routers.librislog.middlewares=librislog-auth,librislog-auth-secret"
+  - "traefik.http.services.librislog.loadbalancer.server.port=8000"
+```
+
+Traefik only sets the authenticated-user header when `basicauth.headerfield` is
+configured; its default is empty. The header value is the BasicAuth user name. If you
+do not set `TRUSTED_PROXY_AUTH_USER_MAP`, that name must be the LibrisLog account email.
+The BasicAuth and Headers rules must use different middleware names, as in the example
+above.
+
+Configure LibrisLog with the proxy's address, the header Traefik sets, and a mapping
+from proxy usernames to account emails:
+
+```dotenv
+TRUSTED_PROXY_AUTH_ENABLED=true
+TRUSTED_PROXY_AUTH_HEADER=X-Forwarded-User
+TRUSTED_PROXY_AUTH_IPS=172.18.0.0/16
+TRUSTED_PROXY_AUTH_SECRET=change-me
+TRUSTED_PROXY_AUTH_USER_MAP=alice=alice@example.com,bob=bob@example.com
+```
+
+Mapping keys are matched case-insensitively. A forwarded value that is not present in
+the map is treated as an email address, so mixed deployments can map some proxy users
+and pass others through directly. Duplicate keys keep the last value and log a warning;
+mapping values without an `@` are ignored so a typo is visible in the logs.
+
+::: warning
+The pass-through fallback is only safe when the proxy alone decides the username and
+users cannot choose arbitrary values. If a user can set their proxy username to another
+person's email address, they can be signed in as that person. When proxy usernames are
+user-controlled, map every allowed username explicitly.
+:::
+
+Email matching is case-insensitive for ASCII addresses.
+
+The IP must be the address LibrisLog sees as the connecting peer (the proxy container),
+not the end user's address. With Docker Compose, use the proxy container's static IP or
+the Docker network subnet.
+
+With proxy authentication enabled, logging out clears the LibrisLog session, but the
+next request from the same proxy signs the user in again. This is expected: access is
+controlled by the proxy, not by LibrisLog.
 
 ## OIDC (Optional)
 
@@ -36,15 +133,15 @@ Password reset is optional. If mail is not configured, the "Forgot password?" li
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MAIL_SERVER` | SMTP server hostname (e.g. `smtp.gmail.com`). Leave empty to disable password reset emails. | — |
+| `MAIL_SERVER` | SMTP server hostname (e.g. `smtp.gmail.com`). Leave empty to disable password reset emails. | (none) |
 | `MAIL_PORT` | SMTP server port | `587` |
-| `MAIL_USERNAME` | SMTP username (leave empty for unauthenticated relay) | — |
-| `MAIL_PASSWORD` | SMTP password | — |
-| `MAIL_FROM` | Sender email address | — |
+| `MAIL_USERNAME` | SMTP username (leave empty for unauthenticated relay) | (none) |
+| `MAIL_PASSWORD` | SMTP password | (none) |
+| `MAIL_FROM` | Sender email address | (none) |
 | `MAIL_FROM_NAME` | Sender display name | `LibrisLog` |
 | `MAIL_STARTTLS` | Use STARTTLS (`True`/`False`) | `True` |
 | `MAIL_SSL_TLS` | Use implicit SSL/TLS (`True`/`False`) | `False` |
-| `PUBLIC_APP_URL` | Public URL of the frontend (used to build the reset link in emails) | `http://localhost:5173` |
+| `PUBLIC_APP_URL` | Public URL of the frontend. Required for password reset emails; needed for OIDC redirects in split-origin (local dev) setups. Leave empty when the backend serves the frontend. | (none) |
 | `PASSWORD_RESET_TOKEN_MAX_AGE` | Reset token validity in seconds | `3600` (1 hour) |
 
 ::: tip Local Development
@@ -79,8 +176,8 @@ naming the variables to set.
 | `DNB_IMPORT_SEARCH_ENABLED` | Query the Deutsche Nationalbibliothek (German National Library), title and ISBN | `true` | `true` |
 | `HARDCOVER_IMPORT_SEARCH_ENABLED` | Query Hardcover.app (also needs `HARDCOVER_APP_API_TOKEN`) | `true` | `false` unless a token is set |
 | `GOOGLE_BOOKS_IMPORT_SEARCH_ENABLED` | Allow the Google Books fallback (also needs `GOOGLE_BOOKS_API_KEY`) | `true` | `false` unless a key is set |
-| `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | empty | — |
-| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (see [API Keys](/guide/api-keys)) | empty | — |
+| `GOOGLE_BOOKS_API_KEY` | Google Books API key (see [API Keys](/guide/api-keys)) | empty | (none) |
+| `HARDCOVER_APP_API_TOKEN` | Hardcover.app API token (see [API Keys](/guide/api-keys)) | empty | (none) |
 
 The built-in default is `true` for every source, so upgrading never silently drops a
 source that worked before these switches existed. `.env.example` sets the two keyed

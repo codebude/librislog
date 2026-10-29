@@ -31,24 +31,39 @@ def _provider_id() -> str:
     return settings.oidc_provider_id
 
 
+def _frontend_base_url() -> str:
+    """Base URL of the frontend app, used for browser redirects.
+
+    Empty in single-origin (production) deployments, where the backend serves
+    the frontend and relative redirects resolve correctly. Set
+    ``PUBLIC_APP_URL`` in split-origin (local dev) setups.
+    """
+    return (settings.public_app_url or "").rstrip("/")
+
+
+def _with_frontend_base(path: str) -> str:
+    base = _frontend_base_url()
+    return f"{base}{path}" if base else path
+
+
 def _frontend_warning_redirect(message: str) -> RedirectResponse:
     """Redirect to the frontend login page with an OIDC error message."""
-    return RedirectResponse(url=f"/login?oidc_error={quote_plus(message)}", status_code=302)
+    return RedirectResponse(url=_with_frontend_base(f"/login?oidc_error={quote_plus(message)}"), status_code=302)
 
 
 def _frontend_success_redirect() -> RedirectResponse:
     """Redirect to the frontend callback page on successful login."""
-    return RedirectResponse(url="/auth/oidc/callback", status_code=302)
+    return RedirectResponse(url=_with_frontend_base("/auth/oidc/callback"), status_code=302)
 
 
 def _link_success_redirect() -> RedirectResponse:
     """Redirect to the frontend link callback with success status."""
-    return RedirectResponse(url="/auth/oidc/link-callback?status=success", status_code=302)
+    return RedirectResponse(url=_with_frontend_base("/auth/oidc/link-callback?status=success"), status_code=302)
 
 
 def _link_error_redirect(message: str) -> RedirectResponse:
     """Redirect to the frontend link callback with an error message."""
-    return RedirectResponse(url=f"/auth/oidc/link-callback?error={quote_plus(message)}", status_code=302)
+    return RedirectResponse(url=_with_frontend_base(f"/auth/oidc/link-callback?error={quote_plus(message)}"), status_code=302)
 
 
 def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:

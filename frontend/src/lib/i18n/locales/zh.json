@@ -422,7 +422,14 @@
     "resetPasswordTitle": "设置新密码",
     "resetPasswordInstruction": "输入你的新密码。",
     "resetPasswordSuccess": "密码已成功重置。",
-    "resetPasswordSubmit": "重置密码"
+    "resetPasswordSubmit": "重置密码",
+    "passwordLoginDisabledHint": "密码登录已禁用。请使用单点登录；如果无法登录，请联系管理员。",
+    "proxyManagedHint": "对此实例的访问由反向代理管理。",
+    "noLoginMethodAvailable": "当前未配置任何登录方式。请联系管理员。",
+    "configLoadFailed": "无法加载登录配置。请刷新页面或联系管理员。",
+    "setupLinkOidcWarning": "密码登录已禁用。请在退出登录前在个人资料中关联单点登录账户，否则将无法再次登录。",
+    "setupPasswordDisabledNoOidc": "密码登录已禁用且未配置单点登录提供程序。请在退出登录前启用 OIDC 或重新启用密码登录。",
+    "setupConfigCheckFailed": "无法验证密码登录设置。如果密码登录已禁用，请在退出登录前在个人资料中关联单点登录。"
   },
   "user": {
     "menu": "用户菜单",

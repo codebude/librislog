@@ -422,7 +422,14 @@
     "resetPasswordTitle": "Définir un nouveau mot de passe",
     "resetPasswordInstruction": "Saisis ton nouveau mot de passe.",
     "resetPasswordSuccess": "Mot de passe réinitialisé avec succès.",
-    "resetPasswordSubmit": "Réinitialiser le mot de passe"
+    "resetPasswordSubmit": "Réinitialiser le mot de passe",
+    "passwordLoginDisabledHint": "La connexion par mot de passe est désactivée. Utilisez l'authentification unique ou contactez votre administrateur si vous ne pouvez pas vous connecter.",
+    "proxyManagedHint": "L'accès à cette instance est géré par votre proxy inverse.",
+    "noLoginMethodAvailable": "Aucune méthode de connexion n'est configurée. Contactez votre administrateur.",
+    "configLoadFailed": "Impossible de charger la configuration de connexion. Rechargez la page ou contactez votre administrateur.",
+    "setupLinkOidcWarning": "La connexion par mot de passe est désactivée. Liez votre compte d'authentification unique dans le profil avant de vous déconnecter, sinon vous ne pourrez plus vous reconnecter.",
+    "setupPasswordDisabledNoOidc": "La connexion par mot de passe est désactivée et aucun fournisseur d'authentification unique n'est configuré. Activez OIDC ou réactivez le mot de passe avant de vous déconnecter.",
+    "setupConfigCheckFailed": "Impossible de vérifier le réglage de connexion par mot de passe. S'il est désactivé, liez l'authentification unique dans le profil avant de vous déconnecter."
   },
   "user": {
     "menu": "Menu utilisateur",

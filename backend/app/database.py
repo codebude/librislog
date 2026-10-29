@@ -45,3 +45,13 @@ def get_session() -> Generator[Session, None, None]:
     """Yield a SQLModel Session for the lifespan of the request."""
     with Session(engine) as session:
         yield session
+
+
+def create_session() -> Session:
+    """Create a standalone session for code that runs outside request dependencies.
+
+    Used by the trusted-proxy authentication middleware, which cannot use FastAPI's
+    dependency injection. The returned session is a context manager; callers must
+    close it, for example ``with create_session() as session:``.
+    """
+    return Session(engine)

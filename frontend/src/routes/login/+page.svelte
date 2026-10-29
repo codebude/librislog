@@ -19,15 +19,27 @@
 	let error = $state('');
 	let oidcEnabled = $state(false);
 	let oidcProviderName = $state('Single Sign-On');
+	let passwordLoginEnabled = $state<boolean | null>(null);
+	let trustedProxyAuthEnabled = $state(false);
+	let configError = $state(false);
 
 	$effect(() => {
 		void (async () => {
-			try {
-				const cfg = await api.oidc.config();
-				oidcEnabled = cfg.enabled;
-				oidcProviderName = cfg.provider_name ?? 'Single Sign-On';
-			} catch {
+			const [oidcResult, appResult] = await Promise.allSettled([
+				api.oidc.config(),
+				api.app.config()
+			]);
+			if (oidcResult.status === 'fulfilled') {
+				oidcEnabled = oidcResult.value.enabled;
+				oidcProviderName = oidcResult.value.provider_name ?? 'Single Sign-On';
+			} else {
 				oidcEnabled = false;
+			}
+			if (appResult.status === 'fulfilled') {
+				passwordLoginEnabled = appResult.value.password_login_enabled;
+				trustedProxyAuthEnabled = appResult.value.trusted_proxy_auth_enabled;
+			} else {
+				configError = true;
 			}
 		})();
 	});
@@ -148,48 +160,71 @@
 					{error}
 				</Alert>
 			{/if}
-			<form class="flex flex-col gap-4" onsubmit={(e) => { e.preventDefault(); submit(); }}>
-				<label class="form-control">
-					<span class="label label-text">{$_('auth.email')}</span>
-					<input
-						type="email"
-						class="input input-bordered w-full"
-						bind:value={email}
-						autocomplete="username"
-						required
-						disabled={loading}
-					/>
-				</label>
-				<label class="form-control">
-					<span class="label label-text">{$_('auth.password')}</span>
-					<input
-						type="password"
-						class="input input-bordered w-full"
-						bind:value={password}
-						autocomplete="current-password"
-						required
-						disabled={loading}
-					/>
-				</label>
-				<div class="flex justify-end">
-					<button type="button" class="link link-hover text-sm" onclick={openForgotDialog}>
-						{$_('auth.forgotPassword')}
+			{#if configError}
+				<Alert type="error">{$_('auth.configLoadFailed')}</Alert>
+			{:else if passwordLoginEnabled === null}
+				<p class="text-sm text-base-content/70">{$_('common.loadingEllipsis')}</p>
+			{:else if passwordLoginEnabled}
+				<form class="flex flex-col gap-4" onsubmit={(e) => { e.preventDefault(); submit(); }}>
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.email')}</span>
+						<input
+							type="email"
+							class="input input-bordered w-full"
+							bind:value={email}
+							autocomplete="username"
+							required
+							disabled={loading}
+						/>
+					</label>
+					<label class="form-control">
+						<span class="label label-text">{$_('auth.password')}</span>
+						<input
+							type="password"
+							class="input input-bordered w-full"
+							bind:value={password}
+							autocomplete="current-password"
+							required
+							disabled={loading}
+						/>
+					</label>
+					<div class="flex justify-end">
+						<button type="button" class="link link-hover text-sm" onclick={openForgotDialog}>
+							{$_('auth.forgotPassword')}
+						</button>
+					</div>
+					<button type="submit" class="btn btn-primary btn-block" disabled={loading}>
+						{loading ? $_('common.loadingEllipsis') : $_('auth.login')}
 					</button>
+					{#if oidcEnabled}
+						<div class="divider text-xs">{$_('oidc.orContinueWith')}</div>
+						<button type="button" class="btn btn-outline btn-block" onclick={startOidcLogin}>
+							{$_('oidc.loginWithProvider', { values: { provider: oidcProviderName } })}
+						</button>
+					{/if}
+				</form>
+			{:else}
+				<div class="flex flex-col gap-4">
+					{#if oidcEnabled}
+						<button type="button" class="btn btn-primary btn-block" onclick={startOidcLogin}>
+							{$_('oidc.loginWithProvider', { values: { provider: oidcProviderName } })}
+						</button>
+					{:else if !trustedProxyAuthEnabled}
+						<Alert type="warning">
+							{$_('auth.noLoginMethodAvailable')}
+						</Alert>
+					{/if}
+					<p class="text-sm text-base-content/70">{$_('auth.passwordLoginDisabledHint')}</p>
 				</div>
-				<button type="submit" class="btn btn-primary btn-block" disabled={loading}>
-					{loading ? $_('common.loadingEllipsis') : $_('auth.login')}
-				</button>
-				{#if oidcEnabled}
-					<div class="divider text-xs">{$_('oidc.orContinueWith')}</div>
-					<button type="button" class="btn btn-outline btn-block" onclick={startOidcLogin}>
-						{$_('oidc.loginWithProvider', { values: { provider: oidcProviderName } })}
-					</button>
-				{/if}
-			</form>
+			{/if}
+			{#if trustedProxyAuthEnabled}
+				<p class="text-sm text-base-content/70">{$_('auth.proxyManagedHint')}</p>
+			{/if}
 		</div>
 	</div>
 </div>
 
+{#if passwordLoginEnabled}
 <dialog bind:this={forgotDialog} class="modal">
 	<div class="modal-box">
 		<h3 class="text-lg font-bold mb-4">{$_('auth.forgotPasswordTitle')}</h3>
@@ -232,3 +267,4 @@
 		<button>close</button>
 	</form>
 </dialog>
+{/if}
