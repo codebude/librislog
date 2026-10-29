@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     mail_starttls: bool = True
     mail_ssl_tls: bool = False
     password_reset_token_max_age: int = 3600
-    public_app_url: str = "http://localhost:5173"
+    public_app_url: str = ""
     forwarded_allow_ips: str = "*"
     telemetry_disabled: bool = False
     telemetry_endpoint: str = "https://metrics.librislog.app/api/telemetry"

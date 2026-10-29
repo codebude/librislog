@@ -10,6 +10,9 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 os.environ.setdefault("API_KEY_ENCRYPTION_KEY", "test-api-key-encryption-secret")
+# OIDC frontend redirects stay relative in tests (single-origin assumption);
+# local dev sets PUBLIC_APP_URL in .env for split-origin setups.
+os.environ.setdefault("PUBLIC_APP_URL", "")
 # Telemetry must never fire during the test suite (no network, no dev-DB writes).
 os.environ["TELEMETRY_DISABLED"] = "true"
 
