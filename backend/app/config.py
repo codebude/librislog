@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
     auth_cookie_domain: str = ""
+    password_login_enabled: bool = True
+    trusted_proxy_auth_enabled: bool = False
+    trusted_proxy_auth_header: str = "X-Forwarded-User"
+    trusted_proxy_auth_ips: str = ""
+    trusted_proxy_auth_secret: str = ""
     oidc_enabled: bool = False
     oidc_provider_id: str = "oidc"
     oidc_provider_name: str = "Single Sign-On"

@@ -665,6 +665,8 @@ class AppConfigRead(SQLModel):
     embed_enabled: bool
     dashboard_quote_enabled: bool
     thalia_cover_search_enabled: bool
+    password_login_enabled: bool
+    trusted_proxy_auth_enabled: bool
 
 
 class OidcLinkRead(SQLModel):
