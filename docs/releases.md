@@ -8,8 +8,8 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Unreleased
 
-::: tip ⭐ v1.12.0 - Mass Tag Editor & Authentication Methods
-LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, plus two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. The tag editor change is non-breaking, and the authentication features are off by default and need no data migration.
+::: tip ⭐ v1.12.0 - Mass Tag Editor, Profile Pictures & Authentication Methods
+LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, and profile pictures with three selectable sources: the existing animal avatar, a locally cached OIDC picture, and a manually uploaded image with a built-in cropper. Public profiles gain a separate profile picture toggle. It also adds two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. Existing accounts keep their animal avatar and existing share links stay unchanged after upgrading, and the new options need no manual data migration.
 :::
 
 ## Latest Release
@@ -22,7 +22,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.12.0](#v1-12-0-mass-tag-editor-authentication-methods) | Unreleased | Feature release |
+| [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | Unreleased | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
@@ -44,7 +44,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 ---
 
-## v1.12.0: Mass Tag Editor & Authentication Methods
+## v1.12.0: Mass Tag Editor, Profile Pictures & Authentication Methods
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
 
@@ -55,6 +55,11 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 - 🔁 **Add and remove in one step.** Both fields in a single action, applied in chunks of 500 books with progress reporting.
 - ⚠️ **Case-variant warning.** Tags that differ only in capitalization from an existing tag are flagged, with a one-click shortcut to reuse the existing spelling.
 - 🧹 **Orphan tag cleanup.** Tags left on no book are deleted automatically.
+- 🖼️ **Profile pictures with three sources.** Choose the generated animal avatar, the picture from your OIDC provider, or an uploaded image. Existing accounts keep the animal avatar, so nothing changes until you pick a source.
+- ✂️ **Built-in cropper.** Uploaded images open in a 1:1 cropper before they are sent to the server. The backend validates the image, resizes it to at most 512 pixels, strips metadata, and stores it as WebP under `AVATARS_DIR`.
+- 🏷️ **OIDC pictures refresh on login.** The provider's `picture` claim is cached locally and refreshed on every OIDC login. Linking an account caches the picture without switching the avatar automatically; unlinking removes the cache and falls back to the uploaded picture or the animal avatar.
+- 👁️ **Separate public profile picture toggle.** Share links get their own **Profile picture** section. It is off by default, so existing links keep their current appearance. The tokenized avatar endpoint only serves the image when that section is enabled.
+- 🧹 **Avatar cleanup.** The hourly maintenance task also removes orphaned avatar files that are no longer referenced by a user image row.
 - 🔐 **Disable password login.** `PASSWORD_LOGIN_ENABLED=false` hides the email/password form and "Forgot password?" link and makes the login, forgot-password, and reset-password endpoints return `403`. First-admin setup still works, so a new instance can always be bootstrapped. The setup page warns when single sign-on should be linked before logging out.
 - 🌐 **Trusted reverse-proxy authentication.** `TRUSTED_PROXY_AUTH_ENABLED=true` signs a user in automatically when a trusted proxy forwards an identity in a configurable header. The header, trusted IPs or CIDR ranges, and an optional shared secret are configurable, and `TRUSTED_PROXY_AUTH_USER_MAP` can translate proxy usernames to account emails when the proxy name is not the email itself. The feature fails closed when misconfigured, rejects ambiguous email matches, and ignores unknown values.
 - 🔁 **Automatic OIDC redirect.** `OIDC_AUTO_REDIRECT=true` sends the login page straight to the provider when `PASSWORD_LOGIN_ENABLED=false`. Failed attempts return to the login page with an error instead of looping.

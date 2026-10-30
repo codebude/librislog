@@ -22,6 +22,12 @@ from app.main import app
 from app.database import get_session
 
 
+@pytest.fixture(autouse=True)
+def isolate_avatar_dir(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep avatar files out of the developer's real data directory."""
+    monkeypatch.setattr("app.config.settings.avatars_dir", str(tmp_path / "avatars"))
+
+
 @pytest.fixture(name="session")
 def session_fixture() -> Generator[Session, None, None]:
     """Provide an in-memory SQLite session, isolated per test."""

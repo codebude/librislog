@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { loginViaUi } from '../fixtures/auth.fixture';
 import { SEED_USER } from '../fixtures/seed-data';
@@ -186,5 +187,49 @@ test.describe('Public Profile', () => {
 		await expect(dialog).toBeVisible();
 		await expect(dialog.locator('select[name="share-link-language"]')).toHaveValue('de');
 		await dialog.locator('button[aria-label="Close"]').click();
+	});
+});
+test.describe('Public profile picture', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginViaUi(page, SEED_USER.email, SEED_USER.password);
+		await page.goto('/profile');
+		await expect(page.locator('#section-share-profile')).toBeVisible();
+	});
+
+	test('15.9 avatar section can be enabled and disabled independently', async ({ page, browser }) => {
+		// Upload a fixture avatar so this spec does not depend on spec 11.10.
+		const csrf = await (await page.request.get('/api/auth/csrf')).json();
+		await page.request.post('/api/profile/avatar/upload', {
+			headers: { 'X-CSRF-Token': csrf.csrf_token },
+			multipart: {
+				file: {
+					name: 'avatar.png',
+					mimeType: 'image/png',
+					buffer: readFileSync('e2e/fixtures/avatar.png')
+				}
+			}
+		});
+
+		const shareUrl = await createShareLink(page, 'Avatar Public Profile', {
+			sections: ['username', 'avatar']
+		});
+
+		const publicPage = await openIncognito(browser, shareUrl);
+		await expect(publicPage.locator('main img[src*="/avatar"]').first()).toBeVisible();
+		await publicPage.close();
+
+		const csrf2 = await (await page.request.get('/api/auth/csrf')).json();
+		const links = await (await page.request.get('/api/profile/share-links')).json();
+		const link = links.find((l: { name: string }) => l.name === 'Avatar Public Profile');
+		expect(link).toBeTruthy();
+
+		await page.request.patch(`/api/profile/share-links/${link.id}`, {
+			headers: { 'X-CSRF-Token': csrf2.csrf_token, 'Content-Type': 'application/json' },
+			data: { visibility_config: { sections: ['username'], statistics: [] } }
+		});
+
+		const hiddenPage = await openIncognito(browser, shareUrl);
+		await expect(hiddenPage.locator('main img[src*="/avatar"]')).toHaveCount(0);
+		await hiddenPage.close();
 	});
 });

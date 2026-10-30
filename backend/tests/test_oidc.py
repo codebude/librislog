@@ -9,7 +9,8 @@ from sqlmodel import Session, select
 from unittest.mock import patch
 
 from app.config import settings
-from app.models import OidcLink, User
+from app.models import AvatarSource, OidcLink, User, UserImage
+from app.services.avatar_storage import StoredAvatar
 
 
 class FakeOidcClient:
@@ -667,3 +668,141 @@ def test_loopback_public_app_url_warning_is_skipped_when_unused(
         oidc_router.warn_about_loopback_public_app_url()
 
     mock_warning.assert_not_called()
+
+
+def test_oidc_login_refreshes_cached_picture(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A successful OIDC login refreshes the cached picture when selected."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-picture",
+                "picture": "https://issuer.example/picture.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    user = session.get(User, user_id)
+    assert user is not None
+    user.avatar_source = AvatarSource.oidc
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-picture",
+        )
+    )
+    session.commit()
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        return StoredAvatar(filename="1__oidc__abc.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/auth/oidc/callback"
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.filename == "1__oidc__abc.webp"
+    assert image.external_url == "https://issuer.example/picture.png"
+
+
+def test_oidc_link_caches_picture_without_switching_source(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Linking caches the provider picture but leaves the selected avatar alone."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-link-picture",
+                "picture": "https://issuer.example/link.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        return StoredAvatar(filename="1__oidc__link.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    start = client.post("/api/oidc/link")
+    assert start.status_code == 200
+    callback = client.get("/api/oidc/link-callback?code=abc", follow_redirects=False)
+    assert callback.status_code == 302
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.external_url == "https://issuer.example/link.png"
+
+    user = session.get(User, user_id)
+    assert user is not None
+    assert user.avatar_source == AvatarSource.animal
+
+
+def test_oidc_login_caches_picture_for_existing_animal_avatar(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Users on the animal avatar get the OIDC picture cached on next login."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-animal-picture",
+                "picture": "https://issuer.example/animal.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-animal-picture",
+        )
+    )
+    session.commit()
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        from pathlib import Path
+
+        avatars_dir = Path(settings.avatars_dir)
+        avatars_dir.mkdir(parents=True, exist_ok=True)
+        (avatars_dir / "1__oidc__animal.webp").write_bytes(b"data")
+        return StoredAvatar(filename="1__oidc__animal.webp", content_type="image/webp", byte_size=4)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+
+    options = client.get("/api/profile/avatar").json()
+    assert options["has_oidc_avatar"] is True
+    assert options["source"] == "animal"

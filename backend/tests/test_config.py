@@ -40,6 +40,8 @@ def test_get_config_returns_feature_flags(client: TestClient, monkeypatch) -> No
         "thalia_cover_search_enabled": True,
         "password_login_enabled": False,
         "trusted_proxy_auth_enabled": True,
+        "avatar_max_upload_mb": 10,
+        "avatar_max_dimension": 512,
     }
     assert "trusted_proxy_auth_header" not in data
 
