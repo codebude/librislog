@@ -321,6 +321,7 @@ export interface OidcConfig {
 	enabled: boolean;
 	provider_id: string | null;
 	provider_name: string | null;
+	auto_redirect: boolean;
 }
 
 export interface AppConfig {

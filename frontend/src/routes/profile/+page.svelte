@@ -41,7 +41,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	let keyCopied = $state(false);
 	let keys = $state<ApiKeyMeta[]>([]);
 	let pendingDeleteKeyId = $state<number | null>(null);
-	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null });
+	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null, auto_redirect: false });
 	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false, password_login_enabled: true, trusted_proxy_auth_enabled: false });
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);

@@ -130,6 +130,8 @@ async def lifespan(app: FastAPI):
             "See .env.example for mail setup instructions."
         )
 
+    oidc.warn_about_loopback_public_app_url()
+
     maintenance_task = asyncio.create_task(_periodic_maintenance())
     telemetry_task = (
         asyncio.create_task(_telemetry_heartbeat()) if not settings.telemetry_disabled else None

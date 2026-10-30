@@ -6,6 +6,7 @@
 	import { currentUser, csrfToken } from '#lib/stores/auth.js';
 	import { _, locale, setLocale, SUPPORTED_LOCALES, type AppLocale } from '#lib/i18n/index.js';
 	import { setTimezone, detectTimezone } from '#lib/stores/timezone.js';
+	import { shouldAutoRedirectToOidc } from '#lib/utils/oidcRedirect.js';
 	import {
 		setThemeMode, setCustomTheme, applyThemeToDocument, saveThemeToStorage,
 		sanitizeThemeMode, THEME_MODE_KEY, CUSTOM_THEME_KEY
@@ -19,6 +20,8 @@
 	let error = $state('');
 	let oidcEnabled = $state(false);
 	let oidcProviderName = $state('Single Sign-On');
+	let oidcAutoRedirect = $state(false);
+	let autoRedirectStarted = false;
 	let passwordLoginEnabled = $state<boolean | null>(null);
 	let trustedProxyAuthEnabled = $state(false);
 	let configError = $state(false);
@@ -32,6 +35,7 @@
 			if (oidcResult.status === 'fulfilled') {
 				oidcEnabled = oidcResult.value.enabled;
 				oidcProviderName = oidcResult.value.provider_name ?? 'Single Sign-On';
+				oidcAutoRedirect = oidcResult.value.auto_redirect ?? false;
 			} else {
 				oidcEnabled = false;
 			}
@@ -40,6 +44,9 @@
 				trustedProxyAuthEnabled = appResult.value.trusted_proxy_auth_enabled;
 			} else {
 				configError = true;
+			}
+			if (oidcResult.status === 'fulfilled' && appResult.status === 'fulfilled') {
+				maybeAutoRedirectToOidc();
 			}
 		})();
 	});
@@ -126,8 +133,24 @@
 		forgotDialog?.showModal();
 	}
 
+	function maybeAutoRedirectToOidc() {
+		if (autoRedirectStarted) return;
+		const hasOidcError = new URLSearchParams(window.location.search).has('oidc_error');
+		if (
+			shouldAutoRedirectToOidc({
+				oidcEnabled,
+				oidcAutoRedirect,
+				passwordLoginEnabled,
+				hasOidcError
+			})
+		) {
+			autoRedirectStarted = true;
+			startOidcLogin();
+		}
+	}
+
 	function startOidcLogin() {
-		window.location.href = api.oidc.loginUrl();
+		window.location.assign(api.oidc.loginUrl());
 	}
 
 	$effect(() => {

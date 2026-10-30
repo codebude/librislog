@@ -37,6 +37,10 @@ open **Profile → Single Sign-On → Link account**. Admin-created users withou
 link cannot sign in while password login is disabled. If you get locked out, set
 `PASSWORD_LOGIN_ENABLED=true` and restart the backend.
 
+Set `OIDC_AUTO_REDIRECT=true` to send visitors straight to the provider instead of
+showing the login page. This only takes effect while password login is disabled; a failed
+attempt returns to the login page with the error instead of redirecting again.
+
 For account management, admins can still create users and set passwords through
 **Administration → Users**. These actions do not enable password login while the flag
 is off; they only store the password for later use or recovery. The profile password
