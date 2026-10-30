@@ -66,7 +66,7 @@ async def _sync_oidc_avatar(
             session.add(existing)
         return None
 
-    if not is_safe_oidc_picture_url(picture):
+    if not is_safe_oidc_picture_url(picture, oidc_provider_host()):
         logger.warning("Ignoring unsafe OIDC picture URL: %s", picture)
         return None
 

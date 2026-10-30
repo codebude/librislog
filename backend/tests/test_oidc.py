@@ -768,7 +768,7 @@ def test_oidc_login_refreshes_cached_picture(
         }
     )
     monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
-    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
 
     me = client.get("/api/auth/me")
     user_id = me.json()["id"]
@@ -817,7 +817,7 @@ def test_oidc_link_caches_picture_without_switching_source(
         }
     )
     monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
-    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
 
     me = client.get("/api/auth/me")
     user_id = me.json()["id"]
@@ -859,7 +859,7 @@ def test_oidc_login_caches_picture_for_existing_animal_avatar(
         }
     )
     monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
-    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda _url: True)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
 
     me = client.get("/api/auth/me")
     user_id = me.json()["id"]
@@ -888,3 +888,51 @@ def test_oidc_login_caches_picture_for_existing_animal_avatar(
     options = client.get("/api/profile/avatar").json()
     assert options["has_oidc_avatar"] is True
     assert options["source"] == "animal"
+
+
+def test_oidc_login_accepts_picture_on_provider_host(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A picture on the provider's own private host is trusted."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr("app.routers.oidc.oidc_provider_host", lambda: "127.0.0.1")
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-provider-host",
+                "picture": "https://127.0.0.1/picture.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-provider-host",
+        )
+    )
+    session.commit()
+
+    seen: dict[str, Any] = {}
+
+    async def fake_cache(*_args: Any, **kwargs: Any) -> StoredAvatar:
+        seen.update(kwargs)
+        return StoredAvatar(filename="1__oidc__host.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+    assert seen["trusted_private_host"] == "127.0.0.1"
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.external_url == "https://127.0.0.1/picture.png"
