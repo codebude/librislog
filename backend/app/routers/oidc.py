@@ -1,7 +1,7 @@
 """OIDC SSO endpoints — login, callback, link, unlink, and status."""
 
 import logging
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus, urlparse, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -183,6 +183,28 @@ def _link_error_redirect(message: str, request: Request) -> RedirectResponse:
     )
 
 
+def _callback_base_url() -> str:
+    """Return the configured OIDC callback origin, or an empty string."""
+    return (settings.oidc_callback_base_url or "").strip().rstrip("/")
+
+
+def _is_valid_callback_base_url(base: str) -> bool:
+    """A usable base is an absolute http(s) URL without a path of its own."""
+    parts = urlparse(base)
+    return parts.scheme in {"http", "https"} and bool(parts.netloc) and parts.path in {"", "/"}
+
+
+def warn_about_invalid_oidc_callback_base_url() -> None:
+    """Log a startup hint when ``OIDC_CALLBACK_BASE_URL`` cannot be used."""
+    base = _callback_base_url()
+    if base and not _is_valid_callback_base_url(base):
+        logger.warning(
+            "OIDC_CALLBACK_BASE_URL=%s is not an absolute http(s) URL such as "
+            "https://books.example.com; OIDC callbacks fall back to the request host.",
+            base,
+        )
+
+
 def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:
     """Resolve the callback redirect URI via the ASGI router.
 
@@ -190,8 +212,22 @@ def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:
     ``request.scope["scheme"]`` from ``X-Forwarded-Proto``, so
     ``url_for`` returns the correct scheme (``https``) behind a TLS
     termination proxy.
+
+    ``OIDC_CALLBACK_BASE_URL`` replaces the public scheme and host when the
+    backend sees a different origin than the browser, for example behind the
+    Vite dev proxy, which rewrites the Host header to ``localhost``.
     """
-    return str(request.url_for(route_name))
+    callback_url = request.url_for(route_name)
+    base = _callback_base_url()
+    if not base:
+        return str(callback_url)
+    if not _is_valid_callback_base_url(base):
+        logger.warning(
+            "Ignoring invalid OIDC_CALLBACK_BASE_URL=%s; using the request host", base
+        )
+        return str(callback_url)
+    parts = urlparse(base)
+    return urlunsplit((parts.scheme, parts.netloc, callback_url.path, "", ""))
 
 
 @router.get("/config", response_model=OidcConfigRead)

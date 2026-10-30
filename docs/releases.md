@@ -76,6 +76,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 **Bug fixes**
 - 🔐 **OIDC redirect safety net.** A loopback `PUBLIC_APP_URL` such as the old `.env.example` value `http://localhost:5173` is ignored for non-local requests, so existing installations do not redirect users to localhost after upgrading. A startup warning explains how to set it correctly.
+- 🔗 **Configurable OIDC callback origin.** `OIDC_CALLBACK_BASE_URL` lets the backend advertise a different public origin for the OIDC callback routes, which fixes login behind proxies that rewrite the `Host` header, such as the Vite dev server on a custom LAN hostname. Left empty, the callback URI is still built from the request as before.
 
 **Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 

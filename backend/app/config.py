@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     oidc_client_secret: str = ""
     oidc_well_known_url: str = ""
     oidc_scope: str = "openid email profile"
+    # Public origin (scheme, host, optional port) under which the browser reaches
+    # the OIDC callback routes. Empty builds the redirect URI from the request.
+    oidc_callback_base_url: str = ""
     dashboard_quote_enabled: bool = True
     dashboard_quote_url: str = (
         "https://motivational-spark-api.vercel.app/api/quotes/random"

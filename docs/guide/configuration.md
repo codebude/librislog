@@ -127,6 +127,7 @@ controlled by the proxy, not by LibrisLog.
 | `OIDC_CLIENT_ID` | OIDC client ID |
 | `OIDC_CLIENT_SECRET` | OIDC client secret |
 | `OIDC_WELL_KNOWN_URL` | OIDC well-known configuration URL |
+| `OIDC_CALLBACK_BASE_URL` | Public origin the browser uses for the OIDC callback routes, for example `https://books.example.com`, without a path. Set it when the backend sees a different host than the browser, such as behind the Vite dev proxy, which rewrites `Host` to `localhost`. Leave it empty (the default) to build the callback URI from the request. |
 
 ## Password Reset / Email (Optional)
 

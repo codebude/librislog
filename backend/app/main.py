@@ -143,6 +143,7 @@ async def lifespan(app: FastAPI):
         )
 
     oidc.warn_about_loopback_public_app_url()
+    oidc.warn_about_invalid_oidc_callback_base_url()
 
     maintenance_task = asyncio.create_task(_periodic_maintenance())
     telemetry_task = (

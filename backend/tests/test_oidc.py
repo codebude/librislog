@@ -381,6 +381,61 @@ def test_oidc_login_with_x_forwarded_proto(client: TestClient, monkeypatch: Monk
     assert fake.last_redirect_uri == "https://proxy.example/api/oidc/callback"
 
 
+def test_oidc_login_uses_configured_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A configured callback base replaces the host the backend sees."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "http://dev.example.lan:5173/")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    response = client.get(
+        "/api/oidc/login",
+        headers={"Host": "localhost:8000"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert fake.last_redirect_uri == "http://dev.example.lan:5173/api/oidc/callback"
+
+
+def test_oidc_login_ignores_invalid_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A value without scheme and host falls back to the request host."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "dev.example.lan:5173")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    response = client.get("/api/oidc/login", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert fake.last_redirect_uri == "http://testserver/api/oidc/callback"
+
+
+def test_oidc_link_authorize_uses_configured_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Account linking uses the same configured callback base as login."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "https://books.example.com")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    start = client.post("/api/oidc/link")
+    assert start.status_code == 200
+
+    authorize = client.get("/api/oidc/link/authorize", follow_redirects=False)
+
+    assert authorize.status_code == 302
+    assert fake.last_redirect_uri == "https://books.example.com/api/oidc/link-callback"
+
+
 def test_oidc_login_authorize_redirect_exception(client: TestClient, monkeypatch: MonkeyPatch) -> None:
     _set_oidc_enabled(monkeypatch)
     fake = FakeOidcClientRedirectError()
@@ -653,6 +708,33 @@ def test_loopback_public_app_url_warns(monkeypatch: MonkeyPatch) -> None:
 
     mock_warning.assert_called_once()
     assert "loopback" in str(mock_warning.call_args)
+
+
+def test_invalid_callback_base_url_warns(monkeypatch: MonkeyPatch) -> None:
+    """Startup should explain that a malformed OIDC_CALLBACK_BASE_URL is ignored."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "dev.example.lan:5173")
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+
+    mock_warning.assert_called_once()
+    assert "OIDC_CALLBACK_BASE_URL" in str(mock_warning.call_args)
+
+
+def test_callback_base_url_warning_is_skipped_when_valid_or_unset(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """No warning for an empty or well-formed callback base."""
+    from app.routers import oidc as oidc_router
+
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        monkeypatch.setattr(settings, "oidc_callback_base_url", "")
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+        monkeypatch.setattr(settings, "oidc_callback_base_url", "https://books.example.com")
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+
+    mock_warning.assert_not_called()
 
 
 def test_loopback_public_app_url_warning_is_skipped_when_unused(
