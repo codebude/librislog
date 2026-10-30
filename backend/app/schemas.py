@@ -10,7 +10,7 @@ import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
-from app.models import AcquisitionStatus, Medium, ReadingStatus, PublicProfileAudience, UserRole
+from app.models import AcquisitionStatus, AvatarSource, Medium, ReadingStatus, PublicProfileAudience, UserRole
 
 
 class ReadingProgressCreate(SQLModel):
@@ -496,6 +496,7 @@ class UserRead(SQLModel):
     email: str
     role: UserRole
     created_at: datetime
+    avatar_url: Optional[str] = None
 
 
 class UserUpdate(SQLModel):
@@ -522,6 +523,24 @@ class UserAdminUpdate(SQLModel):
     email: Optional[str] = None
     role: Optional[UserRole] = None
     password: Optional[str] = None
+
+
+class AvatarSourceUpdate(SQLModel):
+    """Request body for changing the selected avatar source."""
+
+    model_config = SQLModelConfig(extra="forbid")
+
+    source: AvatarSource
+
+
+class AvatarOptionsRead(SQLModel):
+    """Current avatar state for the profile avatar card."""
+
+    source: AvatarSource
+    avatar_url: Optional[str] = None
+    has_uploaded_avatar: bool = False
+    has_oidc_avatar: bool = False
+    oidc_linked: bool = False
 
 
 class UserSettingsRead(SQLModel):
@@ -668,6 +687,8 @@ class AppConfigRead(SQLModel):
     thalia_cover_search_enabled: bool
     password_login_enabled: bool
     trusted_proxy_auth_enabled: bool
+    avatar_max_upload_mb: int = 10
+    avatar_max_dimension: int = 512
 
 
 class OidcLinkRead(SQLModel):

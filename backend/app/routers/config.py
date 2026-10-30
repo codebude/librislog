@@ -19,4 +19,6 @@ def app_config() -> AppConfigRead:
         password_login_enabled=settings.password_login_enabled,
         # Report the effective state: a misconfigured proxy feature is inactive.
         trusted_proxy_auth_enabled=proxy_auth.is_active(),
+        avatar_max_upload_mb=settings.avatar_max_upload_mb,
+        avatar_max_dimension=settings.avatar_max_dimension,
     )

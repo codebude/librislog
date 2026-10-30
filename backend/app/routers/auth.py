@@ -24,6 +24,7 @@ from app.schemas import (
     UserLogin,
     UserRead,
 )
+from app.services.avatar import build_user_read
 from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -78,7 +79,7 @@ def setup(
     session.commit()
 
     start_browser_session(http_request, user.id, user.credentials_version)
-    return {"user": UserRead.model_validate(user)}
+    return {"user": build_user_read(session, user)}
 
 
 @router.post("/login")
@@ -95,7 +96,7 @@ def login(
     assert user.id is not None
 
     start_browser_session(http_request, user.id, user.credentials_version)
-    return {"user": UserRead.model_validate(user)}
+    return {"user": build_user_read(session, user)}
 
 
 @router.post("/logout")
@@ -106,9 +107,12 @@ def logout(http_request: Request) -> dict:
 
 
 @router.get("/me", response_model=UserRead)
-def me(current_user: User = Depends(require_user)) -> User:
+def me(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> UserRead:
     """Return the currently authenticated user."""
-    return current_user
+    return build_user_read(session, current_user)
 
 
 @router.get("/csrf")
