@@ -10,10 +10,22 @@ from sqlmodel import Session, select
 from app.auth import require_user
 from app.auth import start_browser_session
 from app.database import get_session
-from app.models import OidcLink, User
+from app.models import AvatarSource, OidcLink, User
 from app.oidc import get_oidc_client, oidc_is_enabled
 from app.config import settings
 from app.schemas import OidcConfigRead, OidcLinkRead
+from app.services.avatar import (
+    VARIANT_OIDC,
+    VARIANT_UPLOAD,
+    get_user_image,
+    image_has_file,
+    upsert_avatar_image,
+)
+from app.services.avatar_storage import (
+    cache_oidc_avatar,
+    delete_avatar_file,
+    is_safe_oidc_picture_url,
+)
 from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/oidc", tags=["oidc"])
@@ -28,6 +40,60 @@ def _provider_name() -> str:
 def _provider_id() -> str:
     """Return the configured OIDC provider identifier."""
     return settings.oidc_provider_id
+
+
+async def _sync_oidc_avatar(
+    session: Session,
+    user: User,
+    picture: str | None,
+    *,
+    force_cache: bool = False,
+) -> str | None:
+    """Update the user's OIDC avatar row from a ``picture`` claim.
+
+    Returns the previous filename when it was replaced and should be deleted
+    after the transaction commits.
+    """
+    if user.id is None:
+        return None
+
+    existing = get_user_image(session, user.id, VARIANT_OIDC)
+    previous = existing.filename if existing else None
+
+    if not picture:
+        if existing:
+            existing.external_url = None
+            session.add(existing)
+        return None
+
+    if not is_safe_oidc_picture_url(picture):
+        logger.warning("Ignoring unsafe OIDC picture URL: %s", picture)
+        return None
+
+    needs_cache = force_cache or user.avatar_source == AvatarSource.oidc
+    if not needs_cache and (existing is None or not existing.filename):
+        # A user who linked OIDC before this feature existed still has no cached
+        # file. Cache it on the next login so the profile can offer the option.
+        needs_cache = True
+
+    stored = None
+    if needs_cache:
+        stored = await cache_oidc_avatar(
+            picture,
+            settings.avatars_dir,
+            user.id,
+        )
+
+    upsert_avatar_image(
+        session,
+        user.id,
+        VARIANT_OIDC,
+        stored,
+        external_url=picture,
+    )
+    if previous and stored and previous != stored.filename:
+        return previous
+    return None
 
 
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -213,6 +279,11 @@ async def oidc_callback(
         return _frontend_warning_redirect("Linked user account no longer exists", request)
     assert user.id is not None
 
+    replaced = await _sync_oidc_avatar(session, user, userinfo.get("picture"))
+    session.commit()
+    if replaced:
+        delete_avatar_file(replaced, settings.avatars_dir)
+
     start_browser_session(request, user.id, user.credentials_version)
     return _frontend_success_redirect(request)
 
@@ -339,7 +410,19 @@ async def oidc_link_callback(
             )
         )
 
+    linked_user = session.get(User, user_id)
+    replaced = None
+    if linked_user is not None:
+        replaced = await _sync_oidc_avatar(
+            session,
+            linked_user,
+            userinfo.get("picture"),
+            force_cache=True,
+        )
+
     session.commit()
+    if replaced:
+        delete_avatar_file(replaced, settings.avatars_dir)
     return _link_success_redirect(request)
 
 
@@ -349,7 +432,26 @@ def oidc_unlink(
     session: Session = Depends(get_session),
 ) -> None:
     """Unlink the OIDC account from the current user."""
+    assert current_user.id is not None
     link = session.exec(select(OidcLink).where(OidcLink.user_id == current_user.id)).first()
     if link:
         session.delete(link)
-        session.commit()
+
+    oidc_image = get_user_image(session, current_user.id, VARIANT_OIDC)
+    removed_filename = oidc_image.filename if oidc_image is not None else None
+    if oidc_image is not None:
+        session.delete(oidc_image)
+
+    if current_user.avatar_source == AvatarSource.oidc:
+        upload = get_user_image(session, current_user.id, VARIANT_UPLOAD)
+        current_user.avatar_source = (
+            AvatarSource.upload
+            if image_has_file(upload, settings.avatars_dir)
+            else AvatarSource.animal
+        )
+        current_user.updated_at = utcnow()
+        session.add(current_user)
+
+    session.commit()
+    if removed_filename:
+        delete_avatar_file(removed_filename, settings.avatars_dir)
