@@ -152,6 +152,11 @@
 						src={objectUrl}
 						alt=""
 						onload={initCropper}
+						onerror={() => {
+							console.error('Avatar image could not be loaded');
+							errorMessage = $_('avatar.invalidFormat');
+							ready = false;
+						}}
 						class="block max-w-full"
 					/>
 				{/if}

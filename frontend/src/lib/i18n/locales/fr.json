@@ -1013,6 +1013,8 @@
     "sourceUpdated": "Source de la photo de profil mise à jour.",
     "sourceUpdateFailed": "Impossible de mettre à jour la source de la photo de profil.",
     "refreshFailed": "Impossible d’actualiser l’image OIDC.",
-    "rateLimited": "Veuillez patienter un instant avant de modifier à nouveau votre photo de profil."
+    "rateLimited": "Veuillez patienter un instant avant de modifier à nouveau votre photo de profil.",
+    "invalidFormat": "Choisissez une image JPEG, PNG ou WebP.",
+    "tooLarge": "L’image est trop volumineuse. Choisissez un fichier plus petit."
   }
 }

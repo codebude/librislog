@@ -250,11 +250,11 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		avatarMessage = null;
 		const allowed = ['image/jpeg', 'image/png', 'image/webp'];
 		if (!allowed.includes(selected.type)) {
-			avatarMessage = { type: 'error', text: $_('avatar.uploadFailed') };
+			avatarMessage = { type: 'error', text: $_('avatar.invalidFormat') };
 			return;
 		}
 		if (selected.size > appConfig.avatar_max_upload_mb * 1024 * 1024) {
-			avatarMessage = { type: 'error', text: $_('avatar.uploadFailed') };
+			avatarMessage = { type: 'error', text: $_('avatar.tooLarge') };
 			return;
 		}
 

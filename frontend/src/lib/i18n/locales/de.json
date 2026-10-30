@@ -1013,6 +1013,8 @@
     "sourceUpdated": "Quelle des Profilbilds aktualisiert.",
     "sourceUpdateFailed": "Die Quelle des Profilbilds konnte nicht aktualisiert werden.",
     "refreshFailed": "Das OIDC-Bild konnte nicht aktualisiert werden.",
-    "rateLimited": "Bitte warte einen Moment, bevor du dein Profilbild erneut änderst."
+    "rateLimited": "Bitte warte einen Moment, bevor du dein Profilbild erneut änderst.",
+    "invalidFormat": "Bitte wähle ein JPEG-, PNG- oder WebP-Bild.",
+    "tooLarge": "Das Bild ist zu groß. Bitte wähle eine kleinere Datei."
   }
 }

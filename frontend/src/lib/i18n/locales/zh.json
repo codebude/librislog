@@ -1013,6 +1013,8 @@
     "sourceUpdated": "头像来源已更新。",
     "sourceUpdateFailed": "无法更新头像来源。",
     "refreshFailed": "无法刷新 OIDC 图片。",
-    "rateLimited": "请稍等片刻再更改个人头像。"
+    "rateLimited": "请稍等片刻再更改个人头像。",
+    "invalidFormat": "请选择 JPEG、PNG 或 WebP 图片。",
+    "tooLarge": "图片过大，请选择较小的文件。"
   }
 }
