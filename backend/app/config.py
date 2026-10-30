@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     cors_origins: List[str] = ["http://localhost", "http://localhost:5173", "http://localhost:4173"]
     log_level: str = "INFO"
     covers_dir: str = "./data/covers"
+    avatars_dir: str = "./data/avatars"
+    avatar_max_upload_mb: int = 10
+    avatar_max_dimension: int = 512
+    avatar_quality: int = 90
+    avatar_fetch_timeout_seconds: float = 10.0
+    avatar_fetch_max_bytes: int = 20_000_000
     api_key_encryption_key: str
     auth_cookie_name: str = "librislog_session"
     auth_cookie_secure: bool = False
