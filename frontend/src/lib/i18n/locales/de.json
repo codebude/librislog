@@ -988,5 +988,29 @@
     "noChanges": "Keine Änderungen nötig.",
     "updateFailed": "Tag-Aktualisierung fehlgeschlagen.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Profilbild",
+    "uploadHint": "Wähle eine Quelle für dein Profilbild. Uploads werden vor dem Speichern quadratisch zugeschnitten.",
+    "sourceAnimal": "Tier-Avatar",
+    "sourceOidc": "OIDC-Bild",
+    "sourceUpload": "Hochgeladenes Bild",
+    "upload": "Bild hochladen",
+    "removeUpload": "Hochgeladenes Bild entfernen",
+    "refreshOidc": "OIDC-Bild aktualisieren",
+    "cropTitle": "Bild zuschneiden",
+    "cropZoomIn": "Vergrößern",
+    "cropZoomOut": "Verkleinern",
+    "cropReset": "Zurücksetzen",
+    "cropSave": "Bild speichern",
+    "cropCancel": "Abbrechen",
+    "oidcUnavailable": "Kein OIDC-Bild verfügbar. Verknüpfe zuerst OIDC oder hinterlege ein Bild beim Anbieter.",
+    "oidcRefreshHint": "Das OIDC-Bild wird bei der nächsten Anmeldung automatisch aktualisiert.",
+    "uploadSuccess": "Profilbild aktualisiert.",
+    "uploadFailed": "Das Profilbild konnte nicht hochgeladen werden.",
+    "sourceUpdated": "Quelle des Profilbilds aktualisiert.",
+    "sourceUpdateFailed": "Die Quelle des Profilbilds konnte nicht aktualisiert werden.",
+    "refreshFailed": "Das OIDC-Bild konnte nicht aktualisiert werden.",
+    "rateLimited": "Bitte warte einen Moment, bevor du dein Profilbild erneut änderst."
   }
 }

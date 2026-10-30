@@ -45,6 +45,8 @@ import type {
 	SortOrder,
 	OidcConfig,
 	OidcLinkStatus,
+	AvatarOptions,
+	AvatarSource,
 	PublicProfileAudience,
 	PublicProfileLink,
 	PublicProfileLinkCreateResponse,
@@ -72,8 +74,9 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+	const isFormData = options?.body instanceof FormData;
 	const headers: Record<string, string> = {
-		'Content-Type': 'application/json',
+		...(isFormData ? {} : { 'Content-Type': 'application/json' }),
 		...authHeaders()
 	};
 
@@ -213,6 +216,34 @@ export const api = {
 				method: 'PATCH',
 				body: JSON.stringify(data)
 			});
+		},
+
+		getAvatarOptions(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar');
+		},
+
+		setAvatarSource(source: AvatarSource): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar', {
+				method: 'PATCH',
+				body: JSON.stringify({ source })
+			});
+		},
+
+		uploadAvatar(file: Blob, filename = 'avatar.webp'): Promise<AvatarOptions> {
+			const form = new FormData();
+			form.append('file', file, filename);
+			return request<AvatarOptions>('/profile/avatar/upload', {
+				method: 'POST',
+				body: form
+			});
+		},
+
+		removeUploadedAvatar(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar/upload', { method: 'DELETE' });
+		},
+
+		refreshOidcAvatar(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar/refresh-oidc', { method: 'POST' });
 		},
 
 		listApiKeys(): Promise<ApiKeyMeta[]> {

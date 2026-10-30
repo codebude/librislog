@@ -48,7 +48,8 @@ describe('UserMenu', () => {
 		lastname: 'Doe',
 		email: 'john@example.com',
 		role: 'user' as const,
-		created_at: '2024-01-01T00:00:00Z'
+		created_at: '2024-01-01T00:00:00Z',
+		avatar_url: null
 	};
 
 	it('renders user avatar button', () => {

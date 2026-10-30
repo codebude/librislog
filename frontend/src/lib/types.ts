@@ -222,6 +222,16 @@ export type StatisticsRange = 'alltime' | 'this_year' | 'last_year' | '3years' |
 
 export type UserRole = 'admin' | 'user';
 
+export type AvatarSource = 'animal' | 'oidc' | 'upload';
+
+export interface AvatarOptions {
+	source: AvatarSource;
+	avatar_url: string | null;
+	has_uploaded_avatar: boolean;
+	has_oidc_avatar: boolean;
+	oidc_linked: boolean;
+}
+
 export interface User {
 	id: number;
 	firstname: string;
@@ -229,6 +239,7 @@ export interface User {
 	email: string;
 	role: UserRole;
 	created_at: string;
+	avatar_url: string | null;
 }
 
 export interface UserCreateResponse {
@@ -330,6 +341,8 @@ export interface AppConfig {
 	thalia_cover_search_enabled: boolean;
 	password_login_enabled: boolean;
 	trusted_proxy_auth_enabled: boolean;
+	avatar_max_upload_mb: number;
+	avatar_max_dimension: number;
 }
 
 export interface OidcLinkStatus {

@@ -988,5 +988,29 @@
     "noChanges": "Aucune modification nécessaire.",
     "updateFailed": "Échec de la mise à jour des étiquettes.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Photo de profil",
+    "uploadHint": "Choisissez une source pour votre photo de profil. Les images téléversées sont recadrées en carré avant l’enregistrement.",
+    "sourceAnimal": "Avatar animal",
+    "sourceOidc": "Image OIDC",
+    "sourceUpload": "Image téléversée",
+    "upload": "Téléverser une image",
+    "removeUpload": "Supprimer l’image téléversée",
+    "refreshOidc": "Actualiser l’image OIDC",
+    "cropTitle": "Recadrez votre image",
+    "cropZoomIn": "Zoom avant",
+    "cropZoomOut": "Zoom arrière",
+    "cropReset": "Réinitialiser",
+    "cropSave": "Enregistrer l’image",
+    "cropCancel": "Annuler",
+    "oidcUnavailable": "Aucune image OIDC n’est disponible. Liez OIDC ou définissez une image chez le fournisseur.",
+    "oidcRefreshHint": "L’image OIDC est actualisée automatiquement lors de la prochaine connexion.",
+    "uploadSuccess": "Photo de profil mise à jour.",
+    "uploadFailed": "Impossible de téléverser la photo de profil.",
+    "sourceUpdated": "Source de la photo de profil mise à jour.",
+    "sourceUpdateFailed": "Impossible de mettre à jour la source de la photo de profil.",
+    "refreshFailed": "Impossible d’actualiser l’image OIDC.",
+    "rateLimited": "Veuillez patienter un instant avant de modifier à nouveau votre photo de profil."
   }
 }

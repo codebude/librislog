@@ -4,7 +4,7 @@
 	import { api } from '#lib/api.js';
 	import PasswordRequirements from '#lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '#lib/stores/auth.js';
-	import { Calendar, Check, Copy, ExternalLink, Info, Pencil, Trash2 } from '@lucide/svelte';
+	import { Calendar, Check, Copy, ExternalLink, ImagePlus, Info, Pencil, RefreshCw, Trash2 } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '#lib/i18n/index.js';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
 	import { getTimezone, setTimezone, detectTimezone } from '#lib/stores/timezone.js';
@@ -12,6 +12,8 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import SearchableSelect from '#lib/components/SearchableSelect.svelte';
 	import AdaptiveDateInput from '#lib/components/AdaptiveDateInput.svelte';
+	import UserAvatar from '#lib/components/UserAvatar.svelte';
+	import AvatarCropper from '#lib/components/AvatarCropper.svelte';
 import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	import { toasts } from '#lib/toasts.js';
 	import { localizeError } from '#lib/errors.js';
@@ -19,6 +21,8 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	import type {
 	ApiKeyMeta,
 	AppConfig,
+	AvatarOptions,
+	AvatarSource,
 	EmbedTokenMeta,
 	OidcConfig,
 	OidcLinkStatus,
@@ -42,10 +46,17 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	let keys = $state<ApiKeyMeta[]>([]);
 	let pendingDeleteKeyId = $state<number | null>(null);
 	let oidcConfig = $state<OidcConfig>({ enabled: false, provider_id: null, provider_name: null, auto_redirect: false });
-	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false, password_login_enabled: true, trusted_proxy_auth_enabled: false });
+	let appConfig = $state<AppConfig>({ embed_enabled: true, dashboard_quote_enabled: true, thalia_cover_search_enabled: false, password_login_enabled: true, trusted_proxy_auth_enabled: false, avatar_max_upload_mb: 10, avatar_max_dimension: 512 });
 	let oidcLink = $state<OidcLinkStatus>({ linked: false, provider_name: null, oidc_email: null, oidc_name: null });
 	let oidcLoading = $state(false);
 	let oidcMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let avatarOptions = $state<AvatarOptions | null>(null);
+	let avatarMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let avatarSaving = $state(false);
+	let cropperOpen = $state(false);
+	let cropperFile = $state<File | null>(null);
+	let cropperError = $state<string | null>(null);
+	let avatarInput: HTMLInputElement | undefined = $state();
 	let themeMode = $state(getThemeMode());
 	let customTheme = $state<string>(getCustomTheme() ?? 'dracula');
 	let themeMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -173,6 +184,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		if (oidcConfig.enabled) {
 			oidcLink = await api.oidc.linkStatus();
 		}
+		avatarOptions = await api.profile.getAvatarOptions();
 	}
 
 	onMount(() => {
@@ -210,6 +222,113 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				type: 'error',
 				text: e instanceof Error ? e.message : nextPassword ? $_('profile.passwordChangeFailed') : $_('profile.profileSaveFailed')
 			};
+		}
+	}
+
+	async function refreshCurrentUser() {
+		const me = await api.auth.me();
+		currentUser.set(me);
+	}
+
+	function avatarErrorText(error: unknown, fallbackKey: string): string {
+		if (error instanceof Error && (error as Error & { status?: number }).status === 429) {
+			return $_('avatar.rateLimited');
+		}
+		return error instanceof Error ? error.message : $_(fallbackKey);
+	}
+
+	function pickAvatarFile() {
+		avatarInput?.click();
+	}
+
+	function onAvatarFileChange(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const selected = input.files?.[0];
+		input.value = '';
+		if (!selected) return;
+
+		avatarMessage = null;
+		const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+		if (!allowed.includes(selected.type)) {
+			avatarMessage = { type: 'error', text: $_('avatar.uploadFailed') };
+			return;
+		}
+		if (selected.size > appConfig.avatar_max_upload_mb * 1024 * 1024) {
+			avatarMessage = { type: 'error', text: $_('avatar.uploadFailed') };
+			return;
+		}
+
+		cropperFile = selected;
+		cropperError = null;
+		cropperOpen = true;
+	}
+
+	async function saveCroppedAvatar(blob: Blob) {
+		avatarSaving = true;
+		avatarMessage = null;
+		cropperError = null;
+		try {
+			avatarOptions = await api.profile.uploadAvatar(blob, 'avatar.webp');
+			await refreshCurrentUser();
+			cropperOpen = false;
+			cropperFile = null;
+			avatarMessage = { type: 'success', text: $_('avatar.uploadSuccess') };
+		} catch (e: unknown) {
+			cropperError = avatarErrorText(e, 'avatar.uploadFailed');
+		} finally {
+			avatarSaving = false;
+		}
+	}
+
+	async function setAvatarSource(source: AvatarSource) {
+		if (!avatarOptions || avatarOptions.source === source) return;
+		avatarSaving = true;
+		avatarMessage = null;
+		try {
+			avatarOptions = await api.profile.setAvatarSource(source);
+			await refreshCurrentUser();
+			avatarMessage = { type: 'success', text: $_('avatar.sourceUpdated') };
+		} catch (e: unknown) {
+			avatarMessage = {
+				type: 'error',
+				text: avatarErrorText(e, 'avatar.sourceUpdateFailed')
+			};
+		} finally {
+			avatarSaving = false;
+		}
+	}
+
+	async function removeUploadedAvatar() {
+		avatarSaving = true;
+		avatarMessage = null;
+		try {
+			avatarOptions = await api.profile.removeUploadedAvatar();
+			await refreshCurrentUser();
+			avatarMessage = { type: 'success', text: $_('common.saved') };
+		} catch (e: unknown) {
+			avatarMessage = {
+				type: 'error',
+				text: avatarErrorText(e, 'avatar.uploadFailed')
+			};
+		} finally {
+			avatarSaving = false;
+		}
+	}
+
+	async function refreshOidcAvatar() {
+		avatarSaving = true;
+		avatarMessage = null;
+		try {
+			avatarOptions = await api.profile.refreshOidcAvatar();
+			await refreshCurrentUser();
+			avatarMessage = { type: 'success', text: $_('avatar.sourceUpdated') };
+		} catch (e: unknown) {
+			avatarMessage = {
+				type: 'error',
+				text: avatarErrorText(e, 'avatar.refreshFailed')
+			};
+		} finally {
+			avatarSaving = false;
 		}
 	}
 
@@ -723,6 +842,99 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				class="btn btn-primary btn-sm self-start"
 			>{$_('common.save')}</button>
 		</form>
+	</div>
+
+	<div id="section-avatar" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+		<div class="card-body gap-4">
+			<div>
+				<h2 class="text-lg font-semibold">{$_('avatar.title')}</h2>
+				<p class="text-sm text-base-content/70">{$_('avatar.uploadHint')}</p>
+			</div>
+			{#if avatarMessage}
+				<Alert
+					type={avatarMessage.type === 'success' ? 'success' : 'error'}
+					onClose={() => avatarMessage = null}
+				>{avatarMessage.text}</Alert>
+			{/if}
+
+			<div class="flex flex-col sm:flex-row gap-6 items-start">
+				<UserAvatar
+					avatarUrl={avatarOptions?.avatar_url ?? $currentUser?.avatar_url ?? null}
+					seed={$currentUser?.email ?? ''}
+					size={96}
+					class="w-24 h-24"
+				/>
+
+				<div class="flex-1 w-full space-y-3">
+					<label class="label cursor-pointer justify-start gap-3 py-1">
+						<input
+							type="radio"
+							class="radio radio-primary"
+							name="avatar-source"
+							checked={avatarOptions?.source === 'animal'}
+							disabled={avatarSaving}
+							onchange={() => setAvatarSource('animal')}
+						/>
+						<span>{$_('avatar.sourceAnimal')}</span>
+					</label>
+
+					<label class="label cursor-pointer justify-start gap-3 py-1 {avatarOptions?.has_oidc_avatar ? '' : 'opacity-60'}">
+						<input
+							type="radio"
+							class="radio radio-primary"
+							name="avatar-source"
+							checked={avatarOptions?.source === 'oidc'}
+							disabled={avatarSaving || !avatarOptions?.has_oidc_avatar}
+							onchange={() => setAvatarSource('oidc')}
+						/>
+						<span>{$_('avatar.sourceOidc')}</span>
+					</label>
+					{#if avatarOptions && !avatarOptions.has_oidc_avatar}
+						<p class="text-xs text-base-content/60 ml-7">{$_('avatar.oidcUnavailable')}</p>
+					{/if}
+
+					<label class="label cursor-pointer justify-start gap-3 py-1 {avatarOptions?.has_uploaded_avatar ? '' : 'opacity-60'}">
+						<input
+							type="radio"
+							class="radio radio-primary"
+							name="avatar-source"
+							checked={avatarOptions?.source === 'upload'}
+							disabled={avatarSaving || !avatarOptions?.has_uploaded_avatar}
+							onchange={() => setAvatarSource('upload')}
+						/>
+						<span>{$_('avatar.sourceUpload')}</span>
+					</label>
+
+					<div class="flex flex-wrap items-center gap-2 pt-1">
+						<input
+							bind:this={avatarInput}
+							type="file"
+							accept="image/jpeg,image/png,image/webp"
+							class="hidden"
+							onchange={onAvatarFileChange}
+						/>
+						<button type="button" class="btn btn-sm btn-primary" onclick={pickAvatarFile} disabled={avatarSaving}>
+							<ImagePlus class="w-4 h-4" />
+							{$_('avatar.upload')}
+						</button>
+						{#if avatarOptions?.has_uploaded_avatar}
+							<button type="button" class="btn btn-sm btn-ghost" onclick={removeUploadedAvatar} disabled={avatarSaving}>
+								<Trash2 class="w-4 h-4" />
+								{$_('avatar.removeUpload')}
+							</button>
+						{/if}
+						{#if avatarOptions?.has_oidc_avatar}
+							<button type="button" class="btn btn-sm btn-ghost" onclick={refreshOidcAvatar} disabled={avatarSaving}>
+								<RefreshCw class="w-4 h-4" />
+								{$_('avatar.refreshOidc')}
+							</button>
+						{/if}
+					</div>
+
+					<p class="text-xs text-base-content/60">{$_('avatar.oidcRefreshHint')}</p>
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<div id="section-language" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
@@ -1363,6 +1575,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	<ul class="menu menu-sm bg-base-200 rounded-xl border border-base-300">
 		<li class="menu-title"><span>{$_('profile.sectionNav')}</span></li>
 		<li><a href="#section-profile" class:menu-active={activeSection === 'section-profile'}>{$_('user.profile')}</a></li>
+		<li><a href="#section-avatar" class:menu-active={activeSection === 'section-avatar'}>{$_('avatar.title')}</a></li>
 		<li><a href="#section-language" class:menu-active={activeSection === 'section-language'}>{$_('settings.languageTitle')}</a></li>
 		<li><a href="#section-timezone" class:menu-active={activeSection === 'section-timezone'}>{$_('settings.timezone')}</a></li>
 		<li><a href="#section-theme" class:menu-active={activeSection === 'section-theme'}>{$_('settings.themeTitle')}</a></li>
@@ -1406,3 +1619,17 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		<button type="button" onclick={cancelDeleteEmbedToken}>{$_('common.close')}</button>
 	</form>
 </dialog>
+
+<AvatarCropper
+	open={cropperOpen}
+	file={cropperFile}
+	busy={avatarSaving}
+	maxDimension={appConfig.avatar_max_dimension}
+	errorText={cropperError}
+	onsave={saveCroppedAvatar}
+	oncancel={() => {
+		cropperOpen = false;
+		cropperFile = null;
+		cropperError = null;
+	}}
+/>
