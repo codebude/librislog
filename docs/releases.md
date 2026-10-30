@@ -48,7 +48,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
 
-**Summary:** LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, plus two opt-in authentication options. Administrators can disable password login once single sign-on is in use, and deployments behind an authenticating reverse proxy can sign users in automatically from a forwarded header.
+**Summary:** LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, profile pictures with three selectable sources (animal avatar, cached OIDC picture, and manual upload with a circular cropper), a separate profile picture toggle for public profiles, and two opt-in authentication options. Administrators can disable password login once single sign-on is in use, and deployments behind an authenticating reverse proxy can sign users in automatically from a forwarded header.
 
 **Features**
 - 🏷️ **Mass Tag Editor page.** New page at `/tag-editor`, reachable from Profile → Manage my data, with the same filter bar as the library (search, status, medium, acquisition, tag) plus row selection and "select all matching filters".
@@ -70,15 +70,17 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 - 🔍 **Exact tag filters.** `GET /api/books` and the new `GET /api/books/ids` accept `tag` and `exclude_tag` for exact tag name filtering.
 - 📋 **Tag listing.** New `GET /api/tags` returns all tags with usage counts.
 - 📚 **Authentication documentation.** New configuration reference and administration guidance, including a Traefik BasicAuth example and recovery steps for password lockout.
+- ⚙️ **Profile picture settings.** `AVATARS_DIR`, `AVATAR_MAX_UPLOAD_MB`, `AVATAR_MAX_DIMENSION`, `AVATAR_QUALITY`, `AVATAR_FETCH_TIMEOUT_SECONDS`, and `AVATAR_FETCH_MAX_BYTES` control avatar storage, upload limits, image normalisation, and OIDC picture downloads. See the [Configuration guide](/guide/configuration#profile-pictures).
 
 **Dependencies**
 - ⬆️ Updated backend and frontend dependencies, including FastAPI, Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, Scrapling, curl-cffi, SvelteKit, Svelte, Vite, Vitest, and Chart.js. TypeScript 7 was intentionally deferred because it is a major upgrade.
+- ➕ Added Pillow for server-side avatar validation and normalisation, and cropperjs for the profile picture cropper.
 
 **Bug fixes**
 - 🔐 **OIDC redirect safety net.** A loopback `PUBLIC_APP_URL` such as the old `.env.example` value `http://localhost:5173` is ignored for non-local requests, so existing installations do not redirect users to localhost after upgrading. A startup warning explains how to set it correctly.
 - 🔗 **Configurable OIDC callback origin.** `OIDC_CALLBACK_BASE_URL` lets the backend advertise a different public origin for the OIDC callback routes, which fixes login behind proxies that rewrite the `Host` header, such as the Vite dev server on a custom LAN hostname. Left empty, the callback URI is still built from the request as before.
 
-**Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
+**Breaking changes:** None. The profile picture feature adds an automatic database migration for `user.avatar_source` and the `user_image` table; no manual action is needed. Existing accounts keep the animal avatar, and existing share links keep their current sections because the new **Profile picture** toggle is off by default. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
 [Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...HEAD)
 
