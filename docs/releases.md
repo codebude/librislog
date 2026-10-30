@@ -52,9 +52,9 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 **Features**
 - 🏷️ **Mass Tag Editor page.** New page at `/tag-editor`, reachable from Profile → Manage my data, with the same filter bar as the library (search, status, medium, acquisition, tag) plus row selection and "select all matching filters".
-- 🔁 **Add and remove in one step.** Both fields in a single action, applied in chunks of 500 books with progress reporting.
-- ⚠️ **Case-variant warning.** Tags that differ only in capitalization from an existing tag are flagged, with a one-click shortcut to reuse the existing spelling.
-- 🧹 **Orphan tag cleanup.** Tags left on no book are deleted automatically.
+  - 🔁 **Add and remove in one step.** Both fields in a single action, applied in chunks of 500 books with progress reporting.
+  - ⚠️ **Case-variant warning.** Tags that differ only in capitalization from an existing tag are flagged, with a one-click shortcut to reuse the existing spelling.
+  - 🧹 **Orphan tag cleanup.** Tags left on no book are deleted automatically.
 - 🖼️ **Profile pictures with three sources.** Choose the generated animal avatar, the picture from your OIDC provider, or an uploaded image. Existing accounts keep the animal avatar, so nothing changes until you pick a source.
 - ✂️ **Built-in cropper.** Uploaded images open in a 1:1 cropper before they are sent to the server. The backend validates the image, resizes it to at most 512 pixels, strips metadata, and stores it as WebP under `AVATARS_DIR`.
 - 🏷️ **OIDC pictures refresh on login.** The provider's `picture` claim is cached locally and refreshed on every OIDC login. Linking an account caches the picture without switching the avatar automatically; unlinking removes the cache and falls back to the uploaded picture or the animal avatar.
