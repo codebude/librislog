@@ -283,6 +283,14 @@ async def oidc_callback(
     try:
         token = await client.authorize_access_token(request)
     except Exception:
+        state = request.query_params.get("state", "")
+        logger.debug(
+            "OIDC callback failed: host=%s scheme=%s cookies=%s state_in_session=%s",
+            request.url.hostname,
+            request.url.scheme,
+            sorted(request.cookies.keys()),
+            bool(state) and f"_state_{_provider_id()}_{state}" in request.session,
+        )
         logger.exception("OIDC authorize_access_token failed during login callback")
         return _frontend_warning_redirect("OIDC login failed", request)
 
