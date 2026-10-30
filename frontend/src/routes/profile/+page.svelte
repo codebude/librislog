@@ -4,7 +4,7 @@
 	import { api } from '#lib/api.js';
 	import PasswordRequirements from '#lib/components/PasswordRequirements.svelte';
 	import { currentUser } from '#lib/stores/auth.js';
-	import { Calendar, Check, Copy, ExternalLink, ImagePlus, Info, Pencil, RefreshCw, Trash2 } from '@lucide/svelte';
+	import { BadgeCheck, Calendar, Check, Copy, ExternalLink, ImagePlus, Info, PawPrint, Pencil, RefreshCw, Trash2 } from '@lucide/svelte';
 	import { _, SUPPORTED_LOCALES, setLocale } from '#lib/i18n/index.js';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
 	import { getTimezone, setTimezone, detectTimezone } from '#lib/stores/timezone.js';
@@ -235,6 +235,20 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 			return $_('avatar.rateLimited');
 		}
 		return error instanceof Error ? error.message : $_(fallbackKey);
+	}
+
+	function avatarSourceCardClass(selected: boolean, available: boolean): string {
+		return [
+			'group flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors',
+			selected ? 'border-primary/50 bg-primary/5' : 'border-base-200 bg-base-100 hover:border-base-300',
+			available ? '' : 'cursor-not-allowed opacity-50'
+		].join(' ');
+	}
+
+	function avatarSourceIconClass(selected: boolean): string {
+		return `grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+			selected ? 'bg-primary/10 text-primary' : 'bg-base-200 text-base-content/70'
+		}`;
 	}
 
 	function pickAvatarFile() {
@@ -845,10 +859,10 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	</div>
 
 	<div id="section-avatar" class="scroll-mt-24 card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
-		<div class="card-body gap-4">
-			<div>
+		<div class="card-body gap-5">
+			<div class="flex flex-col gap-1">
 				<h2 class="text-lg font-semibold">{$_('avatar.title')}</h2>
-				<p class="text-sm text-base-content/70">{$_('avatar.uploadHint')}</p>
+				<p class="text-sm text-base-content/60">{$_('avatar.uploadHint')}</p>
 			</div>
 			{#if avatarMessage}
 				<Alert
@@ -857,55 +871,81 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				>{avatarMessage.text}</Alert>
 			{/if}
 
-			<div class="flex flex-col sm:flex-row gap-6 items-start">
-				<UserAvatar
-					avatarUrl={avatarOptions?.avatar_url ?? $currentUser?.avatar_url ?? null}
-					seed={$currentUser?.email ?? ''}
-					size={96}
-					class="w-24 h-24"
-				/>
+			<div class="grid gap-6 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+				<div class="flex flex-col items-center gap-2">
+					<UserAvatar
+						avatarUrl={avatarOptions?.avatar_url ?? $currentUser?.avatar_url ?? null}
+						seed={$currentUser?.email ?? ''}
+						size={128}
+						class="h-32 w-32"
+					/>
+				</div>
 
-				<div class="flex-1 w-full space-y-3">
-					<label class="label cursor-pointer justify-start gap-3 py-1">
-						<input
-							type="radio"
-							class="radio radio-primary"
-							name="avatar-source"
-							checked={avatarOptions?.source === 'animal'}
-							disabled={avatarSaving}
-							onchange={() => setAvatarSource('animal')}
-						/>
-						<span>{$_('avatar.sourceAnimal')}</span>
-					</label>
+				<div class="min-w-0 space-y-4">
+					<div class="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={$_('avatar.title')}>
+						<label class={avatarSourceCardClass(avatarOptions?.source === 'animal', true)}>
+							<input
+								type="radio"
+								class="radio radio-primary radio-sm mt-0.5"
+								name="avatar-source"
+								checked={avatarOptions?.source === 'animal'}
+								disabled={avatarSaving}
+								onchange={() => setAvatarSource('animal')}
+							/>
+							<span class={avatarSourceIconClass(avatarOptions?.source === 'animal')}>
+								<PawPrint class="h-4 w-4" />
+							</span>
+							<span class="min-w-0">
+								<span class="block text-sm font-medium">{$_('avatar.sourceAnimal')}</span>
+								<span class="mt-0.5 hidden text-xs leading-snug text-base-content/55 sm:block">{$_('avatar.sourceAnimalHint')}</span>
+							</span>
+						</label>
 
-					<label class="label cursor-pointer justify-start gap-3 py-1 {avatarOptions?.has_oidc_avatar ? '' : 'opacity-60'}">
-						<input
-							type="radio"
-							class="radio radio-primary"
-							name="avatar-source"
-							checked={avatarOptions?.source === 'oidc'}
-							disabled={avatarSaving || !avatarOptions?.has_oidc_avatar}
-							onchange={() => setAvatarSource('oidc')}
-						/>
-						<span>{$_('avatar.sourceOidc')}</span>
-					</label>
+						<label class={avatarSourceCardClass(avatarOptions?.source === 'oidc', !!avatarOptions?.has_oidc_avatar)}>
+							<input
+								type="radio"
+								class="radio radio-primary radio-sm mt-0.5"
+								name="avatar-source"
+								checked={avatarOptions?.source === 'oidc'}
+								disabled={avatarSaving || !avatarOptions?.has_oidc_avatar}
+								onchange={() => setAvatarSource('oidc')}
+							/>
+							<span class={avatarSourceIconClass(avatarOptions?.source === 'oidc')}>
+								<BadgeCheck class="h-4 w-4" />
+							</span>
+							<span class="min-w-0">
+								<span class="block text-sm font-medium">{$_('avatar.sourceOidc')}</span>
+								<span class="mt-0.5 hidden text-xs leading-snug text-base-content/55 sm:block">{$_('avatar.sourceOidcHint')}</span>
+							</span>
+						</label>
+
+						<label class={avatarSourceCardClass(avatarOptions?.source === 'upload', !!avatarOptions?.has_uploaded_avatar)}>
+							<input
+								type="radio"
+								class="radio radio-primary radio-sm mt-0.5"
+								name="avatar-source"
+								checked={avatarOptions?.source === 'upload'}
+								disabled={avatarSaving || !avatarOptions?.has_uploaded_avatar}
+								onchange={() => setAvatarSource('upload')}
+							/>
+							<span class={avatarSourceIconClass(avatarOptions?.source === 'upload')}>
+								<ImagePlus class="h-4 w-4" />
+							</span>
+							<span class="min-w-0">
+								<span class="block text-sm font-medium">{$_('avatar.sourceUpload')}</span>
+								<span class="mt-0.5 hidden text-xs leading-snug text-base-content/55 sm:block">{$_('avatar.sourceUploadHint')}</span>
+							</span>
+						</label>
+					</div>
+
 					{#if avatarOptions && !avatarOptions.has_oidc_avatar}
-						<p class="text-xs text-base-content/60 ml-7">{$_('avatar.oidcUnavailable')}</p>
+						<div class="flex items-start gap-2 rounded-lg bg-base-200/60 px-3 py-2 text-xs leading-relaxed text-base-content/60">
+							<Info class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+							<span>{$_('avatar.oidcUnavailable')}</span>
+						</div>
 					{/if}
 
-					<label class="label cursor-pointer justify-start gap-3 py-1 {avatarOptions?.has_uploaded_avatar ? '' : 'opacity-60'}">
-						<input
-							type="radio"
-							class="radio radio-primary"
-							name="avatar-source"
-							checked={avatarOptions?.source === 'upload'}
-							disabled={avatarSaving || !avatarOptions?.has_uploaded_avatar}
-							onchange={() => setAvatarSource('upload')}
-						/>
-						<span>{$_('avatar.sourceUpload')}</span>
-					</label>
-
-					<div class="flex flex-wrap items-center gap-2 pt-1">
+					<div class="flex flex-wrap items-center gap-2">
 						<input
 							bind:this={avatarInput}
 							type="file"
@@ -931,7 +971,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 						{/if}
 					</div>
 
-					<p class="text-xs text-base-content/60">{$_('avatar.oidcRefreshHint')}</p>
+					<p class="text-xs leading-relaxed text-base-content/50">{$_('avatar.oidcRefreshHint')}</p>
 				</div>
 			</div>
 		</div>

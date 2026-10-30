@@ -1015,6 +1015,10 @@
     "refreshFailed": "No se pudo actualizar la imagen de OIDC.",
     "rateLimited": "Espera un momento antes de volver a cambiar tu foto de perfil.",
     "invalidFormat": "Elige una imagen JPEG, PNG o WebP.",
-    "tooLarge": "La imagen es demasiado grande. Elige un archivo más pequeño."
+    "tooLarge": "La imagen es demasiado grande. Elige un archivo más pequeño.",
+    "sourceAnimalHint": "Generado desde tu cuenta",
+    "sourceOidcHint": "De tu proveedor de identidad",
+    "sourceUploadHint": "Tu propia imagen",
+    "cropHint": "Arrastra la imagen para moverla y ajusta el círculo para encuadrar tu avatar."
   }
 }

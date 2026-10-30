@@ -1015,6 +1015,10 @@
     "refreshFailed": "无法刷新 OIDC 图片。",
     "rateLimited": "请稍等片刻再更改个人头像。",
     "invalidFormat": "请选择 JPEG、PNG 或 WebP 图片。",
-    "tooLarge": "图片过大，请选择较小的文件。"
+    "tooLarge": "图片过大，请选择较小的文件。",
+    "sourceAnimalHint": "根据你的账户生成",
+    "sourceOidcHint": "来自你的身份提供商",
+    "sourceUploadHint": "你自己的图片",
+    "cropHint": "拖动图片调整位置，然后调整圆形区域来裁剪你的头像。"
   }
 }

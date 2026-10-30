@@ -26,9 +26,7 @@
 			<cropper-image rotatable scalable skewable translatable></cropper-image>
 			<cropper-shade hidden></cropper-shade>
 			<cropper-handle action="select" plain></cropper-handle>
-			<cropper-selection initial-coverage="0.8" aspect-ratio="1" movable resizable>
-				<cropper-grid role="grid" bordered covered></cropper-grid>
-				<cropper-crosshair centered></cropper-crosshair>
+			<cropper-selection initial-coverage="0.8" aspect-ratio="1" border-radius="50%" movable resizable>
 				<cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
 				<cropper-handle action="n-resize"></cropper-handle>
 				<cropper-handle action="e-resize"></cropper-handle>
@@ -49,6 +47,7 @@
 	let errorMessage = $state<string | null>(null);
 	let saving = $state(false);
 	let ready = $state(false);
+	let initialImageTransform: number[] | null = null;
 
 	$effect(() => {
 		if (!open || !file) {
@@ -60,6 +59,7 @@
 			cropper?.destroy();
 			cropper = null;
 			ready = false;
+			initialImageTransform = null;
 			URL.revokeObjectURL(url);
 		};
 	});
@@ -73,6 +73,14 @@
 				template: TEMPLATE
 			});
 			ready = true;
+			const image = cropper.getCropperImage();
+			if (image) {
+				void image.$ready().then(() => {
+					requestAnimationFrame(() => {
+						initialImageTransform = image.$getTransform();
+					});
+				});
+			}
 		} catch (error) {
 			console.error('Avatar cropper initialisation failed', error);
 			errorMessage = $_('avatar.uploadFailed');
@@ -85,8 +93,15 @@
 	}
 
 	function reset() {
-		cropper?.getCropperImage()?.$transform(1, 0, 0, 1, 0, 0);
-		cropper?.getCropperImage()?.$center();
+		const image = cropper?.getCropperImage();
+		if (image) {
+			if (initialImageTransform) {
+				image.$setTransform(initialImageTransform);
+			} else {
+				image.$resetTransform();
+				image.$center();
+			}
+		}
 		cropper?.getCropperSelection()?.$reset();
 	}
 
@@ -137,7 +152,7 @@
 
 {#if open}
 	<div class="modal modal-open">
-		<div class="modal-box max-w-lg">
+		<div class="modal-box max-w-xl">
 			<div class="flex items-center justify-between gap-3 mb-4">
 				<h3 class="text-lg font-semibold">{$_('avatar.cropTitle')}</h3>
 				<button type="button" class="btn btn-ghost btn-sm btn-circle" onclick={oncancel} disabled={busy}>
@@ -145,7 +160,7 @@
 				</button>
 			</div>
 
-			<div bind:this={containerEl} class="relative h-72 w-full overflow-hidden rounded-xl bg-base-300">
+			<div bind:this={containerEl} class="avatar-cropper relative h-64 w-full overflow-hidden rounded-xl bg-base-300 sm:h-80">
 				{#if objectUrl}
 					<img
 						bind:this={imageEl}
@@ -162,12 +177,14 @@
 				{/if}
 			</div>
 
-			<div class="mt-4 flex items-center justify-between gap-2">
-				<div class="flex items-center gap-1">
-					<button type="button" class="btn btn-ghost btn-sm" onclick={() => zoom(0.9)} disabled={busy} title={$_('avatar.cropZoomOut')}>
+			<p class="mt-3 text-xs leading-relaxed text-base-content/55">{$_('avatar.cropHint')}</p>
+
+			<div class="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div class="flex w-fit items-center gap-1 rounded-lg bg-base-200/60 p-1">
+					<button type="button" class="btn btn-square btn-ghost btn-sm" onclick={() => zoom(-0.1)} disabled={busy} title={$_('avatar.cropZoomOut')} aria-label={$_('avatar.cropZoomOut')}>
 						<ZoomOut class="w-4 h-4" />
 					</button>
-					<button type="button" class="btn btn-ghost btn-sm" onclick={() => zoom(1.1)} disabled={busy} title={$_('avatar.cropZoomIn')}>
+					<button type="button" class="btn btn-square btn-ghost btn-sm" onclick={() => zoom(0.1)} disabled={busy} title={$_('avatar.cropZoomIn')} aria-label={$_('avatar.cropZoomIn')}>
 						<ZoomIn class="w-4 h-4" />
 					</button>
 					<button type="button" class="btn btn-ghost btn-sm" onclick={reset} disabled={busy}>
@@ -175,7 +192,7 @@
 						{$_('avatar.cropReset')}
 					</button>
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex items-center justify-end gap-2">
 					<button type="button" class="btn btn-ghost" onclick={oncancel} disabled={busy}>
 						{$_('avatar.cropCancel')}
 					</button>
@@ -196,3 +213,9 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.avatar-cropper :global(cropper-canvas) {
+		height: 100% !important;
+	}
+</style>
