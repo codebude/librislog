@@ -17,6 +17,7 @@ const statisticKeys: PublicProfileStatisticsKey[] = PUBLIC_PROFILE_STATISTICS.ma
 const ALL_SECTIONS: PublicProfileSectionKey[] = [
 	'username',
 	'user_info',
+	'avatar',
 	'currently_reading',
 	'last_read',
 	'reading_timeline',

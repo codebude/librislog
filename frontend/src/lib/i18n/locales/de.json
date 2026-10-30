@@ -699,7 +699,9 @@
       "fullLibrary": "Vollständige Bibliothek",
       "fullLibraryTooltip": "Zeige die gesamte Bibliothek des Besitzers, durchsuchbar mit Seitenumbruch.",
       "statistics": "Statistiken",
-      "statisticsTooltip": "Zeige Lesestatistiken (unten konfigurierbar)."
+      "statisticsTooltip": "Zeige Lesestatistiken (unten konfigurierbar).",
+      "avatar": "Profilbild",
+      "avatarTooltip": "Zeigt dein Profilbild im öffentlichen Profil an."
     },
     "page": {
       "loading": "Öffentliches Profil wird geladen...",

@@ -583,6 +583,7 @@ export type PublicProfileAudience = 'public' | 'authenticated';
 export type PublicProfileSectionKey =
 	| 'username'
 	| 'user_info'
+	| 'avatar'
 	| 'currently_reading'
 	| 'last_read'
 	| 'reading_timeline'
@@ -640,6 +641,7 @@ export interface ShareLinkRevealResponse {
 export interface PublicProfileUserInfo {
 	firstname: string;
 	lastname: string;
+	avatar_url: string | null;
 }
 
 export interface PublicProfileBook {

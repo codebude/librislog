@@ -699,7 +699,9 @@
       "fullLibrary": "完整书库",
       "fullLibraryTooltip": "显示所有者的整个书库，可翻页浏览。",
       "statistics": "统计",
-      "statisticsTooltip": "显示阅读统计（可在下方配置）。"
+      "statisticsTooltip": "显示阅读统计（可在下方配置）。",
+      "avatar": "个人头像",
+      "avatarTooltip": "在公开资料中显示你的个人头像。"
     },
     "page": {
       "loading": "正在加载公开资料...",

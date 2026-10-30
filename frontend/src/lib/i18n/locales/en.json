@@ -699,7 +699,9 @@
       "fullLibrary": "Full Library",
       "fullLibraryTooltip": "Show the owner's entire library, browsable with pagination.",
       "statistics": "Statistics",
-      "statisticsTooltip": "Show reading statistics (configured below)."
+      "statisticsTooltip": "Show reading statistics (configured below).",
+      "avatar": "Profile picture",
+      "avatarTooltip": "Show your profile picture on the public profile."
     },
     "page": {
       "loading": "Loading public profile...",

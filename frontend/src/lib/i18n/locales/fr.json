@@ -699,7 +699,9 @@
       "fullLibrary": "Bibliothèque complète",
       "fullLibraryTooltip": "Afficher toute la bibliothèque du propriétaire, navigable avec pagination.",
       "statistics": "Statistiques",
-      "statisticsTooltip": "Afficher les statistiques de lecture (configurables ci-dessous)."
+      "statisticsTooltip": "Afficher les statistiques de lecture (configurables ci-dessous).",
+      "avatar": "Photo de profil",
+      "avatarTooltip": "Afficher votre photo de profil sur le profil public."
     },
     "page": {
       "loading": "Chargement du profil public...",
