@@ -123,6 +123,7 @@ controlled by the proxy, not by LibrisLog.
 | Variable | Description |
 |----------|-------------|
 | `OIDC_ENABLED` | Enable OIDC authentication (`true`/`false`) |
+| `OIDC_AUTO_REDIRECT` | Redirect the login page straight to the provider. Only effective when `OIDC_ENABLED=true` and `PASSWORD_LOGIN_ENABLED=false`. Failed attempts return to the login page with an error instead of redirecting again. | `false` |
 | `OIDC_CLIENT_ID` | OIDC client ID |
 | `OIDC_CLIENT_SECRET` | OIDC client secret |
 | `OIDC_WELL_KNOWN_URL` | OIDC well-known configuration URL |

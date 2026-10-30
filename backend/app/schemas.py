@@ -658,6 +658,7 @@ class OidcConfigRead(SQLModel):
     enabled: bool
     provider_id: Optional[str] = None
     provider_name: Optional[str] = None
+    auto_redirect: bool = False
 
 
 class AppConfigRead(SQLModel):

@@ -27,7 +27,8 @@ function mockConfig({ passwordLoginEnabled = true, oidcEnabled = true } = {}) {
 	mockOidcConfig.mockResolvedValue({
 		enabled: oidcEnabled,
 		provider_id: oidcEnabled ? 'oidc' : null,
-		provider_name: oidcEnabled ? 'Pocket ID' : null
+		provider_name: oidcEnabled ? 'Pocket ID' : null,
+		auto_redirect: false
 	});
 	mockAppConfig.mockResolvedValue({
 		embed_enabled: true,

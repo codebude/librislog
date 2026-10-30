@@ -113,6 +113,33 @@ def test_oidc_config_enabled(client: TestClient, monkeypatch: MonkeyPatch) -> No
     assert data["enabled"] is True
     assert data["provider_id"] == "test-oidc"
     assert data["provider_name"] == "Test SSO"
+    assert data["auto_redirect"] is False
+
+
+def test_oidc_config_auto_redirect_when_password_login_disabled(
+    client: TestClient, monkeypatch: MonkeyPatch
+) -> None:
+    """Auto-redirect is exposed only when password login is unavailable."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_auto_redirect", True)
+    monkeypatch.setattr(settings, "password_login_enabled", False)
+
+    data = client.get("/api/oidc/config").json()
+
+    assert data["auto_redirect"] is True
+
+
+def test_oidc_config_auto_redirect_ignored_when_password_login_enabled(
+    client: TestClient, monkeypatch: MonkeyPatch
+) -> None:
+    """The backend refuses auto-redirect while password login is available."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_auto_redirect", True)
+    monkeypatch.setattr(settings, "password_login_enabled", True)
+
+    data = client.get("/api/oidc/config").json()
+
+    assert data["auto_redirect"] is False
 
 
 def test_oidc_login_returns_404_when_disabled(client: TestClient, monkeypatch: MonkeyPatch) -> None:
@@ -336,6 +363,7 @@ def test_oidc_config_disabled(client: TestClient, monkeypatch: MonkeyPatch) -> N
     assert data["enabled"] is False
     assert data["provider_id"] is None
     assert data["provider_name"] is None
+    assert data["auto_redirect"] is False
 
 
 def test_oidc_login_with_x_forwarded_proto(client: TestClient, monkeypatch: MonkeyPatch) -> None:

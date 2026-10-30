@@ -137,6 +137,7 @@ def oidc_config() -> OidcConfigRead:
         enabled=True,
         provider_id=settings.oidc_provider_id,
         provider_name=_provider_name(),
+        auto_redirect=settings.oidc_auto_redirect and not settings.password_login_enabled,
     )
 
 

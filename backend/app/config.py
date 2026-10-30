@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     trusted_proxy_auth_secret: str = ""
     trusted_proxy_auth_user_map: str = ""
     oidc_enabled: bool = False
+    oidc_auto_redirect: bool = False
     oidc_provider_id: str = "oidc"
     oidc_provider_name: str = "Single Sign-On"
     oidc_client_id: str = ""
