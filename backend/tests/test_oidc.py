@@ -65,7 +65,7 @@ def test_get_oidc_client_returns_none_when_disabled(monkeypatch: MonkeyPatch) ->
 
 def test_get_oidc_client_registers_and_returns_client_when_enabled(monkeypatch: MonkeyPatch) -> None:
     """Lines 26-36: when enabled and not yet registered, oauth.register is called."""
-    from app.oidc import get_oidc_client, _registered
+    from app.oidc import get_oidc_client
 
     monkeypatch.setattr("app.oidc.oidc_is_enabled", lambda: True)
     monkeypatch.setattr(settings, "oidc_provider_id", "test-oidc")
@@ -549,3 +549,93 @@ def test_oidc_link_callback_updates_existing_link(
     assert link.oidc_sub == "new-sub"
     assert link.oidc_email == "new@example.com"
     assert link.oidc_name == "New Name"
+
+
+def _request_with_host(host: str):
+    """Build a minimal request so redirect bases can be tested directly."""
+    from starlette.requests import Request
+
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"host", host.encode())],
+            "scheme": "http",
+            "server": ("testserver", 80),
+        }
+    )
+
+
+def test_frontend_base_url_ignores_loopback_for_remote_host(monkeypatch: MonkeyPatch) -> None:
+    """An old localhost PUBLIC_APP_URL must not redirect production users."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == ""
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "/auth/oidc/callback"
+
+
+def test_frontend_base_url_uses_loopback_for_local_host(monkeypatch: MonkeyPatch) -> None:
+    """Local split-origin development still gets the configured frontend URL."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+
+    request = _request_with_host("localhost:8000")
+    assert oidc_router._frontend_base_url(request) == "http://localhost:5173"
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "http://localhost:5173/auth/oidc/callback"
+
+
+def test_frontend_base_url_uses_configured_public_url(monkeypatch: MonkeyPatch) -> None:
+    """A real public frontend URL is used for remote requests."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "https://books.example.com/")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == "https://books.example.com"
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "https://books.example.com/auth/oidc/callback"
+
+
+def test_frontend_base_url_ignores_other_loopback_urls(monkeypatch: MonkeyPatch) -> None:
+    """The safety net covers 127.0.0.1 and IPv6 loopback, not just localhost:5173."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://127.0.0.1:4173")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == ""
+
+
+def test_loopback_public_app_url_warns(monkeypatch: MonkeyPatch) -> None:
+    """Startup should explain why a loopback PUBLIC_APP_URL is being ignored."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_loopback_public_app_url()
+
+    mock_warning.assert_called_once()
+    assert "loopback" in str(mock_warning.call_args)
+
+
+def test_loopback_public_app_url_warning_is_skipped_when_unused(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Do not warn about a loopback URL when neither OIDC nor mail uses it."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+    monkeypatch.setattr(settings, "oidc_enabled", False)
+    monkeypatch.setattr(settings, "mail_server", "")
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_loopback_public_app_url()
+
+    mock_warning.assert_not_called()

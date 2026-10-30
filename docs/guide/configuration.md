@@ -141,7 +141,7 @@ Password reset is optional. If mail is not configured, the "Forgot password?" li
 | `MAIL_FROM_NAME` | Sender display name | `LibrisLog` |
 | `MAIL_STARTTLS` | Use STARTTLS (`True`/`False`) | `True` |
 | `MAIL_SSL_TLS` | Use implicit SSL/TLS (`True`/`False`) | `False` |
-| `PUBLIC_APP_URL` | Public URL of the frontend. Required for password reset emails; needed for OIDC redirects in split-origin (local dev) setups. Leave empty when the backend serves the frontend. | (none) |
+| `PUBLIC_APP_URL` | Public URL of the frontend. Required for password reset emails; needed for OIDC redirects in split-origin (local dev) setups. Leave empty when the backend serves the frontend. A loopback URL such as `http://localhost:5173` is ignored for non-local requests so older `.env` files do not redirect production users to localhost. | (none) |
 | `PASSWORD_RESET_TOKEN_MAX_AGE` | Reset token validity in seconds | `3600` (1 hour) |
 
 ::: tip Local Development
@@ -307,6 +307,8 @@ MAIL_FROM=
 MAIL_FROM_NAME=LibrisLog
 MAIL_STARTTLS=True
 MAIL_SSL_TLS=False
-PUBLIC_APP_URL=http://localhost:5173
+# Required for password reset emails. Also needed when the frontend runs on a
+# different origin than the backend (local dev: http://localhost:5173).
+PUBLIC_APP_URL=
 PASSWORD_RESET_TOKEN_MAX_AGE=3600
 ```

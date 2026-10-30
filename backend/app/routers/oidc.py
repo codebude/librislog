@@ -1,8 +1,7 @@
 """OIDC SSO endpoints — login, callback, link, unlink, and status."""
 
 import logging
-from urllib.parse import quote_plus
-from typing import Any
+from urllib.parse import quote_plus, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -31,39 +30,91 @@ def _provider_id() -> str:
     return settings.oidc_provider_id
 
 
-def _frontend_base_url() -> str:
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def _is_loopback_host(hostname: str | None) -> bool:
+    """Return True for the hostnames browsers use to reach a local machine."""
+    return (hostname or "").lower() in _LOOPBACK_HOSTS
+
+
+def _is_loopback_url(url: str) -> bool:
+    """Return True when a configured URL points at a loopback host."""
+    try:
+        return _is_loopback_host(urlparse(url).hostname)
+    except ValueError:
+        return False
+
+
+def _frontend_base_url(request: Request | None = None) -> str:
     """Base URL of the frontend app, used for browser redirects.
 
     Empty in single-origin (production) deployments, where the backend serves
     the frontend and relative redirects resolve correctly. Set
     ``PUBLIC_APP_URL`` in split-origin (local dev) setups.
+
+    Older ``.env.example`` files shipped ``http://localhost:5173``. If such a
+    loopback URL is still configured, it is honored only for requests that
+    themselves arrive on a loopback host. Production requests fall back to
+    relative redirects instead of sending users to their own localhost.
     """
-    return (settings.public_app_url or "").rstrip("/")
+    base = (settings.public_app_url or "").strip().rstrip("/")
+    if not base:
+        return ""
+    if request is not None and _is_loopback_url(base):
+        if not _is_loopback_host(request.url.hostname):
+            return ""
+    return base
 
 
-def _with_frontend_base(path: str) -> str:
-    base = _frontend_base_url()
+def warn_about_loopback_public_app_url() -> None:
+    """Log a startup hint for an old loopback ``PUBLIC_APP_URL`` value."""
+    if not (settings.oidc_enabled or settings.mail_server.strip()):
+        return
+    if _is_loopback_url(settings.public_app_url or ""):
+        logger.warning(
+            "PUBLIC_APP_URL=%s points to a loopback address. It will only be used "
+            "for requests from loopback hosts; production requests use relative "
+            "redirects. Remove it or set the public frontend URL.",
+            settings.public_app_url,
+        )
+
+
+def _with_frontend_base(path: str, request: Request | None = None) -> str:
+    base = _frontend_base_url(request)
     return f"{base}{path}" if base else path
 
 
-def _frontend_warning_redirect(message: str) -> RedirectResponse:
+def _frontend_warning_redirect(message: str, request: Request) -> RedirectResponse:
     """Redirect to the frontend login page with an OIDC error message."""
-    return RedirectResponse(url=_with_frontend_base(f"/login?oidc_error={quote_plus(message)}"), status_code=302)
+    return RedirectResponse(
+        url=_with_frontend_base(f"/login?oidc_error={quote_plus(message)}", request),
+        status_code=302,
+    )
 
 
-def _frontend_success_redirect() -> RedirectResponse:
+def _frontend_success_redirect(request: Request) -> RedirectResponse:
     """Redirect to the frontend callback page on successful login."""
-    return RedirectResponse(url=_with_frontend_base("/auth/oidc/callback"), status_code=302)
+    return RedirectResponse(
+        url=_with_frontend_base("/auth/oidc/callback", request),
+        status_code=302,
+    )
 
 
-def _link_success_redirect() -> RedirectResponse:
+def _link_success_redirect(request: Request) -> RedirectResponse:
     """Redirect to the frontend link callback with success status."""
-    return RedirectResponse(url=_with_frontend_base("/auth/oidc/link-callback?status=success"), status_code=302)
+    return RedirectResponse(
+        url=_with_frontend_base("/auth/oidc/link-callback?status=success", request),
+        status_code=302,
+    )
 
 
-def _link_error_redirect(message: str) -> RedirectResponse:
+def _link_error_redirect(message: str, request: Request) -> RedirectResponse:
     """Redirect to the frontend link callback with an error message."""
-    return RedirectResponse(url=_with_frontend_base(f"/auth/oidc/link-callback?error={quote_plus(message)}"), status_code=302)
+    return RedirectResponse(
+        url=_with_frontend_base(f"/auth/oidc/link-callback?error={quote_plus(message)}", request),
+        status_code=302,
+    )
 
 
 def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:
@@ -106,7 +157,8 @@ async def oidc_login(request: Request):
         )
         return _frontend_warning_redirect(
             f"{_provider_name()} login is currently unavailable. "
-            f"Please use email and password, then try again later."
+            f"Please use email and password, then try again later.",
+            request,
         )
 
 
@@ -123,19 +175,19 @@ async def oidc_callback(
     client = get_oidc_client()
     if not client:
         logger.warning("OIDC callback called while OIDC disabled")
-        return _frontend_warning_redirect("OIDC is not enabled")
+        return _frontend_warning_redirect("OIDC is not enabled", request)
 
     try:
         token = await client.authorize_access_token(request)
     except Exception:
         logger.exception("OIDC authorize_access_token failed during login callback")
-        return _frontend_warning_redirect("OIDC login failed")
+        return _frontend_warning_redirect("OIDC login failed", request)
 
     userinfo = token.get("userinfo") or {}
     oidc_sub = userinfo.get("sub")
     if not oidc_sub:
         logger.warning("OIDC callback missing sub claim: token_keys=%s", list(token.keys()))
-        return _frontend_warning_redirect("OIDC response is missing subject")
+        return _frontend_warning_redirect("OIDC response is missing subject", request)
 
     link = session.exec(
         select(OidcLink).where(
@@ -150,17 +202,18 @@ async def oidc_callback(
         )
         return _frontend_warning_redirect(
             f"Your {_provider_name()} account is not linked. "
-            f"Please log in with email and password first, then link it in your profile."
+            f"Please log in with email and password first, then link it in your profile.",
+            request,
         )
 
     user = session.get(User, link.user_id)
     if not user:
         logger.error("OIDC link points to missing user: link_id=%s user_id=%s", link.id, link.user_id)
-        return _frontend_warning_redirect("Linked user account no longer exists")
+        return _frontend_warning_redirect("Linked user account no longer exists", request)
     assert user.id is not None
 
     start_browser_session(request, user.id, user.credentials_version)
-    return _frontend_success_redirect()
+    return _frontend_success_redirect(request)
 
 
 @router.get("/link-status", response_model=OidcLinkRead)
@@ -206,7 +259,7 @@ async def oidc_link_authorize(request: Request):
 
     if not request.session.get("oidc_link_user_id"):
         logger.warning("OIDC link authorize called without link session")
-        return _link_error_redirect("Missing link session. Please start linking again.")
+        return _link_error_redirect("Missing link session. Please start linking again.", request)
 
     redirect_uri = _resolve_callback_redirect_uri(request, "oidc_link_callback")
     try:
@@ -217,7 +270,8 @@ async def oidc_link_authorize(request: Request):
             _provider_id(), redirect_uri,
         )
         return _link_error_redirect(
-            "OIDC provider is currently unavailable. Please try again later."
+            "OIDC provider is currently unavailable. Please try again later.",
+            request,
         )
 
 
@@ -233,24 +287,24 @@ async def oidc_link_callback(
     client = get_oidc_client()
     if not client:
         logger.warning("OIDC link callback called while OIDC disabled")
-        return _link_error_redirect("OIDC is not enabled")
+        return _link_error_redirect("OIDC is not enabled", request)
 
     user_id = request.session.pop("oidc_link_user_id", None)
     if not user_id:
         logger.warning("OIDC link callback missing link session")
-        return _link_error_redirect("Missing link session. Please start linking again.")
+        return _link_error_redirect("Missing link session. Please start linking again.", request)
 
     try:
         token = await client.authorize_access_token(request)
     except Exception:
         logger.exception("OIDC authorize_access_token failed during link callback")
-        return _link_error_redirect("OIDC linking failed")
+        return _link_error_redirect("OIDC linking failed", request)
 
     userinfo = token.get("userinfo") or {}
     oidc_sub = userinfo.get("sub")
     if not oidc_sub:
         logger.warning("OIDC link callback missing sub claim: token_keys=%s", list(token.keys()))
-        return _link_error_redirect("OIDC response is missing subject")
+        return _link_error_redirect("OIDC response is missing subject", request)
 
     existing_by_sub = session.exec(
         select(OidcLink).where(
@@ -263,7 +317,7 @@ async def oidc_link_callback(
             "OIDC link conflict: provider=%s sub=%s existing_user_id=%s requested_user_id=%s",
             _provider_id(), oidc_sub, existing_by_sub.user_id, user_id,
         )
-        return _link_error_redirect("This OIDC account is already linked to another user")
+        return _link_error_redirect("This OIDC account is already linked to another user", request)
 
     existing_link = session.exec(select(OidcLink).where(OidcLink.user_id == user_id)).first()
     if existing_link:
@@ -285,7 +339,7 @@ async def oidc_link_callback(
         )
 
     session.commit()
-    return _link_success_redirect()
+    return _link_success_redirect(request)
 
 
 @router.delete("/unlink", status_code=204)

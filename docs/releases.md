@@ -68,6 +68,9 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 **Dependencies**
 - ⬆️ Updated backend and frontend dependencies, including FastAPI, Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, Scrapling, curl-cffi, SvelteKit, Svelte, Vite, Vitest, and Chart.js. TypeScript 7 was intentionally deferred because it is a major upgrade.
 
+**Bug fixes**
+- 🔐 **OIDC redirect safety net.** A loopback `PUBLIC_APP_URL` such as the old `.env.example` value `http://localhost:5173` is ignored for non-local requests, so existing installations do not redirect users to localhost after upgrading. A startup warning explains how to set it correctly.
+
 **Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
 [Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...HEAD)
