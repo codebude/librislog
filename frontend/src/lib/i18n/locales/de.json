@@ -1006,7 +1006,7 @@
     "cropReset": "Zurücksetzen",
     "cropSave": "Bild speichern",
     "cropCancel": "Abbrechen",
-    "oidcUnavailable": "Kein OIDC-Bild verfügbar. Verknüpfe zuerst OIDC oder hinterlege ein Bild beim Anbieter.",
+    "oidcUnavailable": "Noch kein OIDC-Bild gespeichert. Verknüpfe OIDC oder melde dich erneut über OIDC an, um dein Anbieterbild zu laden.",
     "oidcRefreshHint": "Das OIDC-Bild wird bei der nächsten Anmeldung automatisch aktualisiert.",
     "uploadSuccess": "Profilbild aktualisiert.",
     "uploadFailed": "Das Profilbild konnte nicht hochgeladen werden.",

@@ -22,6 +22,7 @@ from app.auth import (
 from app.config import settings as app_settings
 from app.database import get_session
 from app.models import ApiKey, AvatarSource, EmbedToken, User, UserImage, UserSettings
+from app.oidc import oidc_provider_host
 from app.schemas import (
     ApiKeyCreate,
     ApiKeyCreateResponse,
@@ -152,6 +153,7 @@ async def update_avatar_source(
                 image.external_url,
                 app_settings.avatars_dir,
                 current_user.id,
+                trusted_private_host=oidc_provider_host(),
             )
             if stored is None:
                 raise HTTPException(
@@ -268,6 +270,7 @@ async def refresh_oidc_avatar(
         image.external_url,
         app_settings.avatars_dir,
         current_user.id,
+        trusted_private_host=oidc_provider_host(),
     )
     if stored is None:
         raise HTTPException(status_code=400, detail="OIDC picture could not be downloaded")

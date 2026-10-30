@@ -1006,7 +1006,7 @@
     "cropReset": "重置",
     "cropSave": "保存图片",
     "cropCancel": "取消",
-    "oidcUnavailable": "没有可用的 OIDC 图片。请先关联 OIDC 或在提供商处设置图片。",
+    "oidcUnavailable": "尚未缓存 OIDC 图片。请关联 OIDC，或再次通过 OIDC 登录以获取提供商图片。",
     "oidcRefreshHint": "OIDC 图片会在下次登录时自动刷新。",
     "uploadSuccess": "个人头像已更新。",
     "uploadFailed": "无法上传个人头像。",

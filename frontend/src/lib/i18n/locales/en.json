@@ -1006,7 +1006,7 @@
     "cropReset": "Reset",
     "cropSave": "Save picture",
     "cropCancel": "Cancel",
-    "oidcUnavailable": "No OIDC picture is available. Link OIDC or set a provider picture first.",
+    "oidcUnavailable": "No OIDC picture is cached yet. Link OIDC, or sign in with OIDC again to fetch your provider picture.",
     "oidcRefreshHint": "The OIDC picture is refreshed automatically at the next login.",
     "uploadSuccess": "Profile picture updated.",
     "uploadFailed": "Could not upload the profile picture.",

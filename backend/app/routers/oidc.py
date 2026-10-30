@@ -11,7 +11,7 @@ from app.auth import require_user
 from app.auth import start_browser_session
 from app.database import get_session
 from app.models import AvatarSource, OidcLink, User
-from app.oidc import get_oidc_client, oidc_is_enabled
+from app.oidc import get_oidc_client, oidc_is_enabled, oidc_provider_host
 from app.config import settings
 from app.schemas import OidcConfigRead, OidcLinkRead
 from app.services.avatar import (
@@ -82,6 +82,7 @@ async def _sync_oidc_avatar(
             picture,
             settings.avatars_dir,
             user.id,
+            trusted_private_host=oidc_provider_host(),
         )
 
     upsert_avatar_image(

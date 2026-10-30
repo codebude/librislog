@@ -203,8 +203,17 @@ def save_uploaded_avatar(
     return _store_normalised_avatar(body, avatars_dir, user_id, "upload")
 
 
-def is_safe_oidc_picture_url(url: str | None) -> bool:
-    """Return True for an HTTPS OIDC picture URL that is safe to download."""
+def is_safe_oidc_picture_url(
+    url: str | None,
+    trusted_private_host: str | None = None,
+) -> bool:
+    """Return True for an HTTPS OIDC picture URL that is safe to download.
+
+    ``trusted_private_host`` is the OIDC provider's own hostname. Providers
+    hosted on a LAN resolve to private addresses, which the normal SSRF check
+    rejects. A picture URL on the provider's own host is allowed because the
+    provider is already trusted for authentication.
+    """
     if not url or len(url) > _MAX_PICTURE_URL_LENGTH:
         return False
 
@@ -218,6 +227,10 @@ def is_safe_oidc_picture_url(url: str | None) -> bool:
     if parsed.username or parsed.password or parsed.fragment:
         return False
 
+    hostname = parsed.hostname.lower()
+    if trusted_private_host and hostname == trusted_private_host.lower():
+        return True
+
     return is_safe_cover_import_url(url)
 
 
@@ -227,13 +240,14 @@ async def cache_oidc_avatar(
     user_id: int,
     timeout: float | None = None,
     max_bytes: int | None = None,
+    trusted_private_host: str | None = None,
 ) -> StoredAvatar | None:
     """Download an OIDC picture and store it as a normalised WebP avatar.
 
     Any failure returns ``None`` and is logged; callers must never fail an OIDC
     login because of an avatar problem.
     """
-    if not is_safe_oidc_picture_url(picture_url):
+    if not is_safe_oidc_picture_url(picture_url, trusted_private_host):
         logger.warning("Refusing unsafe OIDC avatar URL: %s", picture_url)
         return None
 

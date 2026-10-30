@@ -1006,7 +1006,7 @@
     "cropReset": "Restablecer",
     "cropSave": "Guardar imagen",
     "cropCancel": "Cancelar",
-    "oidcUnavailable": "No hay ninguna imagen de OIDC disponible. Vincula OIDC o configura una imagen en el proveedor.",
+    "oidcUnavailable": "Aún no hay ninguna imagen de OIDC guardada. Vincula OIDC o inicia sesión de nuevo con OIDC para obtener la imagen de tu proveedor.",
     "oidcRefreshHint": "La imagen de OIDC se actualiza automáticamente en el próximo inicio de sesión.",
     "uploadSuccess": "Foto de perfil actualizada.",
     "uploadFailed": "No se pudo subir la foto de perfil.",

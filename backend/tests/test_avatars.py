@@ -309,3 +309,30 @@ def test_authenticated_only_public_avatar_serves_logged_in_viewer(client: TestCl
     response = client.get(f"/api/public-profiles/{token}/avatar")
     assert response.status_code == 200
     assert response.headers["cache-control"].startswith("private")
+
+
+def test_oidc_picture_url_allows_the_provider_host() -> None:
+    from app.services.avatar_storage import is_safe_oidc_picture_url
+
+    assert (
+        is_safe_oidc_picture_url(
+            "https://127.0.0.1/profile-picture.png",
+            trusted_private_host="127.0.0.1",
+        )
+        is True
+    )
+    assert (
+        is_safe_oidc_picture_url(
+            "https://10.0.0.5/profile-picture.png",
+            trusted_private_host="10.0.0.5",
+        )
+        is True
+    )
+    assert is_safe_oidc_picture_url("https://127.0.0.1/profile-picture.png") is False
+    assert (
+        is_safe_oidc_picture_url(
+            "https://10.0.0.5/profile-picture.png",
+            trusted_private_host="id.example.com",
+        )
+        is False
+    )
