@@ -699,7 +699,9 @@
       "fullLibrary": "Full Library",
       "fullLibraryTooltip": "Show the owner's entire library, browsable with pagination.",
       "statistics": "Statistics",
-      "statisticsTooltip": "Show reading statistics (configured below)."
+      "statisticsTooltip": "Show reading statistics (configured below).",
+      "avatar": "Profile picture",
+      "avatarTooltip": "Show your profile picture on the public profile."
     },
     "page": {
       "loading": "Loading public profile...",
@@ -988,5 +990,35 @@
     "noChanges": "No changes needed.",
     "updateFailed": "Tag update failed.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Profile Picture",
+    "uploadHint": "Choose an avatar source. Uploads are cropped to a square before saving.",
+    "sourceAnimal": "Animal avatar",
+    "sourceOidc": "OIDC picture",
+    "sourceUpload": "Uploaded picture",
+    "upload": "Upload picture",
+    "removeUpload": "Remove uploaded picture",
+    "refreshOidc": "Refresh OIDC picture",
+    "cropTitle": "Crop your picture",
+    "cropZoomIn": "Zoom in",
+    "cropZoomOut": "Zoom out",
+    "cropReset": "Reset",
+    "cropSave": "Save picture",
+    "cropCancel": "Cancel",
+    "oidcUnavailable": "No OIDC picture is cached yet. Link OIDC, or sign in with OIDC again to fetch your provider picture.",
+    "oidcRefreshHint": "The OIDC picture is refreshed automatically at the next login.",
+    "uploadSuccess": "Profile picture updated.",
+    "uploadFailed": "Could not upload the profile picture.",
+    "sourceUpdated": "Profile picture source updated.",
+    "sourceUpdateFailed": "Could not update the profile picture source.",
+    "refreshFailed": "Could not refresh the OIDC picture.",
+    "rateLimited": "Please wait a moment before changing your profile picture again.",
+    "invalidFormat": "Please choose a JPEG, PNG, or WebP image.",
+    "tooLarge": "The image is too large. Please choose a smaller file.",
+    "sourceAnimalHint": "Generated from your account",
+    "sourceOidcHint": "From your identity provider",
+    "sourceUploadHint": "Your own image",
+    "cropHint": "Drag the image to reposition it, then resize the circle to frame your avatar."
   }
 }

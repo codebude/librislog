@@ -699,7 +699,9 @@
       "fullLibrary": "Biblioteca completa",
       "fullLibraryTooltip": "Mostrar toda la biblioteca del propietario, con paginación.",
       "statistics": "Estadísticas",
-      "statisticsTooltip": "Mostrar estadísticas de lectura (configurables abajo)."
+      "statisticsTooltip": "Mostrar estadísticas de lectura (configurables abajo).",
+      "avatar": "Foto de perfil",
+      "avatarTooltip": "Muestra tu foto de perfil en el perfil público."
     },
     "page": {
       "loading": "Cargando perfil público...",
@@ -988,5 +990,35 @@
     "noChanges": "No se necesitaron cambios.",
     "updateFailed": "Falló la actualización de etiquetas.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Foto de perfil",
+    "uploadHint": "Elige una fuente para tu foto de perfil. Las imágenes subidas se recortan en cuadrado antes de guardarse.",
+    "sourceAnimal": "Avatar de animal",
+    "sourceOidc": "Imagen de OIDC",
+    "sourceUpload": "Imagen subida",
+    "upload": "Subir imagen",
+    "removeUpload": "Eliminar imagen subida",
+    "refreshOidc": "Actualizar imagen de OIDC",
+    "cropTitle": "Recorta tu imagen",
+    "cropZoomIn": "Acercar",
+    "cropZoomOut": "Alejar",
+    "cropReset": "Restablecer",
+    "cropSave": "Guardar imagen",
+    "cropCancel": "Cancelar",
+    "oidcUnavailable": "Aún no hay ninguna imagen de OIDC guardada. Vincula OIDC o inicia sesión de nuevo con OIDC para obtener la imagen de tu proveedor.",
+    "oidcRefreshHint": "La imagen de OIDC se actualiza automáticamente en el próximo inicio de sesión.",
+    "uploadSuccess": "Foto de perfil actualizada.",
+    "uploadFailed": "No se pudo subir la foto de perfil.",
+    "sourceUpdated": "Fuente de la foto de perfil actualizada.",
+    "sourceUpdateFailed": "No se pudo actualizar la fuente de la foto de perfil.",
+    "refreshFailed": "No se pudo actualizar la imagen de OIDC.",
+    "rateLimited": "Espera un momento antes de volver a cambiar tu foto de perfil.",
+    "invalidFormat": "Elige una imagen JPEG, PNG o WebP.",
+    "tooLarge": "La imagen es demasiado grande. Elige un archivo más pequeño.",
+    "sourceAnimalHint": "Generado desde tu cuenta",
+    "sourceOidcHint": "De tu proveedor de identidad",
+    "sourceUploadHint": "Tu propia imagen",
+    "cropHint": "Arrastra la imagen para moverla y ajusta el círculo para encuadrar tu avatar."
   }
 }

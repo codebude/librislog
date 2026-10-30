@@ -1,7 +1,7 @@
 """OIDC SSO endpoints — login, callback, link, unlink, and status."""
 
 import logging
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus, urlparse, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -10,10 +10,22 @@ from sqlmodel import Session, select
 from app.auth import require_user
 from app.auth import start_browser_session
 from app.database import get_session
-from app.models import OidcLink, User
-from app.oidc import get_oidc_client, oidc_is_enabled
+from app.models import AvatarSource, OidcLink, User
+from app.oidc import get_oidc_client, oidc_is_enabled, oidc_provider_host
 from app.config import settings
 from app.schemas import OidcConfigRead, OidcLinkRead
+from app.services.avatar import (
+    VARIANT_OIDC,
+    VARIANT_UPLOAD,
+    get_user_image,
+    image_has_file,
+    upsert_avatar_image,
+)
+from app.services.avatar_storage import (
+    cache_oidc_avatar,
+    delete_avatar_file,
+    is_safe_oidc_picture_url,
+)
 from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/oidc", tags=["oidc"])
@@ -28,6 +40,61 @@ def _provider_name() -> str:
 def _provider_id() -> str:
     """Return the configured OIDC provider identifier."""
     return settings.oidc_provider_id
+
+
+async def _sync_oidc_avatar(
+    session: Session,
+    user: User,
+    picture: str | None,
+    *,
+    force_cache: bool = False,
+) -> str | None:
+    """Update the user's OIDC avatar row from a ``picture`` claim.
+
+    Returns the previous filename when it was replaced and should be deleted
+    after the transaction commits.
+    """
+    if user.id is None:
+        return None
+
+    existing = get_user_image(session, user.id, VARIANT_OIDC)
+    previous = existing.filename if existing else None
+
+    if not picture:
+        if existing:
+            existing.external_url = None
+            session.add(existing)
+        return None
+
+    if not is_safe_oidc_picture_url(picture, oidc_provider_host()):
+        logger.warning("Ignoring unsafe OIDC picture URL: %s", picture)
+        return None
+
+    needs_cache = force_cache or user.avatar_source == AvatarSource.oidc
+    if not needs_cache and (existing is None or not existing.filename):
+        # A user who linked OIDC before this feature existed still has no cached
+        # file. Cache it on the next login so the profile can offer the option.
+        needs_cache = True
+
+    stored = None
+    if needs_cache:
+        stored = await cache_oidc_avatar(
+            picture,
+            settings.avatars_dir,
+            user.id,
+            trusted_private_host=oidc_provider_host(),
+        )
+
+    upsert_avatar_image(
+        session,
+        user.id,
+        VARIANT_OIDC,
+        stored,
+        external_url=picture,
+    )
+    if previous and stored and previous != stored.filename:
+        return previous
+    return None
 
 
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -117,6 +184,28 @@ def _link_error_redirect(message: str, request: Request) -> RedirectResponse:
     )
 
 
+def _callback_base_url() -> str:
+    """Return the configured OIDC callback origin, or an empty string."""
+    return (settings.oidc_callback_base_url or "").strip().rstrip("/")
+
+
+def _is_valid_callback_base_url(base: str) -> bool:
+    """A usable base is an absolute http(s) URL without a path of its own."""
+    parts = urlparse(base)
+    return parts.scheme in {"http", "https"} and bool(parts.netloc) and parts.path in {"", "/"}
+
+
+def warn_about_invalid_oidc_callback_base_url() -> None:
+    """Log a startup hint when ``OIDC_CALLBACK_BASE_URL`` cannot be used."""
+    base = _callback_base_url()
+    if base and not _is_valid_callback_base_url(base):
+        logger.warning(
+            "OIDC_CALLBACK_BASE_URL=%s is not an absolute http(s) URL such as "
+            "https://books.example.com; OIDC callbacks fall back to the request host.",
+            base,
+        )
+
+
 def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:
     """Resolve the callback redirect URI via the ASGI router.
 
@@ -124,8 +213,22 @@ def _resolve_callback_redirect_uri(request: Request, route_name: str) -> str:
     ``request.scope["scheme"]`` from ``X-Forwarded-Proto``, so
     ``url_for`` returns the correct scheme (``https``) behind a TLS
     termination proxy.
+
+    ``OIDC_CALLBACK_BASE_URL`` replaces the public scheme and host when the
+    backend sees a different origin than the browser, for example behind the
+    Vite dev proxy, which rewrites the Host header to ``localhost``.
     """
-    return str(request.url_for(route_name))
+    callback_url = request.url_for(route_name)
+    base = _callback_base_url()
+    if not base:
+        return str(callback_url)
+    if not _is_valid_callback_base_url(base):
+        logger.warning(
+            "Ignoring invalid OIDC_CALLBACK_BASE_URL=%s; using the request host", base
+        )
+        return str(callback_url)
+    parts = urlparse(base)
+    return urlunsplit((parts.scheme, parts.netloc, callback_url.path, "", ""))
 
 
 @router.get("/config", response_model=OidcConfigRead)
@@ -181,6 +284,14 @@ async def oidc_callback(
     try:
         token = await client.authorize_access_token(request)
     except Exception:
+        state = request.query_params.get("state", "")
+        logger.debug(
+            "OIDC callback failed: host=%s scheme=%s cookies=%s state_in_session=%s",
+            request.url.hostname,
+            request.url.scheme,
+            sorted(request.cookies.keys()),
+            bool(state) and f"_state_{_provider_id()}_{state}" in request.session,
+        )
         logger.exception("OIDC authorize_access_token failed during login callback")
         return _frontend_warning_redirect("OIDC login failed", request)
 
@@ -212,6 +323,11 @@ async def oidc_callback(
         logger.error("OIDC link points to missing user: link_id=%s user_id=%s", link.id, link.user_id)
         return _frontend_warning_redirect("Linked user account no longer exists", request)
     assert user.id is not None
+
+    replaced = await _sync_oidc_avatar(session, user, userinfo.get("picture"))
+    session.commit()
+    if replaced:
+        delete_avatar_file(replaced, settings.avatars_dir)
 
     start_browser_session(request, user.id, user.credentials_version)
     return _frontend_success_redirect(request)
@@ -339,7 +455,19 @@ async def oidc_link_callback(
             )
         )
 
+    linked_user = session.get(User, user_id)
+    replaced = None
+    if linked_user is not None:
+        replaced = await _sync_oidc_avatar(
+            session,
+            linked_user,
+            userinfo.get("picture"),
+            force_cache=True,
+        )
+
     session.commit()
+    if replaced:
+        delete_avatar_file(replaced, settings.avatars_dir)
     return _link_success_redirect(request)
 
 
@@ -349,7 +477,26 @@ def oidc_unlink(
     session: Session = Depends(get_session),
 ) -> None:
     """Unlink the OIDC account from the current user."""
+    assert current_user.id is not None
     link = session.exec(select(OidcLink).where(OidcLink.user_id == current_user.id)).first()
     if link:
         session.delete(link)
-        session.commit()
+
+    oidc_image = get_user_image(session, current_user.id, VARIANT_OIDC)
+    removed_filename = oidc_image.filename if oidc_image is not None else None
+    if oidc_image is not None:
+        session.delete(oidc_image)
+
+    if current_user.avatar_source == AvatarSource.oidc:
+        upload = get_user_image(session, current_user.id, VARIANT_UPLOAD)
+        current_user.avatar_source = (
+            AvatarSource.upload
+            if image_has_file(upload, settings.avatars_dir)
+            else AvatarSource.animal
+        )
+        current_user.updated_at = utcnow()
+        session.add(current_user)
+
+    session.commit()
+    if removed_filename:
+        delete_avatar_file(removed_filename, settings.avatars_dir)

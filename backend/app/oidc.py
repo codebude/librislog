@@ -1,6 +1,7 @@
 """OIDC / SSO integration — provider registration and client creation."""
 
 from typing import Optional
+from urllib.parse import urlparse
 
 from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
 from authlib.oauth2.client import OAuth2Client
@@ -21,6 +22,15 @@ def oidc_is_enabled() -> bool:
         and bool(settings.oidc_client_secret.strip())
         and bool(settings.oidc_well_known_url.strip())
     )
+
+
+def oidc_provider_host() -> str | None:
+    """Return the OIDC provider hostname from the well-known URL."""
+    try:
+        hostname = urlparse(settings.oidc_well_known_url).hostname
+    except ValueError:
+        return None
+    return hostname.lower() if hostname else None
 
 
 def get_oidc_client() -> Optional[StarletteOAuth2App]:

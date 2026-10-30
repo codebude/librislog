@@ -34,6 +34,7 @@ def backup_download(
             data_dir=settings.data_dir,
             covers_dir=settings.covers_dir,
             import_temp_dir=settings.import_temp_dir,
+            avatars_dir=settings.avatars_dir,
         )
     except RuntimeError as exc:
         if "already in progress" in str(exc):
@@ -97,6 +98,7 @@ def restore(
             data_dir=settings.data_dir,
             covers_dir=settings.covers_dir,
             import_temp_dir=settings.import_temp_dir,
+            avatars_dir=settings.avatars_dir,
         )
     except RuntimeError as exc:
         if "already in progress" in str(exc):

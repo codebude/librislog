@@ -14,6 +14,41 @@ If you have forgotten your password and mail is configured, click the **"Forgot 
 This feature requires SMTP settings to be configured — see [Configuration](/guide/configuration#password-reset-email-optional).
 :::
 
+## Profile Picture
+
+The **Profile Picture** section shows a large preview and three selectable source cards:
+
+1. **Animal avatar**: the generated avatar used by default. Existing accounts keep this avatar after upgrading.
+2. **OIDC picture**: the picture provided by your OIDC provider, cached locally and refreshed automatically at each OIDC login.
+3. **Uploaded picture**: an image you upload from your computer.
+
+Choose a source by selecting its card. The animal avatar is always available. The OIDC and uploaded cards are enabled once the corresponding image exists. The selected card is highlighted, and the preview updates immediately after the source changes.
+
+### Uploading a picture
+
+Click **Upload picture** and choose a PNG, JPEG, or WebP file. The cropper opens with a circular mask that matches the round avatar used across LibrisLog. Drag the image to reposition it, use the zoom buttons to change the scale, and resize the circle to frame the crop. **Reset** returns both the image and the mask to their starting position.
+
+Click **Save picture** to upload the result. The server validates the image, resizes it to at most 512 pixels, strips metadata, and stores it as WebP. Uploaded pictures are stored under `AVATARS_DIR`. Use **Remove uploaded picture** to delete the file and fall back to the OIDC picture or the animal avatar.
+
+### OIDC pictures
+
+When you link an OIDC account, LibrisLog caches the provider's `picture` claim if present. While the OIDC picture is the selected avatar, it is refreshed automatically on every OIDC login. If the provider temporarily omits the picture, the cached image is kept. Use **Refresh OIDC picture** to fetch it again without signing out.
+
+Unlinking OIDC removes the cached OIDC picture and falls back to your uploaded picture, or to the animal avatar when no upload exists.
+
+### Profile picture settings
+
+| Setting | Purpose |
+|---|---|
+| `AVATARS_DIR` | Directory for uploaded and cached OIDC pictures. Keep it under `DATA_DIR` so full backups include it. |
+| `AVATAR_MAX_UPLOAD_MB` | Maximum size of an uploaded image. |
+| `AVATAR_MAX_DIMENSION` | Maximum stored width and height. |
+| `AVATAR_QUALITY` | WebP quality used when normalising avatars. |
+| `AVATAR_FETCH_TIMEOUT_SECONDS` | Timeout for downloading an OIDC picture. |
+| `AVATAR_FETCH_MAX_BYTES` | Maximum size of a downloaded OIDC picture. |
+
+See [Configuration → Profile Pictures](/guide/configuration#profile-pictures) for defaults and examples.
+
 ## Language
 
 Switch the UI language between available locales. The change applies immediately after saving.
@@ -70,7 +105,7 @@ Create a read-only public view of your reading profile and share it with a URL. 
 4. Choose who can access it:
    - **Everyone** — anyone with the URL can view the profile, without logging in.
    - **Logged-in users only** — viewers must be signed in to LibrisLog.
-5. Under **Content**, select the profile sections to share. Statistics can be enabled separately and configured by group.
+5. Under **Content**, select the profile sections to share. **Profile picture** is its own toggle and is off by default for backward compatibility. Statistics can be enabled separately and configured by group.
 6. Choose the language for this URL. The public page uses the link's language independently of your viewer's current UI language.
 7. Under **Validity**, leave the link unlimited or set an expiration date.
 8. Save the link.

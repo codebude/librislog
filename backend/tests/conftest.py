@@ -13,6 +13,8 @@ os.environ.setdefault("API_KEY_ENCRYPTION_KEY", "test-api-key-encryption-secret"
 # OIDC frontend redirects stay relative in tests (single-origin assumption);
 # local dev sets PUBLIC_APP_URL in .env for split-origin setups.
 os.environ.setdefault("PUBLIC_APP_URL", "")
+# OIDC callback URIs follow the request in tests; local dev may pin a base URL.
+os.environ.setdefault("OIDC_CALLBACK_BASE_URL", "")
 # Telemetry must never fire during the test suite (no network, no dev-DB writes).
 os.environ["TELEMETRY_DISABLED"] = "true"
 
@@ -20,6 +22,12 @@ from app.auth import encrypt_api_key, generate_api_key, get_api_key_prefix, get_
 from app.models import ApiKey, User, UserRole, UserSettings
 from app.main import app
 from app.database import get_session
+
+
+@pytest.fixture(autouse=True)
+def isolate_avatar_dir(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep avatar files out of the developer's real data directory."""
+    monkeypatch.setattr("app.config.settings.avatars_dir", str(tmp_path / "avatars"))
 
 
 @pytest.fixture(name="session")

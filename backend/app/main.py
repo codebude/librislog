@@ -18,6 +18,7 @@ from app.auth import start_browser_session
 from app.config import settings
 from app.logging_config import configure_logging
 from app.routers import admin, auth, books, config, cover_candidates, covers, data, docs, embed, health, hygiene, import_, oidc, profile, progress, public_profile, sessions, share_links, statistics, tags, users
+from app.services.avatar_storage import cleanup_orphan_avatars
 from app.services.cover_storage import cleanup_orphan_covers
 from app.services.data_import import cleanup_temp_files
 from app.services.telemetry import send_telemetry_once
@@ -38,6 +39,7 @@ async def _periodic_maintenance(interval_hours: int = 1) -> None:
     Tasks:
     - Clean up stale temporary import files.
     - Delete orphaned cover files no longer referenced by any book.
+    - Delete orphaned avatar files no longer referenced by any user image.
 
     Args:
         interval_hours: Hours between cleanup cycles. Defaults to 1.
@@ -56,6 +58,15 @@ async def _periodic_maintenance(interval_hours: int = 1) -> None:
                 deleted = await loop.run_in_executor(None, cleanup_orphan_covers, session)
                 if deleted:
                     logger.info("Orphaned cover cleanup: deleted %d file(s)", deleted)
+
+                deleted_avatars = await loop.run_in_executor(
+                    None, cleanup_orphan_avatars, session
+                )
+                if deleted_avatars:
+                    logger.info(
+                        "Orphaned avatar cleanup: deleted %d file(s)",
+                        deleted_avatars,
+                    )
 
             failures = 0
         except Exception as exc:
@@ -121,6 +132,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan: create required directories and start background tasks."""
     _validate_import_sources()
     Path(settings.covers_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.avatars_dir).mkdir(parents=True, exist_ok=True)
     Path(settings.import_temp_dir).mkdir(parents=True, exist_ok=True)
     cleanup_temp_files()
 
@@ -131,6 +143,7 @@ async def lifespan(app: FastAPI):
         )
 
     oidc.warn_about_loopback_public_app_url()
+    oidc.warn_about_invalid_oidc_callback_base_url()
 
     maintenance_task = asyncio.create_task(_periodic_maintenance())
     telemetry_task = (

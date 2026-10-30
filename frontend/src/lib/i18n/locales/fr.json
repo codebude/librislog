@@ -699,7 +699,9 @@
       "fullLibrary": "Bibliothèque complète",
       "fullLibraryTooltip": "Afficher toute la bibliothèque du propriétaire, navigable avec pagination.",
       "statistics": "Statistiques",
-      "statisticsTooltip": "Afficher les statistiques de lecture (configurables ci-dessous)."
+      "statisticsTooltip": "Afficher les statistiques de lecture (configurables ci-dessous).",
+      "avatar": "Photo de profil",
+      "avatarTooltip": "Afficher votre photo de profil sur le profil public."
     },
     "page": {
       "loading": "Chargement du profil public...",
@@ -988,5 +990,35 @@
     "noChanges": "Aucune modification nécessaire.",
     "updateFailed": "Échec de la mise à jour des étiquettes.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Photo de profil",
+    "uploadHint": "Choisissez une source pour votre photo de profil. Les images téléversées sont recadrées en carré avant l’enregistrement.",
+    "sourceAnimal": "Avatar animal",
+    "sourceOidc": "Image OIDC",
+    "sourceUpload": "Image téléversée",
+    "upload": "Téléverser une image",
+    "removeUpload": "Supprimer l’image téléversée",
+    "refreshOidc": "Actualiser l’image OIDC",
+    "cropTitle": "Recadrez votre image",
+    "cropZoomIn": "Zoom avant",
+    "cropZoomOut": "Zoom arrière",
+    "cropReset": "Réinitialiser",
+    "cropSave": "Enregistrer l’image",
+    "cropCancel": "Annuler",
+    "oidcUnavailable": "Aucune image OIDC n’est encore en cache. Liez OIDC ou reconnectez-vous via OIDC pour récupérer l’image de votre fournisseur.",
+    "oidcRefreshHint": "L’image OIDC est actualisée automatiquement lors de la prochaine connexion.",
+    "uploadSuccess": "Photo de profil mise à jour.",
+    "uploadFailed": "Impossible de téléverser la photo de profil.",
+    "sourceUpdated": "Source de la photo de profil mise à jour.",
+    "sourceUpdateFailed": "Impossible de mettre à jour la source de la photo de profil.",
+    "refreshFailed": "Impossible d’actualiser l’image OIDC.",
+    "rateLimited": "Veuillez patienter un instant avant de modifier à nouveau votre photo de profil.",
+    "invalidFormat": "Choisissez une image JPEG, PNG ou WebP.",
+    "tooLarge": "L’image est trop volumineuse. Choisissez un fichier plus petit.",
+    "sourceAnimalHint": "Généré depuis votre compte",
+    "sourceOidcHint": "Depuis votre fournisseur d’identité",
+    "sourceUploadHint": "Votre propre image",
+    "cropHint": "Faites glisser l’image pour la repositionner, puis ajustez le cercle pour cadrer votre avatar."
   }
 }

@@ -79,7 +79,7 @@ Things to keep in mind:
 
 ### Creating a Backup
 
-Downloads a ZIP archive containing the SQLite database, cover images, and import temp files. This is a complete snapshot of your library, users, and settings.
+Downloads a ZIP archive containing the SQLite database, cover images, profile pictures, and import temp files. This is a complete snapshot of your library, users, and settings.
 
 ### Restoring a Backup
 
@@ -116,10 +116,11 @@ Crontab entry (daily at 3am):
 0 3 * * * /path/to/backup-script.sh
 ```
 
-The API returns a ZIP archive containing the SQLite database, cover images, and import temp files. No separate database dump step is needed.
+The API returns a ZIP archive containing the SQLite database, cover images, profile pictures, and import temp files. No separate database dump step is needed.
 
 ## Background Maintenance
 
 A periodic maintenance task runs automatically every hour. It performs:
 
 - **Cover cache cleanup** — Removes orphaned cover images from disk that are no longer referenced by any book. Files modified within the last 60 minutes are preserved to avoid deleting covers that were just uploaded but not yet linked to a book entry.
+- **Avatar cleanup**: Removes orphaned profile picture files from `AVATARS_DIR` that are no longer referenced by a `user_image` row. The same 60-minute grace period protects freshly uploaded files.

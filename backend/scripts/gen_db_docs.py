@@ -164,7 +164,7 @@ def _generate_table_docs(tables) -> str:
             lines.append("")
             for uc in ucs:
                 col_names = ", ".join(c.name for c in uc.columns)
-                lines.append(f"**Unique constraint:** `({col_names})` — {uc.name}")
+                lines.append(f"**Unique constraint:** `({col_names})`: {uc.name}")
 
         lines.append("")
     return "\n".join(lines)
@@ -212,7 +212,7 @@ the application.
 - **Foreign keys** — all user-owned tables reference `user.id` via foreign
   key constraints. Cascading behavior is handled in application code (not
   at the database level).
-- **Unique constraints** — compound constraints like `(user_id, isbn)` on
+- **Unique constraints**: compound constraints like `(user_id, isbn)` on
   `book` and `(user_id, name)` on `tag` enforce per-user uniqueness without
   restricting other users.
 """

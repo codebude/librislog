@@ -8,8 +8,8 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Unreleased
 
-::: tip ⭐ v1.12.0 - Mass Tag Editor & Authentication Methods
-LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, plus two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. The tag editor change is non-breaking, and the authentication features are off by default and need no data migration.
+::: tip ⭐ v1.12.0 - Mass Tag Editor, Profile Pictures & Authentication Methods
+LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, and profile pictures with three selectable sources: the existing animal avatar, a locally cached OIDC picture, and a manually uploaded image with a built-in cropper. Public profiles gain a separate profile picture toggle. It also adds two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. Existing accounts keep their animal avatar and existing share links stay unchanged after upgrading, and the new options need no manual data migration.
 :::
 
 ## Latest Release
@@ -22,7 +22,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.12.0](#v1-12-0-mass-tag-editor-authentication-methods) | Unreleased | Feature release |
+| [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | Unreleased | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
@@ -44,17 +44,22 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 ---
 
-## v1.12.0: Mass Tag Editor & Authentication Methods
+## v1.12.0: Mass Tag Editor, Profile Pictures & Authentication Methods
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
 
-**Summary:** LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, plus two opt-in authentication options. Administrators can disable password login once single sign-on is in use, and deployments behind an authenticating reverse proxy can sign users in automatically from a forwarded header.
+**Summary:** LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, profile pictures with three selectable sources (animal avatar, cached OIDC picture, and manual upload with a circular cropper), a separate profile picture toggle for public profiles, and two opt-in authentication options. Administrators can disable password login once single sign-on is in use, and deployments behind an authenticating reverse proxy can sign users in automatically from a forwarded header.
 
 **Features**
 - 🏷️ **Mass Tag Editor page.** New page at `/tag-editor`, reachable from Profile → Manage my data, with the same filter bar as the library (search, status, medium, acquisition, tag) plus row selection and "select all matching filters".
-- 🔁 **Add and remove in one step.** Both fields in a single action, applied in chunks of 500 books with progress reporting.
-- ⚠️ **Case-variant warning.** Tags that differ only in capitalization from an existing tag are flagged, with a one-click shortcut to reuse the existing spelling.
-- 🧹 **Orphan tag cleanup.** Tags left on no book are deleted automatically.
+  - 🔁 **Add and remove in one step.** Both fields in a single action, applied in chunks of 500 books with progress reporting.
+  - ⚠️ **Case-variant warning.** Tags that differ only in capitalization from an existing tag are flagged, with a one-click shortcut to reuse the existing spelling.
+  - 🧹 **Orphan tag cleanup.** Tags left on no book are deleted automatically.
+- 🖼️ **Profile pictures with three sources.** Choose the generated animal avatar, the picture from your OIDC provider, or an uploaded image. Existing accounts keep the animal avatar, so nothing changes until you pick a source.
+  - ✂️ **Built-in cropper.** Uploaded images open in a round cropper before they are sent to the server. The backend validates the image, resizes it to at most 512 pixels, strips metadata, and stores it as WebP under `AVATARS_DIR`.
+  - 🏷️ **OIDC pictures refresh on login.** The provider's `picture` claim is cached locally and refreshed on every OIDC login. Linking an account caches the picture without switching the avatar automatically; unlinking removes the cache and falls back to the uploaded picture or the animal avatar.
+  - 👁️ **Separate public profile picture toggle.** Share links get their own **Profile picture** section. It is off by default, so existing links keep their current appearance. The tokenized avatar endpoint only serves the image when that section is enabled.
+  - 🧹 **Avatar cleanup.** The hourly maintenance task also removes orphaned avatar files that are no longer referenced by a user image row.
 - 🔐 **Disable password login.** `PASSWORD_LOGIN_ENABLED=false` hides the email/password form and "Forgot password?" link and makes the login, forgot-password, and reset-password endpoints return `403`. First-admin setup still works, so a new instance can always be bootstrapped. The setup page warns when single sign-on should be linked before logging out.
 - 🌐 **Trusted reverse-proxy authentication.** `TRUSTED_PROXY_AUTH_ENABLED=true` signs a user in automatically when a trusted proxy forwards an identity in a configurable header. The header, trusted IPs or CIDR ranges, and an optional shared secret are configurable, and `TRUSTED_PROXY_AUTH_USER_MAP` can translate proxy usernames to account emails when the proxy name is not the email itself. The feature fails closed when misconfigured, rejects ambiguous email matches, and ignores unknown values.
 - 🔁 **Automatic OIDC redirect.** `OIDC_AUTO_REDIRECT=true` sends the login page straight to the provider when `PASSWORD_LOGIN_ENABLED=false`. Failed attempts return to the login page with an error instead of looping.
@@ -65,14 +70,17 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 - 🔍 **Exact tag filters.** `GET /api/books` and the new `GET /api/books/ids` accept `tag` and `exclude_tag` for exact tag name filtering.
 - 📋 **Tag listing.** New `GET /api/tags` returns all tags with usage counts.
 - 📚 **Authentication documentation.** New configuration reference and administration guidance, including a Traefik BasicAuth example and recovery steps for password lockout.
+- ⚙️ **Profile picture settings.** `AVATARS_DIR`, `AVATAR_MAX_UPLOAD_MB`, `AVATAR_MAX_DIMENSION`, `AVATAR_QUALITY`, `AVATAR_FETCH_TIMEOUT_SECONDS`, and `AVATAR_FETCH_MAX_BYTES` control avatar storage, upload limits, image normalisation, and OIDC picture downloads. See the [Configuration guide](/guide/configuration#profile-pictures).
 
 **Dependencies**
 - ⬆️ Updated backend and frontend dependencies, including FastAPI, Pydantic, SQLAlchemy, Alembic, Starlette, pytest, Playwright, Scrapling, curl-cffi, SvelteKit, Svelte, Vite, Vitest, and Chart.js. TypeScript 7 was intentionally deferred because it is a major upgrade.
+- ➕ Added Pillow for server-side avatar validation and normalisation, and cropperjs for the profile picture cropper.
 
 **Bug fixes**
 - 🔐 **OIDC redirect safety net.** A loopback `PUBLIC_APP_URL` such as the old `.env.example` value `http://localhost:5173` is ignored for non-local requests, so existing installations do not redirect users to localhost after upgrading. A startup warning explains how to set it correctly.
+- 🔗 **Configurable OIDC callback origin.** `OIDC_CALLBACK_BASE_URL` lets the backend advertise a different public origin for the OIDC callback routes, which fixes login behind proxies that rewrite the `Host` header, such as the Vite dev server on a custom LAN hostname. Left empty, the callback URI is still built from the request as before.
 
-**Breaking changes:** None. No data migration. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
+**Breaking changes:** None. The profile picture feature adds an automatic database migration for `user.avatar_source` and the `user_image` table; no manual action is needed. Existing accounts keep the animal avatar, and existing share links keep their current sections because the new **Profile picture** toggle is off by default. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
 [Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...HEAD)
 

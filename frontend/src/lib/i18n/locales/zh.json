@@ -699,7 +699,9 @@
       "fullLibrary": "完整书库",
       "fullLibraryTooltip": "显示所有者的整个书库，可翻页浏览。",
       "statistics": "统计",
-      "statisticsTooltip": "显示阅读统计（可在下方配置）。"
+      "statisticsTooltip": "显示阅读统计（可在下方配置）。",
+      "avatar": "个人头像",
+      "avatarTooltip": "在公开资料中显示你的个人头像。"
     },
     "page": {
       "loading": "正在加载公开资料...",
@@ -988,5 +990,35 @@
     "noChanges": "无需更改。",
     "updateFailed": "标签更新失败。",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "个人头像",
+    "uploadHint": "选择头像来源。上传的图片在保存前会被裁剪为正方形。",
+    "sourceAnimal": "动物头像",
+    "sourceOidc": "OIDC 图片",
+    "sourceUpload": "上传的图片",
+    "upload": "上传图片",
+    "removeUpload": "删除上传的图片",
+    "refreshOidc": "刷新 OIDC 图片",
+    "cropTitle": "裁剪图片",
+    "cropZoomIn": "放大",
+    "cropZoomOut": "缩小",
+    "cropReset": "重置",
+    "cropSave": "保存图片",
+    "cropCancel": "取消",
+    "oidcUnavailable": "尚未缓存 OIDC 图片。请关联 OIDC，或再次通过 OIDC 登录以获取提供商图片。",
+    "oidcRefreshHint": "OIDC 图片会在下次登录时自动刷新。",
+    "uploadSuccess": "个人头像已更新。",
+    "uploadFailed": "无法上传个人头像。",
+    "sourceUpdated": "头像来源已更新。",
+    "sourceUpdateFailed": "无法更新头像来源。",
+    "refreshFailed": "无法刷新 OIDC 图片。",
+    "rateLimited": "请稍等片刻再更改个人头像。",
+    "invalidFormat": "请选择 JPEG、PNG 或 WebP 图片。",
+    "tooLarge": "图片过大，请选择较小的文件。",
+    "sourceAnimalHint": "根据你的账户生成",
+    "sourceOidcHint": "来自你的身份提供商",
+    "sourceUploadHint": "你自己的图片",
+    "cropHint": "拖动图片调整位置，然后调整圆形区域来裁剪你的头像。"
   }
 }

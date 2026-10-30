@@ -1,9 +1,11 @@
 """User profile endpoints — profile, settings, data reset, account deletion, API keys."""
 
 import logging
+from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlmodel import Session, col, select
+from starlette.concurrency import run_in_threadpool
 
 from app.auth import (
     clear_browser_session,
@@ -19,11 +21,14 @@ from app.auth import (
 )
 from app.config import settings as app_settings
 from app.database import get_session
-from app.models import ApiKey, EmbedToken, User, UserSettings
+from app.models import ApiKey, AvatarSource, EmbedToken, User, UserImage, UserSettings
+from app.oidc import oidc_provider_host
 from app.schemas import (
     ApiKeyCreate,
     ApiKeyCreateResponse,
     ApiKeyRead,
+    AvatarOptionsRead,
+    AvatarSourceUpdate,
     ConfirmationPhrase,
     DataResetDeleted,
     DataResetResponse,
@@ -36,6 +41,21 @@ from app.schemas import (
     UserRead,
     UserSettingsRead,
     UserSettingsUpdate,
+)
+from app.services.avatar import (
+    VARIANT_OIDC,
+    VARIANT_UPLOAD,
+    build_avatar_options,
+    build_user_read,
+    delete_avatar_image,
+    get_user_image,
+    image_has_file,
+    upsert_avatar_image,
+)
+from app.services.avatar_storage import (
+    cache_oidc_avatar,
+    delete_avatar_file,
+    save_uploaded_avatar,
 )
 from app.services.statistics import MAX_CUSTOM_RANGE_DAYS
 from app.time_utils import utcnow
@@ -51,6 +71,17 @@ logger = logging.getLogger(__name__)
 
 RESET_DATA_PHRASE: str = "DELETE ALL MY DATA"
 DELETE_ACCOUNT_PHRASE: str = "DELETE MY ACCOUNT"
+_AVATAR_WRITE_INTERVAL = timedelta(seconds=1)
+
+
+def _ensure_avatar_write_interval(image: UserImage | None) -> None:
+    """Reject avatar replacements that arrive faster than the write interval."""
+    if image is not None and image.updated_at is not None:
+        if utcnow() - image.updated_at < _AVATAR_WRITE_INTERVAL:
+            raise HTTPException(
+                status_code=429,
+                detail="Avatar was updated too recently. Try again in a moment.",
+            )
 
 
 def _validate_confirmation(confirmation: str, expected_phrase: str) -> None:
@@ -60,9 +91,12 @@ def _validate_confirmation(confirmation: str, expected_phrase: str) -> None:
 
 
 @router.get("", response_model=UserRead)
-def get_profile(current_user: User = Depends(require_user)) -> User:
+def get_profile(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> UserRead:
     """Return the current user's profile."""
-    return current_user
+    return build_user_read(session, current_user)
 
 
 @router.patch("", response_model=UserRead)
@@ -70,7 +104,7 @@ def update_profile(
     user_in: ProfileUpdate,
     current_user: User = Depends(require_user),
     session: Session = Depends(get_session),
-) -> User:
+) -> UserRead:
     """Update the current user's profile fields."""
     update_data = user_in.model_dump(exclude_unset=True)
     if "password" in update_data:
@@ -82,7 +116,180 @@ def update_profile(
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
-    return current_user
+    return build_user_read(session, current_user)
+
+
+@router.get("/avatar", response_model=AvatarOptionsRead)
+def get_avatar_options(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> AvatarOptionsRead:
+    """Return the current avatar state for the profile card."""
+    return build_avatar_options(session, current_user, app_settings.avatars_dir)
+
+
+@router.patch("/avatar", response_model=AvatarOptionsRead)
+async def update_avatar_source(
+    body: AvatarSourceUpdate,
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> AvatarOptionsRead:
+    """Change the selected avatar source."""
+    assert current_user.id is not None
+
+    if body.source == AvatarSource.upload:
+        image = get_user_image(session, current_user.id, VARIANT_UPLOAD)
+        if image is None or not image.filename:
+            raise HTTPException(status_code=400, detail="No uploaded avatar available")
+    elif body.source == AvatarSource.oidc:
+        image = get_user_image(session, current_user.id, VARIANT_OIDC)
+        if image is None:
+            raise HTTPException(
+                status_code=400,
+                detail="No OIDC picture available. Link OIDC or set a provider picture first.",
+            )
+        if not image.filename and image.external_url:
+            stored = await cache_oidc_avatar(
+                image.external_url,
+                app_settings.avatars_dir,
+                current_user.id,
+                trusted_private_host=oidc_provider_host(),
+            )
+            if stored is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="OIDC picture could not be downloaded",
+                )
+            upsert_avatar_image(
+                session,
+                current_user.id,
+                VARIANT_OIDC,
+                stored,
+                external_url=image.external_url,
+            )
+        elif not image.filename:
+            raise HTTPException(status_code=400, detail="OIDC picture is not cached")
+
+    current_user.avatar_source = body.source
+    current_user.updated_at = utcnow()
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return build_avatar_options(session, current_user, app_settings.avatars_dir)
+
+
+@router.post("/avatar/upload", response_model=AvatarOptionsRead)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> AvatarOptionsRead:
+    """Upload a cropped avatar image."""
+    assert current_user.id is not None
+    previous = get_user_image(session, current_user.id, VARIANT_UPLOAD)
+    _ensure_avatar_write_interval(previous)
+
+    limit = app_settings.avatar_max_upload_mb * 1024 * 1024
+    body = await file.read(limit + 1)
+    if len(body) > limit:
+        raise HTTPException(status_code=413, detail="Avatar image is too large")
+
+    stored = await run_in_threadpool(
+        save_uploaded_avatar,
+        body,
+        file.content_type or "",
+        app_settings.avatars_dir,
+        current_user.id,
+    )
+    if stored is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Avatar must be a valid PNG, JPEG, or WebP image",
+        )
+
+    previous_filename = previous.filename if previous else None
+    upsert_avatar_image(
+        session,
+        current_user.id,
+        VARIANT_UPLOAD,
+        stored,
+    )
+    current_user.avatar_source = AvatarSource.upload
+    current_user.updated_at = utcnow()
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    if previous_filename and previous_filename != stored.filename:
+        delete_avatar_file(previous_filename, app_settings.avatars_dir)
+    return build_avatar_options(session, current_user, app_settings.avatars_dir)
+
+
+@router.delete("/avatar/upload", response_model=AvatarOptionsRead)
+def delete_uploaded_avatar(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> AvatarOptionsRead:
+    """Remove the uploaded avatar and fall back to OIDC or animal."""
+    assert current_user.id is not None
+    filename = delete_avatar_image(
+        session,
+        current_user.id,
+        VARIANT_UPLOAD,
+    )
+
+    if current_user.avatar_source == AvatarSource.upload:
+        oidc = get_user_image(session, current_user.id, VARIANT_OIDC)
+        current_user.avatar_source = (
+            AvatarSource.oidc
+            if image_has_file(oidc, app_settings.avatars_dir)
+            else AvatarSource.animal
+        )
+
+    current_user.updated_at = utcnow()
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    if filename:
+        delete_avatar_file(filename, app_settings.avatars_dir)
+    return build_avatar_options(session, current_user, app_settings.avatars_dir)
+
+
+@router.post("/avatar/refresh-oidc", response_model=AvatarOptionsRead)
+async def refresh_oidc_avatar(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> AvatarOptionsRead:
+    """Re-download the cached OIDC picture from its provider URL."""
+    assert current_user.id is not None
+    image = get_user_image(session, current_user.id, VARIANT_OIDC)
+    if image is None or not image.external_url:
+        raise HTTPException(status_code=400, detail="No OIDC picture URL is stored")
+    _ensure_avatar_write_interval(image)
+
+    stored = await cache_oidc_avatar(
+        image.external_url,
+        app_settings.avatars_dir,
+        current_user.id,
+        trusted_private_host=oidc_provider_host(),
+    )
+    if stored is None:
+        raise HTTPException(status_code=400, detail="OIDC picture could not be downloaded")
+
+    previous = image.filename
+    upsert_avatar_image(
+        session,
+        current_user.id,
+        VARIANT_OIDC,
+        stored,
+        external_url=image.external_url,
+    )
+    current_user.updated_at = utcnow()
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    if previous and previous != stored.filename:
+        delete_avatar_file(previous, app_settings.avatars_dir)
+    return build_avatar_options(session, current_user, app_settings.avatars_dir)
 
 
 @router.get("/settings", response_model=UserSettingsRead)
@@ -233,11 +440,14 @@ def delete_own_account(
     assert current_user.id is not None
 
     try:
-        delete_user_account_data(session, current_user, app_settings.covers_dir)
+        deleted = delete_user_account_data(session, current_user, app_settings.covers_dir)
         session.commit()
     except Exception:
         session.rollback()
         raise
+
+    for filename in deleted.avatar_filenames:
+        delete_avatar_file(filename, app_settings.avatars_dir)
 
     clear_browser_session(request)
     logger.warning("User %s deleted own account", current_user.id)

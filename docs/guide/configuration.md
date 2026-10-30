@@ -127,6 +127,7 @@ controlled by the proxy, not by LibrisLog.
 | `OIDC_CLIENT_ID` | OIDC client ID |
 | `OIDC_CLIENT_SECRET` | OIDC client secret |
 | `OIDC_WELL_KNOWN_URL` | OIDC well-known configuration URL |
+| `OIDC_CALLBACK_BASE_URL` | Public origin the browser uses for the OIDC callback routes, for example `https://books.example.com`, without a path. Set it when the backend sees a different host than the browser, such as behind the Vite dev proxy, which rewrites `Host` to `localhost`. Leave it empty (the default) to build the callback URI from the request. |
 
 ## Password Reset / Email (Optional)
 
@@ -209,6 +210,17 @@ on-demand **Search Google Books too** button.
 > `LIBRARY_OF_CONGRESS_IMPORT_SEARCH_ENABLED=false` if unencrypted egress to port 210
 > is not acceptable in your environment. The other sources are all HTTPS.
 
+## Profile Pictures
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AVATARS_DIR` | Directory for uploaded and cached OIDC profile pictures. Keep it under `DATA_DIR` so full backups include it. | `./data/avatars` |
+| `AVATAR_MAX_UPLOAD_MB` | Maximum size of an uploaded avatar image | `10` |
+| `AVATAR_MAX_DIMENSION` | Maximum width and height of a stored avatar, in pixels | `512` |
+| `AVATAR_QUALITY` | WebP quality used when normalising avatars (1-100) | `90` |
+| `AVATAR_FETCH_TIMEOUT_SECONDS` | Timeout when downloading an OIDC picture | `10` |
+| `AVATAR_FETCH_MAX_BYTES` | Maximum size of a downloaded OIDC picture | `20000000` |
+
 ## Cover Scraping
 
 | Variable | Description | Default |
@@ -289,6 +301,12 @@ GOOGLE_BOOKS_API_KEY=your-google-books-api-key
 HARDCOVER_APP_API_TOKEN=your-hardcover-token
 
 COVERS_DIR=./data/covers
+AVATARS_DIR=./data/avatars
+AVATAR_MAX_UPLOAD_MB=10
+AVATAR_MAX_DIMENSION=512
+AVATAR_QUALITY=90
+AVATAR_FETCH_TIMEOUT_SECONDS=10
+AVATAR_FETCH_MAX_BYTES=20000000
 THALIA_COVER_SEARCH_ENABLED=false
 
 DASHBOARD_QUOTE_ENABLED=true

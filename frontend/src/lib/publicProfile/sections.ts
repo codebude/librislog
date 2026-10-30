@@ -26,6 +26,12 @@ export const PUBLIC_PROFILE_SECTIONS: PublicProfileSectionDef[] = [
 		defaultOn: true
 	},
 	{
+		key: 'avatar',
+		i18nKey: 'publicProfile.sections.avatar',
+		tooltipKey: 'publicProfile.sections.avatarTooltip',
+		defaultOn: false
+	},
+	{
 		key: 'currently_reading',
 		i18nKey: 'publicProfile.sections.currentlyReading',
 		tooltipKey: 'publicProfile.sections.currentlyReadingTooltip',

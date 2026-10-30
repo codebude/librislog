@@ -699,7 +699,9 @@
       "fullLibrary": "Vollständige Bibliothek",
       "fullLibraryTooltip": "Zeige die gesamte Bibliothek des Besitzers, durchsuchbar mit Seitenumbruch.",
       "statistics": "Statistiken",
-      "statisticsTooltip": "Zeige Lesestatistiken (unten konfigurierbar)."
+      "statisticsTooltip": "Zeige Lesestatistiken (unten konfigurierbar).",
+      "avatar": "Profilbild",
+      "avatarTooltip": "Zeigt dein Profilbild im öffentlichen Profil an."
     },
     "page": {
       "loading": "Öffentliches Profil wird geladen...",
@@ -988,5 +990,35 @@
     "noChanges": "Keine Änderungen nötig.",
     "updateFailed": "Tag-Aktualisierung fehlgeschlagen.",
     "updateFailedPartial": "Tag update failed after {completed} of {total} batches. Already applied changes are kept; retry to finish."
+  },
+  "avatar": {
+    "title": "Profilbild",
+    "uploadHint": "Wähle eine Quelle für dein Profilbild. Uploads werden vor dem Speichern quadratisch zugeschnitten.",
+    "sourceAnimal": "Tier-Avatar",
+    "sourceOidc": "OIDC-Bild",
+    "sourceUpload": "Hochgeladenes Bild",
+    "upload": "Bild hochladen",
+    "removeUpload": "Hochgeladenes Bild entfernen",
+    "refreshOidc": "OIDC-Bild aktualisieren",
+    "cropTitle": "Bild zuschneiden",
+    "cropZoomIn": "Vergrößern",
+    "cropZoomOut": "Verkleinern",
+    "cropReset": "Zurücksetzen",
+    "cropSave": "Bild speichern",
+    "cropCancel": "Abbrechen",
+    "oidcUnavailable": "Noch kein OIDC-Bild gespeichert. Verknüpfe OIDC oder melde dich erneut über OIDC an, um dein Anbieterbild zu laden.",
+    "oidcRefreshHint": "Das OIDC-Bild wird bei der nächsten Anmeldung automatisch aktualisiert.",
+    "uploadSuccess": "Profilbild aktualisiert.",
+    "uploadFailed": "Das Profilbild konnte nicht hochgeladen werden.",
+    "sourceUpdated": "Quelle des Profilbilds aktualisiert.",
+    "sourceUpdateFailed": "Die Quelle des Profilbilds konnte nicht aktualisiert werden.",
+    "refreshFailed": "Das OIDC-Bild konnte nicht aktualisiert werden.",
+    "rateLimited": "Bitte warte einen Moment, bevor du dein Profilbild erneut änderst.",
+    "invalidFormat": "Bitte wähle ein JPEG-, PNG- oder WebP-Bild.",
+    "tooLarge": "Das Bild ist zu groß. Bitte wähle eine kleinere Datei.",
+    "sourceAnimalHint": "Aus deinem Konto erzeugt",
+    "sourceOidcHint": "Von deinem Identitätsanbieter",
+    "sourceUploadHint": "Dein eigenes Bild",
+    "cropHint": "Ziehe das Bild, um es zu verschieben, und passe dann den Kreis für deinen Avatar an."
   }
 }
