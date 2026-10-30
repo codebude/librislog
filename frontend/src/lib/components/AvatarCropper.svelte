@@ -48,6 +48,7 @@
 	let cropper: Cropper | null = null;
 	let errorMessage = $state<string | null>(null);
 	let saving = $state(false);
+	let ready = $state(false);
 
 	$effect(() => {
 		if (!open || !file) {
@@ -58,6 +59,7 @@
 		return () => {
 			cropper?.destroy();
 			cropper = null;
+			ready = false;
 			URL.revokeObjectURL(url);
 		};
 	});
@@ -65,10 +67,17 @@
 	function initCropper() {
 		if (!imageEl || !containerEl) return;
 		cropper?.destroy();
-		cropper = new Cropper(imageEl, {
-			container: containerEl,
-			template: TEMPLATE
-		});
+		try {
+			cropper = new Cropper(imageEl, {
+				container: containerEl,
+				template: TEMPLATE
+			});
+			ready = true;
+		} catch (error) {
+			console.error('Avatar cropper initialisation failed', error);
+			errorMessage = $_('avatar.uploadFailed');
+			ready = false;
+		}
 	}
 
 	function zoom(scale: number) {
@@ -90,10 +99,6 @@
 		saving = true;
 		const selection = cropper.getCropperSelection();
 		if (!selection) {
-			saving = false;
-			return;
-		}
-		if (selection.width < 64 || selection.height < 64) {
 			errorMessage = $_('avatar.uploadFailed');
 			saving = false;
 			return;
@@ -105,7 +110,15 @@
 				height: maxDimension
 			});
 			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas.toBlob(resolve, 'image/webp', 0.9);
+				canvas.toBlob((webpBlob) => {
+					if (webpBlob) {
+						resolve(webpBlob);
+						return;
+					}
+					// Some browsers cannot encode WebP from a canvas. The server
+					// accepts PNG and normalises it to WebP itself.
+					canvas.toBlob(resolve, 'image/png');
+				}, 'image/webp', 0.9);
 			});
 			if (!blob) {
 				errorMessage = $_('avatar.uploadFailed');
@@ -113,7 +126,8 @@
 			}
 			errorMessage = null;
 			await onsave(blob);
-		} catch {
+		} catch (error) {
+			console.error('Avatar crop failed', error);
 			errorMessage = $_('avatar.uploadFailed');
 		} finally {
 			saving = false;
@@ -160,7 +174,7 @@
 					<button type="button" class="btn btn-ghost" onclick={oncancel} disabled={busy}>
 						{$_('avatar.cropCancel')}
 					</button>
-					<button type="button" class="btn btn-primary" onclick={save} disabled={busy || saving}>
+					<button type="button" class="btn btn-primary" onclick={save} disabled={busy || saving || !ready}>
 						{#if busy}
 							<span class="loading loading-spinner loading-xs"></span>
 						{:else}
