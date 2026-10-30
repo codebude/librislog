@@ -8,10 +8,12 @@ keys, settings, notes, blurbs, OIDC info) is never serialized here.
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, Security
+from fastapi.responses import FileResponse
 from fastapi.security import APIKeyHeader
 from sqlmodel import Session, col, select
 
 from app.auth import hash_public_profile_token, require_user
+from app.config import settings
 from app.database import get_session
 from app.models import PublicProfileAudience, PublicProfileLink, User
 from app.schemas import (
@@ -19,8 +21,11 @@ from app.schemas import (
     PublicProfileResponse,
     PublicProfileSectionKey,
     PublicProfileUserInfo,
+    PublicProfileVisibilityConfig,
     StatisticsRange,
 )
+from app.services.avatar import public_avatar_url, selected_avatar_image
+from app.services.avatar_storage import resolve_avatar_path
 from app.services.public_profile import (
     BOOK_SECTIONS,
     build_public_books,
@@ -62,20 +67,12 @@ def get_optional_user(
         return None
 
 
-@router.get("/{token}", response_model=PublicProfileResponse)
-def get_public_profile(
+def _resolve_public_link(
     token: str,
-    response: Response,
-    viewer: User | None = Depends(get_optional_user),
-    session: Session = Depends(get_session),
-) -> PublicProfileResponse:
-    """Return the whitelisted public profile for a share-link token.
-
-    Invalid, expired, or revoked tokens all yield HTTP 404 so that link
-    existence cannot be probed. Tokens restricted to logged-in users yield
-    HTTP 401 for anonymous viewers.
-    """
-    _with_security_headers(response)
+    viewer: User | None,
+    session: Session,
+) -> tuple[PublicProfileLink, User, PublicProfileVisibilityConfig]:
+    """Validate a public link and return the link, owner, and visibility config."""
     link = session.exec(
         select(PublicProfileLink).where(
             PublicProfileLink.token_hash == hash_public_profile_token(token),
@@ -100,6 +97,24 @@ def get_public_profile(
     assert owner.id is not None
 
     config = parse_visibility_config(link.visibility_config_json)
+    return link, owner, config
+
+
+@router.get("/{token}", response_model=PublicProfileResponse)
+def get_public_profile(
+    token: str,
+    response: Response,
+    viewer: User | None = Depends(get_optional_user),
+    session: Session = Depends(get_session),
+) -> PublicProfileResponse:
+    """Return the whitelisted public profile for a share-link token.
+
+    Invalid, expired, or revoked tokens all yield HTTP 404 so that link
+    existence cannot be probed. Tokens restricted to logged-in users yield
+    HTTP 401 for anonymous viewers.
+    """
+    _with_security_headers(response)
+    link, owner, config = _resolve_public_link(token, viewer, session)
     visible_sections = set(config.sections)
 
     books: list[PublicProfileBook] = []
@@ -120,11 +135,16 @@ def get_public_profile(
         visible_sections
         & {PublicProfileSectionKey.username, PublicProfileSectionKey.user_info}
     )
+    show_avatar = PublicProfileSectionKey.avatar in visible_sections
+    avatar_url = None
+    if show_avatar:
+        avatar_url = public_avatar_url(token, selected_avatar_image(session, owner))
 
     return PublicProfileResponse(
         owner=PublicProfileUserInfo(
             firstname=owner.firstname if show_name else None,
             lastname=owner.lastname if show_name else None,
+            avatar_url=avatar_url,
         ),
         audience=link.audience,
         language=link.language,
@@ -132,6 +152,43 @@ def get_public_profile(
         visibility_config=config,
         books=books,
         statistics=statistics,
+    )
+
+
+@router.get("/{token}/avatar")
+def get_public_avatar(
+    token: str,
+    viewer: User | None = Depends(get_optional_user),
+    session: Session = Depends(get_session),
+) -> FileResponse:
+    """Serve the owner's avatar for a public profile link."""
+    link, owner, config = _resolve_public_link(token, viewer, session)
+    visible_sections = set(config.sections)
+    if PublicProfileSectionKey.avatar not in visible_sections:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+
+    image = selected_avatar_image(session, owner)
+    if image is None or not image.filename:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+
+    path = resolve_avatar_path(image.filename, settings.avatars_dir)
+    if path is None or not path.is_file():
+        raise HTTPException(status_code=404, detail="Avatar not found")
+
+    cache_scope = (
+        "private"
+        if link.audience == PublicProfileAudience.authenticated
+        else "public"
+    )
+    return FileResponse(
+        path,
+        media_type="image/webp",
+        headers={
+            "Cache-Control": f"{cache_scope}, max-age=300",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "Referrer-Policy": "no-referrer",
+        },
     )
 
 

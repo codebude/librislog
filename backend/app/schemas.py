@@ -917,6 +917,7 @@ class PublicProfileSectionKey(str, Enum):
 
     username = "username"
     user_info = "user_info"
+    avatar = "avatar"
     currently_reading = "currently_reading"
     last_read = "last_read"
     reading_timeline = "reading_timeline"
@@ -1013,6 +1014,7 @@ class PublicProfileUserInfo(SQLModel):
 
     firstname: str | None = None
     lastname: str | None = None
+    avatar_url: Optional[str] = None
 
 
 class PublicProfileBook(SQLModel):
