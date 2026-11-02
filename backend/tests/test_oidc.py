@@ -9,7 +9,8 @@ from sqlmodel import Session, select
 from unittest.mock import patch
 
 from app.config import settings
-from app.models import OidcLink, User
+from app.models import AvatarSource, OidcLink, User, UserImage
+from app.services.avatar_storage import StoredAvatar
 
 
 class FakeOidcClient:
@@ -65,7 +66,7 @@ def test_get_oidc_client_returns_none_when_disabled(monkeypatch: MonkeyPatch) ->
 
 def test_get_oidc_client_registers_and_returns_client_when_enabled(monkeypatch: MonkeyPatch) -> None:
     """Lines 26-36: when enabled and not yet registered, oauth.register is called."""
-    from app.oidc import get_oidc_client, _registered
+    from app.oidc import get_oidc_client
 
     monkeypatch.setattr("app.oidc.oidc_is_enabled", lambda: True)
     monkeypatch.setattr(settings, "oidc_provider_id", "test-oidc")
@@ -113,6 +114,33 @@ def test_oidc_config_enabled(client: TestClient, monkeypatch: MonkeyPatch) -> No
     assert data["enabled"] is True
     assert data["provider_id"] == "test-oidc"
     assert data["provider_name"] == "Test SSO"
+    assert data["auto_redirect"] is False
+
+
+def test_oidc_config_auto_redirect_when_password_login_disabled(
+    client: TestClient, monkeypatch: MonkeyPatch
+) -> None:
+    """Auto-redirect is exposed only when password login is unavailable."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_auto_redirect", True)
+    monkeypatch.setattr(settings, "password_login_enabled", False)
+
+    data = client.get("/api/oidc/config").json()
+
+    assert data["auto_redirect"] is True
+
+
+def test_oidc_config_auto_redirect_ignored_when_password_login_enabled(
+    client: TestClient, monkeypatch: MonkeyPatch
+) -> None:
+    """The backend refuses auto-redirect while password login is available."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_auto_redirect", True)
+    monkeypatch.setattr(settings, "password_login_enabled", True)
+
+    data = client.get("/api/oidc/config").json()
+
+    assert data["auto_redirect"] is False
 
 
 def test_oidc_login_returns_404_when_disabled(client: TestClient, monkeypatch: MonkeyPatch) -> None:
@@ -336,6 +364,7 @@ def test_oidc_config_disabled(client: TestClient, monkeypatch: MonkeyPatch) -> N
     assert data["enabled"] is False
     assert data["provider_id"] is None
     assert data["provider_name"] is None
+    assert data["auto_redirect"] is False
 
 
 def test_oidc_login_with_x_forwarded_proto(client: TestClient, monkeypatch: MonkeyPatch) -> None:
@@ -350,6 +379,61 @@ def test_oidc_login_with_x_forwarded_proto(client: TestClient, monkeypatch: Monk
     )
     assert response.status_code == 302
     assert fake.last_redirect_uri == "https://proxy.example/api/oidc/callback"
+
+
+def test_oidc_login_uses_configured_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A configured callback base replaces the host the backend sees."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "http://dev.example.lan:5173/")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    response = client.get(
+        "/api/oidc/login",
+        headers={"Host": "localhost:8000"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert fake.last_redirect_uri == "http://dev.example.lan:5173/api/oidc/callback"
+
+
+def test_oidc_login_ignores_invalid_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A value without scheme and host falls back to the request host."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "dev.example.lan:5173")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    response = client.get("/api/oidc/login", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert fake.last_redirect_uri == "http://testserver/api/oidc/callback"
+
+
+def test_oidc_link_authorize_uses_configured_callback_base_url(
+    client: TestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Account linking uses the same configured callback base as login."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "https://books.example.com")
+    fake = FakeOidcClient()
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    start = client.post("/api/oidc/link")
+    assert start.status_code == 200
+
+    authorize = client.get("/api/oidc/link/authorize", follow_redirects=False)
+
+    assert authorize.status_code == 302
+    assert fake.last_redirect_uri == "https://books.example.com/api/oidc/link-callback"
 
 
 def test_oidc_login_authorize_redirect_exception(client: TestClient, monkeypatch: MonkeyPatch) -> None:
@@ -549,3 +633,306 @@ def test_oidc_link_callback_updates_existing_link(
     assert link.oidc_sub == "new-sub"
     assert link.oidc_email == "new@example.com"
     assert link.oidc_name == "New Name"
+
+
+def _request_with_host(host: str):
+    """Build a minimal request so redirect bases can be tested directly."""
+    from starlette.requests import Request
+
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"host", host.encode())],
+            "scheme": "http",
+            "server": ("testserver", 80),
+        }
+    )
+
+
+def test_frontend_base_url_ignores_loopback_for_remote_host(monkeypatch: MonkeyPatch) -> None:
+    """An old localhost PUBLIC_APP_URL must not redirect production users."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == ""
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "/auth/oidc/callback"
+
+
+def test_frontend_base_url_uses_loopback_for_local_host(monkeypatch: MonkeyPatch) -> None:
+    """Local split-origin development still gets the configured frontend URL."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+
+    request = _request_with_host("localhost:8000")
+    assert oidc_router._frontend_base_url(request) == "http://localhost:5173"
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "http://localhost:5173/auth/oidc/callback"
+
+
+def test_frontend_base_url_uses_configured_public_url(monkeypatch: MonkeyPatch) -> None:
+    """A real public frontend URL is used for remote requests."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "https://books.example.com/")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == "https://books.example.com"
+    response = oidc_router._frontend_success_redirect(request)
+    assert response.headers["location"] == "https://books.example.com/auth/oidc/callback"
+
+
+def test_frontend_base_url_ignores_other_loopback_urls(monkeypatch: MonkeyPatch) -> None:
+    """The safety net covers 127.0.0.1 and IPv6 loopback, not just localhost:5173."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://127.0.0.1:4173")
+
+    request = _request_with_host("books.example.com")
+    assert oidc_router._frontend_base_url(request) == ""
+
+
+def test_loopback_public_app_url_warns(monkeypatch: MonkeyPatch) -> None:
+    """Startup should explain why a loopback PUBLIC_APP_URL is being ignored."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_loopback_public_app_url()
+
+    mock_warning.assert_called_once()
+    assert "loopback" in str(mock_warning.call_args)
+
+
+def test_invalid_callback_base_url_warns(monkeypatch: MonkeyPatch) -> None:
+    """Startup should explain that a malformed OIDC_CALLBACK_BASE_URL is ignored."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "oidc_callback_base_url", "dev.example.lan:5173")
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+
+    mock_warning.assert_called_once()
+    assert "OIDC_CALLBACK_BASE_URL" in str(mock_warning.call_args)
+
+
+def test_callback_base_url_warning_is_skipped_when_valid_or_unset(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """No warning for an empty or well-formed callback base."""
+    from app.routers import oidc as oidc_router
+
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        monkeypatch.setattr(settings, "oidc_callback_base_url", "")
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+        monkeypatch.setattr(settings, "oidc_callback_base_url", "https://books.example.com")
+        oidc_router.warn_about_invalid_oidc_callback_base_url()
+
+    mock_warning.assert_not_called()
+
+
+def test_loopback_public_app_url_warning_is_skipped_when_unused(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Do not warn about a loopback URL when neither OIDC nor mail uses it."""
+    from app.routers import oidc as oidc_router
+
+    monkeypatch.setattr(settings, "public_app_url", "http://localhost:5173")
+    monkeypatch.setattr(settings, "oidc_enabled", False)
+    monkeypatch.setattr(settings, "mail_server", "")
+    with patch("app.routers.oidc.logger.warning") as mock_warning:
+        oidc_router.warn_about_loopback_public_app_url()
+
+    mock_warning.assert_not_called()
+
+
+def test_oidc_login_refreshes_cached_picture(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A successful OIDC login refreshes the cached picture when selected."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-picture",
+                "picture": "https://issuer.example/picture.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    user = session.get(User, user_id)
+    assert user is not None
+    user.avatar_source = AvatarSource.oidc
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-picture",
+        )
+    )
+    session.commit()
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        return StoredAvatar(filename="1__oidc__abc.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/auth/oidc/callback"
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.filename == "1__oidc__abc.webp"
+    assert image.external_url == "https://issuer.example/picture.png"
+
+
+def test_oidc_link_caches_picture_without_switching_source(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Linking caches the provider picture but leaves the selected avatar alone."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-link-picture",
+                "picture": "https://issuer.example/link.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        return StoredAvatar(filename="1__oidc__link.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    start = client.post("/api/oidc/link")
+    assert start.status_code == 200
+    callback = client.get("/api/oidc/link-callback?code=abc", follow_redirects=False)
+    assert callback.status_code == 302
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.external_url == "https://issuer.example/link.png"
+
+    user = session.get(User, user_id)
+    assert user is not None
+    assert user.avatar_source == AvatarSource.animal
+
+
+def test_oidc_login_caches_picture_for_existing_animal_avatar(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Users on the animal avatar get the OIDC picture cached on next login."""
+    _set_oidc_enabled(monkeypatch)
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-animal-picture",
+                "picture": "https://issuer.example/animal.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+    monkeypatch.setattr("app.routers.oidc.is_safe_oidc_picture_url", lambda *_args: True)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-animal-picture",
+        )
+    )
+    session.commit()
+
+    async def fake_cache(*_args: Any, **_kwargs: Any) -> StoredAvatar:
+        from pathlib import Path
+
+        avatars_dir = Path(settings.avatars_dir)
+        avatars_dir.mkdir(parents=True, exist_ok=True)
+        (avatars_dir / "1__oidc__animal.webp").write_bytes(b"data")
+        return StoredAvatar(filename="1__oidc__animal.webp", content_type="image/webp", byte_size=4)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+
+    options = client.get("/api/profile/avatar").json()
+    assert options["has_oidc_avatar"] is True
+    assert options["source"] == "animal"
+
+
+def test_oidc_login_accepts_picture_on_provider_host(
+    client: TestClient,
+    session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """A picture on the provider's own private host is trusted."""
+    _set_oidc_enabled(monkeypatch)
+    monkeypatch.setattr("app.routers.oidc.oidc_provider_host", lambda: "127.0.0.1")
+    fake = FakeOidcClient(
+        token={
+            "userinfo": {
+                "sub": "sub-provider-host",
+                "picture": "https://127.0.0.1/picture.png",
+            }
+        }
+    )
+    monkeypatch.setattr("app.routers.oidc.get_oidc_client", lambda: fake)
+
+    me = client.get("/api/auth/me")
+    user_id = me.json()["id"]
+    session.add(
+        OidcLink(
+            user_id=user_id,
+            provider_id="test-oidc",
+            oidc_sub="sub-provider-host",
+        )
+    )
+    session.commit()
+
+    seen: dict[str, Any] = {}
+
+    async def fake_cache(*_args: Any, **kwargs: Any) -> StoredAvatar:
+        seen.update(kwargs)
+        return StoredAvatar(filename="1__oidc__host.webp", content_type="image/webp", byte_size=42)
+
+    monkeypatch.setattr("app.routers.oidc.cache_oidc_avatar", fake_cache)
+
+    response = client.get("/api/oidc/callback?code=abc", follow_redirects=False)
+    assert response.status_code == 302
+    assert seen["trusted_private_host"] == "127.0.0.1"
+
+    image = session.exec(
+        select(UserImage).where(UserImage.user_id == user_id, UserImage.variant == "oidc")
+    ).first()
+    assert image is not None
+    assert image.external_url == "https://127.0.0.1/picture.png"

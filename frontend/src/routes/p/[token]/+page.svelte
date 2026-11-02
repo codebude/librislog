@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { _, setLocale, SUPPORTED_LOCALES, locale } from '#lib/i18n/index.js';
 	import { api } from '#lib/api.js';
-	import AnimalAvatar from '#lib/components/AnimalAvatar.svelte';
+	import UserAvatar from '#lib/components/UserAvatar.svelte';
 	import { Moon, Palette, Star, Sun } from '@lucide/svelte';
 	import {
 		applyThemeToDocument,
@@ -382,6 +382,17 @@
 				</p>
 			{/if}
 
+			{#if hasSection('avatar')}
+				<div class="flex justify-center pt-2">
+					<UserAvatar
+						avatarUrl={profile.owner.avatar_url}
+						seed={`${profile.owner.firstname ?? ''} ${profile.owner.lastname ?? ''}`}
+						size={96}
+						class="h-24 w-24"
+					/>
+				</div>
+			{/if}
+
 			{#if hasSection('username')}
 				<h1 class="text-2xl font-bold tracking-tight">{profile.owner.firstname} {profile.owner.lastname}</h1>
 			{/if}
@@ -390,11 +401,14 @@
 				<section class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
 					<div class="card-body">
 						<div class="flex items-center gap-4">
-							<AnimalAvatar
-								seed={`${profile.owner.firstname} ${profile.owner.lastname}`}
-								size={56}
-								class="h-14 w-14 shrink-0"
-							/>
+							{#if !hasSection('avatar')}
+								<UserAvatar
+									avatarUrl={null}
+									seed={`${profile.owner.firstname ?? ''} ${profile.owner.lastname ?? ''}`}
+									size={56}
+									class="h-14 w-14 shrink-0"
+								/>
+							{/if}
 							<div class="min-w-0">
 								<h2 class="card-title text-lg font-semibold">{$_('publicProfile.sections.userInfo')}</h2>
 								<p class="truncate text-sm text-base-content/70">

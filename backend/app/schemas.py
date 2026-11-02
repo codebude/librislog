@@ -10,7 +10,7 @@ import pydantic
 from sqlmodel import Field, SQLModel
 from sqlmodel._compat import SQLModelConfig
 
-from app.models import AcquisitionStatus, Medium, ReadingStatus, PublicProfileAudience, UserRole
+from app.models import AcquisitionStatus, AvatarSource, Medium, ReadingStatus, PublicProfileAudience, UserRole
 
 
 class ReadingProgressCreate(SQLModel):
@@ -247,10 +247,48 @@ class BookListResponse(BaseModel):
     total: int
 
 
+class BookIdListResponse(BaseModel):
+    """List of book IDs matching a filter, with total count."""
+    ids: list[int]
+    total: int
+
+
 class TagCloudEntry(SQLModel):
     """A single tag with its usage count."""
     tag: str
     count: int
+
+
+class TagListEntry(SQLModel):
+    """A single tag with its usage count for the tag management views."""
+    name: str
+    count: int
+
+
+class TagListResponse(BaseModel):
+    """Paginated list of tags with usage counts."""
+    tags: list[TagListEntry]
+    total: int
+
+
+class TagBatchRequest(SQLModel):
+    """Batch add/remove tags on a set of books."""
+    model_config = SQLModelConfig(extra="forbid")
+
+    book_ids: list[int]
+    add: list[str] = []
+    remove: list[str] = []
+
+
+class TagBatchResponse(SQLModel):
+    """Result of a batch tag update."""
+    matched_books: int
+    books_changed: int
+    links_added: int
+    links_removed: int
+    unchanged_books: int
+    created_tags: list[str] = []
+    deleted_tags: list[str] = []
 
 
 class SuggestionList(SQLModel):
@@ -458,6 +496,7 @@ class UserRead(SQLModel):
     email: str
     role: UserRole
     created_at: datetime
+    avatar_url: Optional[str] = None
 
 
 class UserUpdate(SQLModel):
@@ -484,6 +523,24 @@ class UserAdminUpdate(SQLModel):
     email: Optional[str] = None
     role: Optional[UserRole] = None
     password: Optional[str] = None
+
+
+class AvatarSourceUpdate(SQLModel):
+    """Request body for changing the selected avatar source."""
+
+    model_config = SQLModelConfig(extra="forbid")
+
+    source: AvatarSource
+
+
+class AvatarOptionsRead(SQLModel):
+    """Current avatar state for the profile avatar card."""
+
+    source: AvatarSource
+    avatar_url: Optional[str] = None
+    has_uploaded_avatar: bool = False
+    has_oidc_avatar: bool = False
+    oidc_linked: bool = False
 
 
 class UserSettingsRead(SQLModel):
@@ -620,6 +677,7 @@ class OidcConfigRead(SQLModel):
     enabled: bool
     provider_id: Optional[str] = None
     provider_name: Optional[str] = None
+    auto_redirect: bool = False
 
 
 class AppConfigRead(SQLModel):
@@ -627,6 +685,10 @@ class AppConfigRead(SQLModel):
     embed_enabled: bool
     dashboard_quote_enabled: bool
     thalia_cover_search_enabled: bool
+    password_login_enabled: bool
+    trusted_proxy_auth_enabled: bool
+    avatar_max_upload_mb: int = 10
+    avatar_max_dimension: int = 512
 
 
 class OidcLinkRead(SQLModel):
@@ -855,6 +917,7 @@ class PublicProfileSectionKey(str, Enum):
 
     username = "username"
     user_info = "user_info"
+    avatar = "avatar"
     currently_reading = "currently_reading"
     last_read = "last_read"
     reading_timeline = "reading_timeline"
@@ -951,6 +1014,7 @@ class PublicProfileUserInfo(SQLModel):
 
     firstname: str | None = None
     lastname: str | None = None
+    avatar_url: Optional[str] = None
 
 
 class PublicProfileBook(SQLModel):

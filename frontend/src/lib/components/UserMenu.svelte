@@ -5,7 +5,7 @@
 	import type { UpdateInfo } from '#lib/stores/updateCheck.js';
 	import { _ } from '#lib/i18n/index.js';
 	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '#lib/stores/theme.js';
-	import AnimalAvatar from '#lib/components/AnimalAvatar.svelte';
+	import UserAvatar from '#lib/components/UserAvatar.svelte';
 	import { Sun, Moon, Palette, CloudDownload, ExternalLink } from '@lucide/svelte';
 
 	let { floating = true, updateInfo = null }: { floating?: boolean; updateInfo?: UpdateInfo | null } = $props();
@@ -83,7 +83,7 @@
 			aria-label={$_('user.menu')}
 		>
 			{#if user}
-				<AnimalAvatar seed={user.email} size={36} class="w-9 h-9" />
+				<UserAvatar avatarUrl={user.avatar_url} seed={user.email} size={36} class="w-9 h-9" />
 			{:else}
 				<div class="w-9 h-9 rounded-full bg-primary text-primary-content text-xs grid place-items-center font-semibold">
 					{initials}

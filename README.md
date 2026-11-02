@@ -18,7 +18,7 @@
   <a href="https://docs.librislog.app/"><img src="https://github.com/codebude/librislog/actions/workflows/docs.yml/badge.svg" alt="Docs Build"></a>
   <img src="https://img.shields.io/badge/python-3.14-%233776AB?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/svelte-5-%23FF3E00?logo=svelte" alt="Svelte">
-  <img src="https://img.shields.io/badge/FastAPI-0.141-%23009688?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/FastAPI-0.162-%23009688?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
@@ -85,6 +85,7 @@ Open **http://localhost:8001** and create your account.
 - **Data portability** — Export as JSON, CSV, or ZIP with covers. Import from the Goodreads or Bookstats presets, or any CSV/Excel file with custom field mapping
 - **Cover management** — Automatic multi-source cover search with manual override, URL paste, or file upload
 - **Data hygiene** — Find and fix missing metadata (covers, page counts, authors) in bulk
+- **Mass tag editor** — Add or remove tags on many books at once
 - **Multi-user** — Admin/user roles, per-user libraries, optional OIDC login
 - **Public profiles** — Shareable, read-only profile links with configurable sections, audience, language, and optional expiry
 - **Themes** — Light, dark, and custom DaisyUI themes with persistent preferences
@@ -126,7 +127,7 @@ See [docs.librislog.app/guide/telemetry](https://docs.librislog.app/guide/teleme
 |---|---|
 | **Backend** | FastAPI, SQLModel, SQLite, Alembic, Pydantic v2 |
 | **Frontend** | Svelte 5, SvelteKit, Tailwind CSS v4, DaisyUI v5 |
-| **Auth** | Session cookies, optional OIDC (Authlib) |
+| **Auth** | Session cookies, optional OIDC (Authlib), optional trusted reverse-proxy auth, configurable password login |
 | **Deployment** | Docker, Docker Compose |
 | **Package managers** | `uv` (Python), `npm` (Node) |
 | **Testing** | pytest + pytest-cov (backend), Vitest + Testing Library (frontend), Playwright (E2E) |

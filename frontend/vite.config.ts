@@ -16,6 +16,7 @@ export default defineConfig({
 	],
 	server: {
 		host: '0.0.0.0',
+		allowedHosts: true,
 		proxy: {
 			'^/api($|/)': 'http://localhost:8000',
 			'^/embed($|/)': 'http://localhost:8000'

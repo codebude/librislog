@@ -222,6 +222,16 @@ export type StatisticsRange = 'alltime' | 'this_year' | 'last_year' | '3years' |
 
 export type UserRole = 'admin' | 'user';
 
+export type AvatarSource = 'animal' | 'oidc' | 'upload';
+
+export interface AvatarOptions {
+	source: AvatarSource;
+	avatar_url: string | null;
+	has_uploaded_avatar: boolean;
+	has_oidc_avatar: boolean;
+	oidc_linked: boolean;
+}
+
 export interface User {
 	id: number;
 	firstname: string;
@@ -229,6 +239,7 @@ export interface User {
 	email: string;
 	role: UserRole;
 	created_at: string;
+	avatar_url: string | null;
 }
 
 export interface UserCreateResponse {
@@ -321,12 +332,17 @@ export interface OidcConfig {
 	enabled: boolean;
 	provider_id: string | null;
 	provider_name: string | null;
+	auto_redirect: boolean;
 }
 
 export interface AppConfig {
 	embed_enabled: boolean;
 	dashboard_quote_enabled: boolean;
 	thalia_cover_search_enabled: boolean;
+	password_login_enabled: boolean;
+	trusted_proxy_auth_enabled: boolean;
+	avatar_max_upload_mb: number;
+	avatar_max_dimension: number;
 }
 
 export interface OidcLinkStatus {
@@ -531,11 +547,43 @@ export interface HygieneBatchUpdateResponse {
 	skipped_ids: number[];
 }
 
+export interface TagListEntry {
+	name: string;
+	count: number;
+}
+
+export interface TagListResponse {
+	tags: TagListEntry[];
+	total: number;
+}
+
+export interface TagBatchRequest {
+	book_ids: number[];
+	add?: string[];
+	remove?: string[];
+}
+
+export interface TagBatchResponse {
+	matched_books: number;
+	books_changed: number;
+	links_added: number;
+	links_removed: number;
+	unchanged_books: number;
+	created_tags: string[];
+	deleted_tags: string[];
+}
+
+export interface BookIdListResponse {
+	ids: number[];
+	total: number;
+}
+
 export type PublicProfileAudience = 'public' | 'authenticated';
 
 export type PublicProfileSectionKey =
 	| 'username'
 	| 'user_info'
+	| 'avatar'
 	| 'currently_reading'
 	| 'last_read'
 	| 'reading_timeline'
@@ -593,6 +641,7 @@ export interface ShareLinkRevealResponse {
 export interface PublicProfileUserInfo {
 	firstname: string;
 	lastname: string;
+	avatar_url: string | null;
 }
 
 export interface PublicProfileBook {

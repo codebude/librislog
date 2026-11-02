@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 from starlette.responses import JSONResponse, Response
 
 
@@ -162,7 +161,7 @@ async def test_proxy_headers_middleware_sets_scheme_from_forwarded_proto() -> No
         return JSONResponse(received)
 
     request = Request(scope)
-    response = await proxy_headers_middleware(request, call_next)
+    await proxy_headers_middleware(request, call_next)
     assert received is not None
     assert received["scheme"] == "https"
 
@@ -353,7 +352,7 @@ async def test_proxy_headers_middleware_skips_untrusted_proxy(monkeypatch) -> No
     """When request is not from a trusted proxy, X-Forwarded-Proto is ignored."""
     from app.main import proxy_headers_middleware
 
-    monkeypatch.setattr("app.main._TRUSTED_PROXY_IPS", {"10.0.0.5"})
+    monkeypatch.setattr("app.main._FORWARDED_PROTO_TRUSTED_IPS", {"10.0.0.5"})
 
     scope = {
         "type": "http",

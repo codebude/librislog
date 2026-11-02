@@ -1,8 +1,9 @@
 """Tag parsing, synchronization, and query helpers."""
 
+from dataclasses import dataclass, field
 from typing import Optional
 
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, func, select, delete
 
 from app.models import Book, BookTag, Tag
 from app.schemas import BookRead
@@ -154,3 +155,148 @@ def build_book_read(session: Session, book: Book) -> BookRead:
     payload["session_count"] = counts.get("session_count", 0)
     payload["read_count"] = counts.get("read_count", 0)
     return BookRead.model_validate(payload)
+
+
+@dataclass
+class BatchTagResult:
+    """Outcome of a batch tag update."""
+    matched_books: int = 0
+    books_changed: int = 0
+    links_added: int = 0
+    links_removed: int = 0
+    unchanged_books: int = 0
+    created_tags: list[str] = field(default_factory=list)
+    deleted_tags: list[str] = field(default_factory=list)
+
+
+def list_tags_with_counts(
+    session: Session, user_id: int, q: Optional[str] = None, limit: int = 500, offset: int = 0
+) -> tuple[list[tuple[str, int]], int]:
+    """Return (tag, count) rows for a user, optionally filtered by substring."""
+    base = (
+        select(Tag.name, func.count(col(BookTag.book_id)).label("cnt"))
+        .join(BookTag, col(BookTag.tag_id) == col(Tag.id))
+        .join(Book, col(Book.id) == col(BookTag.book_id))
+        .where(Tag.user_id == user_id, Book.user_id == user_id)
+        .group_by(col(Tag.id))
+    )
+    if q and q.strip():
+        from app.services.search import _escape_like
+
+        pattern = f"%{_escape_like(q.strip())}%"
+        base = base.where(col(Tag.name).ilike(pattern, escape="\\"))
+    total = session.exec(select(func.count()).select_from(base.subquery())).one()
+    rows = session.exec(
+        base.order_by(func.count(col(BookTag.book_id)).desc(), col(Tag.name).asc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return [(name, int(count)) for name, count in rows], int(total)
+
+
+def apply_batch_tags(
+    session: Session, user_id: int, books: list[Book], add: list[str], remove: list[str]
+) -> BatchTagResult:
+    """Apply add/remove tag operations to the given books in one transaction."""
+    result = BatchTagResult(matched_books=len(books))
+
+    add_names = parse_tags(add)
+    remove_names = parse_tags(remove)
+
+    existing_tags: dict[str, Tag] = {}
+    all_names = add_names + remove_names
+    if all_names:
+        tags = list(
+            session.exec(
+                select(Tag).where(Tag.user_id == user_id, col(Tag.name).in_(all_names))
+            ).all()
+        )
+        existing_tags = {tag.name: tag for tag in tags}
+
+    created_tags: list[str] = []
+    add_tag_ids: dict[str, int] = {}
+    for name in add_names:
+        tag = existing_tags.get(name)
+        if tag is None:
+            tag = Tag(user_id=user_id, name=name, created_at=utcnow())
+            session.add(tag)
+            session.flush()
+            existing_tags[name] = tag
+            created_tags.append(name)
+        if tag.id is not None:
+            add_tag_ids[name] = tag.id
+
+    remove_tag_ids: dict[str, int] = {}
+    for name in remove_names:
+        tag = existing_tags.get(name)
+        if tag is not None and tag.id is not None:
+            remove_tag_ids[name] = tag.id
+
+    affected_tag_ids: set[int] = set(add_tag_ids.values()) | set(remove_tag_ids.values())
+
+    existing_links: set[tuple[int, int]] = set()
+    if affected_tag_ids and books:
+        book_ids = [b.id for b in books if b.id is not None]
+        rows = session.exec(
+            select(BookTag.book_id, BookTag.tag_id).where(
+                col(BookTag.book_id).in_(book_ids),
+                col(BookTag.tag_id).in_(affected_tag_ids),
+            )
+        ).all()
+        existing_links = {(bid, tid) for bid, tid in rows}
+
+    target_links: set[tuple[int, int]] = set(existing_links)
+    for book in books:
+        if book.id is None:
+            continue
+        for tid in add_tag_ids.values():
+            target_links.add((book.id, tid))
+    for book in books:
+        if book.id is None:
+            continue
+        for tid in remove_tag_ids.values():
+            target_links.discard((book.id, tid))
+
+    to_insert = target_links - existing_links
+    to_delete = existing_links - target_links
+    result.links_added = len(to_insert)
+    result.links_removed = len(to_delete)
+
+    # Apply as set-based statements: remove all affected existing links, then
+    # insert the full target set. Rows that survive unchanged are deleted and
+    # re-inserted, which keeps the final state correct and avoids per-pair SQL.
+    if existing_links:
+        session.exec(
+            delete(BookTag).where(
+                col(BookTag.book_id).in_({lnk[0] for lnk in existing_links}),
+                col(BookTag.tag_id).in_({lnk[1] for lnk in existing_links}),
+            )
+        )
+    if target_links:
+        session.add_all([BookTag(book_id=bid, tag_id=tid) for bid, tid in target_links])
+
+    deleted_tags: list[str] = []
+    for name, tid in remove_tag_ids.items():
+        remaining = session.exec(
+            select(func.count()).select_from(BookTag).where(BookTag.tag_id == tid)
+        ).one()
+        if remaining == 0:
+            tag = session.get(Tag, tid)
+            if tag is not None:
+                session.delete(tag)
+                deleted_tags.append(name)
+    result.deleted_tags = deleted_tags
+
+    changed = 0
+    for book in books:
+        if book.id is None:
+            continue
+        before = {lnk for lnk in existing_links if lnk[0] == book.id}
+        after = {lnk for lnk in target_links if lnk[0] == book.id}
+        if before != after:
+            changed += 1
+    result.books_changed = changed
+    result.unchanged_books = result.matched_books - changed
+    result.created_tags = created_tags
+
+    return result

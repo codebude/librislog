@@ -231,14 +231,16 @@ def create_backup(
     data_dir: str,
     covers_dir: str,
     import_temp_dir: str,
+    avatars_dir: str | None = None,
 ) -> bytes:
-    """Create a full backup ZIP containing the database, covers, and import temp files.
+    """Create a full backup ZIP containing the database, covers, avatars, and temp files.
 
     Args:
         database_url: SQLAlchemy database URL.
         data_dir: Root data directory.
         covers_dir: Cover storage directory.
         import_temp_dir: Import temporary files directory.
+        avatars_dir: Profile picture storage directory, when configured.
 
     Returns:
         ZIP archive as bytes.
@@ -247,10 +249,15 @@ def create_backup(
     try:
         covers_path = Path(covers_dir)
         import_temp_path = Path(import_temp_dir)
+        avatars_path = Path(avatars_dir) if avatars_dir else None
 
         cover_count = 0
         if covers_path.is_dir():
             cover_count = sum(1 for _ in covers_path.iterdir() if _.is_file())
+
+        avatar_count = 0
+        if avatars_path is not None and avatars_path.is_dir():
+            avatar_count = sum(1 for _ in avatars_path.iterdir() if _.is_file())
 
         temp_count = 0
         if import_temp_path.is_dir():
@@ -263,6 +270,7 @@ def create_backup(
             "app_version": __version__,
             "database_size_bytes": db_size,
             "covers_count": cover_count,
+            "avatars_count": avatar_count,
             "import_temp_files_count": temp_count,
         }
 
@@ -280,6 +288,11 @@ def create_backup(
                     for entry in sorted(covers_path.iterdir()):
                         if entry.is_file():
                             zf.write(str(entry), f"data/covers/{entry.name}")
+
+                if avatars_path is not None and avatars_path.is_dir():
+                    for entry in sorted(avatars_path.iterdir()):
+                        if entry.is_file():
+                            zf.write(str(entry), f"data/avatars/{entry.name}")
 
                 if import_temp_path.is_dir():
                     for entry in sorted(import_temp_path.rglob("*")):
@@ -394,6 +407,7 @@ def restore_backup(
     data_dir: str,
     covers_dir: str,
     import_temp_dir: str,
+    avatars_dir: str | None = None,
 ) -> dict[str, Any]:
     """Restore a backup ZIP archive, with rollback on failure.
 
@@ -403,9 +417,10 @@ def restore_backup(
         data_dir: Root data directory.
         covers_dir: Cover storage directory.
         import_temp_dir: Import temporary files directory.
+        avatars_dir: Profile picture storage directory, when configured.
 
     Returns:
-        A dict with ``"restored_books"`` and ``"restored_covers"`` counts.
+        A dict with restored book, cover, and avatar counts.
     """
     _acquire_operation_lock()
     try:
@@ -422,8 +437,12 @@ def restore_backup(
                     data_path = Path(data_dir).resolve()
                     covers_path = Path(covers_dir)
                     import_temp_path = Path(import_temp_dir)
+                    avatars_path = Path(avatars_dir) if avatars_dir else None
 
-                    for d in [covers_path, import_temp_path]:
+                    directories = [covers_path, import_temp_path]
+                    if avatars_path is not None:
+                        directories.append(avatars_path)
+                    for d in directories:
                         if d.is_dir():
                             shutil.rmtree(str(d))
                         d.mkdir(parents=True, exist_ok=True)
@@ -447,6 +466,10 @@ def restore_backup(
                     restored_covers = 0
                     if covers_path.is_dir():
                         restored_covers = sum(1 for _ in covers_path.iterdir() if _.is_file())
+
+                    restored_avatars = 0
+                    if avatars_path is not None and avatars_path.is_dir():
+                        restored_avatars = sum(1 for _ in avatars_path.iterdir() if _.is_file())
 
                     backup_db = zf.read("database.db")
 
@@ -484,6 +507,7 @@ def restore_backup(
             return {
                 "restored_books": restored_books,
                 "restored_covers": restored_covers,
+                "restored_avatars": restored_avatars,
             }
         except Exception as exc:
             logger.exception("Restore failed, rolling back safety backup")

@@ -88,6 +88,14 @@ class UserRole(str, Enum):
     user = "user"
 
 
+class AvatarSource(str, Enum):
+    """Selected source for a user's profile picture."""
+
+    animal = "animal"
+    oidc = "oidc"
+    upload = "upload"
+
+
 class Book(SQLModel, table=True):
     """A book in the user's library."""
 
@@ -188,6 +196,7 @@ class User(SQLModel, table=True):
     lastname: str
     email: str = Field(index=True, unique=True)
     role: UserRole = Field(default=UserRole.user, index=True)
+    avatar_source: AvatarSource = Field(default=AvatarSource.animal, index=True)
     hashed_password: str
     credentials_version: int = Field(
         default=0,
@@ -226,6 +235,44 @@ class UserSettings(SQLModel, table=True):
     statistics_range: str = Field(default="alltime", max_length=20)
     statistics_custom_from: Optional[date] = Field(default=None)
     statistics_custom_to: Optional[date] = Field(default=None)
+
+
+class UserImage(SQLModel, table=True):
+    """A locally cached or uploaded image owned by a user."""
+
+    __tablename__: str = "user_image"
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "kind", "variant", name="uq_user_image_user_kind_variant"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(
+        sa_column=Column(
+            sa.Integer,
+            sa.ForeignKey("user.id"),
+            index=True,
+            nullable=False,
+        ),
+    )
+    kind: str = Field(default="avatar", index=True)
+    variant: str = Field(index=True)
+    filename: Optional[str] = None
+    external_url: Optional[str] = None
+    content_type: Optional[str] = None
+    byte_size: Optional[int] = None
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(UtcDateTime, default=utcnow, nullable=False),
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(
+            UtcDateTime,
+            default=utcnow,
+            onupdate=utcnow,
+            nullable=False,
+        ),
+    )
 
 
 class ApiKey(SQLModel, table=True):

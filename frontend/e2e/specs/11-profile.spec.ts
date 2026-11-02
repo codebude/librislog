@@ -93,7 +93,9 @@ test.describe('Profile', () => {
 				body: JSON.stringify({
 					embed_enabled: false,
 					dashboard_quote_enabled: true,
-					thalia_cover_search_enabled: false
+					thalia_cover_search_enabled: false,
+					password_login_enabled: true,
+					trusted_proxy_auth_enabled: false
 				})
 			});
 		});
@@ -151,5 +153,36 @@ test.describe('Profile', () => {
 
 		await page.locator('input[name="goal-books-per-month-enabled"]').check();
 		await expect(input).toBeEnabled();
+	});
+});
+
+test.describe('Profile picture', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginViaUi(page, SEED_USER.email, SEED_USER.password);
+	});
+
+	test('11.9 avatar section defaults to the animal avatar', async ({ page }) => {
+		await page.goto('/profile');
+		await page.locator('#section-avatar').scrollIntoViewIfNeeded();
+
+		const sources = page.locator('#section-avatar input[name="avatar-source"]');
+		await expect(sources).toHaveCount(3);
+		await expect(sources.first()).toBeChecked();
+		await expect(page.locator('#section-avatar button.btn-primary')).toBeVisible();
+	});
+
+	test('11.10 upload a cropped avatar and show it in the user menu', async ({ page }) => {
+		await page.goto('/profile');
+		await page.locator('#section-avatar').scrollIntoViewIfNeeded();
+
+		await page.locator('#section-avatar input[type=file]').setInputFiles('e2e/fixtures/avatar.png');
+		const dialog = page.locator('.modal.modal-open');
+		await expect(dialog).toBeVisible();
+		await expect(dialog).toContainText(/crop your picture|bild zuschneiden/i);
+
+		await dialog.locator('button.btn-primary').click();
+		await expect(page.locator('#section-avatar .alert')).toBeVisible({ timeout: 10000 });
+
+		await expect(page.locator('button:has(img[src*="/api/users/"])').first()).toBeVisible();
 	});
 });

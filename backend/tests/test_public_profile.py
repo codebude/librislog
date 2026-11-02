@@ -129,7 +129,7 @@ def test_public_profile_success(client: Any) -> None:
     resp = _public_profile_with_client(client, token, x_api_key=None)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["owner"] == {"firstname": "Test", "lastname": "User"}
+    assert body["owner"] == {"firstname": "Test", "lastname": "User", "avatar_url": None}
     assert body["audience"] == "public"
     assert body["visibility_config"]["sections"] == ["username", "currently_reading", "statistics"]
     assert len(body["books"]) == 2
@@ -381,7 +381,7 @@ def test_public_profile_redacts_owner_name_when_hidden(client: Any) -> None:
     resp = _public_profile_with_client(client, token, x_api_key=None)
     assert resp.status_code == 200
     owner = resp.json()["owner"]
-    assert owner == {"firstname": None, "lastname": None}
+    assert owner == {"firstname": None, "lastname": None, "avatar_url": None}
 
 
 def test_public_profile_sets_security_headers(client: Any) -> None:

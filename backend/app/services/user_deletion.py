@@ -1,6 +1,6 @@
 """User data and account deletion utilities."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -8,6 +8,7 @@ from sqlmodel import Session, col, func, select
 
 from app.models import ApiKey, Author, Book, BookAuthor, BookTag, OidcLink, ReadingProgress, ReadingSession, Tag, User, UserRole, UserSettings
 from app.time_utils import utcnow
+from app.services.avatar import delete_all_user_avatar_images
 from app.services.cover_storage import delete_cover_file, local_cover_filename
 
 
@@ -19,6 +20,7 @@ class ReadingDataDeletionCounts:
     authors: int
     progress_entries: int
     sessions: int = 0
+    avatar_filenames: list[str] = field(default_factory=list)
 
 
 def assert_not_last_admin(session: Session, target_user: User) -> None:
@@ -104,6 +106,7 @@ def delete_user_account_data(session: Session, user: User, covers_dir: str) -> R
     """
     assert user.id is not None
     deletion_counts = delete_user_reading_data(session, user.id, covers_dir)
+    deletion_counts.avatar_filenames = delete_all_user_avatar_images(session, user.id)
 
     for key in session.exec(select(ApiKey).where(ApiKey.user_id == user.id)).all():
         key.revoked_at = utcnow()

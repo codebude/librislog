@@ -51,4 +51,5 @@ No lower bound is enforced, so ancient or religious texts (e.g., the Bible) can 
 
 ## See Also
 
+- [Mass Tag Editor](/guide/using-librislog/mass-tag-editor) — add or remove tags on many books at once
 - [Missing Covers Workflow](/guide/using-librislog/missing-covers) — dedicated one-at-a-time workflow for assigning book covers

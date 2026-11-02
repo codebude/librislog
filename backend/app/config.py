@@ -14,18 +14,34 @@ class Settings(BaseSettings):
     cors_origins: List[str] = ["http://localhost", "http://localhost:5173", "http://localhost:4173"]
     log_level: str = "INFO"
     covers_dir: str = "./data/covers"
+    avatars_dir: str = "./data/avatars"
+    avatar_max_upload_mb: int = 10
+    avatar_max_dimension: int = 512
+    avatar_quality: int = 90
+    avatar_fetch_timeout_seconds: float = 10.0
+    avatar_fetch_max_bytes: int = 20_000_000
     api_key_encryption_key: str
     auth_cookie_name: str = "librislog_session"
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
     auth_cookie_domain: str = ""
+    password_login_enabled: bool = True
+    trusted_proxy_auth_enabled: bool = False
+    trusted_proxy_auth_header: str = "X-Forwarded-User"
+    trusted_proxy_auth_ips: str = ""
+    trusted_proxy_auth_secret: str = ""
+    trusted_proxy_auth_user_map: str = ""
     oidc_enabled: bool = False
+    oidc_auto_redirect: bool = False
     oidc_provider_id: str = "oidc"
     oidc_provider_name: str = "Single Sign-On"
     oidc_client_id: str = ""
     oidc_client_secret: str = ""
     oidc_well_known_url: str = ""
     oidc_scope: str = "openid email profile"
+    # Public origin (scheme, host, optional port) under which the browser reaches
+    # the OIDC callback routes. Empty builds the redirect URI from the request.
+    oidc_callback_base_url: str = ""
     dashboard_quote_enabled: bool = True
     dashboard_quote_url: str = (
         "https://motivational-spark-api.vercel.app/api/quotes/random"
@@ -62,7 +78,7 @@ class Settings(BaseSettings):
     mail_starttls: bool = True
     mail_ssl_tls: bool = False
     password_reset_token_max_age: int = 3600
-    public_app_url: str = "http://localhost:5173"
+    public_app_url: str = ""
     forwarded_allow_ips: str = "*"
     telemetry_disabled: bool = False
     telemetry_endpoint: str = "https://metrics.librislog.app/api/telemetry"

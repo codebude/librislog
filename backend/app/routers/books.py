@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 import sqlalchemy as sa
@@ -15,6 +15,7 @@ from app.database import get_session
 from app.models import AcquisitionStatus, Author, Book, BookAuthor, BookTag, Medium, ReadingProgress, ReadingSession, ReadingStatus, Tag, User, UserSettings
 from app.schemas import (
     BookCreate,
+    BookIdListResponse,
     BookListResponse,
     BookRead,
     BookUpdate,
@@ -169,6 +170,52 @@ def _build_book_read_with_tags(book: Book, tags_text: str | None, authors: list[
     return BookRead.model_validate(payload)
 
 
+def _apply_book_filters(
+    base_statement,
+    *,
+    status: Optional[ReadingStatus],
+    acquisition_status: Optional[AcquisitionStatus],
+    medium: Optional[Medium],
+    q: Optional[str],
+    has_cover: Optional[bool],
+    tag: Optional[str],
+    exclude_tag: Optional[str],
+    user_id: int,
+) -> Any:
+    """Apply the standard book filters to a base select statement."""
+    if status is not None:
+        base_statement = base_statement.where(Book.reading_status == status)
+
+    if acquisition_status is not None:
+        base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
+
+    if medium is not None:
+        base_statement = base_statement.where(Book.medium == medium)
+
+    if q:
+        base_statement = apply_search_filter(base_statement, q, user_id)
+
+    if has_cover is not None:
+        if has_cover:
+            base_statement = base_statement.where(col(Book.cover_url).is_not(None), Book.cover_url != "")
+        else:
+            base_statement = base_statement.where(
+                sa.or_(col(Book.cover_url).is_(None), col(Book.cover_url) == "")
+            )
+
+    if tag:
+        tag_ids = select(Tag.id).where(Tag.user_id == user_id, Tag.name == tag)
+        matching = select(BookTag.book_id).where(col(BookTag.tag_id).in_(tag_ids))
+        base_statement = base_statement.where(col(Book.id).in_(matching))
+
+    if exclude_tag:
+        tag_ids = select(Tag.id).where(Tag.user_id == user_id, Tag.name == exclude_tag)
+        matching = select(BookTag.book_id).where(col(BookTag.tag_id).in_(tag_ids))
+        base_statement = base_statement.where(~col(Book.id).in_(matching))
+
+    return base_statement
+
+
 @router.get("", response_model=BookListResponse)
 def list_books(
     status: Optional[ReadingStatus] = Query(default=None),
@@ -184,6 +231,8 @@ def list_books(
         ),
     ),
     has_cover: Optional[bool] = Query(default=None),
+    tag: Optional[str] = Query(default=None, max_length=100, description="Only books carrying this exact tag"),
+    exclude_tag: Optional[str] = Query(default=None, max_length=100, description="Only books without this exact tag"),
     sort: Literal["title", "date_added", "date_started", "date_finished", "rating"] = Query(
         default="date_added"
     ),
@@ -204,28 +253,19 @@ def list_books(
         "list_books — status=%r acquisition=%r medium=%r q=%r sort=%s order=%s smart_sort=%s",
         status, acquisition_status, medium, q, sort, order, smart_sort,
     )
+    assert current_user.id is not None
     base_statement = select(Book).where(Book.user_id == current_user.id)
-
-    if status is not None:
-        base_statement = base_statement.where(Book.reading_status == status)
-
-    if acquisition_status is not None:
-        base_statement = base_statement.where(Book.acquisition_status == acquisition_status)
-
-    if medium is not None:
-        base_statement = base_statement.where(Book.medium == medium)
-
-    if q:
-        assert current_user.id is not None
-        base_statement = apply_search_filter(base_statement, q, current_user.id)
-
-    if has_cover is not None:
-        if has_cover:
-            base_statement = base_statement.where(col(Book.cover_url).is_not(None), Book.cover_url != "")
-        else:
-            base_statement = base_statement.where(
-                sa.or_(col(Book.cover_url).is_(None), col(Book.cover_url) == "")
-            )
+    base_statement = _apply_book_filters(
+        base_statement,
+        status=status,
+        acquisition_status=acquisition_status,
+        medium=medium,
+        q=q,
+        has_cover=has_cover,
+        tag=tag,
+        exclude_tag=exclude_tag,
+        user_id=current_user.id,
+    )
 
     total = session.exec(
         select(func.count()).select_from(base_statement.subquery())
@@ -278,6 +318,43 @@ def list_books(
         books=book_reads,
         total=total,
     )
+
+
+@router.get("/ids", response_model=BookIdListResponse)
+def list_book_ids(
+    status: Optional[ReadingStatus] = Query(default=None),
+    acquisition_status: Optional[AcquisitionStatus] = Query(default=None),
+    medium: Optional[Medium] = Query(default=None),
+    q: Optional[str] = Query(default=None),
+    has_cover: Optional[bool] = Query(default=None),
+    tag: Optional[str] = Query(default=None),
+    exclude_tag: Optional[str] = Query(default=None),
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> BookIdListResponse:
+    """Return the IDs of all books matching the given filters (no pagination)."""
+    assert current_user.id is not None
+    base_statement = select(Book.id).where(Book.user_id == current_user.id)
+    base_statement = _apply_book_filters(
+        base_statement,
+        status=status,
+        acquisition_status=acquisition_status,
+        medium=medium,
+        q=q,
+        has_cover=has_cover,
+        tag=tag,
+        exclude_tag=exclude_tag,
+        user_id=current_user.id,
+    )
+    base_statement = base_statement.order_by(Book.title.asc())
+    rows = session.exec(base_statement).all()
+    ids = []
+    for r in rows:
+        val = r[0] if isinstance(r, tuple) else r
+        if val is not None:
+            ids.append(val)
+    total = len(ids)
+    return BookIdListResponse(ids=ids, total=total)
 
 
 @router.get("/stats", response_model=LibraryStats)

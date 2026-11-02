@@ -24,9 +24,19 @@ from app.schemas import (
     UserLogin,
     UserRead,
 )
+from app.services.avatar import build_user_read
 from app.time_utils import utcnow
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _ensure_password_login_enabled() -> None:
+    """Reject password-based flows when the operator disabled them."""
+    if not settings.password_login_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password login is disabled",
+        )
 
 
 @router.get("/setup-required")
@@ -69,7 +79,7 @@ def setup(
     session.commit()
 
     start_browser_session(http_request, user.id, user.credentials_version)
-    return {"user": UserRead.model_validate(user)}
+    return {"user": build_user_read(session, user)}
 
 
 @router.post("/login")
@@ -79,13 +89,14 @@ def login(
     session: Session = Depends(get_session),
 ) -> dict:
     """Authenticate with email and password, starting a browser session."""
+    _ensure_password_login_enabled()
     user = session.exec(select(User).where(User.email == credentials.email)).first()
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
     assert user.id is not None
 
     start_browser_session(http_request, user.id, user.credentials_version)
-    return {"user": UserRead.model_validate(user)}
+    return {"user": build_user_read(session, user)}
 
 
 @router.post("/logout")
@@ -96,9 +107,12 @@ def logout(http_request: Request) -> dict:
 
 
 @router.get("/me", response_model=UserRead)
-def me(current_user: User = Depends(require_user)) -> User:
+def me(
+    current_user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+) -> UserRead:
     """Return the currently authenticated user."""
-    return current_user
+    return build_user_read(session, current_user)
 
 
 @router.get("/csrf")
@@ -120,6 +134,7 @@ async def forgot_password(
 
     Always returns 200 to prevent user enumeration.
     """
+    _ensure_password_login_enabled()
     user = session.exec(select(User).where(User.email == body.email)).first()
     if user and settings.mail_server:
         token = generate_password_reset_token(body.email, user.credentials_version)
@@ -134,6 +149,7 @@ def reset_password(
     session: Session = Depends(get_session),
 ) -> dict:
     """Reset a user's password using a valid reset token."""
+    _ensure_password_login_enabled()
     payload = verify_password_reset_token(body.token, max_age=settings.password_reset_token_max_age)
     if not payload:
         raise HTTPException(

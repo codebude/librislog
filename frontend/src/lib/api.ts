@@ -1,6 +1,7 @@
 import type {
 	ApiKeyMeta,
 	AppConfig,
+	BookIdListResponse,
 	BookListResponse,
 	DataExportDataset,
 	DataExportFormat,
@@ -36,11 +37,16 @@ import type {
 	ReadingStatus,
 	AcquisitionStatus,
 	SearchStage,
+	TagBatchRequest,
+	TagBatchResponse,
 	TagCloudEntry,
+	TagListResponse,
 	SortField,
 	SortOrder,
 	OidcConfig,
 	OidcLinkStatus,
+	AvatarOptions,
+	AvatarSource,
 	PublicProfileAudience,
 	PublicProfileLink,
 	PublicProfileLinkCreateResponse,
@@ -68,8 +74,9 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+	const isFormData = options?.body instanceof FormData;
 	const headers: Record<string, string> = {
-		'Content-Type': 'application/json',
+		...(isFormData ? {} : { 'Content-Type': 'application/json' }),
 		...authHeaders()
 	};
 
@@ -209,6 +216,34 @@ export const api = {
 				method: 'PATCH',
 				body: JSON.stringify(data)
 			});
+		},
+
+		getAvatarOptions(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar');
+		},
+
+		setAvatarSource(source: AvatarSource): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar', {
+				method: 'PATCH',
+				body: JSON.stringify({ source })
+			});
+		},
+
+		uploadAvatar(file: Blob, filename = 'avatar.webp'): Promise<AvatarOptions> {
+			const form = new FormData();
+			form.append('file', file, filename);
+			return request<AvatarOptions>('/profile/avatar/upload', {
+				method: 'POST',
+				body: form
+			});
+		},
+
+		removeUploadedAvatar(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar/upload', { method: 'DELETE' });
+		},
+
+		refreshOidcAvatar(): Promise<AvatarOptions> {
+			return request<AvatarOptions>('/profile/avatar/refresh-oidc', { method: 'POST' });
 		},
 
 		listApiKeys(): Promise<ApiKeyMeta[]> {
@@ -433,6 +468,8 @@ export const api = {
 			medium?: Medium;
 			q?: string;
 			has_cover?: boolean;
+			tag?: string;
+			exclude_tag?: string;
 			sort?: SortField;
 			order?: SortOrder;
 			smart_sort?: boolean;
@@ -445,6 +482,8 @@ export const api = {
 			if (params?.medium) qs.set('medium', params.medium);
 			if (params?.q) qs.set('q', params.q);
 			if (params?.has_cover !== undefined) qs.set('has_cover', String(params.has_cover));
+			if (params?.tag) qs.set('tag', params.tag);
+			if (params?.exclude_tag) qs.set('exclude_tag', params.exclude_tag);
 			if (params?.sort) qs.set('sort', params.sort);
 			if (params?.order) qs.set('order', params.order);
 			if (params?.smart_sort !== undefined) qs.set('smart_sort', String(params.smart_sort));
@@ -456,6 +495,27 @@ export const api = {
 
 		get(id: number): Promise<Book> {
 			return request<Book>(`/books/${id}`);
+		},
+
+		ids(params?: {
+			status?: ReadingStatus;
+			acquisition_status?: AcquisitionStatus;
+			medium?: Medium;
+			q?: string;
+			has_cover?: boolean;
+			tag?: string;
+			exclude_tag?: string;
+		}): Promise<BookIdListResponse> {
+			const qs = new URLSearchParams();
+			if (params?.status) qs.set('status', params.status);
+			if (params?.acquisition_status) qs.set('acquisition_status', params.acquisition_status);
+			if (params?.medium) qs.set('medium', params.medium);
+			if (params?.q) qs.set('q', params.q);
+			if (params?.has_cover !== undefined) qs.set('has_cover', String(params.has_cover));
+			if (params?.tag) qs.set('tag', params.tag);
+			if (params?.exclude_tag) qs.set('exclude_tag', params.exclude_tag);
+			const query = qs.toString() ? `?${qs}` : '';
+			return request<BookIdListResponse>(`/books/ids${query}`);
 		},
 
 		create(data: Partial<Book>): Promise<Book> {
@@ -532,6 +592,24 @@ export const api = {
 
 		delete(id: number): Promise<void> {
 			return request<void>(`/books/${id}`, { method: 'DELETE' });
+		}
+	},
+
+	tags: {
+		async list(params?: { q?: string; limit?: number; offset?: number }): Promise<TagListResponse> {
+			const qs = new URLSearchParams();
+			if (params?.q) qs.set('q', params.q);
+			if (params?.limit !== undefined) qs.set('limit', String(params.limit));
+			if (params?.offset !== undefined) qs.set('offset', String(params.offset));
+			const query = qs.toString() ? `?${qs}` : '';
+			return request<TagListResponse>(`/tags${query}`);
+		},
+
+		async batch(data: TagBatchRequest): Promise<TagBatchResponse> {
+			return request<TagBatchResponse>('/tags/batch', {
+				method: 'POST',
+				body: JSON.stringify(data)
+			});
 		}
 	},
 
