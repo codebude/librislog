@@ -6,23 +6,17 @@ All LibrisLog releases, newest first — what's new, what was fixed, and anythin
 
 You can also browse the [GitHub Releases](https://github.com/codebude/librislog/releases) page and the [full changelog](https://github.com/codebude/librislog/commits/main).
 
-## Unreleased
+## Latest Release
 
 ::: tip ⭐ v1.12.0 - Mass Tag Editor, Profile Pictures & Authentication Methods
 LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, and profile pictures with three selectable sources: the existing animal avatar, a locally cached OIDC picture, and a manually uploaded image with a built-in cropper. Public profiles gain a separate profile picture toggle. It also adds two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. Existing accounts keep their animal avatar and existing share links stay unchanged after upgrading, and the new options need no manual data migration.
-:::
-
-## Latest Release
-
-::: tip ⭐ v1.11.0 — Reading Sessions & Re-reads
-LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as its own session with independent start and finish dates, and a "Read again" action starts a fresh reading without overwriting earlier dates or progress. A reading history in the book detail dialog lets you add past reads and edit or delete individual sessions, progress restarts per session, and re-read books show a "read ×N" badge. Statistics now distinguish unique books from total completions (with a new "Total reads" card), and the timeline lists one row per completed read, marking re-reads. Data migrates automatically on upgrade.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | Unreleased | Feature release |
+| [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | 2026-11-02 | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
 | [v1.9.0](#v1-9-0-smarter-import-search-input-ux) | 2026-09-15 | Feature release |
@@ -46,7 +40,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 ## v1.12.0: Mass Tag Editor, Profile Pictures & Authentication Methods
 
-<Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-11-02" />
 
 **Summary:** LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, profile pictures with three selectable sources (animal avatar, cached OIDC picture, and manual upload with a circular cropper), a separate profile picture toggle for public profiles, and two opt-in authentication options. Administrators can disable password login once single sign-on is in use, and deployments behind an authenticating reverse proxy can sign users in automatically from a forwarded header.
 
@@ -82,7 +76,7 @@ LibrisLog v1.11.0 lets books be read more than once. Each reading is tracked as 
 
 **Breaking changes:** None. The profile picture feature adds an automatic database migration for `user.avatar_source` and the `user_image` table; no manual action is needed. Existing accounts keep the animal avatar, and existing share links keep their current sections because the new **Profile picture** toggle is off by default. Existing endpoints keep their behaviour; only two optional query parameters and new endpoints were added. Both authentication features are disabled by default. Existing installations keep password login and behave exactly as before.
 
-[Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...HEAD)
+[Compare with v1.11.0](https://github.com/codebude/librislog/compare/v1.11.0...v1.12.0)
 
 ---
 
