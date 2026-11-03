@@ -219,6 +219,10 @@ class UserSettings(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", unique=True, index=True)
     language: str = Field(default="en", max_length=10)
     timezone: str = Field(default="UTC", max_length=64)
+    # False means the account still uses the default and the login/OIDC flows
+    # may replace it with the detected zone. True means the stored zone is
+    # authoritative, even when it is UTC.
+    timezone_configured: bool = Field(default=False)
     theme: str = Field(default="light", max_length=20)
     custom_theme: Optional[str] = Field(default=None, max_length=30)
     goal_pages_per_day_enabled: bool = Field(default=False)

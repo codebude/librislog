@@ -164,6 +164,7 @@ erDiagram
         integer user_id UK
         varchar(10) language
         varchar(64) timezone
+        boolean timezone_configured
         varchar(20) theme
         varchar(30) custom_theme
         boolean goal_pages_per_day_enabled
@@ -417,6 +418,7 @@ Per-user settings such as language, timezone, and theme.
 | `user_id` | `INTEGER` | FK → user.id, UNIQUE, NOT NULL |  |
 | `language` | `VARCHAR(10)` | NOT NULL | default `en` |
 | `timezone` | `VARCHAR(64)` | NOT NULL | default `UTC` |
+| `timezone_configured` | `BOOLEAN` | NOT NULL | default False; true once a timezone was saved explicitly, false means automatic detection on login |
 | `theme` | `VARCHAR(20)` | NOT NULL | default `light` |
 | `custom_theme` | `VARCHAR(30)` |  |  |
 | `goal_pages_per_day_enabled` | `BOOLEAN` | NOT NULL | default False |
@@ -433,6 +435,8 @@ Per-user settings such as language, timezone, and theme.
 | `statistics_range` | `VARCHAR(20)` | NOT NULL | default `alltime` |
 | `statistics_custom_from` | `DATE` |  |  |
 | `statistics_custom_to` | `DATE` |  |  |
+
+On upgrade, existing non-UTC values are marked as configured, including values that were auto-detected before this flag existed. Rows still on the `UTC` default remain in automatic detection.
 
 ### `book_author`
 

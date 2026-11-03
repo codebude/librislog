@@ -320,6 +320,8 @@
     "timezoneHelp": "Daten und Zeiten in deiner lokalen Zeitzone anzeigen.",
     "timezoneDetected": "Erkannt: {tz}",
     "timezoneSelected": "Ausgewählt: {tz}",
+    "timezoneAuto": "Automatisch: folgt {tz}",
+    "timezoneUseDetected": "Erkannte Zeitzone verwenden",
     "timezoneInvalid": "Bitte wähle eine gültige Zeitzone aus der Liste.",
     "themeTitle": "Design",
     "themeLight": "Hell",

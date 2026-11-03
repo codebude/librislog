@@ -39,6 +39,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 	let language = $state('en');
 	let languageMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let timezone = $state(getTimezone());
+	let timezoneConfigured = $state(true);
 	let timezoneMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let description = $state('');
 	let createdKey = $state<string | null>(null);
@@ -155,6 +156,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		const settings = await api.profile.getSettings();
 		language = settings.language;
 		timezone = settings.timezone;
+		timezoneConfigured = settings.timezone_configured;
 		setTimezone(settings.timezone);
 		themeMode = sanitizeThemeMode(settings.theme);
 		setThemeMode(themeMode);
@@ -354,9 +356,13 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		languageMessage = { type: 'success', text: $_('common.saved') };
 	}
 
-	const allTimezones: string[] = typeof Intl.supportedValuesOf === 'function'
+	const supportedTimezones: string[] = typeof Intl.supportedValuesOf === 'function'
 		? Intl.supportedValuesOf('timeZone')
 		: [];
+	// V8 omits UTC from supportedValuesOf, but it is a valid profile choice.
+	const allTimezones: string[] = supportedTimezones.includes('UTC')
+		? supportedTimezones
+		: ['UTC', ...supportedTimezones];
 
 	const browserTz = detectTimezone();
 
@@ -367,8 +373,26 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		}
 		timezoneMessage = null;
 		await api.profile.updateSettings({ timezone });
+		timezoneConfigured = true;
 		setTimezone(timezone);
 		timezoneMessage = { type: 'success', text: $_('common.saved') };
+	}
+
+	async function useDetectedTimezone() {
+		const detected = detectTimezone();
+		timezoneMessage = null;
+		try {
+			await api.profile.updateSettings({ timezone: detected, timezone_configured: false });
+			timezone = detected;
+			timezoneConfigured = false;
+			setTimezone(detected);
+			timezoneMessage = { type: 'success', text: $_('common.saved') };
+		} catch (e) {
+			timezoneMessage = {
+				type: 'error',
+				text: e instanceof Error ? e.message : $_('common.saveFailed')
+			};
+		}
 	}
 
 	$effect(() => {
@@ -1005,16 +1029,26 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 					onClose={() => timezoneMessage = null}
 				>{timezoneMessage.text}</Alert>
 			{/if}
-			<SearchableSelect
-				bind:value={timezone}
-				options={allTimezones}
-				name="timezone"
-				ariaLabel={$_('settings.timezone')}
-				placeholder={$_('settings.timezonePlaceholder')}
-				noResultsText={$_('settings.timezoneNoResults')}
-			/>
+			<div class="flex flex-wrap items-center gap-2">
+				<SearchableSelect
+					bind:value={timezone}
+					options={allTimezones}
+					name="timezone"
+					ariaLabel={$_('settings.timezone')}
+					placeholder={$_('settings.timezonePlaceholder')}
+					noResultsText={$_('settings.timezoneNoResults')}
+					selectClass="select select-bordered select-sm max-w-xs"
+				/>
+				<button class="btn btn-outline btn-sm" onclick={useDetectedTimezone}>
+					{$_('settings.timezoneUseDetected')}
+				</button>
+			</div>
 			<p class="text-xs text-base-content/50">{$_('settings.timezoneDetected', { values: { tz: browserTz } })}</p>
-			<p class="text-xs text-base-content/50">{$_('settings.timezoneSelected', { values: { tz: timezone } })}</p>
+			<p class="text-xs text-base-content/50">
+				{timezoneConfigured
+					? $_('settings.timezoneSelected', { values: { tz: timezone } })
+					: $_('settings.timezoneAuto', { values: { tz: timezone } })}
+			</p>
 			<button class="btn btn-primary btn-sm self-start" onclick={saveTimezone}>{$_('common.save')}</button>
 		</div>
 	</div>

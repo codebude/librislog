@@ -220,6 +220,7 @@ def test_profile_settings_get_and_update(client: TestClient) -> None:
     assert current.status_code == 200
     assert current.json()["language"] == "en"
     assert current.json()["timezone"] == "UTC"
+    assert current.json()["timezone_configured"] is False
     assert current.json()["theme"] == "light"
     assert current.json()["custom_theme"] is None
 
@@ -231,6 +232,7 @@ def test_profile_settings_get_and_update(client: TestClient) -> None:
     tz_updated = client.patch("/api/profile/settings", json={"timezone": "Europe/Berlin"})
     assert tz_updated.status_code == 200
     assert tz_updated.json()["timezone"] == "Europe/Berlin"
+    assert tz_updated.json()["timezone_configured"] is True
 
     theme_updated = client.patch("/api/profile/settings", json={"theme": "dark"})
     assert theme_updated.status_code == 200
@@ -241,6 +243,69 @@ def test_profile_settings_get_and_update(client: TestClient) -> None:
     assert custom_updated.status_code == 200
     assert custom_updated.json()["theme"] == "custom"
     assert custom_updated.json()["custom_theme"] == "dracula"
+
+
+def test_profile_settings_explicit_utc_marks_timezone_configured(client: TestClient) -> None:
+    current = client.get("/api/profile/settings")
+    assert current.status_code == 200
+    assert current.json()["timezone"] == "UTC"
+    assert current.json()["timezone_configured"] is False
+
+    updated = client.patch("/api/profile/settings", json={"timezone": "UTC"})
+    assert updated.status_code == 200
+    assert updated.json()["timezone"] == "UTC"
+    assert updated.json()["timezone_configured"] is True
+
+    reloaded = client.get("/api/profile/settings")
+    assert reloaded.status_code == 200
+    assert reloaded.json()["timezone_configured"] is True
+
+
+def test_profile_settings_rejects_invalid_timezone(client: TestClient) -> None:
+    for value in ("", "Not/AZone", None):
+        response = client.patch("/api/profile/settings", json={"timezone": value})
+        assert response.status_code == 422, value
+
+
+def test_profile_settings_keep_configured_flag_without_timezone(client: TestClient) -> None:
+    client.patch("/api/profile/settings", json={"timezone": "America/New_York"})
+
+    updated = client.patch("/api/profile/settings", json={"language": "de"})
+    assert updated.status_code == 200
+    assert updated.json()["timezone"] == "America/New_York"
+    assert updated.json()["timezone_configured"] is True
+
+
+def test_profile_settings_reject_null_timezone_configured(client: TestClient) -> None:
+    response = client.patch("/api/profile/settings", json={"timezone_configured": None})
+    assert response.status_code == 422
+
+
+def test_profile_settings_can_return_to_automatic_timezone(client: TestClient) -> None:
+    client.patch("/api/profile/settings", json={"timezone": "UTC"})
+    pinned = client.get("/api/profile/settings").json()
+    assert pinned["timezone_configured"] is True
+
+    reset = client.patch(
+        "/api/profile/settings",
+        json={"timezone": "America/New_York", "timezone_configured": False},
+    )
+    assert reset.status_code == 200
+    assert reset.json()["timezone"] == "America/New_York"
+    assert reset.json()["timezone_configured"] is False
+
+    reloaded = client.get("/api/profile/settings").json()
+    assert reloaded["timezone"] == "America/New_York"
+    assert reloaded["timezone_configured"] is False
+
+
+def test_profile_settings_flag_resets_without_changing_timezone(client: TestClient) -> None:
+    client.patch("/api/profile/settings", json={"timezone": "America/New_York"})
+
+    reset = client.patch("/api/profile/settings", json={"timezone_configured": False})
+    assert reset.status_code == 200
+    assert reset.json()["timezone"] == "America/New_York"
+    assert reset.json()["timezone_configured"] is False
 
 
 def test_profile_api_key_lifecycle(client: TestClient) -> None:

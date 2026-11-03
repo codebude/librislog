@@ -8,14 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.12.0 - Mass Tag Editor, Profile Pictures & Authentication Methods
-LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on many books at once, and profile pictures with three selectable sources: the existing animal avatar, a locally cached OIDC picture, and a manually uploaded image with a built-in cropper. Public profiles gain a separate profile picture toggle. It also adds two opt-in authentication options: password login can be disabled once single sign-on is in use, and a trusted reverse proxy can sign users in from a forwarded header. Existing accounts keep their animal avatar and existing share links stay unchanged after upgrading, and the new options need no manual data migration.
+::: tip ⭐ v1.12.1 - DST Chart & Timezone Fixes
+LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's reading progress chart crossed a daylight-saving fall-back in the user's profile time zone, the chart's time axis could loop forever and lock up the page. Time steps now keep advancing across the transition, day, week, and month ticks stay on their local calendar boundaries, and an explicitly chosen UTC timezone is no longer replaced with the detected zone on the next login. The timezone card also has a **Use detected timezone** button to switch back to automatic detection. The new timezone flag is added by an automatic database migration.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
+| [v1.12.1](#v1-12-1-dst-chart-timezone-fixes) | 2026-11-03 | Maintenance |
 | [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | 2026-11-02 | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
@@ -35,6 +36,26 @@ LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on man
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.12.1: DST Chart & Timezone Fixes
+
+<Badge type="info" text="Maintenance" /> <Badge type="info" text="2026-11-03" />
+
+**Summary:** LibrisLog v1.12.1 fixes a browser freeze in the book detail view when a book's reading progress chart spans a daylight-saving fall-back in the profile time zone. Sub-day time steps now run on the UTC timeline, so tick generation always completes, and day, week, and month steps keep their local wall-clock time, so calendar ticks no longer drift after a transition. It also keeps an explicitly chosen UTC profile timezone instead of replacing it with the detected zone on the next login, and adds a **Use detected timezone** button that switches an account back to automatic detection.
+
+**Bug fixes**
+- 🕒 **No more freeze across a DST fall-back.** When the device and profile time zones were the same zone that observes daylight saving, a time step inside the repeated hour could stall or move backwards. Chart.js then kept generating ticks forever, which froze the book detail dialog in Firefox and Chromium-based browsers. Millisecond, second, minute, and hour steps now use the UTC epoch value, so they always move forward. Hour ticks still start on local hour boundaries and show the repeated hour correctly when ticks are hourly, for example 1AM twice.
+- 📅 **Calendar ticks stay aligned.** Day, week, month, quarter, and year steps now keep the local wall-clock time instead of adding a fixed number of milliseconds, so day and month ticks no longer land at 23:00 or drift into the wrong month after a DST change.
+- 🌍 **Explicit UTC choice is kept.** The timezone picker now offers UTC in every browser, including Chromium-based ones that omit it from `Intl.supportedValuesOf`. The login and OIDC callback used to treat a stored UTC value as "not configured" and replaced it with the detected zone. Saving any timezone now marks it as explicitly chosen, so UTC stays UTC. Existing accounts keep their current behaviour: non-UTC values are untouched, and a legacy UTC default follows the detected zone on login.
+- 🔄 **Back to automatic detection.** The timezone card has a **Use detected timezone** button that saves the browser's zone and switches the account back to automatic detection, which follows the browser on each login. Saving a zone still pins it, including UTC.
+- 🛡️ **Invalid timezones are rejected.** Saving an empty or unknown timezone name now returns a validation error instead of storing a value that breaks date rendering.
+- 🧪 **Regression coverage.** A new test pins the device and profile time zones to `America/New_York` and covers fall-back and spring-forward tick sequences, monotonic time steps, local `startOf` and `endOf` boundaries, non-whole-hour zones, and calendar-unit steps. Login and OIDC callback tests cover unconfigured, explicitly chosen, and version-skew cases, and backend tests cover invalid input and switching back to automatic detection.
+
+**Breaking changes:** None. The new `timezone_configured` flag is added by an automatic database migration. `GET /api/profile/settings` gains one additive field, and `PATCH` accepts an optional `timezone_configured` flag to pin or reset automatic detection. `PATCH` now rejects empty or unknown timezone names with a validation error. Downgrading drops the explicit-choice bit, so a later upgrade treats UTC as unconfigured again.
+
+[Compare with v1.12.0](https://github.com/codebude/librislog/compare/v1.12.0...v1.12.1)
 
 ---
 
@@ -103,7 +124,7 @@ LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on man
 
 **Breaking changes:** None. Existing installs keep working untouched: every book with a single session behaves and scores identically to before, and data migrates automatically on upgrade. Downgrading to a previous release drops re-read history (the `reading_session` table is removed).
 
-[Compare with v1.10.0](https://github.com/codebude/librislog/compare/v1.10.0...HEAD)
+[Compare with v1.10.0](https://github.com/codebude/librislog/compare/v1.10.0...v1.11.0)
 
 ---
 

@@ -320,6 +320,8 @@
     "timezoneHelp": "Display dates and times in your local timezone.",
     "timezoneDetected": "Detected: {tz}",
     "timezoneSelected": "Selected: {tz}",
+    "timezoneAuto": "Automatic: following {tz}",
+    "timezoneUseDetected": "Use detected timezone",
     "timezoneInvalid": "Please select a valid timezone from the list.",
     "themeTitle": "Theme",
     "themeLight": "Light",

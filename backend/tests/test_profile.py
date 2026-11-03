@@ -42,6 +42,7 @@ def test_get_settings_creates_default_when_missing(client: TestClient, session: 
     data = resp.json()
     assert data["language"] == "en"
     assert data["user_id"] == user.id
+    assert data["timezone_configured"] is False
     assert data["auto_set_date_started"] is True
     assert data["auto_set_date_finished"] is True
 
@@ -70,6 +71,7 @@ def test_update_settings_creates_default_when_missing(client: TestClient, sessio
     data = resp.json()
     assert data["language"] == "de"
     assert data["user_id"] == user.id
+    assert data["timezone_configured"] is False
 
 
 def test_statistics_range_settings_are_persisted(client: TestClient) -> None:

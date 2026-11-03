@@ -320,6 +320,8 @@
     "timezoneHelp": "以本地时区显示日期和时间。",
     "timezoneDetected": "检测到：{tz}",
     "timezoneSelected": "已选择：{tz}",
+    "timezoneAuto": "自动：跟随 {tz}",
+    "timezoneUseDetected": "使用检测到的时区",
     "timezoneInvalid": "请从列表中选择有效的时区。",
     "themeTitle": "主题",
     "themeLight": "浅色",

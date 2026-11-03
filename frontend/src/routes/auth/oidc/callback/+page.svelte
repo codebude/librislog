@@ -18,8 +18,10 @@
 			const settings = await api.profile.getSettings();
 			setLocale((settings.language as 'en' | 'de') ?? 'en');
 			const detected = detectTimezone();
-			if (settings.timezone === 'UTC') {
-				await api.profile.updateSettings({ timezone: detected });
+			// Same fallback as the login page for an older backend.
+			const timezoneConfigured = settings.timezone_configured ?? settings.timezone !== 'UTC';
+			if (!timezoneConfigured) {
+				await api.profile.updateSettings({ timezone: detected, timezone_configured: false });
 				setTimezone(detected);
 			} else {
 				setTimezone(settings.timezone);
