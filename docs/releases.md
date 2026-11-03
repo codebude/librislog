@@ -6,6 +6,12 @@ All LibrisLog releases, newest first — what's new, what was fixed, and anythin
 
 You can also browse the [GitHub Releases](https://github.com/codebude/librislog/releases) page and the [full changelog](https://github.com/codebude/librislog/commits/main).
 
+## Unreleased
+
+::: tip ⭐ v1.12.1 - DST Chart Freeze Fix
+LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's reading progress chart crossed a daylight-saving fall-back in the user's profile time zone, the chart's time axis could loop forever and lock up the page. Time steps now keep advancing across the transition, and day, week, and month ticks stay on their local calendar boundaries. No data changes or manual steps are needed.
+:::
+
 ## Latest Release
 
 ::: tip ⭐ v1.12.0 - Mass Tag Editor, Profile Pictures & Authentication Methods
@@ -16,6 +22,7 @@ LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on man
 
 | Version | Date | Type |
 |---|---|---|
+| [v1.12.1](#v1-12-1-dst-chart-freeze-fix) | Unreleased | Maintenance |
 | [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | 2026-11-02 | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
 | [v1.10.0](#v1-10-0-more-book-sources-upgrades) | 2026-10-18 | Feature release |
@@ -35,6 +42,23 @@ LibrisLog v1.12.0 adds a Mass Tag Editor page for adding or removing tags on man
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.12.1: DST Chart Freeze Fix
+
+<Badge type="info" text="Maintenance" /> <Badge type="info" text="Unreleased" />
+
+**Summary:** LibrisLog v1.12.1 fixes a browser freeze in the book detail view when a book's reading progress chart spans a daylight-saving fall-back in the profile time zone. Sub-day time steps now run on the UTC timeline, so tick generation always completes, and day, week, and month steps keep their local wall-clock time, so calendar ticks no longer drift after a transition.
+
+**Bug fixes**
+- 🕒 **No more freeze across a DST fall-back.** When the device and profile time zones were the same zone that observes daylight saving, a time step inside the repeated hour could stall or move backwards. Chart.js then kept generating ticks forever, which froze the book detail dialog in Firefox and Chromium-based browsers. Millisecond, second, minute, and hour steps now use the UTC epoch value, so they always move forward. Hour ticks still start on local hour boundaries and show the repeated hour correctly when ticks are hourly, for example 1AM twice.
+- 📅 **Calendar ticks stay aligned.** Day, week, month, quarter, and year steps now keep the local wall-clock time instead of adding a fixed number of milliseconds, so day and month ticks no longer land at 23:00 or drift into the wrong month after a DST change.
+- 🧪 **Regression coverage.** A new test pins the device and profile time zones to `America/New_York` and covers fall-back and spring-forward tick sequences, monotonic time steps, local `startOf` and `endOf` boundaries, non-whole-hour zones, and calendar-unit steps.
+
+**Breaking changes:** None.
+
+[Compare with v1.12.0](https://github.com/codebude/librislog/compare/v1.12.0...HEAD)
 
 ---
 
