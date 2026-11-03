@@ -4,6 +4,7 @@ from typing import Optional, Any
 from datetime import date, datetime
 from enum import Enum
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, field_validator, model_validator
 import pydantic
@@ -548,6 +549,7 @@ class UserSettingsRead(SQLModel):
     user_id: int
     language: str
     timezone: str
+    timezone_configured: bool
     theme: str
     custom_theme: Optional[str] = None
     goal_pages_per_day_enabled: bool
@@ -570,6 +572,7 @@ class UserSettingsUpdate(SQLModel):
     """User settings update request."""
     language: Optional[str] = None
     timezone: Optional[str] = None
+    timezone_configured: Optional[bool] = None
     theme: Optional[str] = None
     custom_theme: Optional[str] = None
     goal_pages_per_day_enabled: Optional[bool] = None
@@ -592,6 +595,24 @@ class UserSettingsUpdate(SQLModel):
     def validate_date_automation_setting(cls, value: Optional[bool]) -> Optional[bool]:
         if value is None:
             raise ValueError("Reading date automation settings cannot be null")
+        return value
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            raise ValueError("timezone cannot be null")
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("timezone must be a valid IANA zone name")
+        return value
+
+    @field_validator("timezone_configured")
+    @classmethod
+    def validate_timezone_configured(cls, value: Optional[bool]) -> Optional[bool]:
+        if value is None:
+            raise ValueError("timezone_configured cannot be null")
         return value
 
     @field_validator('theme')

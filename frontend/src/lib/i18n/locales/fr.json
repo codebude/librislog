@@ -320,6 +320,8 @@
     "timezoneHelp": "Afficher les dates et heures dans ton fuseau horaire local.",
     "timezoneDetected": "Détecté : {tz}",
     "timezoneSelected": "Sélectionné : {tz}",
+    "timezoneAuto": "Automatique : suit {tz}",
+    "timezoneUseDetected": "Utiliser le fuseau horaire détecté",
     "timezoneInvalid": "Sélectionne un fuseau horaire valide dans la liste.",
     "themeTitle": "Thème",
     "themeLight": "Clair",

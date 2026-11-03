@@ -211,7 +211,7 @@ export const api = {
 			return request<UserSettings>('/profile/settings');
 		},
 
-		updateSettings(data: Partial<UserSettings>): Promise<UserSettings> {
+		updateSettings(data: Partial<Omit<UserSettings, 'user_id'>>): Promise<UserSettings> {
 			return request<UserSettings>('/profile/settings', {
 				method: 'PATCH',
 				body: JSON.stringify(data)

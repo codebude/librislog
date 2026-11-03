@@ -312,6 +312,7 @@ def get_settings(
         user_id=settings.user_id,
         language=settings.language,
         timezone=settings.timezone,
+        timezone_configured=settings.timezone_configured,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
         goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
@@ -357,6 +358,8 @@ def update_settings(
     if custom_from is not None and custom_to is not None and (custom_to - custom_from).days > MAX_CUSTOM_RANGE_DAYS:
         raise HTTPException(status_code=422, detail="Statistics custom range cannot exceed 25 years")
     settings.sqlmodel_update(update_data)
+    if update_data.get("timezone") is not None:
+        settings.timezone_configured = update_data.get("timezone_configured", True)
     if settings.theme != 'custom':
         settings.custom_theme = None
     session.add(settings)
@@ -367,6 +370,7 @@ def update_settings(
         user_id=settings.user_id,
         language=settings.language,
         timezone=settings.timezone,
+        timezone_configured=settings.timezone_configured,
         theme=settings.theme,
         custom_theme=settings.custom_theme,
         goal_pages_per_day_enabled=settings.goal_pages_per_day_enabled,
