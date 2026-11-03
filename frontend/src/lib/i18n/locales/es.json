@@ -320,6 +320,8 @@
     "timezoneHelp": "Mostrar fechas y horas en tu zona horaria local.",
     "timezoneDetected": "Detectada: {tz}",
     "timezoneSelected": "Seleccionada: {tz}",
+    "timezoneAuto": "Automática: siguiendo {tz}",
+    "timezoneUseDetected": "Usar la zona horaria detectada",
     "timezoneInvalid": "Selecciona una zona horaria válida de la lista.",
     "themeTitle": "Tema",
     "themeLight": "Claro",
