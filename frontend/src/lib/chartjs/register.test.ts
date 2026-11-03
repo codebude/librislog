@@ -91,6 +91,16 @@ describe('chartjs dayjs date adapter across DST transitions', () => {
 		}
 	});
 
+	it('add() keeps local wall-clock time for calendar units', () => {
+		// After the fall-back, a fixed 24h step would land at 23:00 instead of
+		// local midnight, which drifts day and month ticks.
+		expect(adapter.add(Date.UTC(2026, 9, 31, 4, 0), 1, 'day')).toBe(Date.UTC(2026, 10, 1, 4, 0));
+		expect(adapter.add(Date.UTC(2026, 10, 1, 4, 0), 1, 'day')).toBe(Date.UTC(2026, 10, 2, 5, 0));
+		expect(adapter.add(Date.UTC(2026, 9, 1, 4, 0), 1, 'month')).toBe(Date.UTC(2026, 10, 1, 4, 0));
+		expect(adapter.add(Date.UTC(2026, 10, 1, 4, 0), 1, 'month')).toBe(Date.UTC(2026, 11, 1, 5, 0));
+		expect(adapter.add(Date.UTC(2026, 10, 2, 5, 0), -1, 'day')).toBe(Date.UTC(2026, 10, 1, 4, 0));
+	});
+
 	it('generates a finite, strictly increasing sequence across the fall-back', () => {
 		// The reproduction data from the bug report: a book started 2026-10-31
 		// 18:59 UTC and read until 2026-11-01 17:04 UTC with a New York profile.

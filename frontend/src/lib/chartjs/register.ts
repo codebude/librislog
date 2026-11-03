@@ -79,6 +79,17 @@ function startOfLocalUnit(time: number, unitMs: number): number {
 	return time - positiveModulo(time + zoneOffsetMs(time), unitMs);
 }
 
+// Calendar units must keep their local wall-clock time. Zoned dayjs.add() is
+// a fixed-duration step for day and larger units, so it drifts by an hour
+// after a DST transition. Do the arithmetic on the wall clock, then resolve
+// the result back in the profile zone.
+function addCalendarUnit(time: number, amount: number, unit: dayjs.ManipulateType): number {
+	if (amount === 0) return time;
+	const tz = getTimezone();
+	const wall = dayjs.utc(time + zoneOffsetMs(time)).add(amount, unit);
+	return dayjs.tz(wall.format('YYYY-MM-DDTHH:mm:ss.SSS'), tz).valueOf();
+}
+
 const FORMATS: Record<string, string> = {
 	datetime: 'MMM D, YYYY, h:mm:ss a',
 	millisecond: 'h:mm:ss.SSS a',
@@ -111,7 +122,7 @@ _adapters._date.override({
 		if (size !== undefined) {
 			return t + amount * size;
 		}
-		return dayjs.utc(t).tz(getTimezone()).add(amount, unit as dayjs.ManipulateType).valueOf();
+		return addCalendarUnit(t, amount, unit as dayjs.ManipulateType);
 	},
 	diff: (max: unknown, min: unknown, unit: string) => dayjs.utc(max as number).tz(getTimezone()).diff(dayjs.utc(min as number).tz(getTimezone()), unit as dayjs.OpUnitType),
 	startOf: (time: unknown, unit: string, weekday?: number) => {
