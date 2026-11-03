@@ -263,6 +263,7 @@ describe('api.statistics.gamification', () => {
 				user_id: 1,
 				language: 'en',
 				timezone: 'UTC',
+				timezone_configured: true,
 				theme: 'light',
 				custom_theme: null,
 				goal_pages_per_day_enabled: true,

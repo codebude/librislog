@@ -258,6 +258,7 @@ export interface UserSettings {
 	user_id: number;
 	language: string;
 	timezone: string;
+	timezone_configured: boolean;
 	theme: string;
 	custom_theme: string | null;
 	goal_pages_per_day_enabled: boolean;

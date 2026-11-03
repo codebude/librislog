@@ -81,11 +81,18 @@
 			csrfToken.set(csrf.csrf_token);
 			const settings = await api.profile.getSettings();
 			const detected = detectTimezone();
-			const update: { language?: string; timezone?: string } = {};
+			const update: { language?: string; timezone?: string; timezone_configured?: boolean } = {};
 			if (languageChanged) update.language = selectedLanguage;
-			if (settings.timezone === 'UTC') update.timezone = detected;
+			// Fall back to the old UTC check when talking to a backend that does
+			// not send the flag yet, so a temporary version mismatch never
+			// overwrites an explicit choice.
+			const timezoneConfigured = settings.timezone_configured ?? settings.timezone !== 'UTC';
+			if (!timezoneConfigured) {
+				update.timezone = detected;
+				update.timezone_configured = false;
+			}
 			await api.profile.updateSettings(update);
-			setTimezone(settings.timezone === 'UTC' ? detected : settings.timezone);
+			setTimezone(timezoneConfigured ? settings.timezone : detected);
 
 			if (settings.theme) {
 				const dbMode = sanitizeThemeMode(settings.theme);
