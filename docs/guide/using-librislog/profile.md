@@ -55,7 +55,7 @@ Switch the UI language between available locales. The change applies immediately
 
 ## Timezone
 
-Set your preferred timezone for date/time displays (e.g., for the calendar heatmap and progress log timestamps). Your browser's detected timezone is shown as a reference.
+Set your preferred timezone for date/time displays (e.g., for the calendar heatmap and progress log timestamps). Your browser's detected timezone is shown as a reference. Saving a timezone pins that choice, including UTC, so the app will not replace it with the detected zone on the next login. Use **Use detected timezone** to switch back to automatic detection, which follows the browser's zone on each login. Accounts that never saved a timezone follow the detected zone automatically.
 
 ## Theme
 
