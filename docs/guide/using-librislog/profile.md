@@ -61,6 +61,8 @@ Set your preferred timezone for date/time displays (e.g., for the calendar heatm
 
 Choose a custom DaisyUI theme from the dropdown. The theme previews in real-time as you browse the dropdown, and the selection is saved to your profile so it persists across sessions.
 
+The dropdown groups the four [Catppuccin](https://catppuccin.com/palette/) flavors (Latte, Frappé, Macchiato, Mocha) above the built-in DaisyUI themes. Latte is a light flavor, the other three are dark.
+
 ## Reading Goals
 
 Set personal reading targets that are tracked on the dashboard's **Reading Streaks & Goals** section:

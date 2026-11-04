@@ -8,7 +8,7 @@
 	import { _, SUPPORTED_LOCALES, setLocale } from '#lib/i18n/index.js';
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
 	import { getTimezone, setTimezone, detectTimezone } from '#lib/stores/timezone.js';
-	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES } from '#lib/stores/theme.js';
+	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, clearRestorePoint, DAISYUI_THEMES, CATPPUCCIN_THEMES, isCatppuccinTheme, themeLabel } from '#lib/stores/theme.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import SearchableSelect from '#lib/components/SearchableSelect.svelte';
 	import AdaptiveDateInput from '#lib/components/AdaptiveDateInput.svelte';
@@ -1066,9 +1066,16 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 				<span class="label-text">{$_('settings.themeSelect')}</span>
 			</span>
 			<select class="select select-bordered max-w-xs" name="custom-theme" bind:value={customTheme}>
-				{#each [...DAISYUI_THEMES].sort() as t}
-					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-				{/each}
+				<optgroup label="Catppuccin">
+					{#each CATPPUCCIN_THEMES as t}
+						<option value={t}>{themeLabel(t)}</option>
+					{/each}
+				</optgroup>
+				<optgroup label="DaisyUI">
+					{#each [...DAISYUI_THEMES].sort().filter((t) => !isCatppuccinTheme(t)) as t}
+						<option value={t}>{themeLabel(t)}</option>
+					{/each}
+				</optgroup>
 			</select>
 			<button class="btn btn-primary btn-sm self-start" onclick={saveTheme}>{$_('common.save')}</button>
 		</div>

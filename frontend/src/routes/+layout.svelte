@@ -11,7 +11,7 @@
 	import { currentUser, csrfToken, loadAuthFromStorage, initAuthSync } from '#lib/stores/auth.js';
 	import { _, setupI18n } from '#lib/i18n/index.js';
 	import { setTimezone, setQuoteServiceEnabled } from '#lib/stores/timezone.js';
-	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY } from '#lib/stores/theme.js';
+	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY, CUSTOM_THEME_KEY } from '#lib/stores/theme.js';
 	import { LayoutDashboard, BookOpen, ScrollText, BarChart3, Settings, CloudDownload } from '@lucide/svelte';
 	import { version } from '#lib/version.js';
 	import VersionLink from '#lib/components/VersionLink.svelte';
@@ -133,7 +133,7 @@
 					if (settings.theme) {
 						const dbMode = sanitizeThemeMode(settings.theme);
 						const storedMode = localStorage.getItem(THEME_MODE_KEY);
-						const storedCustom = localStorage.getItem('custom_theme');
+						const storedCustom = localStorage.getItem(CUSTOM_THEME_KEY);
 						if (!storedMode || storedMode !== dbMode || storedCustom !== (settings.custom_theme ?? null)) {
 							setThemeMode(dbMode);
 							setCustomTheme(settings.custom_theme);

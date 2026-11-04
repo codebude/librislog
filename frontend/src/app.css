@@ -61,6 +61,12 @@
   --noise: 0;
 }
 
+/* Catppuccin flavors, from the official daisyUI port */
+@plugin "./lib/themes/catppuccin-latte.ts";
+@plugin "./lib/themes/catppuccin-frappe.ts";
+@plugin "./lib/themes/catppuccin-macchiato.ts";
+@plugin "./lib/themes/catppuccin-mocha.ts";
+
 /* Keep dark cards calm while giving the page and nested surfaces clearer depth. */
 html[data-theme="dark"] {
   --color-base-100: oklch(25.5% 0.018 255);

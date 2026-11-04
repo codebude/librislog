@@ -43,6 +43,63 @@ test.describe('Profile', () => {
 		expect(theme).toBe('dracula');
 	});
 
+	test('11.3b change theme to catppuccin flavors', async ({ page }) => {
+		await page.goto('/profile');
+		await page.waitForTimeout(1500);
+
+		const catppuccinOptions = await page
+			.locator('select[name="custom-theme"] optgroup[label="Catppuccin"] option')
+			.evaluateAll((options) =>
+				options.map((option) => ({
+					value: (option as HTMLOptionElement).value,
+					label: option.textContent?.trim()
+				}))
+			);
+		expect(catppuccinOptions).toEqual([
+			{ value: 'latte', label: 'Catppuccin Latte' },
+			{ value: 'frappe', label: 'Catppuccin Frappé' },
+			{ value: 'macchiato', label: 'Catppuccin Macchiato' },
+			{ value: 'mocha', label: 'Catppuccin Mocha' }
+		]);
+
+		await page.locator('select[name="custom-theme"]').selectOption('mocha');
+
+		await page.locator('#section-theme button[class*="btn-primary"]').click();
+		await page.waitForTimeout(1000);
+
+		const saved = page.locator('#section-theme').getByText(/saved|gespeichert/i);
+		await expect(saved).toBeVisible({ timeout: 5000 });
+
+		const theme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+		expect(theme).toBe('mocha');
+
+		const baseColor = await page.evaluate(() =>
+			getComputedStyle(document.documentElement).getPropertyValue('--color-base-100').trim()
+		);
+		expect(baseColor).toMatch(/#1e1e2e|rgb\(30, 30, 46\)/i);
+
+		// The choice must survive a full reload from the stored profile settings.
+		await page.reload();
+		await page.waitForTimeout(1500);
+		const reloadedTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+		expect(reloadedTheme).toBe('mocha');
+		const reloadedBase = await page.evaluate(() =>
+			getComputedStyle(document.documentElement).getPropertyValue('--color-base-100').trim()
+		);
+		expect(reloadedBase).toMatch(/#1e1e2e|rgb\(30, 30, 46\)/i);
+
+		// Light direction: Latte must keep the light favicon.
+		await page.locator('select[name="custom-theme"]').selectOption('latte');
+		await page.locator('#section-theme button[class*="btn-primary"]').click();
+		await page.waitForTimeout(1000);
+		const latteTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+		expect(latteTheme).toBe('latte');
+		const favicon = await page.evaluate(
+			() => document.querySelector('link[rel="icon"][type="image/svg+xml"]')?.getAttribute('href') ?? ''
+		);
+		expect(favicon).not.toContain('favicon-dark');
+	});
+
 	test('11.4 create api key', async ({ page }) => {
 		await page.goto('/profile');
 		await page.waitForTimeout(1000);
