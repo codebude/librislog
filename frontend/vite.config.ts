@@ -31,7 +31,7 @@ export default defineConfig({
 			provider: 'v8',
 			reporter: ['text', 'json'],
 			include: ['src/**/*.svelte', 'src/**/*.ts'],
-			exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/lib/test/**', 'src/routes/**']
+			exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/lib/test/**', 'src/lib/themes/**', 'src/routes/**']
 		}
 	}
 });
