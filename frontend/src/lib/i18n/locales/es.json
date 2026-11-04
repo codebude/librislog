@@ -6,6 +6,11 @@
     "language": "Idioma"
   },
   "nav": {
+    "mainNavigation": "Navegación principal",
+    "collapseSidebar": "Contraer barra lateral",
+    "expandSidebar": "Expandir barra lateral",
+    "collapse": "Contraer",
+    "sidebar": "Barra lateral",
     "dashboard": "Panel",
     "library": "Biblioteca",
     "timeline": "Cronología",

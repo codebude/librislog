@@ -141,4 +141,43 @@ test.describe('Dashboard', () => {
 		// Restore the default so later tests keep the section visible.
 		await updateProfileSettings(page, { gamification_enabled: true });
 	});
+
+	test('2.12 sidebar collapses to an icon rail and remembers it', async ({ page }) => {
+		const sidebar = page.locator('#app-sidebar');
+		const toggle = page.locator('#app-sidebar button[aria-controls="app-sidebar"]');
+
+		await expect(sidebar).toBeVisible();
+		await expect.poll(async () => Math.round((await sidebar.boundingBox())?.width ?? 0)).toBe(224);
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.locator('#app-sidebar a[href="/dashboard"]')).toHaveAttribute('aria-current', 'page');
+
+		await toggle.click();
+		await expect.poll(async () => Math.round((await sidebar.boundingBox())?.width ?? 0)).toBe(80);
+		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		// Icon-only mode keeps an exact accessible name, without the tooltip text.
+		await expect(sidebar.locator('a[href="/library"]')).toHaveAccessibleName('Library');
+
+		// Navigating from the rail keeps it collapsed and moves the active marker.
+		await sidebar.locator('a[href="/library"]').click();
+		await expect(page).toHaveURL('/library');
+		await expect.poll(async () => Math.round((await page.locator('#app-sidebar').boundingBox())?.width ?? 0)).toBe(80);
+		await expect(page.locator('#app-sidebar a[href="/library"]')).toHaveAttribute('aria-current', 'page');
+
+		await page.reload();
+		await page.waitForSelector('h1');
+		await expect.poll(async () => Math.round((await page.locator('#app-sidebar').boundingBox())?.width ?? 0)).toBe(80);
+
+		await page.locator('#app-sidebar button[aria-controls="app-sidebar"]').click();
+		await expect.poll(async () => Math.round((await page.locator('#app-sidebar').boundingBox())?.width ?? 0)).toBe(224);
+	});
+
+	test('2.13 mobile keeps the bottom navigation with an active marker', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.waitForTimeout(500);
+
+		await expect(page.locator('#app-sidebar')).toBeHidden();
+		const mobileNav = page.locator('#mobile-nav');
+		await expect(mobileNav).toBeVisible();
+		await expect(mobileNav.locator('a[href="/dashboard"]')).toHaveAttribute('aria-current', 'page');
+	});
 });

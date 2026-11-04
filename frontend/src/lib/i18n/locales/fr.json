@@ -6,6 +6,11 @@
     "language": "Langue"
   },
   "nav": {
+    "mainNavigation": "Navigation principale",
+    "collapseSidebar": "Réduire la barre latérale",
+    "expandSidebar": "Développer la barre latérale",
+    "collapse": "Réduire",
+    "sidebar": "Barre latérale",
     "dashboard": "Tableau de bord",
     "library": "Bibliothèque",
     "timeline": "Chronologie",

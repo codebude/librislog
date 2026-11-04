@@ -6,6 +6,11 @@
     "language": "Sprache"
   },
   "nav": {
+    "mainNavigation": "Hauptnavigation",
+    "collapseSidebar": "Seitenleiste einklappen",
+    "expandSidebar": "Seitenleiste ausklappen",
+    "collapse": "Einklappen",
+    "sidebar": "Seitenleiste",
     "dashboard": "Dashboard",
     "library": "Bibliothek",
     "timeline": "Zeitleiste",

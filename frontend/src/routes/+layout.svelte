@@ -12,7 +12,9 @@
 	import { _, setupI18n } from '#lib/i18n/index.js';
 	import { setTimezone, setQuoteServiceEnabled } from '#lib/stores/timezone.js';
 	import { loadThemeFromStorage, applyThemeToDocument, setThemeMode, setCustomTheme, saveThemeToStorage, sanitizeThemeMode, THEME_MODE_KEY, CUSTOM_THEME_KEY } from '#lib/stores/theme.js';
-	import { LayoutDashboard, BookOpen, ScrollText, BarChart3, Settings, CloudDownload } from '@lucide/svelte';
+	import { sidebarCollapsed, loadSidebarFromStorage, toggleSidebar, SIDEBAR_COLLAPSED_KEY } from '#lib/stores/sidebar.js';
+	import { isActivePath } from '#lib/utils/nav.js';
+	import { LayoutDashboard, BookOpen, ScrollText, BarChart3, Settings, PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
 	import { version } from '#lib/version.js';
 	import VersionLink from '#lib/components/VersionLink.svelte';
 	import { checkForUpdate, type UpdateInfo } from '#lib/stores/updateCheck.js';
@@ -28,6 +30,7 @@
 	if (typeof window !== 'undefined') {
 		loadThemeFromStorage();
 		applyThemeToDocument();
+		loadSidebarFromStorage();
 	}
 
 	let addBookOpen = $state(false);
@@ -62,6 +65,7 @@
 	}
 
 		onMount(async () => {
+		window.addEventListener('storage', handleSidebarStorage);
 		initAuthSync(() => {
 			currentUser.set(null);
 			csrfToken.set(null);
@@ -183,7 +187,10 @@
 		});
 	});
 
-	onDestroy(() => clearInterval(versionInterval));
+	onDestroy(() => {
+		window.removeEventListener('storage', handleSidebarStorage);
+		clearInterval(versionInterval);
+	});
 
 	const NAV_ITEMS = $derived.by(() => {
 		const items = [
@@ -197,6 +204,12 @@
 		}
 		return items;
 	});
+
+	function handleSidebarStorage(event: StorageEvent): void {
+		if (event.key === SIDEBAR_COLLAPSED_KEY) {
+			loadSidebarFromStorage();
+		}
+	}
 
 	function pageTitle() {
 		if (!i18nReady) return 'LibrisLog';
@@ -281,22 +294,52 @@
 		<!-- Floating user menu (desktop) -->
 		<div class="hidden md:block"><UserMenu updateInfo={updateInfo} /></div>
 		<!-- Sidebar (desktop) -->
-	<aside class="hidden md:flex flex-col w-56 bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4">
-			<a href="/" class="flex items-center gap-2 py-2 px-1">
+	<aside
+		id="app-sidebar"
+		class="hidden md:flex flex-col {$sidebarCollapsed ? 'w-20' : 'w-56'} bg-base-100 shadow-md fixed top-0 left-0 h-full z-30 p-4 gap-4 transition-[width] duration-200 motion-reduce:transition-none"
+		aria-label={$_('nav.sidebar')}
+	>
+			<a href="/" class="flex items-center gap-2 py-2 px-1 {$sidebarCollapsed ? 'justify-center' : ''}">
 				<Logo class="w-8 h-8" />
-				<div class="text-xl font-bold tracking-tight">{$_('app.title')}</div>
+				<div class="text-xl font-bold tracking-tight" class:sr-only={$sidebarCollapsed}>{$_('app.title')}</div>
 			</a>
-			<nav class="flex flex-col gap-1 flex-1">
+			<button
+				type="button"
+				class="btn btn-ghost btn-sm text-xs font-normal {$sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-2'}"
+				class:tooltip={$sidebarCollapsed}
+				class:tooltip-right={$sidebarCollapsed}
+				aria-controls="app-sidebar"
+				aria-expanded={!$sidebarCollapsed}
+				aria-label={$sidebarCollapsed ? $_('nav.expandSidebar') : $_('nav.collapseSidebar')}
+				onclick={toggleSidebar}
+			>
+				{#if $sidebarCollapsed}
+					<PanelLeftOpen class="w-4 h-4 shrink-0" />
+					<span class="tooltip-content" aria-hidden="true">{$_('nav.expandSidebar')}</span>
+				{:else}
+					<PanelLeftClose class="w-4 h-4 shrink-0" />
+					<span class="truncate">{$_('nav.collapse')}</span>
+				{/if}
+			</button>
+			<nav class="flex flex-col gap-1 flex-1" aria-label={$_('nav.mainNavigation')}>
 				{#each NAV_ITEMS as item}
 					<a
 						href={item.href}
-						class="btn btn-ghost btn-sm justify-start gap-2 font-normal rounded-xl"
-				>
-					<item.Icon class="w-4 h-4" />{$_(item.labelKey)}
-				</a>
+						class="btn btn-ghost btn-sm font-normal rounded-xl {$sidebarCollapsed ? 'justify-center px-0' : 'justify-start gap-2'}"
+						class:btn-active={isActivePath(page.url.pathname, item.href)}
+						class:tooltip={$sidebarCollapsed}
+						class:tooltip-right={$sidebarCollapsed}
+						aria-current={isActivePath(page.url.pathname, item.href) ? 'page' : undefined}
+					>
+						<item.Icon class="w-4 h-4 shrink-0" />
+						<span class:sr-only={$sidebarCollapsed}>{$_(item.labelKey)}</span>
+						{#if $sidebarCollapsed}
+							<span class="tooltip-content" aria-hidden="true">{$_(item.labelKey)}</span>
+						{/if}
+					</a>
 				{/each}
 			</nav>
-		<div class="flex items-center gap-2 text-[10px] text-base-content/40 px-1 mt-auto">
+		<div class="flex {$sidebarCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-2'} text-[10px] text-base-content/40 px-1 mt-auto">
 				<a
 					href="https://github.com/codebude/librislog"
 					target="_blank"
@@ -314,12 +357,29 @@
 						></path>
 					</svg>
 				</a>
-				<span><VersionLink updateInfo={updateInfo} /></span>
+				{#if $sidebarCollapsed && updateInfo}
+					<div class="tooltip tooltip-right">
+						<a
+							href={updateInfo.releaseUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							aria-label={$_('toasts.newVersion', { values: { version: updateInfo.latestVersion } })}
+						>
+							<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+						</a>
+						<span class="tooltip-content" aria-hidden="true"
+							>{$_('toasts.newVersion', { values: { version: updateInfo.latestVersion } })}</span
+						>
+					</div>
+				{/if}
+				{#if !$sidebarCollapsed}
+					<span><VersionLink updateInfo={updateInfo} /></span>
+				{/if}
 			</div>
 		</aside>
 
 		<!-- Main content -->
-	<div class="flex-1 flex flex-col md:ml-56 min-h-screen min-w-0">
+	<div class="flex-1 flex flex-col {$sidebarCollapsed ? 'md:ml-20' : 'md:ml-56'} min-h-screen min-w-0 transition-[margin-left] duration-200 motion-reduce:transition-none">
 			<!-- Mobile top bar with navbar -->
 		<div class="navbar md:hidden bg-base-100 shadow-sm sticky top-0 z-20">
 				<div class="navbar-start">
@@ -338,11 +398,12 @@
 		</main>
 
 			<!-- Mobile bottom tab bar -->
-		<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 z-20 flex">
+		<nav id="mobile-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 z-20 flex" aria-label={$_('nav.mainNavigation')}>
 				{#each NAV_ITEMS as item}
 					<a
 						href={item.href}
-						class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 text-base-content/60 hover:text-base-content"
+						class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 hover:text-base-content {isActivePath(page.url.pathname, item.href) ? 'text-primary' : 'text-base-content/60'}"
+						aria-current={isActivePath(page.url.pathname, item.href) ? 'page' : undefined}
 					>
 						<item.Icon class="w-5 h-5" />
 						<span>{$_(item.labelKey)}</span>

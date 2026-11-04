@@ -9,6 +9,7 @@
 	import { getPasswordChecks, passwordChecksPassed, passwordPattern } from '#lib/password.js';
 	import { getTimezone, setTimezone, detectTimezone } from '#lib/stores/timezone.js';
 	import { getThemeMode, setThemeMode, getCustomTheme, setCustomTheme, getEffectiveTheme, applyThemeToDocument, saveThemeToStorage, sanitizeThemeMode, restoreFromPoint, saveRestorePoint, DAISYUI_THEMES, CATPPUCCIN_THEMES, isCatppuccinTheme } from '#lib/stores/theme.js';
+	import { sidebarCollapsed } from '#lib/stores/sidebar.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import ThemeSwatchPicker from '#lib/components/ThemeSwatchPicker.svelte';
 	import SearchableSelect from '#lib/components/SearchableSelect.svelte';
@@ -100,7 +101,7 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 
 	function positionNav() {
 		if (window.innerWidth < 1280) return;
-		const nav = document.querySelector('nav[aria-label]') as HTMLElement | null;
+		const nav = document.getElementById('profile-section-nav');
 		const content = document.querySelector('#profile-content') as HTMLElement | null;
 		const firstSection = document.querySelector('#section-profile') as HTMLElement | null;
 		if (!nav || !content) return;
@@ -113,11 +114,28 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 		}
 	}
 
+	// The fixed section nav is positioned from the content box, so it has to
+	// follow the sidebar width transition rather than run once.
+	$effect(() => {
+		void $sidebarCollapsed;
+		positionNav();
+		const aside = document.getElementById('app-sidebar');
+		const onTransitionEnd = (event: TransitionEvent) => {
+			if (event.target === aside && event.propertyName === 'width') positionNav();
+		};
+		aside?.addEventListener('transitionend', onTransitionEnd);
+		const fallback = setTimeout(positionNav, 300);
+		return () => {
+			aside?.removeEventListener('transitionend', onTransitionEnd);
+			clearTimeout(fallback);
+		};
+	});
+
 	function updateActiveSection() {
 		const sections = document.querySelectorAll('[id^="section-"]');
 		if (sections.length === 0) return;
 		const scrollY = window.scrollY;
-		const nav = document.querySelector('nav[aria-label]');
+		const nav = document.getElementById('profile-section-nav');
 		const offset = nav ? nav.getBoundingClientRect().height + 32 : 150;
 		let selected = sections[0];
 		for (let i = sections.length - 1; i >= 0; i--) {
@@ -1662,10 +1680,12 @@ import ShareLinkDialog from '#lib/components/ShareLinkDialog.svelte';
 </div>
 
 <!--
-	Uses xl instead of lg because at lg (1024px) the sidebar (224px) + content
-	(max-w-3xl, 768px) + nav (208px) doesn't fit without horizontal overflow.
+	Uses xl instead of lg because at lg (1024px) the sidebar (224px, or 80px
+	collapsed) + content (max-w-5xl) + nav (208px) doesn't fit without
+	horizontal overflow either way.
 -->
 <nav
+	id="profile-section-nav"
 	class="hidden xl:block fixed w-52"
 	style:top="{navTop}px"
 	style:left="{navLeft}px"
