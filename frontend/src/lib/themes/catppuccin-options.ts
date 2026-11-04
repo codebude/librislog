@@ -17,11 +17,11 @@ export const CATPPUCCIN_OPTIONS = {
  *
  * These overrides keep the palette but choose the higher-contrast token per
  * accent, and `blue` instead of lavender for primary so the main action keeps
- * a legible label. Resulting contrast for text on the accent: primary 4.3:1,
- * secondary 4.8:1, neutral 3.4:1, accent 3.0:1, warning 3.1:1, info 2.9:1,
- * success 3.0:1, error 4.8:1. Info stays just below 3:1 because that is the
- * highest-contrast palette token available; the dark flavors keep the port
- * defaults, which range from 4.1:1 to 13.9:1.
+ * a legible label. Resulting contrast for text on the accent: primary 4.34:1,
+ * secondary 4.79:1, neutral 3.49:1, accent 3.02:1, warning 3.05:1,
+ * error 4.80:1, info 2.86:1, success 2.96:1. Info and success stay just below
+ * 3:1 because that is the highest-contrast palette token available; the dark
+ * flavors keep the port defaults, which range from 4.09:1 to 13.86:1.
  */
 export const CATPPUCCIN_LATTE_OPTIONS = {
 	...CATPPUCCIN_OPTIONS,

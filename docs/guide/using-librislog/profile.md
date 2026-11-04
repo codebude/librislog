@@ -59,9 +59,9 @@ Set your preferred timezone for date/time displays (e.g., for the calendar heatm
 
 ## Theme
 
-Choose a custom DaisyUI theme from the dropdown. The theme previews in real-time as you browse the dropdown, and the selection is saved to your profile so it persists across sessions.
+Choose a custom DaisyUI theme from the swatch grid. Each tile previews the theme's surfaces and accent colors, and picking one applies it immediately. Press **Save** to keep it on your profile; leaving the page without saving restores the previous theme.
 
-The dropdown groups the four [Catppuccin](https://catppuccin.com/palette/) flavors (Latte, Frappé, Macchiato, Mocha) above the built-in DaisyUI themes. Latte is a light flavor, the other three are dark.
+The grid groups the four [Catppuccin](https://catppuccin.com/palette/) flavors (Latte, Frappé, Macchiato, Mocha) above the built-in DaisyUI themes. Latte is a light flavor, the other three are dark.
 
 ## Reading Goals
 

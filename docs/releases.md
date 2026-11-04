@@ -16,7 +16,7 @@ LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's 
 
 | Version | Date | Type |
 |---|---|---|
-| [v1.13.0](#v1-13-0-catppuccin-themes) | Unreleased | Feature release |
+| [v1.13.0](#v1-13-0-catppuccin-themes-and-theme-picker) | Unreleased | Feature release |
 | [v1.12.1](#v1-12-1-dst-chart-timezone-fixes) | 2026-11-03 | Maintenance |
 | [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | 2026-11-02 | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
@@ -40,15 +40,15 @@ LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's 
 
 ---
 
-## v1.13.0: Catppuccin Themes
+## v1.13.0: Catppuccin Themes and Theme Picker
 
 <Badge type="tip" text="Feature release" /> <Badge type="info" text="Unreleased" />
 
-**Summary:** The profile theme picker gains the four Catppuccin flavors: **Latte** (light), **Frappé**, **Macchiato**, and **Mocha** (dark). They are registered as regular DaisyUI themes from the official Catppuccin daisyUI port, appear in their own group in the theme dropdown, and preview live like the built-in themes. The port's `secondary` color is remapped to Catppuccin's mauve so chart series and secondary buttons stay visible, and Latte gets a contrast-tuned label palette. Existing themes, stored preferences, and the database stay unchanged.
+**Summary:** The profile settings gain the four Catppuccin flavors: **Latte** (light), **Frappé**, **Macchiato**, and **Mocha** (dark), and the theme selector becomes a swatch grid with live color previews. The flavors are registered as regular DaisyUI themes from the official Catppuccin daisyUI port, so preview, per-user persistence, chart colors, and the favicon work exactly as they do for the built-in themes. The port's `secondary` color is remapped to Catppuccin's mauve so chart series and secondary buttons stay visible, and Latte gets a contrast-tuned label palette. Existing themes, stored preferences, and the database stay unchanged.
 
 **Features**
 - 🌿 **Four Catppuccin flavors.** Latte is the light flavor; Frappé, Macchiato, and Mocha are dark. They are generated at build time by `@catppuccin/daisyui` and registered as ordinary DaisyUI themes, so live preview, per-user persistence, chart colors, and the favicon work exactly as they do for the built-in themes
-- 🎨 **Own group in the theme picker.** The four flavors are listed first under "Catppuccin" and labelled "Catppuccin Latte", "Catppuccin Frappé", "Catppuccin Macchiato", and "Catppuccin Mocha"; the built-in DaisyUI themes stay in a second group
+- 🎨 **Swatch-based theme picker.** Themes are now shown as tiles with a live color preview instead of a dropdown. The four Catppuccin flavors are listed first under a "Catppuccin" heading and the built-in DaisyUI themes follow in their own group. Picking a tile applies the theme immediately
 - 🖌️ **Readable secondary color.** The port maps `secondary` to a surface tone, which blends into the page in LibrisLog. It is remapped to Catppuccin's mauve, so chart series, secondary buttons, and the add-book stripe stay visible
 - ☀️ **Latte contrast tuning.** The light flavor keeps its palette but picks the higher-contrast label color per accent (light labels on the darker accents, dark labels on the pale ones) and uses blue instead of lavender for primary, so button and badge labels stay legible
 - 🖼️ **Correct favicon in every flavor.** The dark favicon now follows the applied theme's own `color-scheme`, so the three dark flavors get it automatically and Latte keeps the light one

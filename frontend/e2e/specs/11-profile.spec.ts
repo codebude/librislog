@@ -31,7 +31,7 @@ test.describe('Profile', () => {
 		await page.goto('/profile');
 		await page.waitForTimeout(1500);
 
-		await page.locator('select[name="custom-theme"]').selectOption('dracula');
+		await page.locator('[data-theme-option="dracula"]').click();
 
 		await page.locator('#section-theme button[class*="btn-primary"]').click();
 		await page.waitForTimeout(1000);
@@ -48,21 +48,26 @@ test.describe('Profile', () => {
 		await page.waitForTimeout(1500);
 
 		const catppuccinOptions = await page
-			.locator('select[name="custom-theme"] optgroup[label="Catppuccin"] option')
-			.evaluateAll((options) =>
-				options.map((option) => ({
-					value: (option as HTMLOptionElement).value,
-					label: option.textContent?.trim()
+			.locator('[data-theme-group="Catppuccin"] [data-theme-option]')
+			.evaluateAll((tiles) =>
+				tiles.map((tile) => ({
+					value: tile.getAttribute('data-theme-option'),
+					label: tile.textContent?.trim()
 				}))
 			);
 		expect(catppuccinOptions).toEqual([
-			{ value: 'latte', label: 'Catppuccin Latte' },
-			{ value: 'frappe', label: 'Catppuccin Frappé' },
-			{ value: 'macchiato', label: 'Catppuccin Macchiato' },
-			{ value: 'mocha', label: 'Catppuccin Mocha' }
+			{ value: 'latte', label: 'Latte' },
+			{ value: 'frappe', label: 'Frappé' },
+			{ value: 'macchiato', label: 'Macchiato' },
+			{ value: 'mocha', label: 'Mocha' }
 		]);
+		await expect(page.locator('[data-theme-group="DaisyUI"] [data-theme-option="mocha"]')).toHaveCount(0);
 
-		await page.locator('select[name="custom-theme"]').selectOption('mocha');
+		await page.locator('[data-theme-option="mocha"]').click();
+		// Picking previews immediately, before Save is pressed.
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+			.toBe('mocha');
 
 		await page.locator('#section-theme button[class*="btn-primary"]').click();
 		await page.waitForTimeout(1000);
@@ -89,7 +94,7 @@ test.describe('Profile', () => {
 		expect(reloadedBase).toMatch(/#1e1e2e|rgb\(30, 30, 46\)/i);
 
 		// Light direction: Latte must keep the light favicon.
-		await page.locator('select[name="custom-theme"]').selectOption('latte');
+		await page.locator('[data-theme-option="latte"]').click();
 		await page.locator('#section-theme button[class*="btn-primary"]').click();
 		await page.waitForTimeout(1000);
 		const latteTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
@@ -98,6 +103,16 @@ test.describe('Profile', () => {
 			() => document.querySelector('link[rel="icon"][type="image/svg+xml"]')?.getAttribute('href') ?? ''
 		);
 		expect(favicon).not.toContain('favicon-dark');
+
+		// An unsaved pick is a preview only and must not survive leaving the page.
+		await page.locator('[data-theme-option="frappe"]').click();
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+			.toBe('frappe');
+		await page.goto('/library');
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+			.toBe('latte');
 	});
 
 	test('11.4 create api key', async ({ page }) => {
