@@ -8,14 +8,15 @@ You can also browse the [GitHub Releases](https://github.com/codebude/librislog/
 
 ## Latest Release
 
-::: tip ⭐ v1.12.1 - DST Chart & Timezone Fixes
-LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's reading progress chart crossed a daylight-saving fall-back in the user's profile time zone, the chart's time axis could loop forever and lock up the page. Time steps now keep advancing across the transition, day, week, and month ticks stay on their local calendar boundaries, and an explicitly chosen UTC timezone is no longer replaced with the detected zone on the next login. The timezone card also has a **Use detected timezone** button to switch back to automatic detection. The new timezone flag is added by an automatic database migration.
+::: tip ⭐ v1.13.0 - Catppuccin Themes, Theme Picker & Collapsible Sidebar
+LibrisLog v1.13.0 adds the four Catppuccin color flavors (Latte, Frappé, Macchiato, Mocha) and replaces the theme dropdown with a swatch grid that previews every theme in place. The desktop sidebar can now be collapsed to an icon rail for smaller screens, and the current page is highlighted in both the sidebar and the mobile tab bar. Themes persist per user, the sidebar choice per browser. No database migration is needed.
 :::
 
 ### All releases
 
 | Version | Date | Type |
 |---|---|---|
+| [v1.13.0](#v1-13-0-catppuccin-themes-picker-and-collapsible-sidebar) | 2026-11-05 | Feature release |
 | [v1.12.1](#v1-12-1-dst-chart-timezone-fixes) | 2026-11-03 | Maintenance |
 | [v1.12.0](#v1-12-0-mass-tag-editor-profile-pictures-authentication-methods) | 2026-11-02 | Feature release |
 | [v1.11.0](#v1-11-0-reading-sessions-re-reads) | 2026-10-24 | Feature release |
@@ -36,6 +37,29 @@ LibrisLog v1.12.1 fixes a browser freeze in the book detail view. When a book's 
 | [v1.1.1](#v1-1-1-maintenance) | 2026-06-01 | Maintenance |
 | [v1.1.0](#v1-1-0-polish-missing-covers) | 2026-05-31 | Feature release |
 | [v1.0.0](#v1-0-0-initial-release) | 2026-05-28 | Initial release |
+
+---
+
+## v1.13.0: Catppuccin Themes, Picker and Collapsible Sidebar
+
+<Badge type="tip" text="Feature release" /> <Badge type="info" text="2026-11-05" />
+
+**Summary:** The profile settings gain the four Catppuccin flavors: **Latte** (light), **Frappé**, **Macchiato**, and **Mocha** (dark), and the theme selector becomes a swatch grid with live color previews. The flavors are registered as regular DaisyUI themes from the official Catppuccin daisyUI port, so preview, per-user persistence, chart colors, and the favicon work exactly as they do for the built-in themes. The port's `secondary` color is remapped to Catppuccin's mauve so chart series and secondary buttons stay visible, and Latte gets a contrast-tuned label palette. A new control under the logo also collapses the desktop sidebar to an icon rail and remembers the choice per browser. Existing themes, stored preferences, and the database stay unchanged.
+
+**Features**
+- 🧭 **Collapsible sidebar.** A button under the logo shrinks the desktop sidebar from 224 px to an 80 px icon rail with tooltips, so small laptop screens gain content width. The current page stays highlighted in both states, and the choice is stored per browser
+- 🌿 **Four Catppuccin flavors.** Latte is the light flavor; Frappé, Macchiato, and Mocha are dark. They are generated at build time by `@catppuccin/daisyui` and registered as ordinary DaisyUI themes, so live preview, per-user persistence, chart colors, and the favicon work exactly as they do for the built-in themes
+- 🎨 **Swatch-based theme picker.** Themes are now shown as tiles with a live color preview instead of a dropdown. The four Catppuccin flavors are listed first under a "Catppuccin" heading and the built-in DaisyUI themes follow in their own group. Picking a tile applies the theme immediately
+- 🖌️ **Readable secondary color.** The port maps `secondary` to a surface tone, which blends into the page in LibrisLog. It is remapped to Catppuccin's mauve, so chart series, secondary buttons, and the add-book stripe stay visible
+- ☀️ **Latte contrast tuning.** The light flavor keeps its palette but picks the higher-contrast label color per accent (light labels on the darker accents, dark labels on the pale ones) and uses blue instead of lavender for primary, so button and badge labels stay legible
+- 🖼️ **Correct favicon in every flavor.** The dark favicon now follows the applied theme's own `color-scheme`, so the three dark flavors get it automatically and Latte keeps the light one
+
+**Bug fixes**
+- 🔄 **Theme preferences are no longer re-applied on every page load.** The layout compared the stored custom theme against the wrong `localStorage` key, so each load wrote the theme back to storage and repainted the document even when nothing had changed
+
+**Breaking changes:** None. The new themes are additive, there are no API changes, and no database migration is needed (`custom_theme` already stores theme names). Downgrading removes the four themes from the picker; an account that selected one falls back to the default theme until it picks another.
+
+[Compare with v1.12.1](https://github.com/codebude/librislog/compare/v1.12.1...v1.13.0)
 
 ---
 

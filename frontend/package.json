@@ -16,6 +16,7 @@
 		"test:e2e": "docker run --rm -v $(pwd)/../data-e2e:/data alpine sh -c 'rm -rf /data/*' 2>/dev/null; mkdir -p playwright-report test-results && docker compose -f ../docker-compose.e2e.yml up --build --abort-on-container-exit --attach test-runner --no-log-prefix"
 	},
 	"devDependencies": {
+		"@catppuccin/daisyui": "^2.1.1",
 		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-auto": "^8.0.0",
 		"@sveltejs/adapter-static": "^4.0.0",

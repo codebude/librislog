@@ -6,6 +6,11 @@
     "language": "Language"
   },
   "nav": {
+    "mainNavigation": "Main navigation",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "collapse": "Collapse",
+    "sidebar": "Sidebar",
     "dashboard": "Dashboard",
     "library": "Library",
     "timeline": "Timeline",

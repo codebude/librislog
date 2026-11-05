@@ -1,7 +1,7 @@
 export type ThemeMode = 'light' | 'dark' | 'custom';
 import { invalidateColorCache } from '#lib/chartjs/theme.js';
 
-const DAISYUI_THEMES = [
+const BUILTIN_THEMES = [
 	'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro',
 	'cyberpunk', 'valentine', 'halloween', 'garden', 'forest', 'aqua',
 	'lofi', 'pastel', 'fantasy', 'wireframe', 'black', 'luxury', 'dracula',
@@ -10,7 +10,32 @@ const DAISYUI_THEMES = [
 	'librislog'
 ] as const;
 
+/** Catppuccin flavors, registered in app.css from the official daisyUI port. */
+export const CATPPUCCIN_THEMES = ['latte', 'frappe', 'macchiato', 'mocha'] as const;
+
+const DAISYUI_THEMES = [...BUILTIN_THEMES, ...CATPPUCCIN_THEMES] as const;
+
 export type DaisyUITheme = (typeof DAISYUI_THEMES)[number];
+
+/** Whether a theme name belongs to the Catppuccin group in the picker. */
+export function isCatppuccinTheme(theme: string): boolean {
+	return (CATPPUCCIN_THEMES as readonly string[]).includes(theme);
+}
+
+/** Display names for themes whose raw daisyUI name is not self-explanatory. */
+export const THEME_LABELS: Partial<Record<DaisyUITheme, string>> = {
+	latte: 'Catppuccin Latte',
+	frappe: 'Catppuccin Frappé',
+	macchiato: 'Catppuccin Macchiato',
+	mocha: 'Catppuccin Mocha'
+};
+
+/** Human-readable label for a theme name, falling back to a capitalised name. */
+export function themeLabel(theme: string): string {
+	return Object.hasOwn(THEME_LABELS, theme)
+		? (THEME_LABELS[theme as DaisyUITheme] as string)
+		: theme.charAt(0).toUpperCase() + theme.slice(1);
+}
 
 export const THEME_MODE_KEY = 'librislog_theme_mode';
 export const CUSTOM_THEME_KEY = 'librislog_custom_theme';
@@ -99,11 +124,29 @@ import { writable } from 'svelte/store';
 
 export const themeApplyCount = writable(0);
 
-const DARK_THEMES: readonly string[] = ['synthwave', 'halloween', 'forest', 'dracula', 'black', 'luxury', 'night', 'coffee', 'dim', 'abyss', 'sunset', 'business'];
+const DARK_THEMES: readonly string[] = ['synthwave', 'halloween', 'forest', 'dracula', 'black', 'luxury', 'night', 'coffee', 'dim', 'abyss', 'sunset', 'business', 'frappe', 'macchiato', 'mocha'];
+
+/** Fallback classification for custom daisyUI theme names (`dark` included). */
+export function isDarkThemeName(theme: string): boolean {
+	return theme === 'dark' || DARK_THEMES.includes(theme);
+}
+
+/**
+ * Resolve whether the applied theme is dark from the theme's own
+ * `color-scheme`, so newly added themes need no entry in DARK_THEMES.
+ */
+function currentThemeIsDark(): boolean {
+	if (_themeMode === 'dark') return true;
+	if (_themeMode !== 'custom') return false;
+	if (typeof document !== 'undefined' && typeof getComputedStyle === 'function') {
+		const scheme = getComputedStyle(document.documentElement).getPropertyValue('color-scheme').trim();
+		if (scheme === 'dark' || scheme === 'light') return scheme === 'dark';
+	}
+	return isDarkThemeName(getEffectiveTheme());
+}
 
 function updateFavicon() {
-	const effective = getEffectiveTheme();
-	const isDark = _themeMode === 'dark' || (_themeMode === 'custom' && DARK_THEMES.includes(effective));
+	const isDark = currentThemeIsDark();
 	const href = isDark ? '/favicon/favicon-dark.svg' : '/favicon/favicon.svg';
 	const link = document.querySelector('link[rel="icon"][type="image/svg+xml"]') as HTMLLinkElement | null;
 	if (link && link.href !== new URL(href, location.href).href) {

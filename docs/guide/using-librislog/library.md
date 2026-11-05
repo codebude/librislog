@@ -26,6 +26,8 @@ Each book can also have an optional medium: Print, eBook, Audiobook, Comic / Gra
 ## Navigation
 
 - Switch between tabs using the bottom navigation bar on mobile or the sidebar on desktop
+- Use the button under the logo to collapse the desktop sidebar to an icon-only rail; the choice is remembered in your browser
+- The current page is highlighted in the sidebar and the mobile tab bar
 - Books are displayed as cards with cover images, titles, and authors
 - Click any book to open the detail view
 

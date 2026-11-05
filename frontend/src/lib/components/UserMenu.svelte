@@ -4,7 +4,7 @@
 	import { broadcastLogout, currentUser, csrfToken } from '#lib/stores/auth.js';
 	import type { UpdateInfo } from '#lib/stores/updateCheck.js';
 	import { _ } from '#lib/i18n/index.js';
-	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion } from '#lib/stores/theme.js';
+	import { cycleTheme, applyThemeToDocument, saveThemeToStorage, getThemeMode, getThemeIcon, getCustomTheme, getThemeVersion, themeLabel as formatThemeLabel, clearRestorePoint } from '#lib/stores/theme.js';
 	import UserAvatar from '#lib/components/UserAvatar.svelte';
 	import { Sun, Moon, Palette, CloudDownload, ExternalLink } from '@lucide/svelte';
 
@@ -24,7 +24,7 @@
 		switch (themeMode) {
 			case 'light': return $_('settings.themeLight');
 			case 'dark': return $_('settings.themeDark');
-			case 'custom': return getCustomTheme() ? getCustomTheme()!.charAt(0).toUpperCase() + getCustomTheme()!.slice(1) : $_('settings.themeCustom');
+			case 'custom': return getCustomTheme() ? formatThemeLabel(getCustomTheme()!) : $_('settings.themeCustom');
 		}
 	});
 
@@ -55,6 +55,8 @@
 		themeIcon = getThemeIcon();
 		themeMode = getThemeMode();
 		themeVersion = getThemeVersion();
+		// This change is persisted here, so the profile page must not revert it.
+		clearRestorePoint();
 		applyThemeToDocument();
 		saveThemeToStorage();
 		if ($currentUser) {
