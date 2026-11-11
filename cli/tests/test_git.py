@@ -66,6 +66,12 @@ class TestRemoteOriginBranches:
         mock_subprocess(stdout="")
         assert remote_origin_branches() == []
 
+    def test_skips_head_symlink(self, mock_subprocess):
+        mock_subprocess(
+            stdout="origin/HEAD -> origin/main\norigin/main\norigin/develop\n"
+        )
+        assert remote_origin_branches() == ["main", "develop"]
+
 
 class TestFetchTags:
     def test_returns_sorted_tags(self, mock_subprocess):

@@ -63,7 +63,13 @@ def remote_origin_branches() -> list[str]:
     result = _run_git(["branch", "-r", "--format=%(refname:short)"])
     branches = [b.strip() for b in result.stdout.strip().splitlines() if b.strip()]
     prefix = "origin/"
-    return [b[len(prefix):] for b in branches if b.startswith(prefix) and b != "origin/HEAD"]
+    # Skip the HEAD symbolic ref ("origin/HEAD -> origin/main" on modern git;
+    # plain "origin/HEAD" on old output): it is not a mergeable branch.
+    return [
+        b[len(prefix):]
+        for b in branches
+        if b.startswith(prefix) and b != "origin/HEAD" and "->" not in b
+    ]
 
 
 def fetch_tags(pattern: str = "v*") -> list[str]:
